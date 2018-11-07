@@ -40,7 +40,6 @@ class AssetsResponse(TigerResponse):
                         if value is None:
                             continue
                         tag = ACCOUNT_FIELD_MAPPINGS[key] if key in ACCOUNT_FIELD_MAPPINGS else camel_to_underline(key)
-                        print(tag)
                         if hasattr(summary, tag):
                             setattr(summary, tag, value)
                         elif 'market_values' == tag:
