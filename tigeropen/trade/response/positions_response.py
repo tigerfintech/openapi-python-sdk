@@ -57,9 +57,9 @@ class PositionsResponse(TigerResponse):
                     strike = contract_fields.get('strike')
                     right = contract_fields.get('right')
                     multiplier = contract_fields.get('multiplier')
-                    contract = Contract(symbol, currency, contract_id=contract_id, consec_type=sec_type, exchange=exchange,
-                                        origin_symbol=origin_symbol, local_symbol=local_symbol, expiry=expiry,
-                                        strike=strike, right=right, multiplier=multiplier)
+                    contract = Contract(symbol, currency, contract_id=contract_id, sec_type=sec_type,
+                                        exchange=exchange, origin_symbol=origin_symbol, local_symbol=local_symbol,
+                                        expiry=expiry, strike=strike, right=right, multiplier=multiplier)
                     account = position_fields.get('account')
                     quantity = position_fields.get('quantity')
                     average_cost = position_fields.get('average_cost')
