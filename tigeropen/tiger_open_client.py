@@ -126,6 +126,7 @@ class TigerOpenClient(object):
         query_string = None
         params = self.__prepare_request(request)
 
-        response = do_post(self.__config.server_url, query_string, self.__headers, params, self.__config.timeout)
+        response = do_post(self.__config.server_url, query_string, self.__headers, params, self.__config.timeout,
+                           self.__config.charset)
 
         return self.__parse_response(response, params.get('timestamp'))

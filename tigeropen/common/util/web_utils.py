@@ -54,7 +54,7 @@ def get_http_connection(url, query_string, timeout):
     return url, connection
 
 
-def do_post(url, query_string=None, headers=None, params=None, timeout=15):
+def do_post(url, query_string=None, headers=None, params=None, timeout=15, charset=None):
     url, connection = get_http_connection(url, query_string, timeout)
 
     try:
@@ -66,10 +66,13 @@ def do_post(url, query_string=None, headers=None, params=None, timeout=15):
     except Exception as e:
         raise RequestException('[' + THREAD_LOCAL.uuid + ']post request failed. ' + str(e))
     response = connection.getresponse()
-    if response.status is not 200:
-        raise ResponseException('[' + THREAD_LOCAL.uuid + ']invalid http status ' + str(response.status) + \
-                                ',detail body:' + response.read())
     result = response.read()
+
+    if response.status is not 200:
+        if PYTHON_VERSION_3 and charset:
+            result = result.decode(charset)
+        raise ResponseException('[' + THREAD_LOCAL.uuid + ']invalid http status ' + str(response.status) +
+                                ',detail body:' + result)
     try:
         response.close()
         connection.close()
