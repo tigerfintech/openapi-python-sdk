@@ -43,7 +43,7 @@ def get_account_info():
         if response.is_success():
             print("get response data:" + response.data)
         else:
-            print(response.code + "," + response.msg + "," + response.data)
+            print(str(response.code) + "," + response.msg + "," + response.data)
 
 
 def get_account_apis():
