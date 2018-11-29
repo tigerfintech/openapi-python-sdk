@@ -7,10 +7,7 @@ Created on 2018/9/20
 
 import base64
 import json
-
-from Crypto.Signature import PKCS1_v1_5
-from Crypto.Hash import SHA
-from Crypto.PublicKey import RSA
+import rsa
 
 from tigeropen.common.consts import PYTHON_VERSION_3
 from tigeropen.common.util.string_utils import add_start_end
@@ -34,7 +31,8 @@ def read_private_key(key_file):
     :return:
     """
     key_str = open(key_file, 'r').read()
-    return key_str.replace('-----BEGIN RSA PRIVATE KEY-----\n', '').replace('\n-----END RSA PRIVATE KEY-----', '').strip()
+    return key_str.replace('-----BEGIN RSA PRIVATE KEY-----\n', '').replace(
+        '\n-----END RSA PRIVATE KEY-----', '').strip()
 
 
 def read_public_key(key_file):
@@ -59,7 +57,7 @@ def sign_with_rsa(private_key, sign_content, charset):
     if PYTHON_VERSION_3:
         sign_content = sign_content.encode(charset)
     private_key = fill_private_key_marker(private_key)
-    signature = PKCS1_v1_5.new(RSA.importKey(private_key)).sign(SHA.new(sign_content))
+    signature = rsa.sign(sign_content, rsa.PrivateKey.load_pkcs1(private_key, format='PEM'), 'SHA-1')
     sign = base64.b64encode(signature)
     if PYTHON_VERSION_3:
         sign = str(sign, encoding=charset)
@@ -69,4 +67,4 @@ def sign_with_rsa(private_key, sign_content, charset):
 def verify_with_rsa(public_key, message, sign):
     public_key = fill_public_key_marker(public_key)
     sign = base64.b64decode(sign)
-    return PKCS1_v1_5.new(RSA.importKey(public_key)).verify(SHA.new(message), sign)
+    return rsa.verify(message, sign, rsa.PublicKey.load_pkcs1_openssl_pem(public_key))
