@@ -59,15 +59,15 @@ def trade_apis():
     openapi_client = TradeClient(client_config, logger=logger)
     contract = openapi_client.get_contracts('AAPL')[0]
     order = openapi_client.create_order(account, contract, 'BUY', 'LMT', 100, limit_price=5.0)
-    order_id = order.order_id
+    order_id = order.order_id  # you can operate order via id too
     openapi_client.place_order(order)
-    new_order = openapi_client.get_order(order.order_id)
+    new_order = openapi_client.get_order(order_id=order.order_id)
     assert order.order_id == new_order.order_id
     openapi_client.modify_order(new_order, quantity=150)
-    new_order = openapi_client.get_order(order_id)
+    new_order = openapi_client.get_order(order_id=order_id)
     assert new_order.quantity == 150
-    openapi_client.cancel_order(order_id)
-    new_order = openapi_client.get_order(order_id)
+    openapi_client.cancel_order(order_id=order_id)
+    new_order = openapi_client.get_order(order_id=order_id)
     assert new_order.status == ORDER_STATUS.CANCELLED or new_order.status == ORDER_STATUS.PENDING_CANCEL
 
 

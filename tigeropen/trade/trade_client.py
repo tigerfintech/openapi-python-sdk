@@ -154,9 +154,10 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_order(self, order_id, is_brief=False):
+    def get_order(self, id=None, order_id=None, is_brief=False):
         params = OrderParams()
         params.account = self._account
+        params.id = id
         params.order_id = order_id
         params.is_brief = is_brief
         request = OpenApiRequest(ORDERS, biz_model=params)
@@ -213,7 +214,8 @@ class TradeClient(TigerOpenClient):
             response = OrderIdResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.order_id == order.order_id
+                order.id = response.id
+                return response.order_id == order.order_id if order.order_id else True
             else:
                 raise ApiException(response.code, response.message)
 
@@ -225,6 +227,7 @@ class TradeClient(TigerOpenClient):
         params = PlaceModifyOrderParams()
         params.account = order.account
         params.order_id = order.order_id
+        params.id = order.id
         params.contract = order.contract
         params.action = order.action
         params.order_type = order.order_type
@@ -242,23 +245,24 @@ class TradeClient(TigerOpenClient):
             response = OrderIdResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.order_id == order.order_id
+                return response.order_id == order.order_id if order.order_id else response.id == order.id
             else:
                 raise ApiException(response.code, response.message)
 
         return False
 
-    def cancel_order(self, order_id):
+    def cancel_order(self, id=None, order_id=None):
         params = CancelOrderParams()
         params.account = self._account
         params.order_id = order_id
+        params.id = id
         request = OpenApiRequest(CANCEL_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
             response = OrderIdResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.order_id == order_id
+                return response.order_id == order_id if order.order_id else response.id == order.id
             else:
                 raise ApiException(response.code, response.message)
 
