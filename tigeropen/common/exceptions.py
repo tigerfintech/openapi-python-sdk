@@ -12,7 +12,7 @@ class ApiException(Exception):
         self.msg = msg
 
     def __str__(self, *args, **kwargs):
-        sb = "code=" + self.code + \
+        sb = "code=" + str(self.code) + \
              " msg=" + self.msg
         return sb
 
