@@ -3,6 +3,5 @@ simplejson
 python-dateutil
 pytz
 pyasn1==0.4.2
-rsa==3.4.2
-pycrypto
+rsa==4.0
 stomp.py
