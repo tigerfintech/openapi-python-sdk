@@ -14,7 +14,10 @@ ORDER_STATUS = Enum('OrderStatus', ('PENDING_NEW', 'NEW', 'HELD', 'PARTIALLY_FIL
 
 
 class Order(object):
-    
+    __slots__ = ["id", "order_time", "reason", "trade_time", "contract", "action", "quantity", "filled", "_remaining",
+                 "avg_fill_price", "commission", "_status", "trail_stop_price", "limit_price", "aux_price",
+                 "trailing_percent", "percent_offset", "action", "order_type", "time_in_force"]
+
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
                  outside_rth=None, filled=0, avg_fill_price=0, commission=None, realized_pnl=None,
