@@ -10,7 +10,7 @@ install_requires = ['six', 'simplejson', 'python-dateutil', 'pytz', 'pyasn1==0.4
 
 setup(
     name='tigeropen',
-    version='1.0.5',
+    version='1.0.6',
     description='TigerBrokers Open API',
     packages=find_packages(exclude=[]),
     author='TigerBrokers',
