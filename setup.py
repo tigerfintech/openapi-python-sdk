@@ -22,7 +22,7 @@ req_strs = [str(ir.req) for ir in requirements]
 
 setup(
     name='tigeropen',
-    version='1.0.1',
+    version='1.0.4',
     description='TigerBrokers Open API',
     packages=find_packages(exclude=[]),
     author='tigerbrokers',
