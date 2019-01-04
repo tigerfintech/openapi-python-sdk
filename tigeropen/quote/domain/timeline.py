@@ -12,3 +12,6 @@ class Timeline(object):
         self.price = None
         self.avg_price = None
         self.volume = None
+
+    def __repr__(self):
+        return "Timeline(%s)" % self.__dict__

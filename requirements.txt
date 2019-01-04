@@ -1,5 +1,7 @@
 six
 simplejson
+delorean
+pandas
 python-dateutil
 pytz
 pyasn1==0.4.2

@@ -6,7 +6,7 @@ Created on 2018/9/16
 """
 from setuptools import find_packages, setup
 
-install_requires = ['six', 'simplejson', 'python-dateutil', 'pytz', 'pyasn1==0.4.4', 'rsa==4.0', 'stomp.py']
+install_requires = ['six', 'simplejson', 'delorean', 'pandas', 'python-dateutil', 'pytz', 'pyasn1==0.4.4', 'rsa==4.0', 'stomp.py']
 
 setup(
     name='tigeropen',

@@ -455,8 +455,8 @@ class PlaceModifyOrderParams(object):
                 params['expiry'] = self.contract.expiry
             if self.contract.strike is not None:
                 params['strike'] = self.contract.strike
-            if self.contract.right is not None:
-                params['right'] = self.contract.right
+            if self.contract.put_call is not None:
+                params['right'] = self.contract.put_call
             if self.contract.multiplier is not None:
                 params['multiplier'] = self.contract.multiplier
 

@@ -4,42 +4,49 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-
-import json
+import six
+import pandas as pd
 from tigeropen.common.response import TigerResponse
-from tigeropen.quote.domain.tick import TradeTick
+from tigeropen.common.util.string_utils import get_string
+
+COLUMNS = ['index', 'time', 'price', 'volume', 'direction']
 
 
 class TradeTickResponse(TigerResponse):
     def __init__(self):
         super(TradeTickResponse, self).__init__()
-        self.trade_ticks = []
+        self.trade_ticks = None
         self._is_success = None
-    
+
     def parse_response_content(self, response_content):
         response = super(TradeTickResponse, self).parse_response_content(response_content)
         if 'is_success' in response:
             self._is_success = response['is_success']
-        
-        if self.data:
-            data_json = json.loads(self.data)
-            if 'items' in data_json:
-                index = data_json.get('beginIndex')
-                for item in data_json['items']:
-                    trade_tick = TradeTick()
-                    
-                    for key, value in item.items():
-                        if value is None:
-                            continue
-                        if key == 'type':
-                            trade_tick.direction = value
-                        elif key == 'time':
-                            trade_tick.timestamp = value
-                        elif key == 'price':
-                            trade_tick.price = value
-                        elif key == 'volume':
-                            trade_tick.size = value
-                    if index is not None:
-                        trade_tick.index = index
-                        index += 1
-                    self.trade_ticks.append(trade_tick)
+
+        if self.data and isinstance(self.data, list):
+            tick_items = []
+            for symbol_item in self.data:
+                symbol = symbol_item.get('symbol')
+                if 'items' in symbol_item:
+                    index = symbol_item.get('beginIndex')
+
+                    for item in symbol_item['items']:
+                        item_values = {'symbol': symbol}
+
+                        for key, value in item.items():
+                            if value is None:
+                                continue
+                            if isinstance(value, six.string_types):
+                                value = get_string(value)
+
+                            if key == 'type':
+                                item_values['direction'] = value
+                            else:
+                                item_values[key] = value
+
+                        if index is not None:
+                            item_values['index'] = index
+                            index += 1
+                        tick_items.append([item_values.get(tag) for tag in COLUMNS])
+
+                self.trade_ticks = pd.DataFrame(tick_items, columns=COLUMNS)

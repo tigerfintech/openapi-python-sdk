@@ -55,3 +55,6 @@ class QuoteBrief(object):
         self.expiry = None  # 到期时间（仅港股)
 
         self.hour_trading = None  # 盘前盘后数据，可能为空（仅美股
+
+    def __repr__(self):
+        return "QuoteBrief(%s)" % self.__dict__

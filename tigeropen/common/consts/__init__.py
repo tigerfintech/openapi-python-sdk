@@ -15,7 +15,7 @@ if python_version.startswith("3"):
 else:
     PYTHON_VERSION_3 = False
 
-OPEN_API_SDK_VERSION = "1.0"
+OPEN_API_SDK_VERSION = "2.0"
 
 THREAD_LOCAL = threading.local()
 
