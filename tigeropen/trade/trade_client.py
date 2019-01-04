@@ -31,13 +31,17 @@ class TradeClient(TigerOpenClient):
         super(TradeClient, self).__init__(client_config, logger=logger)
         if client_config:
             self._account = client_config.account
+            self._standard_account = client_config.standard_account
+            self._paper_account = client_config.paper_account
             self._lang = client_config.language
         else:
             self._account = None
+            self._standard_account = None
+            self._paper_account = None
 
-    def get_managed_accounts(self):
+    def get_managed_accounts(self, account=None):
         params = AccountsParams()
-        params.account = self._account
+        params.account = account if account else self._account
         request = OpenApiRequest(ACCOUNTS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -88,10 +92,10 @@ class TradeClient(TigerOpenClient):
 
         return None
 
-    def get_positions(self, sec_type=SecurityType.STK, currency=Currency.ALL, market=Market.ALL, symbol=None,
+    def get_positions(self, account=None, sec_type=SecurityType.STK, currency=Currency.ALL, market=Market.ALL, symbol=None,
                       sub_accounts=None):
         params = PositionParams()
-        params.account = self._account
+        params.account = account if account else self._account
         if sec_type:
             params.sec_type = sec_type.value
         params.sub_accounts = sub_accounts
@@ -113,9 +117,9 @@ class TradeClient(TigerOpenClient):
 
         return None
 
-    def get_assets(self, sub_accounts=None, segment=False, market_value=False):
+    def get_assets(self, account=None, sub_accounts=None, segment=False, market_value=False):
         params = AssetParams()
-        params.account = self._account
+        params.account = account if account else self._account
         params.sub_accounts = sub_accounts
         params.segment = segment
         params.market_value = market_value
@@ -132,11 +136,12 @@ class TradeClient(TigerOpenClient):
 
         return None
 
-    def get_orders(self, sec_type=SecurityType.ALL, market=Market.ALL, symbol=None, start_time=None, end_time=None,
+    def get_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None, end_time=None,
                    limit=100, is_brief=False):
         params = OrdersParams()
-        params.account = self._account
-        params.sec_type = sec_type.value
+        params.account = account if account else self._account
+        if sec_type:
+            params.sec_type = sec_type.value
         params.market = market.value
         params.symbol = symbol
         params.start_data = start_time
@@ -154,9 +159,9 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_order(self, id=None, order_id=None, is_brief=False):
+    def get_order(self, account=None, id=None, order_id=None, is_brief=False):
         params = OrderParams()
-        params.account = self._account
+        params.account = account if account else self._account
         params.id = id
         params.order_id = order_id
         params.is_brief = is_brief
@@ -175,7 +180,7 @@ class TradeClient(TigerOpenClient):
                      trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
                      outside_rth=None):
         params = AccountsParams()
-        params.account = self._account
+        params.account = account if account else self._account
         request = OpenApiRequest(ORDER_NO, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -251,9 +256,9 @@ class TradeClient(TigerOpenClient):
 
         return False
 
-    def cancel_order(self, id=None, order_id=None):
+    def cancel_order(self, account=None, id=None, order_id=None):
         params = CancelOrderParams()
-        params.account = self._account
+        params.account = account if account else self._account
         params.order_id = order_id
         params.id = id
         request = OpenApiRequest(CANCEL_ORDER, biz_model=params)
@@ -262,7 +267,7 @@ class TradeClient(TigerOpenClient):
             response = OrderIdResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.order_id == order_id if order.order_id else response.id == order.id
+                return response.order_id == order_id if order_id else response.id == id
             else:
                 raise ApiException(response.code, response.message)
 

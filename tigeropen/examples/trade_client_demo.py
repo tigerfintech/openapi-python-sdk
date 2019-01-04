@@ -27,7 +27,7 @@ def get_account_info():
     from tigeropen.common.consts.service_types import ACCOUNTS
     openapi_client = TigerOpenClient(client_config)
     account = AccountsParams()
-    account.account = 'DU575569'
+    account.account = client_config.account
     request = OpenApiRequest(method=ACCOUNTS, biz_model=account)
 
     response_content = None
@@ -43,14 +43,17 @@ def get_account_info():
         if response.is_success():
             print("get response data:" + response.data)
         else:
-            print(str(response.code) + "," + response.msg + "," + response.data)
+            print("%d,%s,%s" % (response.code, response.message, response.data))
 
 
 def get_account_apis():
     openapi_client = TradeClient(client_config, logger=logger)
     openapi_client.get_managed_accounts()
+    # 获取订单
     openapi_client.get_orders()
+    # 获取持仓
     openapi_client.get_positions()
+    # 获取资产
     openapi_client.get_assets()
 
 

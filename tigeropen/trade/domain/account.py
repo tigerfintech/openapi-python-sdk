@@ -113,3 +113,6 @@ class PortfolioAccount(object):
     @property
     def market_values(self):
         return self._market_values
+
+    def __repr__(self):
+        return "PortfolioAccount({0})".format(self.__dict__)

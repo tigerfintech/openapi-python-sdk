@@ -6,13 +6,14 @@ Created on 2018/10/31
 """
 import json
 import six
+import pandas as pd
 from tigeropen.common.consts import TradingSession
 from tigeropen.common.util.string_utils import get_string
 from tigeropen.quote.domain.quote_brief import HourTrading
-from tigeropen.quote.domain.timeline import Timeline
 from tigeropen.common.response import TigerResponse
 
-TIMELINE_FIELD_MAPPINGS = {'time': 'latest_time', 'avgPrice': 'avg_price'}
+COLUMNS = ['time', 'price', 'avg_price', 'pre_close', 'volume']
+TIMELINE_FIELD_MAPPINGS = {'avgPrice': 'avg_price'}
 BRIEF_FIELD_MAPPINGS = {'open': 'open_price', 'high': 'high_price', 'low': 'low_price', 'preClose': 'prev_close',
                         'latestPrice': 'latest_price'}
 
@@ -31,6 +32,7 @@ class QuoteHourTradingTimelineResponse(TigerResponse):
 
         if self.data:
             data_json = json.loads(self.data)
+            pre_close = data_json.get('preClose')
             if 'detail' in data_json:
                 detail = data_json['detail']
                 hour_trading = HourTrading()
@@ -53,14 +55,16 @@ class QuoteHourTradingTimelineResponse(TigerResponse):
                             setattr(hour_trading, tag, value)
                 self.hour_trading = hour_trading
             if 'items' in data_json:
+                timeline_items = []
                 for item in data_json['items']:
-                    timeline = Timeline()
+                    item_values = {'pre_close': pre_close}
                     for key, value in item.items():
                         if value is None:
                             continue
                         if isinstance(value, six.string_types):
                             value = get_string(value)
                         tag = TIMELINE_FIELD_MAPPINGS[key] if key in TIMELINE_FIELD_MAPPINGS else key
-                        if hasattr(timeline, tag):
-                            setattr(timeline, tag, value)
-                    self.timelines.append(timeline)
+                        item_values[tag] = value
+                    timeline_items.append([item_values.get(tag) for tag in COLUMNS])
+
+                self.timelines = pd.DataFrame(timeline_items, columns=COLUMNS)

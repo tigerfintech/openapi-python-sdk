@@ -263,7 +263,7 @@ class PushClient(object):
         headers['req-type'] = RequestType.REQ_SUB_SYMBOLS.value
         self.stomp_connection.send('quote', "{}", headers=headers)
 
-    def unsubscribe_quote(self, id=None, symbols=None):
+    def unsubscribe_quote(self, symbols=None, id=None):
         """
         退订行情更新
         :return:
