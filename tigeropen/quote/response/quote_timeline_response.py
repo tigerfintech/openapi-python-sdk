@@ -10,7 +10,7 @@ import pandas as pd
 from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.response import TigerResponse
 
-COLUMNS = ['time', 'price', 'avg_price', 'pre_close', 'volume', 'trading_session']
+COLUMNS = ['symbol', 'time', 'price', 'avg_price', 'pre_close', 'volume', 'trading_session']
 TIMELINE_FIELD_MAPPINGS = {'avgPrice': 'avg_price'}
 
 
@@ -27,13 +27,14 @@ class QuoteTimelineResponse(TigerResponse):
 
         if self.data and isinstance(self.data, list):
             for symbol_item in self.data:
+                symbol = symbol_item.get('symbol')
                 pre_close = symbol_item.get('preClose')
                 timeline_items = []
                 if 'preMarket' in symbol_item:  # 盘前
                     pre_markets = symbol_item['preMarket'].get('items')
                     if pre_markets:
                         for item in pre_markets:
-                            item_values = self.parse_timeline(item, pre_close, 'pre_market')
+                            item_values = self.parse_timeline(item, symbol, pre_close, 'pre_market')
                             timeline_items.append([item_values.get(tag) for tag in COLUMNS])
 
                 if 'intraday' in symbol_item:  # 盘中
@@ -44,21 +45,21 @@ class QuoteTimelineResponse(TigerResponse):
                     regulars = None
                 if regulars:
                     for item in regulars:
-                        item_values = self.parse_timeline(item, pre_close, 'regular')
+                        item_values = self.parse_timeline(item, symbol, pre_close, 'regular')
                         timeline_items.append([item_values.get(tag) for tag in COLUMNS])
 
                 if 'afterHours' in symbol_item:  # 盘后
                     after_hours = symbol_item['afterHours'].get('items')
                     if after_hours:
                         for item in after_hours:
-                            item_values = self.parse_timeline(item, pre_close, 'after_hours')
+                            item_values = self.parse_timeline(item, symbol, pre_close, 'after_hours')
                             timeline_items.append([item_values.get(tag) for tag in COLUMNS])
 
             self.timelines = pd.DataFrame(timeline_items, columns=COLUMNS)
 
     @staticmethod
-    def parse_timeline(item, pre_close, trading_session):
-        item_values = {'pre_close': pre_close, 'trading_session': trading_session}
+    def parse_timeline(item, symbol, pre_close, trading_session):
+        item_values = {'symbol': symbol, 'pre_close': pre_close, 'trading_session': trading_session}
         for key, value in item.items():
             if value is None:
                 continue
