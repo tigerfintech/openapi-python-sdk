@@ -26,13 +26,14 @@ class OptionTradeTickResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data and isinstance(self.data, list):
+            tick_items = []
             for symbol_item in self.data:
                 if 'items' in symbol_item and len(symbol_item['items']) > 0:
                     symbol = symbol_item.get('symbol')
                     put_call = symbol_item.get('right').upper()
                     expiry = pd.Timestamp(symbol_item.get('expiry'), unit='ms', tzinfo=eastern).date()
                     strike = float(symbol_item.get('strike'))
-                    tick_items = []
+
                     for item in symbol_item['items']:
                         item_values = {'symbol': symbol, 'expiry': expiry, 'put_call': put_call, 'strike': strike}
                         for key, value in item.items():
