@@ -24,7 +24,9 @@ from tigeropen.quote.response.option_quote_ticks_response import OptionTradeTick
 from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
+from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
 from tigeropen.quote.response.stock_short_interest_response import ShortInterestResponse
+from tigeropen.quote.response.stock_trade_meta_response import TradeMetaResponse
 from tigeropen.quote.response.symbol_names_response import SymbolNamesResponse
 from tigeropen.quote.response.symbols_response import SymbolsResponse
 from tigeropen.tiger_open_client import TigerOpenClient
@@ -34,11 +36,11 @@ from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, Mul
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
 from tigeropen.quote.response.market_status_response import MarketStatusResponse
-from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, STOCK_DETAIL, \
+from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
     FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
-    FUTURE_CURRENT_CONTRACT
+    FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod
 from tigeropen.common.util.contract_utils import extract_option_info
 from tigeropen.common.util.common_utils import eastern
@@ -121,6 +123,27 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
+    def get_trade_metas(self, symbols):
+        """
+        获取股票交易需要的信息(最新数量和报价单位等)
+        :param 股票代号列表
+        :return:
+        """
+        params = MultipleQuoteParams()
+        params.symbols = symbols
+
+        request = OpenApiRequest(QUOTE_STOCK_TRADE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = TradeMetaResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.metas
+            else:
+                raise ApiException(response.code, response.message)
+
+        return None
+
     def get_briefs(self, symbols, include_hour_trading=False, include_ask_bid=False, right=QuoteRight.BR, lang=None):
         """
         获取股票摘要
@@ -150,9 +173,9 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_details(self, symbols, lang=None):
+    def get_stock_briefs(self, symbols, lang=None):
         """
-        获取股票详情(废弃)
+        获取股票实时行情
         :param symbols: 股票代号列表
         :param lang: 语言支持: zh_CN,zh_TW,en_US
         :return:
@@ -161,9 +184,17 @@ class QuoteClient(TigerOpenClient):
         params.symbols = symbols
         params.lang = lang.value if lang else self._lang.value
 
-        request = OpenApiRequest(STOCK_DETAIL, biz_model=params)
+        request = OpenApiRequest(QUOTE_REAL_TIME, biz_model=params)
         response_content = self.__fetch_data(request)
-        return response_content
+        if response_content:
+            response = StockBriefsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.briefs
+            else:
+                raise ApiException(response.code, response.message)
+
+        return None
 
     def get_timeline(self, symbols, include_hour_trading=False, begin_time=-1, lang=None):
         """

@@ -50,6 +50,6 @@ class OptionBriefsResponse(TigerResponse):
                     expiry = pd.Timestamp(expiry, unit='ms', tzinfo=eastern).date().strftime("%Y%m%d")
                     item_values['identifier'] = get_option_identifier(underlying_symbol, expiry, put_call, strike)
 
-            brief_data.append([item_values.get(tag) for tag in COLUMNS])
+                brief_data.append([item_values.get(tag) for tag in COLUMNS])
 
             self.briefs = pd.DataFrame(brief_data, columns=COLUMNS)
