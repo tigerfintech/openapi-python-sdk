@@ -8,6 +8,8 @@ import six
 import pandas as pd
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.string_utils import get_string
+from tigeropen.common.util.common_utils import eastern
+from tigeropen.common.util.contract_utils import get_option_identifier
 
 COLUMNS = ['identifier', 'symbol', 'expiry', 'strike', 'put_call', 'multiplier', 'ask_price', 'ask_size', 'bid_price',
            'bid_size', 'pre_close', 'latest_price', 'latest_time', 'volume', 'open_interest', 'open', 'high', 'low']
@@ -40,6 +42,14 @@ class OptionBriefsResponse(TigerResponse):
                         value = value.upper()
                     tag = BRIEF_FIELD_MAPPINGS[key] if key in BRIEF_FIELD_MAPPINGS else key
                     item_values[tag] = value
+                if 'identifier' not in item_values:
+                    underlying_symbol = item_values.get('symbol')
+                    expiry = item_values.get('expiry')
+                    strike = float(item_values.get('strike'))
+                    put_call = item_values.get('right')
+                    expiry = pd.Timestamp(expiry, unit='ms', tzinfo=eastern).date().strftime("%Y%m%d")
+                    item_values['identifier'] = get_option_identifier(underlying_symbol, expiry, put_call, strike)
+
             brief_data.append([item_values.get(tag) for tag in COLUMNS])
 
             self.briefs = pd.DataFrame(brief_data, columns=COLUMNS)

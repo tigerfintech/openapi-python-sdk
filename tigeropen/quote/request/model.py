@@ -556,10 +556,10 @@ class FutureTradingTimeParams(object):
         return params
 
 
-class SingleFutureQuoteParams(MarketParams):
+class FutureQuoteParams(MarketParams):
     def __init__(self):
-        super(SingleFutureQuoteParams, self).__init__()
-        self._contract_code = None
+        super(FutureQuoteParams, self).__init__()
+        self._contract_codes = None
         self._period = None
         self._begin_time = None
         self._end_time = None
@@ -568,12 +568,12 @@ class SingleFutureQuoteParams(MarketParams):
         self._end_index = None
 
     @property
-    def contract_code(self):
-        return self._contract_code
+    def contract_codes(self):
+        return self._contract_codes
 
-    @contract_code.setter
-    def contract_code(self, value):
-        self._contract_code = value
+    @contract_codes.setter
+    def contract_codes(self, value):
+        self._contract_codes = value
 
     @property
     def period(self):
@@ -624,10 +624,10 @@ class SingleFutureQuoteParams(MarketParams):
         self._limit = value
 
     def to_openapi_dict(self):
-        params = super(SingleFutureQuoteParams, self).to_openapi_dict()
+        params = super(FutureQuoteParams, self).to_openapi_dict()
 
-        if self.contract_code:
-            params['contract_code'] = self.contract_code
+        if self.contract_codes:
+            params['contract_codes'] = self.contract_codes
 
         if self.period:
             params['period'] = self.period

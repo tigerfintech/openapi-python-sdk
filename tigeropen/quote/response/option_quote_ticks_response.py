@@ -7,11 +7,12 @@ Created on 2018/10/31
 import six
 import pandas as pd
 
+from tigeropen.common.util.contract_utils import get_option_identifier
 from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.util.common_utils import eastern
 from tigeropen.common.response import TigerResponse
 
-COLUMNS = ['symbol', 'expiry', 'put_call', 'strike', 'time', 'price', 'volume']
+COLUMNS = ['identifier', 'symbol', 'expiry', 'put_call', 'strike', 'time', 'price', 'volume']
 
 
 class OptionTradeTickResponse(TigerResponse):
@@ -29,13 +30,18 @@ class OptionTradeTickResponse(TigerResponse):
             tick_items = []
             for symbol_item in self.data:
                 if 'items' in symbol_item and len(symbol_item['items']) > 0:
-                    symbol = symbol_item.get('symbol')
+                    underlying_symbol = symbol_item.get('symbol')
                     put_call = symbol_item.get('right').upper()
-                    expiry = pd.Timestamp(symbol_item.get('expiry'), unit='ms', tzinfo=eastern).date()
+                    expiry = symbol_item.get('expiry')
                     strike = float(symbol_item.get('strike'))
+                    identifier = symbol_item.get('identifier')
+                    if not identifier:
+                        expiration = pd.Timestamp(expiry, unit='ms', tzinfo=eastern).date().strftime("%Y%m%d")
+                        identifier = get_option_identifier(underlying_symbol, expiration, put_call, strike)
 
                     for item in symbol_item['items']:
-                        item_values = {'symbol': symbol, 'expiry': expiry, 'put_call': put_call, 'strike': strike}
+                        item_values = {'identifier': identifier, 'symbol': underlying_symbol, 'expiry': expiry,
+                                       'put_call': put_call, 'strike': strike}
                         for key, value in item.items():
                             if value is None:
                                 continue

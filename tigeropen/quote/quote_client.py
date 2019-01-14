@@ -28,8 +28,8 @@ from tigeropen.quote.response.stock_short_interest_response import ShortInterest
 from tigeropen.quote.response.symbol_names_response import SymbolNamesResponse
 from tigeropen.quote.response.symbols_response import SymbolsResponse
 from tigeropen.tiger_open_client import TigerOpenClient
-from tigeropen.quote.request.model import MarketParams, SingleQuoteParams, MultipleQuoteParams, MultipleContractParams, \
-    SingleFutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
+from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
+    FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
@@ -37,7 +37,7 @@ from tigeropen.quote.response.market_status_response import MarketStatusResponse
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, STOCK_DETAIL, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
-    FUTURE_CONTINUOUS_CONTRACTS, FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
+    FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
     FUTURE_CURRENT_CONTRACT
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod
 from tigeropen.common.util.contract_utils import extract_option_info
@@ -466,28 +466,6 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_continuous_future_contracts(self, future_type, lang=None):
-        """
-        查询指定品种的连续合约
-        :param future_type: 期货合约对应的交易品种， 如 CL
-        :param lang:
-        :return:
-        """
-        params = FutureTypeParams()
-        params.type = future_type
-        params.lang = lang.value if lang else self._lang.value
-
-        request = OpenApiRequest(FUTURE_CONTINUOUS_CONTRACTS, biz_model=params)
-        response_content = self.__fetch_data(request)
-        if response_content:
-            response = FutureContractResponse()
-            response.parse_response_content(response_content)
-            if response.is_success():
-                return response.contracts
-            else:
-                raise ApiException(response.code, response.message)
-        return None
-
     def get_current_future_contract(self, future_type, lang=None):
         """
         查询指定品种的当前合约
@@ -510,15 +488,15 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_future_trading_times(self, contract_code, trading_date=None):
+    def get_future_trading_times(self, identifier, trading_date=None):
         """
         查询指定期货合约的交易时间
-        :param contract_code:
+        :param identifier:
         :param trading_date:
         :return:
         """
         params = FutureTradingTimeParams()
-        params.contract_code = contract_code
+        params.contract_code = identifier
         params.trading_date = trading_date
 
         request = OpenApiRequest(FUTURE_TRADING_DATE, biz_model=params)
@@ -532,18 +510,18 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_future_bars(self, symbol, period=BarPeriod.DAY, begin_time=-1, end_time=-1, limit=1000):
+    def get_future_bars(self, identifiers, period=BarPeriod.DAY, begin_time=-1, end_time=-1, limit=1000):
         """
         获取期货K线数据
-        :param symbol: 股票代码
+        :param identifiers: 期货代码
         :param period: day: 日K,week: 周K,month:月K ,year:年K,1min:1分钟,5min:5分钟,15min:15分钟,30min:30分钟,60min:60分钟
         :param begin_time: 开始时间
         :param end_time: 结束时间
         :param limit: 数量限制
         :return:
         """
-        params = SingleFutureQuoteParams()
-        params.contract_code = symbol
+        params = FutureQuoteParams()
+        params.contract_codes = identifiers
         if period:
             params.period = period.value
         params.begin_time = begin_time
@@ -560,17 +538,17 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_future_trade_ticks(self, symbol, begin_index=0, end_index=30, limit=1000):
+    def get_future_trade_ticks(self, identifiers, begin_index=0, end_index=30, limit=1000):
         """
         获取期货逐笔成交
-        :param symbol: 股票代码
+        :param identifiers: 期货代码
         :param begin_index: 开始索引
         :param end_index: 结束索引
         :param limit: 数量限制
         :return:
         """
-        params = SingleFutureQuoteParams()
-        params.contract_code = symbol
+        params = FutureQuoteParams()
+        params.contract_codes = identifiers
         params.begin_index = begin_index
         params.end_index = end_index
         params.limit = limit
@@ -585,14 +563,14 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_future_brief(self, identifier):
+    def get_future_brief(self, identifiers):
         """
         获取期货最新行情
-        :param identifier: 期货代码
+        :param identifiers: 期货代码
         :return:
         """
-        params = SingleFutureQuoteParams()
-        params.contract_code = identifier
+        params = FutureQuoteParams()
+        params.contract_codes = identifiers
 
         request = OpenApiRequest(FUTURE_REAL_TIME_QUOTE, biz_model=params)
         response_content = self.__fetch_data(request)

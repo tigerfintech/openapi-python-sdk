@@ -40,27 +40,29 @@ def get_option_quote():
     expirations = openapi_client.get_option_expirations(symbols=[symbol])
     if len(expirations) > 1:
         expiry = int(expirations[expirations['symbol'] == symbol].at[0, 'timestamp'])
-        openapi_client.get_option_chain(symbol, expiry)
+        chains = openapi_client.get_option_chain(symbol, expiry)
+        print(chains)
 
-    openapi_client.get_option_briefs(['AAPL  190104C00121000'])
-    openapi_client.get_option_bars(['AAPL  190104P00134000'])
-    openapi_client.get_option_trade_ticks(['AAPL  190104P00134000'])
+    briefs = openapi_client.get_option_briefs(['AAPL  190104C00121000'])
+    print(briefs)
+    bars = openapi_client.get_option_bars(['AAPL  190104P00134000'])
+    print(bars)
+    ticks = openapi_client.get_option_trade_ticks(['AAPL  190104P00134000'])
+    print(ticks)
 
 
 def get_future_quote():
     exchanges = openapi_client.get_future_exchanges()
     print(exchanges)
-    bars = openapi_client.get_future_bars('CN1901', begin_time=-1, end_time=1545105097358)
+    bars = openapi_client.get_future_bars(['CN1901'], begin_time=-1, end_time=1545105097358)
     print(bars)
-    ticks = openapi_client.get_future_trade_ticks('CN1901')
+    ticks = openapi_client.get_future_trade_ticks(['CN1901'])
     print(ticks)
     contracts = openapi_client.get_future_contracts('CME')
     print(contracts)
-    contracts = openapi_client.get_continuous_future_contracts('ES')
-    print(contracts)
     trading_times = openapi_client.get_future_trading_times('CN1901', trading_date=1545049282852)
     print(trading_times)
-    briefs = openapi_client.get_future_brief('ES1906')
+    briefs = openapi_client.get_future_brief(['ES1906', 'CN1901'])
     print(briefs)
 
 

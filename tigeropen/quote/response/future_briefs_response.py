@@ -9,12 +9,12 @@ import pandas as pd
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.string_utils import get_string
 
-COLUMNS = ['ask_price', 'ask_size', 'bid_price', 'bid_size', 'pre_close', 'latest_price', 'latest_size', 'latest_time',
-           'volume', 'open_interest', 'open', 'high', 'low', 'limit_up', 'limit_down']
+COLUMNS = ['identifier', 'ask_price', 'ask_size', 'bid_price', 'bid_size', 'pre_close', 'latest_price', 'latest_size',
+           'latest_time', 'volume', 'open_interest', 'open', 'high', 'low', 'limit_up', 'limit_down']
 BRIEF_FIELD_MAPPINGS = {'askPrice': 'ask_price', 'askSize': 'ask_size', 'bidPrice': 'bid_price', 'bidSize': 'bid_size',
                         'latestPrice': 'latest_price', 'openInterest': 'open_interest', 'preClose': 'pre_close',
                         'right': 'put_call', 'latestTime': 'latest_time', 'latestSize': 'latest_size',
-                        'limitUp': 'limit_up', 'limitDown': 'limit_down'}
+                        'limitUp': 'limit_up', 'limitDown': 'limit_down', 'contractCode': 'identifier'}
 
 
 class FutureBriefsResponse(TigerResponse):
