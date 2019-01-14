@@ -56,7 +56,6 @@ class TigerOpenClient(object):
     """
     内部方法，从params中移除公共参数
     """
-
     def __remove_common_params(self, params):
         if not params:
             return
@@ -67,7 +66,6 @@ class TigerOpenClient(object):
     """
     内部方法，通过请求request对象构造请求查询字符串和业务参数
     """
-
     def __prepare_request(self, request):
         THREAD_LOCAL.logger = self.__logger
         params = request.get_params()

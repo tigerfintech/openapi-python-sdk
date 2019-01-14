@@ -4,6 +4,11 @@ Created on 2018/9/20
 
 @author: gaoan
 """
+import pytz
+
+eastern = pytz.timezone('US/Eastern')
+china = pytz.timezone('Asia/Shanghai')
+hongkong = pytz.timezone('Asia/Hong_Kong')
 
 
 def has_value(m, key):

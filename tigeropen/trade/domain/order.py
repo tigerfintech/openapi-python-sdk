@@ -7,7 +7,7 @@ Created on 2018/9/20
 from six import text_type
 from enum import Enum
 
-ORDER_FIELDS_TO_IGNORE = {'type', '_status', 'contract'}
+ORDER_FIELDS_TO_IGNORE = {'type', '_status', 'contract', '_remaining'}
 
 ORDER_STATUS = Enum('OrderStatus', ('PENDING_NEW', 'NEW', 'HELD', 'PARTIALLY_FILLED', 'FILLED',
                                     'CANCELLED', 'PENDING_CANCEL', 'REJECTED', 'EXPIRED',))
@@ -61,7 +61,9 @@ class Order(object):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
 
         dct['contract'] = self.contract
-        dct['status'] = self.status
+        if self.status:
+            dct['status'] = self.status.name
+        dct['remaining'] = self.remaining
 
         return dct
 
@@ -86,13 +88,6 @@ class Order(object):
     @property
     def remaining(self):
         return self.quantity - self.filled
-
-    @remaining.setter
-    def remaining(self, value):
-        """
-        The setter of the remaining property
-        """
-        self._remaining = value
 
     def __repr__(self):
         """

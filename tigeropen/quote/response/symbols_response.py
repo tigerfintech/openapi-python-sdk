@@ -5,7 +5,6 @@ Created on 2018/10/31
 @author: gaoan
 """
 
-import json
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.string_utils import get_string
 
@@ -21,7 +20,5 @@ class SymbolsResponse(TigerResponse):
         if 'is_success' in response:
             self._is_success = response['is_success']
 
-        if self.data:
-            data_json = json.loads(self.data)
-            if 'items' in data_json:
-                self.symbols = [get_string(symbol) for symbol in data_json['items'] if symbol]
+        if self.data and isinstance(self.data, list):
+            self.symbols = [get_string(symbol) for symbol in self.data if symbol]
