@@ -11,8 +11,12 @@ class TigerOpenClientConfig(object):
     def __init__(self, sandbox_debug=False):
         # 开发者应用id
         self._tiger_id = ''
-        # 授权账户
+        # 授权账户(环球账户，推荐)
         self._account = ''
+        # 标准账户
+        self._standard_account = ''
+        # 模拟账户
+        self._paper_account = ''
         # 请求签名类型，推荐RSA2
         self._sign_type = 'RSA'
         # 开发者应用私钥
@@ -56,6 +60,22 @@ class TigerOpenClientConfig(object):
     @account.setter
     def account(self, value):
         self._account = value
+
+    @property
+    def standard_account(self):
+        return self._standard_account
+
+    @standard_account.setter
+    def standard_account(self, value):
+        self._standard_account = value
+
+    @property
+    def paper_account(self):
+        return self._paper_account
+
+    @paper_account.setter
+    def paper_account(self, value):
+        self._paper_account = value
     
     @property
     def sign_type(self):

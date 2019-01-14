@@ -13,3 +13,6 @@ class TradeTick(object):
         self.price = None
         self.size = None
         self.direction = None
+
+    def __repr__(self):
+        return "TradeTick(%s)" % self.__dict__
