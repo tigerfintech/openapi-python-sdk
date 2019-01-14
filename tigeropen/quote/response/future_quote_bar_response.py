@@ -10,7 +10,7 @@ import pandas as pd
 from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.response import TigerResponse
 
-COLUMNS = ['time', 'latest_time', 'open', 'high', 'low', 'close', 'settlement', 'volume', 'open_interest']
+COLUMNS = ['identifier', 'time', 'latest_time', 'open', 'high', 'low', 'close', 'settlement', 'volume', 'open_interest']
 BAR_FIELD_MAPPINGS = {'avgPrice': 'avg_price', 'openInterest': 'open_interest', 'lastTime': 'latest_time'}
 
 
@@ -27,17 +27,18 @@ class FutureQuoteBarResponse(TigerResponse):
 
         if self.data and isinstance(self.data, list):
             bar_items = []
-            for item in self.data:
-                item_values = dict()
-                for key, value in item.items():
-                    if value is None:
-                        continue
-                    if isinstance(value, six.string_types):
-                        value = get_string(value)
-                    # if 'time' == key or 'lastTime' == key:
-                    #     value = pd.Timestamp(value, unit='ms', tzinfo=eastern)
-                    tag = BAR_FIELD_MAPPINGS[key] if key in BAR_FIELD_MAPPINGS else key
-                    item_values[tag] = value
-                bar_items.append([item_values.get(tag) for tag in COLUMNS])
+            for symbol_item in self.data:
+                identifier = symbol_item.get('contractCode')
+                if 'items' in symbol_item:
+                    for item in symbol_item['items']:
+                        item_values = {'identifier': identifier}
+                        for key, value in item.items():
+                            if value is None:
+                                continue
+                            if isinstance(value, six.string_types):
+                                value = get_string(value)
+                            tag = BAR_FIELD_MAPPINGS[key] if key in BAR_FIELD_MAPPINGS else key
+                            item_values[tag] = value
+                        bar_items.append([item_values.get(tag) for tag in COLUMNS])
 
             self.bars = pd.DataFrame(bar_items, columns=COLUMNS)

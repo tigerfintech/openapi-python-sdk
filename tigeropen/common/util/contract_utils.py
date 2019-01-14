@@ -13,18 +13,26 @@ def stock_contract(symbol, currency, local_symbol=None, exchange=None, contract_
                     contract_id=contract_id)
 
 
-def option_contract(symbol, currency, expiry, strike, right, multiplier=100, local_symbol=None, contract_id=None):
-    return Contract(symbol, currency, sec_type='OPT', expiry=expiry, strike=strike, right=right,
+def option_contract(symbol, expiry, strike, put_call, currency, multiplier=100, local_symbol=None, contract_id=None):
+    return Contract(symbol, currency, sec_type='OPT', expiry=expiry, strike=strike, put_call=put_call,
                     multiplier=multiplier, local_symbol=local_symbol, contract_id=contract_id)
+
+
+def option_contract(identifier, multiplier=100, currency='USD'):
+    symbol, expiry, put_call, strike = extract_option_info(identifier)
+    if expiry and '-' in expiry:
+        expiry = expiry.replace('-', '')
+    return Contract(symbol, currency, sec_type='OPT', expiry=expiry, strike=strike, put_call=put_call,
+                    multiplier=multiplier)
 
 
 def future_contract(symbol, currency, expiry, multiplier=None, local_symbol=None):
     return Contract(symbol, currency, sec_type='FUT', expiry=expiry, multiplier=multiplier, local_symbol=local_symbol)
 
 
-def future_option_contract(symbol, currency, expiry, strike, right, multiplier=None, local_symbol=None,
+def future_option_contract(symbol, currency, expiry, strike, put_call, multiplier=None, local_symbol=None,
                            contract_id=None):
-    return Contract(symbol, currency, sec_type='FOP', expiry=expiry, strike=strike, right=right,
+    return Contract(symbol, currency, sec_type='FOP', expiry=expiry, strike=strike, put_call=put_call,
                     multiplier=multiplier, local_symbol=local_symbol, contract_id=contract_id)
 
 
@@ -62,4 +70,4 @@ def get_option_identifier(underlying_symbol, expiry, put_call, strike):
     :return:
     """
     direction = 'C' if put_call == 'C' or put_call == 'CALL' else 'P'
-    return underlying_symbol + expiry[2:] + direction + str(strike * 1000).zfill(8)
+    return underlying_symbol.ljust(6, ' ') + expiry[2:] + direction + str(int(strike * 1000)).zfill(8)

@@ -42,6 +42,8 @@ class OptionChainsResponse(TigerResponse):
                                     continue
                                 if isinstance(value, six.string_types):
                                     value = get_string(value)
+                                if key == 'right':
+                                    value = value.upper()
                                 tag = CHAIN_FIELD_MAPPINGS[key] if key in CHAIN_FIELD_MAPPINGS else key
                                 item_values[tag] = value
                             chain_data.append([item_values.get(tag) for tag in COLUMNS])
