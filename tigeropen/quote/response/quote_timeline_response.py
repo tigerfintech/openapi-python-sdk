@@ -26,10 +26,10 @@ class QuoteTimelineResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data and isinstance(self.data, list):
+            timeline_items = []
             for symbol_item in self.data:
                 symbol = symbol_item.get('symbol')
                 pre_close = symbol_item.get('preClose')
-                timeline_items = []
                 if 'preMarket' in symbol_item:  # 盘前
                     pre_markets = symbol_item['preMarket'].get('items')
                     if pre_markets:
