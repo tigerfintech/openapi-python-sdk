@@ -27,10 +27,10 @@ class QuoteBarResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data and isinstance(self.data, list):
+            bar_items = []
             for symbol_item in self.data:
                 symbol = symbol_item.get('symbol')
                 if 'items' in symbol_item:
-                    bar_items = []
                     for item in symbol_item['items']:
                         item_values = {'symbol': symbol}
                         for key, value in item.items():
@@ -42,4 +42,4 @@ class QuoteBarResponse(TigerResponse):
                             item_values[tag] = value
                         bar_items.append([item_values.get(tag) for tag in COLUMNS])
 
-                    self.bars = pd.DataFrame(bar_items, columns=COLUMNS)
+            self.bars = pd.DataFrame(bar_items, columns=COLUMNS)
