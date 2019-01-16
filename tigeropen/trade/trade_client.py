@@ -17,7 +17,7 @@ from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetP
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.trade.response.assets_response import AssetsResponse
 from tigeropen.common.consts.service_types import CONTRACT, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, CANCEL_ORDER, \
-    MODIFY_ORDER, PLACE_ORDER
+    MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS
 
 import logging
 
@@ -92,7 +92,8 @@ class TradeClient(TigerOpenClient):
 
         return None
 
-    def get_positions(self, account=None, sec_type=SecurityType.STK, currency=Currency.ALL, market=Market.ALL, symbol=None,
+    def get_positions(self, account=None, sec_type=SecurityType.STK, currency=Currency.ALL, market=Market.ALL,
+                      symbol=None,
                       sub_accounts=None):
         params = PositionParams()
         params.account = account if account else self._account
@@ -149,6 +150,37 @@ class TradeClient(TigerOpenClient):
         params.limit = limit
         params.is_brief = is_brief
         request = OpenApiRequest(ORDERS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = OrdersResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.orders
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_open_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
+                        end_time=None):
+        """
+        获取待成交订单列表
+        :param account:
+        :param sec_type:
+        :param market:
+        :param symbol:
+        :param start_time:
+        :param end_time:
+        :return:
+        """
+        params = OrdersParams()
+        params.account = account if account else self._account
+        if sec_type:
+            params.sec_type = sec_type.value
+        params.market = market.value
+        params.symbol = symbol
+        params.start_data = start_time
+        params.end_date = end_time
+        request = OpenApiRequest(ACTIVE_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
             response = OrdersResponse()

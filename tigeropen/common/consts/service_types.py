@@ -18,6 +18,7 @@ ACCOUNTS = "accounts"
 ASSETS = "assets"
 POSITIONS = "positions"
 ORDERS = "orders"
+ACTIVE_ORDERS = "active_orders"
 
 """
 合约
