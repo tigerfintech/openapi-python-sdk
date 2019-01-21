@@ -47,6 +47,7 @@ def on_query_subscribed_quote(symbols, focus_keys, limit, used):
     print(symbols, focus_keys, limit, used)
     unsubscribe_symbols = set(symbols) - subscribe_symbols
     if unsubscribe_symbols:
+        print(unsubscribe_symbols)
         push_client.unsubscribe_quote(symbols=unsubscribe_symbols)
 
     if event_trigger:
@@ -105,8 +106,9 @@ def on_quote_changed(symbol, items, hour_trading):
 def on_quote_changed_event_trigger(symbol, items, hour_trading):
     if hour_trading:
         return
-    print(symbol, items, hour_trading)
-    minute_bar_util.on_data(symbol, items)
+    if symbol in subscribe_symbols:
+        print(symbol, items, hour_trading)
+        minute_bar_util.on_data(symbol, items)
 
 
 def handle_data(data):
@@ -239,6 +241,8 @@ if __name__ == '__main__':
 
     try:
         if event_trigger:
+            # delay 1 minute to get ready for data
+            time.sleep(60)
             curr_timezone = pytz.timezone(TIME_ZONE)
             today = datetime.now().astimezone(curr_timezone).date()
 
@@ -255,11 +259,12 @@ if __name__ == '__main__':
                     print('event trigger finished')
                     break
                 elif curr_time >= open_time:
-                    curr_data = Data(datetime.combine(today, open_time, curr_timezone))
-                    minute_bar_util.set_data(curr_data)
+                    curr_datetime = datetime.combine(today, open_time, curr_timezone)
+                    curr_data = Data(curr_datetime)
+                    # minute_bar_util.set_data(curr_data)
                     handle_data(curr_data)
 
-                    open_time = open_time.replace(minute=open_time.minute + 1)
+                    open_time = (curr_datetime + timedelta(minutes=1)).time()
                 else:
                     time.sleep(1)
         else:

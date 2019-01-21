@@ -31,7 +31,9 @@ class Strategy(object):
         start when time >= open_time
         stop when time <= end_time
         """
-        pass
+        print(data.current(list(self.symbol_market_map.keys()), ['open', 'high', 'low', 'close', 'volume', 'time']))
+
+        print(data.history('600053', ['open', 'high', 'low', 'close', 'volume', 'time'], 10, '1m'))
 
     def before_trading_start(self):
         """
