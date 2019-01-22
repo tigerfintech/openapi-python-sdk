@@ -33,14 +33,20 @@ class BarUtil(object):
         curr_bar_manager = self.bar_manager.get(symbol)
         if curr_bar_manager:
             if curr_minute != curr_bar_manager.last_minute:
+
                 # finish last bar
                 curr_bar_manager.last_bar = curr_bar_manager.curr_bar.copy()
 
+                start_idx = curr_bar_manager.last_minute
+                end_idx = 60 if curr_minute == 0 else curr_minute
+
                 # update history
-                curr_bar = curr_bar_manager.curr_bar.copy()
-                curr_bar.name = curr_datetime_minute
-                curr_bar.time = curr_datetime_minute.timestamp()
-                curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
+                for minute_idx in range(start_idx, end_idx):
+                    curr_bar = curr_bar_manager.curr_bar.copy()
+                    idx_datetime = curr_datetime_minute.replace(minute=minute_idx)
+                    curr_bar.name = idx_datetime
+                    curr_bar.time = idx_datetime.timestamp()
+                    curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
 
                 # update latest
                 curr_bar_manager.curr_bar = pd.Series([symbol, timestamp, latest_price, latest_price, latest_price,
