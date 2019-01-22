@@ -33,7 +33,6 @@ class BarUtil(object):
         curr_bar_manager = self.bar_manager.get(symbol)
         if curr_bar_manager:
             if curr_minute != curr_bar_manager.last_minute:
-                print(curr_datetime_minute)
                 # finish last bar
                 curr_bar_manager.last_bar = curr_bar_manager.curr_bar.copy()
 
@@ -42,7 +41,6 @@ class BarUtil(object):
                 curr_bar.name = curr_datetime_minute
                 curr_bar.time = curr_datetime_minute.timestamp()
                 curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
-                print(curr_bar_manager.data_bar)
 
                 # update latest
                 curr_bar_manager.curr_bar = pd.Series([symbol, timestamp, latest_price, latest_price, latest_price,
@@ -86,9 +84,9 @@ class BarUtil(object):
     def get_bar_arr(self, symbol, start_dt, end_dt, fields):
         curr_bar_manager = self.bar_manager.get(symbol)
         if curr_bar_manager:
-            print(curr_bar_manager.data_bar)
             # return curr_bar_manager.data_bar[(curr_bar_manager.data_bar.index >= start_dt) & (curr_bar_manager.data_bar.index <= end_dt)][fields]
-            return curr_bar_manager.data_bar[curr_bar_manager.data_bar.index >= start_dt][fields]
+            return curr_bar_manager.data_bar[(curr_bar_manager.data_bar.index >= start_dt.strftime('%Y-%m-%d %H:%M:%S'))
+                                             & (curr_bar_manager.data_bar.index <= end_dt.strftime('%Y-%m-%d %H:%M:%S'))][fields]
         else:
             return None
 
@@ -114,7 +112,6 @@ class Data(object):
     def history(self, assets, fields, bar_count, frequency='1m'):
         start_dt = self.dt - timedelta(minutes=bar_count)
         end_dt = self.dt
-        print(f'history ==> {start_dt}-{end_dt}')
 
         if frequency == '1m':
             if type(assets) == list:
