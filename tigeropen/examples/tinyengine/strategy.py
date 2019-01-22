@@ -68,7 +68,7 @@ class Strategy(object):
 
         # [event trigger] user customer lunch break
         self.lunch_break = datetime.strptime(str('113000'), '%H%M%S').time()
-        self.afternoon_start =  datetime.strptime(str('130000'), '%H%M%S').time()
+        self.afternoon_start = datetime.strptime(str('130000'), '%H%M%S').time()
 
         self.symbol_market_map = {'600029': {'security': SecurityType.STK, 'per_trade': 100},
                                   '600053': {'security': SecurityType.STK, 'per_trade': 100},
