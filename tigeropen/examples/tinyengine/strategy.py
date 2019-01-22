@@ -1,4 +1,6 @@
 import numpy as np
+from datetime import datetime
+
 from tigeropen.common.consts import SecurityType, Currency
 
 
@@ -58,10 +60,15 @@ class Strategy(object):
         self.quote_client = quote_client
         self.context = context
 
+        self.time_zone = 'Asia/Shanghai'
         self.open_time = '093000'
         self.close_time = '150000'
-        self.time_zone = 'Asia/Shanghai'
+
         self.event_trigger = False
+
+        # [event trigger] user customer lunch break
+        self.lunch_break = datetime.strptime(str('113000'), '%H%M%S').time()
+        self.afternoon_start =  datetime.strptime(str('130000'), '%H%M%S').time()
 
         self.symbol_market_map = {'600029': {'security': SecurityType.STK, 'per_trade': 100},
                                   '600053': {'security': SecurityType.STK, 'per_trade': 100},
@@ -85,14 +92,16 @@ class Strategy(object):
                 print('============= place order =============')
                 contract = self.context.contract_map.get(symbol)
                 symbol_market = self.symbol_market_map[symbol]
-                account = self.context.asset_manager.keys()[0]
-                self.trade_client.create_order(account, contract, 'BUY', 'MKT', symbol_market['per_trade'], limit_price=latest_price)
+                self.trade_client.create_order(self.context.account, contract, 'BUY', 'MKT', symbol_market['per_trade'], limit_price=latest_price)
 
     def on_minute_bar(self, data):
         """
         start when time >= open_time
         stop when time <= end_time
         """
+        if self.lunch_break <= data.dt.time() < self.afternoon_start:
+            print('============= lunch break =============')
+            return
         print(data.current(list(self.symbol_market_map.keys()), ['open', 'high', 'low', 'close', 'volume', 'time']))
         # history api is not recommended to use
         # data cannot be filled in
@@ -106,6 +115,7 @@ class Strategy(object):
 
     def dump(self):
         """
+        run after close_time
         run before end
         """
         pass

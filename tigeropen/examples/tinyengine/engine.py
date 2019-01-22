@@ -22,6 +22,8 @@ logger = logging.getLogger('TigerOpenApi')
 client_config = get_client_config()
 account_id = client_config.account
 
+global_context.account = account_id
+
 
 # ============= initialize push client & trade_client & quote_client ===================
 protocol, host, port = client_config.socket_host_port
