@@ -60,22 +60,25 @@ class Strategy(object):
         self.quote_client = quote_client
         self.context = context
 
+        # [event trigger][necessary setting]
+        self.event_trigger = True
         self.time_zone = 'Asia/Shanghai'
         self.open_time = '093000'
         self.close_time = '150000'
+        # [event trigger] this param is to balance the difference between local system time and the market data time,
+        # system delay time 5s
+        self.system_delay = 5
 
-        self.event_trigger = False
+        # [subscribe symbols][necessary setting]
+        self.symbol_market_map = {'00700': {'security': SecurityType.STK, 'per_trade': 100}}
 
-        # [event trigger] user customer lunch break
-        self.lunch_break = datetime.strptime(str('113000'), '%H%M%S').time()
+        # [event trigger][not necessary setting] user customer lunch break
+        self.lunch_break = datetime.strptime(str('120000'), '%H%M%S').time()
         self.afternoon_start = datetime.strptime(str('130000'), '%H%M%S').time()
 
-        self.symbol_market_map = {'600029': {'security': SecurityType.STK, 'per_trade': 100},
-                                  '600053': {'security': SecurityType.STK, 'per_trade': 100},
-                                  '600604': {'security': SecurityType.STK, 'per_trade': 100}}
+        # [strategy related][not necessary setting] local vars with different strategy
         self.symbol_set = set(self.symbol_market_map.keys())
         self.tick_util = TickerTrendUtil()
-
         self.short_min_ma = EMAUtil(10)
         self.long_min_ma = EMAUtil(20)
 
@@ -89,7 +92,7 @@ class Strategy(object):
         latest_price = dict(items).get('latest_price')
         if symbol in self.symbol_set:
             if self.tick_util.on_latest_price(symbol, latest_price):
-                print('============= place order =============')
+                print('============= create order =============')
                 contract = self.context.contract_map.get(symbol)
                 symbol_market = self.symbol_market_map[symbol]
                 self.trade_client.create_order(self.context.account, contract, 'BUY', 'MKT', symbol_market['per_trade'], limit_price=latest_price)
@@ -102,10 +105,10 @@ class Strategy(object):
         if self.lunch_break <= data.dt.time() < self.afternoon_start:
             print('============= lunch break =============')
             return
-        print(data.current(list(self.symbol_market_map.keys()), ['open', 'high', 'low', 'close', 'volume', 'time']))
+        print(data.current('00700', ['open', 'high', 'low', 'close', 'volume', 'time']))
         # history api is not recommended to use
         # data cannot be filled in
-        print(data.history('600053', ['open', 'high', 'low', 'close', 'volume', 'time'], 10, '1m'))
+        print(data.history('00700', ['open', 'high', 'low', 'close', 'volume', 'time'], 10, '1m'))
 
     def before_trading_start(self):
         """
@@ -115,6 +118,7 @@ class Strategy(object):
 
     def dump(self):
         """
+        dump some data which user needs
         run after close_time
         run before end
         """
