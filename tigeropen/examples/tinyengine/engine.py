@@ -207,7 +207,7 @@ def position_initialize():
 
 
 def order_initialize():
-    cancel_all_open_orders()
+    # cancel_all_open_orders()
     global order_manager
     order_manager = {}
 
@@ -248,11 +248,11 @@ if __name__ == '__main__':
             curr_timezone = pytz.timezone(TIME_ZONE)
             today = datetime.now().astimezone(curr_timezone).date()
 
-            open_time = datetime.strptime(str(OPEN_TIME), '%H%M%S').time()
+            open_time = datetime.strptime(str(OPEN_TIME), '%H%M%S').time().replace(minute=strategy.system_delay)
             close_time = datetime.strptime(str(CLOSE_TIME), '%H%M%S').time()
 
             one_minute = timedelta(minutes=1)
-            curr_time = (datetime.now().astimezone(curr_timezone).replace(second=0, microsecond=0) + one_minute).time()
+            curr_time = (datetime.now().astimezone(curr_timezone).replace(second=strategy.system_delay, microsecond=0) + one_minute).time()
             open_time = max(curr_time, open_time)
 
             while True:
@@ -261,12 +261,15 @@ if __name__ == '__main__':
                     print('event trigger finished')
                     break
                 elif curr_time >= open_time:
-                    curr_datetime = datetime.combine(today, open_time, curr_timezone)
+
+                    last_datetime = datetime.combine(today, open_time, curr_timezone)
+                    curr_datetime = last_datetime + timedelta(minutes=1)
+
                     curr_data = Data(curr_datetime)
                     # minute_bar_util.set_data(curr_data)
                     handle_data(curr_data)
+                    open_time = curr_datetime.time()
 
-                    open_time = (curr_datetime + timedelta(minutes=1)).time()
                 else:
                     time.sleep(1)
         else:
@@ -274,6 +277,6 @@ if __name__ == '__main__':
                 time.sleep(600)
     except (KeyboardInterrupt, SystemExit):
         print('keyboard interrupt, system exit')
-    cancel_all_open_orders()
+    # cancel_all_open_orders()
     unsubscribe_process()
     dump()

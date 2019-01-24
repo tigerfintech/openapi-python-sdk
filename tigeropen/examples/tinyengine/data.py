@@ -21,6 +21,13 @@ class BarUtil(object):
         self.bar_manager = {}
 
     def on_data(self, symbol, items):
+        """
+        1.according to the market data time, market ticker data is splitted into minute bar
+        2.the last bar is stored into data_bar after the current minute changes to the next minute.
+          e.g. 9:30:59 -> 9:31:01
+        3.user could change the split method to get the latest minute to shorten the delay.
+          e.g. change when second reaches to 55, 9:30:54 -> 9:30:56
+        """
         price_dict = dict(items)
         latest_price = price_dict.get('latest_price')
         volume = price_dict.get('volume')
@@ -31,50 +38,43 @@ class BarUtil(object):
         curr_minute = curr_datetime_minute.minute
 
         curr_bar_manager = self.bar_manager.get(symbol)
-        if curr_bar_manager:
-            if curr_minute != curr_bar_manager.last_minute:
+        if latest_price:
+            if curr_bar_manager:
+                if curr_minute != curr_bar_manager.last_minute:
 
-                # finish last bar
-                curr_bar_manager.last_bar = curr_bar_manager.curr_bar.copy()
+                    # finish last bar
+                    curr_bar_manager.last_bar = curr_bar_manager.curr_bar.copy()
 
-                start_idx = curr_bar_manager.last_minute
-                end_idx = 60 if curr_minute == 0 else curr_minute
+                    start_idx = curr_bar_manager.last_minute
+                    end_idx = 60 if curr_minute == 0 else curr_minute
 
-                # update history
-                for minute_idx in range(start_idx, end_idx):
-                    curr_bar = curr_bar_manager.curr_bar.copy()
-                    idx_datetime = curr_datetime_minute.replace(minute=minute_idx)
-                    curr_bar.name = idx_datetime
-                    curr_bar.time = idx_datetime.timestamp()
-                    curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
+                    # update history
+                    for minute_idx in range(start_idx, end_idx):
+                        curr_bar = curr_bar_manager.curr_bar.copy()
+                        idx_datetime = curr_datetime_minute.replace(minute=minute_idx)
+                        curr_bar.name = idx_datetime
+                        curr_bar.time = idx_datetime.timestamp()
+                        curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
 
-                # update latest
+                    # update latest
+                    curr_bar_manager.curr_bar = pd.Series([symbol, timestamp, latest_price, latest_price, latest_price,
+                                                           latest_price, volume], index=COLUMNS)
+                    curr_bar_manager.last_minute = curr_minute
+                    curr_bar_manager.last_volume = volume
+                else:
+                    # set time for test
+                    curr_bar_manager.curr_bar.time = timestamp
+                    curr_bar_manager.curr_bar.high = max(curr_bar_manager.curr_bar.high, latest_price)
+                    curr_bar_manager.curr_bar.low = min(curr_bar_manager.curr_bar.low, latest_price)
+                    curr_bar_manager.curr_bar.close = latest_price
+                    curr_bar_manager.curr_bar.volume = volume - curr_bar_manager.last_volume
+            else:
+                curr_bar_manager = BarManager()
+                self.bar_manager[symbol] = curr_bar_manager
                 curr_bar_manager.curr_bar = pd.Series([symbol, timestamp, latest_price, latest_price, latest_price,
                                                        latest_price, volume], index=COLUMNS)
+                curr_bar_manager.last_bar = curr_bar_manager.curr_bar.copy()
                 curr_bar_manager.last_minute = curr_minute
-                curr_bar_manager.last_volume = volume
-            else:
-                # set time for test
-                curr_bar_manager.curr_bar.time = timestamp
-                curr_bar_manager.curr_bar.high = max(curr_bar_manager.curr_bar.high, latest_price)
-                curr_bar_manager.curr_bar.low = min(curr_bar_manager.curr_bar.low, latest_price)
-                curr_bar_manager.curr_bar.close = latest_price
-                curr_bar_manager.curr_bar.volume = volume - curr_bar_manager.last_volume
-        else:
-            curr_bar_manager = BarManager()
-            self.bar_manager[symbol] = curr_bar_manager
-            curr_bar_manager.curr_bar = pd.Series([symbol, timestamp, latest_price, latest_price, latest_price,
-                                                   latest_price, volume], index=COLUMNS)
-            curr_bar_manager.last_bar = curr_bar_manager.curr_bar.copy()
-            curr_bar_manager.last_minute = curr_minute
-
-    # def set_data(self, data):
-    #     for curr_bar_manager in self.bar_manager.values():
-    #         if curr_bar_manager.last_bar:
-    #             curr_bar = curr_bar_manager.last_bar.copy()
-    #             curr_bar.name = data.dt
-    #             curr_bar.time = data.dt.timestamp()
-    #             curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
 
     def get_last_bar(self, symbol, fields):
         curr_bar_manager = self.bar_manager.get(symbol)
@@ -116,7 +116,7 @@ class Data(object):
             return minute_bar_util.get_last_bar(symbol=assets, fields=fields)
 
     def history(self, assets, fields, bar_count, frequency='1m'):
-        start_dt = self.dt - timedelta(minutes=bar_count)
+        start_dt = (self.dt - timedelta(minutes=bar_count+1)).replace(second=0)
         end_dt = self.dt
 
         if frequency == '1m':
