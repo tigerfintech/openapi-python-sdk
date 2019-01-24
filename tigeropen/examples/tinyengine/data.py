@@ -46,12 +46,12 @@ class BarUtil(object):
                     curr_bar_manager.last_bar = curr_bar_manager.curr_bar.copy()
 
                     start_idx = curr_bar_manager.last_minute
-                    end_idx = 60 if curr_minute == 0 else curr_minute
+                    end_idx = 60 + start_idx if curr_minute < start_idx else curr_minute
 
                     # update history
                     for minute_idx in range(start_idx, end_idx):
                         curr_bar = curr_bar_manager.curr_bar.copy()
-                        idx_datetime = curr_datetime_minute.replace(minute=minute_idx)
+                        idx_datetime = curr_datetime_minute.replace(minute=(minute_idx % 60))
                         curr_bar.name = idx_datetime
                         curr_bar.time = idx_datetime.timestamp()
                         curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
@@ -90,7 +90,6 @@ class BarUtil(object):
     def get_bar_arr(self, symbol, start_dt, end_dt, fields):
         curr_bar_manager = self.bar_manager.get(symbol)
         if curr_bar_manager:
-            # return curr_bar_manager.data_bar[(curr_bar_manager.data_bar.index >= start_dt) & (curr_bar_manager.data_bar.index <= end_dt)][fields]
             return curr_bar_manager.data_bar[(curr_bar_manager.data_bar.index >= start_dt.strftime('%Y-%m-%d %H:%M:%S'))
                                              & (curr_bar_manager.data_bar.index <= end_dt.strftime('%Y-%m-%d %H:%M:%S'))][fields]
         else:
@@ -116,7 +115,7 @@ class Data(object):
             return minute_bar_util.get_last_bar(symbol=assets, fields=fields)
 
     def history(self, assets, fields, bar_count, frequency='1m'):
-        start_dt = (self.dt - timedelta(minutes=bar_count+1)).replace(second=0)
+        start_dt = (self.dt - timedelta(minutes=bar_count+3))
         end_dt = self.dt
 
         if frequency == '1m':
@@ -124,10 +123,19 @@ class Data(object):
                 if type(fields) == list:
                     ret = {}
                     for asset in assets:
-                        ret[asset] = minute_bar_util.get_bar_arr(asset, start_dt, end_dt, fields)
+                        curr_df = minute_bar_util.get_bar_arr(asset, start_dt, end_dt, fields)
+                        df_len = min(len(curr_df), bar_count)
+                        ret[asset] = curr_df[-df_len:]
                     return pd.Panel(ret)
                 else:
-                    return pd.DataFrame([minute_bar_util.get_bar_arr(asset, start_dt, end_dt, fields) for asset in assets], columns=assets)
+                    ret = []
+                    for asset in assets:
+                        curr_df = minute_bar_util.get_bar_arr(asset, start_dt, end_dt, fields)
+                        df_len = min(len(curr_df), bar_count)
+                        ret.append(curr_df[-df_len:])
+                    return pd.DataFrame(ret, columns=assets)
             else:
-                return minute_bar_util.get_bar_arr(assets, start_dt, end_dt, fields)
+                curr_df = minute_bar_util.get_bar_arr(assets, start_dt, end_dt, fields)
+                df_len = min(len(curr_df), bar_count)
+                return curr_df[-df_len:]
         return None

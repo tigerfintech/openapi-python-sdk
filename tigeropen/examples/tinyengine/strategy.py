@@ -64,7 +64,7 @@ class Strategy(object):
         self.event_trigger = True
         self.time_zone = 'Asia/Shanghai'
         self.open_time = '093000'
-        self.close_time = '150000'
+        self.close_time = '160000'
         # [event trigger] this param is to balance the difference between local system time and the market data time,
         # system delay time 5s
         self.system_delay = 5
@@ -109,6 +109,7 @@ class Strategy(object):
         # history api is not recommended to use
         # data cannot be filled in
         print(data.history('00700', ['open', 'high', 'low', 'close', 'volume', 'time'], 10, '1m'))
+        print(data.history('00700', 'open', 5, '1m'))
 
     def before_trading_start(self):
         """
