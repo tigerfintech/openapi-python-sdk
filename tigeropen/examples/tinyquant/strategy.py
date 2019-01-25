@@ -2,7 +2,7 @@ import numpy as np
 from datetime import datetime
 
 from tigeropen.common.consts import SecurityType, Currency
-import tigeropen.examples.tinyengine.setting as setting
+import tigeropen.examples.tinyquant.setting as setting
 
 
 class TickerTrendUtil:
