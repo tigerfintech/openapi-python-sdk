@@ -8,10 +8,10 @@ from tigeropen.quote.quote_client import QuoteClient
 from tigeropen.trade.domain.position import Position
 
 from tigeropen.examples.client_config import get_client_config
-from tigeropen.examples.tinyengine.data import Data, minute_bar_util
-from tigeropen.examples.tinyengine.context import global_context
-from tigeropen.examples.tinyengine.strategy import Strategy
-import tigeropen.examples.tinyengine.setting as setting
+from tigeropen.examples.tinyquant.data import Data, minute_bar_util
+from tigeropen.examples.tinyquant.context import global_context
+from tigeropen.examples.tinyquant.strategy import Strategy
+import tigeropen.examples.tinyquant.setting as setting
 
 import logbook
 import sys
