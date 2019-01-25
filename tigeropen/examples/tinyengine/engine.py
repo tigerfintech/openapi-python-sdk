@@ -15,8 +15,8 @@ from tigeropen.examples.tinyengine.strategy import Strategy
 
 
 # ============= initialize engine vars ===================
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', filemode='a', )
-logger = logging.getLogger('TigerOpenApi')
+# logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', filemode='a', )
+# logger = logging.getLogger('TigerOpenApi')
 
 # ============= get client config ===================
 client_config = get_client_config()
@@ -28,8 +28,8 @@ global_context.account = account_id
 # ============= initialize push client & trade_client & quote_client ===================
 protocol, host, port = client_config.socket_host_port
 push_client = PushClient(host, port, use_ssl=(protocol == 'ssl'))
-trade_client = TradeClient(client_config, logger=logger)
-quote_client = QuoteClient(client_config, logger=logger)
+trade_client = TradeClient(client_config, logger=None)
+quote_client = QuoteClient(client_config, logger=None)
 
 
 strategy = Strategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
@@ -41,6 +41,9 @@ symbol_market_map = strategy.symbol_market_map
 OPEN_TIME = strategy.open_time
 CLOSE_TIME = strategy.close_time
 TIME_ZONE = strategy.time_zone
+
+minute_bar_util.set_time_zone(pytz.timezone(TIME_ZONE))
+
 UTC = 'UTC'
 event_trigger = strategy.event_trigger
 
@@ -248,7 +251,7 @@ if __name__ == '__main__':
             curr_timezone = pytz.timezone(TIME_ZONE)
             today = datetime.now().astimezone(curr_timezone).date()
 
-            open_time = datetime.strptime(str(OPEN_TIME), '%H%M%S').time().replace(minute=strategy.system_delay)
+            open_time = datetime.strptime(str(OPEN_TIME), '%H%M%S').replace(tzinfo=curr_timezone).time().replace(second=strategy.system_delay)
             close_time = datetime.strptime(str(CLOSE_TIME), '%H%M%S').time()
 
             one_minute = timedelta(minutes=1)

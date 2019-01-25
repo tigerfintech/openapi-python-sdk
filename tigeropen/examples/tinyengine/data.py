@@ -19,6 +19,10 @@ class BarManager(object):
 class BarUtil(object):
     def __init__(self):
         self.bar_manager = {}
+        self.timezone = None
+
+    def set_time_zone(self, timezone):
+        self.timezone = timezone
 
     def on_data(self, symbol, items):
         """
@@ -33,7 +37,7 @@ class BarUtil(object):
         volume = price_dict.get('volume')
         timestamp = price_dict.get('latest_time')
 
-        curr_datetime_minute = datetime.fromtimestamp(timestamp / 1000).replace(second=0)
+        curr_datetime_minute = datetime.fromtimestamp(timestamp / 1000).astimezone(self.timezone).replace(second=0)
 
         curr_minute = curr_datetime_minute.minute
 
@@ -46,15 +50,35 @@ class BarUtil(object):
                     curr_bar_manager.last_bar = curr_bar_manager.curr_bar.copy()
 
                     start_idx = curr_bar_manager.last_minute
-                    end_idx = 60 + start_idx if curr_minute < start_idx else curr_minute
 
-                    # update history
-                    for minute_idx in range(start_idx, end_idx):
-                        curr_bar = curr_bar_manager.curr_bar.copy()
-                        idx_datetime = curr_datetime_minute.replace(minute=(minute_idx % 60))
-                        curr_bar.name = idx_datetime
-                        curr_bar.time = idx_datetime.timestamp()
-                        curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
+                    if curr_minute < start_idx:
+                        # end_idx = 60 + start_idx if curr_minute < start_idx else curr_minute
+                        last_datetime_minute = curr_datetime_minute - timedelta(hours=1)
+                        for minute_idx in range(start_idx, 60):
+                            curr_bar = curr_bar_manager.curr_bar.copy()
+
+                            idx_datetime = last_datetime_minute.replace(minute=minute_idx)
+                            curr_bar.name = idx_datetime
+                            curr_bar.time = idx_datetime.timestamp()
+                            curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
+
+                        for minute_idx in range(0, curr_minute):
+                            curr_bar = curr_bar_manager.curr_bar.copy()
+
+                            idx_datetime = curr_datetime_minute.replace(minute=minute_idx)
+                            curr_bar.name = idx_datetime
+                            curr_bar.time = idx_datetime.timestamp()
+                            curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
+
+                    else:
+                        # update history
+                        for minute_idx in range(start_idx, curr_minute):
+                            curr_bar = curr_bar_manager.curr_bar.copy()
+
+                            idx_datetime = curr_datetime_minute.replace(minute=minute_idx)
+                            curr_bar.name = idx_datetime
+                            curr_bar.time = idx_datetime.timestamp()
+                            curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
 
                     # update latest
                     curr_bar_manager.curr_bar = pd.Series([symbol, timestamp, latest_price, latest_price, latest_price,
