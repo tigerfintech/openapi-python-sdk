@@ -1,5 +1,4 @@
 import time
-import logging
 import pytz
 from datetime import datetime, timedelta
 
@@ -12,11 +11,16 @@ from tigeropen.examples.client_config import get_client_config
 from tigeropen.examples.tinyengine.data import Data, minute_bar_util
 from tigeropen.examples.tinyengine.context import global_context
 from tigeropen.examples.tinyengine.strategy import Strategy
+import tigeropen.examples.tinyengine.setting as setting
+
+import logbook
+import sys
 
 
 # ============= initialize engine vars ===================
-# logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', filemode='a', )
-# logger = logging.getLogger('TigerOpenApi')
+logbook.StreamHandler(sys.stdout).push_application()
+logger = logbook.Logger('[engine]')
+
 
 # ============= get client config ===================
 client_config = get_client_config()
@@ -38,21 +42,22 @@ strategy = Strategy(push_client=push_client, trade_client=trade_client, quote_cl
 subscribe_symbols = set(strategy.symbol_market_map.keys())
 symbol_market_map = strategy.symbol_market_map
 # ============= event trigger config ===================
-OPEN_TIME = strategy.open_time
-CLOSE_TIME = strategy.close_time
-TIME_ZONE = strategy.time_zone
+OPEN_TIME = setting.OPEN_TIME
+CLOSE_TIME = setting.CLOSE_TIME
+TIME_ZONE = setting.TIME_ZONE
+SYSTEM_DELAY = setting.SYSTEM_DELAY
 
 minute_bar_util.set_time_zone(pytz.timezone(TIME_ZONE))
 
 UTC = 'UTC'
-event_trigger = strategy.event_trigger
+event_trigger = setting.EVENT_TRIGGER
 
 
 def on_query_subscribed_quote(symbols, focus_keys, limit, used):
-    print(symbols, focus_keys, limit, used)
+    logger.info(f'{symbols}, {focus_keys}, {limit}, {used}')
     unsubscribe_symbols = set(symbols) - subscribe_symbols
     if unsubscribe_symbols:
-        print(unsubscribe_symbols)
+        logger.info(unsubscribe_symbols)
         push_client.unsubscribe_quote(symbols=unsubscribe_symbols)
 
     if event_trigger:
@@ -91,20 +96,6 @@ def add_order(order):
 # ============= strategy with market trigger ===================
 def on_quote_changed(symbol, items, hour_trading):
     strategy.on_ticker(symbol, items, hour_trading)
-    #
-    # global first
-    # if first:
-    #     contract = global_context.contract_map.get(symbol)
-    #     if contract:
-    #         price_dict = dict(items)
-    #         latest_price = price_dict.get('latest_price') + 1
-    #         order = trade_client.create_order(account_id, contract, 'BUY', 'LMT', 100, limit_price=latest_price)
-    #         trade_client.place_order(order)
-    #         first = False
-    #         add_order(order)
-    # if global_context.active_order_manager:
-    #     for order_id in global_context.active_order_manager.keys():
-    #         print(trade_client.get_order(order_id=order_id))
 
 
 # ============= strategy with event trigger ===================
@@ -112,7 +103,7 @@ def on_quote_changed_event_trigger(symbol, items, hour_trading):
     if hour_trading:
         return
     if symbol in subscribe_symbols:
-        print(symbol, items, hour_trading)
+        logger.info(f'{symbol}, {items}, {hour_trading}')
         minute_bar_util.on_data(symbol, items)
 
 
@@ -125,7 +116,7 @@ def on_asset_changed(account, items):
     # DU575569 [('equity_with_loan', 776871.76), ('gross_position_value', 349025.33), ('excess_liquidity', 653692.01),
     # ('available_funds', 648601.77), ('initial_margin_requirement', 128269.99), ('buying_power', 4324011.82),
     # ('cash', 476021.26), ('net_liquidation', 776871.76), ('maintenance_margin_requirement', 123179.75)]
-    print(account, items)
+    logger.info(f'{account}, {items}')
     ret_account = dict(items)
     curr_account = global_context.asset_manager.get(account_id)
     if curr_account:
@@ -143,7 +134,7 @@ def on_asset_changed(account, items):
 def on_position_changed(account, items):
     # DU575569 [('market_price', 23.37599945), ('market_value', 9350.4), ('sec_type', 'STK'),
     # ('origin_symbol', '600053'), ('unrealized_pnl', -101.62), ('quantity', 400.0), ('average_cost', 23.630052)]
-    print(account, items)
+    logger.info(f'{account}, {items}')
     ret_position = dict(items)
     symbol = ret_position.get('origin_symbol')
     curr_position = global_context.position_manager.get(symbol)
@@ -166,7 +157,7 @@ def on_position_changed(account, items):
 
 
 def on_order_changed(account, items):
-    print(account, items)
+    logger.info(f'{account}, {items}')
     # DU575569 [('order_type', 'LMT'), ('order_id', 1000051287), ('sec_type', 'STK'),
     # ('filled', 100), ('origin_symbol', '000513'), ('quantity', 100), ('order_time', 1547620277910),
     # ('time_in_force', 'DAY'), ('limit_price', 27.81), ('last_fill_price', 0.0), ('outside_rth', True),
@@ -194,7 +185,7 @@ def cancel_all_open_orders():
         try:
             trade_client.cancel_order(order_id=curr_order.order_id)
         except Exception as e:
-            print(e)
+            logger.error(e)
 
 
 def asset_initialize():
@@ -251,17 +242,17 @@ if __name__ == '__main__':
             curr_timezone = pytz.timezone(TIME_ZONE)
             today = datetime.now().astimezone(curr_timezone).date()
 
-            open_time = datetime.strptime(str(OPEN_TIME), '%H%M%S').replace(tzinfo=curr_timezone).time().replace(second=strategy.system_delay)
+            open_time = datetime.strptime(str(OPEN_TIME), '%H%M%S').replace(tzinfo=curr_timezone).time().replace(second=SYSTEM_DELAY)
             close_time = datetime.strptime(str(CLOSE_TIME), '%H%M%S').time()
 
             one_minute = timedelta(minutes=1)
-            curr_time = (datetime.now().astimezone(curr_timezone).replace(second=strategy.system_delay, microsecond=0) + one_minute).time()
+            curr_time = (datetime.now().astimezone(curr_timezone).replace(second=SYSTEM_DELAY, microsecond=0) + one_minute).time()
             open_time = max(curr_time, open_time)
 
             while True:
                 curr_time = datetime.now().astimezone(curr_timezone).time()
                 if open_time >= close_time:
-                    print('event trigger finished')
+                    logger.info('event trigger finished')
                     break
                 elif curr_time >= open_time:
 
@@ -279,7 +270,7 @@ if __name__ == '__main__':
             while True:
                 time.sleep(600)
     except (KeyboardInterrupt, SystemExit):
-        print('keyboard interrupt, system exit')
+        logger.info('keyboard interrupt, system exit')
     # cancel_all_open_orders()
     unsubscribe_process()
     dump()

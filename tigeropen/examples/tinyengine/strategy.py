@@ -2,6 +2,7 @@ import numpy as np
 from datetime import datetime
 
 from tigeropen.common.consts import SecurityType, Currency
+import tigeropen.examples.tinyengine.setting as setting
 
 
 class TickerTrendUtil:
@@ -60,23 +61,14 @@ class Strategy(object):
         self.quote_client = quote_client
         self.context = context
 
-        # [event trigger][necessary setting]
-        self.event_trigger = True
-        self.time_zone = 'Asia/Shanghai'
-        # self.time_zone = 'America/New_York'
-        self.open_time = '093000'
-        self.close_time = '160000'
-        # [event trigger] this param is to balance the difference between local system time and the market data time,
-        # system delay time 5s
-        self.system_delay = 5
+        if setting.EVENT_TRIGGER:
+            # [event trigger][not necessary setting] user customer lunch break
+            self.lunch_break = datetime.strptime(setting.LUNCH_BREAK, '%H%M%S').time()
+            self.afternoon_start = datetime.strptime(setting.AFTERNOON_START, '%H%M%S').time()
 
         # [subscribe symbols][necessary setting]
         self.symbol_market_map = {'00700': {'security': SecurityType.STK, 'per_trade': 100}}
         # self.symbol_market_map = {'AAPL': {'security': SecurityType.STK, 'per_trade': 100}}
-
-        # [event trigger][not necessary setting] user customer lunch break
-        self.lunch_break = datetime.strptime(str('120000'), '%H%M%S').time()
-        self.afternoon_start = datetime.strptime(str('130000'), '%H%M%S').time()
 
         # [strategy related][not necessary setting] local vars with different strategy
         self.symbol_set = set(self.symbol_market_map.keys())
