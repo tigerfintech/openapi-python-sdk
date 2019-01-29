@@ -10,7 +10,7 @@ import pandas as pd
 from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.response import TigerResponse
 
-COLUMNS = ['contract_code', 'type', 'name', 'contract_month', 'currency', 'first_notice_date',
+COLUMNS = ['contract_code', 'type', 'name', 'contract_month', 'multiplier', 'currency', 'first_notice_date',
            'last_bidding_close_time', 'last_trading_date', 'trade', 'continuous']
 CONTRACT_FIELD_MAPPINGS = {'contractCode': 'contract_code', 'contractMonth': 'contract_month',
                            'firstNoticeDate': 'first_notice_date', 'lastBiddingCloseTime': 'last_bidding_close_time',
