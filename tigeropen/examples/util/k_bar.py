@@ -39,6 +39,9 @@ class KBarUtil:
             os.makedirs(dir_path)
 
     def plot(self, symbol_str, df, freq=3):
+        if len(df) <= 0:
+            return
+
         df['date'] = pd.to_datetime(df['time'], unit='ms')
         date_strs = []
 
@@ -148,8 +151,8 @@ def filter_stock(symbols):
         # exclude st and index
         if 'ST' in symbol_tuple[1] or '.SH' in symbol_tuple[0]:
             continue
-
-        ret.append(symbol_tuple[0])
+        if symbol_tuple[0][0:2] == '00' or symbol_tuple[0][0:2] == '60' or symbol_tuple[0][0:2] == '30':
+            ret.append(symbol_tuple[0])
     return ret
 
 
