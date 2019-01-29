@@ -24,19 +24,30 @@ def load_dict(file_path):
         return ret
 
 
+def check_and_create_dir(dir_path):
+    if not os.path.isdir(dir_path):
+        os.makedirs(dir_path)
+
+
+def check_file_exists(file_path):
+    return os.path.isfile(file_path)
+
+
 class KBarUtil:
     def __init__(self):
         self.today = datetime.today().date().strftime('%Y-%m-%d')
         self.dir_path = f'./data/{self.today}'
-        self.check_and_create_dir(self.dir_path)
+        check_and_create_dir(self.dir_path)
         self.market_timezone = pytz.timezone('America/New_York')
         self.timezone = pytz.timezone('Asia/Shanghai')
-        self.daily_return = {}
+        self.daily_return_path = f'{self.dir_path}/ret.pkl'
 
-    @staticmethod
-    def check_and_create_dir(dir_path):
-        if not os.path.isdir(dir_path):
-            os.makedirs(dir_path)
+        if check_file_exists(self.daily_return_path):
+            self.daily_return = pd.read_pickle(self.daily_return_path).to_dict('series')
+        else:
+            self.daily_return = {}
+
+        self.daily_stats_path = f'{self.dir_path}/stats'
 
     def plot(self, symbol_str, df, freq=3):
         if len(df) <= 0:
@@ -82,7 +93,19 @@ class KBarUtil:
         plt.close()
 
     def dump(self):
-        ret_list = [value.iloc[-1] for value in self.daily_return.values()]
+        pd.DataFrame(self.daily_return).to_pickle(self.daily_return_path)
+
+        ret_list = []
+        for key, value in self.daily_return.items():
+            if value.size <= 0:
+                print(key)
+                continue
+            if np.isnan(value.iloc[-1]):
+                print(key)
+                continue
+            ret_list.append(value.iloc[-1])
+
+        # ret_list = [value.iloc[-1] for value in self.daily_return.values()]
         avg_return = np.mean(ret_list)
         median_return = np.median(ret_list)
         std_return = np.std(ret_list)
@@ -105,7 +128,7 @@ class KBarUtil:
         kde = stats.gaussian_kde(ret_list)
 
         plt.subplot(121)
-        plt.hist(ret_list, bins=10)
+        plt.hist(ret_list, bins=100)
 
         plt.axvline(x=avg_return, color='red', linestyle='--', linewidth=0.8, label='mean')
         plt.axvline(x=avg_return - 2 * std_return, color='blue', linestyle='--', linewidth=0.8,
@@ -139,7 +162,7 @@ class KBarUtil:
                      'skew_return': skew_return, 'kurt_return': kurt_return, 'size': size,
                      'above_1_std_ratio': ratio_1, 'above_2_std_ratio': ratio_2, 'above_3_std_ratio': ratio_3}
 
-        store_dict(dump_dict, f'{self.dir_path}/stats')
+        store_dict(dump_dict, self.daily_stats_path)
 
 
 k_bar_util = KBarUtil()
@@ -169,11 +192,14 @@ if __name__ == '__main__':
     stk_size = len(stk_arr)
     idx = 0
 
-    for symbol_str in stk_arr:
-        print(f'total stk_size: {stk_size}, {idx}')
-        bars = quote_client.get_bars([symbol_str], limit=30)
-        k_bar_util.plot(symbol_str, bars)
-        idx += 1
+    try:
+        for symbol_str in stk_arr:
+            print(f'total stk_size: {stk_size}, {idx}')
+            bars = quote_client.get_bars([symbol_str], limit=30)
+            k_bar_util.plot(symbol_str, bars)
+            idx += 1
+    except Exception as e:
+        print(e)
 
     k_bar_util.dump()
 
