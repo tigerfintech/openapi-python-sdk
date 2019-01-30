@@ -12,3 +12,8 @@ SYSTEM_DELAY = 5
 # [event trigger][not necessary setting] user customer lunch break
 LUNCH_BREAK = '120000'
 AFTERNOON_START = '130000'
+
+PRIVATE_KEY = 'your private key file path'
+TIGER_ID = 'your tiger id'
+ACCOUNT = 'your account'  # 环球账户
+STANDARD_ACCOUNT = None  # 标准账户

@@ -2,17 +2,14 @@ import time
 import pytz
 from datetime import datetime, timedelta
 
-from tigeropen.trade.trade_client import TradeClient
-from tigeropen.push.push_client import PushClient
-from tigeropen.quote.quote_client import QuoteClient
+
 from tigeropen.trade.domain.position import Position
 
-from tigeropen.examples.client_config import get_client_config
 from tigeropen.examples.tinyquant.data import Data, minute_bar_util
-from tigeropen.examples.tinyquant.context import global_context
 from tigeropen.examples.tinyquant.strategy import Strategy
 import tigeropen.examples.tinyquant.setting as setting
-
+from tigeropen.examples.tinyquant.client import client_config, push_client, trade_client, quote_client, \
+    global_context
 import logbook
 import sys
 
@@ -22,20 +19,7 @@ logbook.StreamHandler(sys.stdout).push_application()
 logger = logbook.Logger('[engine]')
 
 
-# ============= get client config ===================
-client_config = get_client_config()
-account_id = client_config.account
-
-global_context.account = account_id
-
-
-# ============= initialize push client & trade_client & quote_client ===================
-protocol, host, port = client_config.socket_host_port
-push_client = PushClient(host, port, use_ssl=(protocol == 'ssl'))
-trade_client = TradeClient(client_config, logger=None)
-quote_client = QuoteClient(client_config, logger=None)
-
-
+account_id = global_context.account
 strategy = Strategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
 
 # ============= set symbols ===================
