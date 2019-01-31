@@ -53,7 +53,7 @@ def check_file_exists(file_path):
 #     return sqrt(dtw[len(s1)-1, len(s2)-1])
 
 
-class KBarUtil:
+class StatsUtil:
     def __init__(self, today):
         self.today = today.strftime('%Y-%m-%d')
         self.dir_path = f'./data/{self.today}'
@@ -74,50 +74,6 @@ class KBarUtil:
             self.daily_volume_ratio = {}
 
         self.daily_stats_path = f'{self.dir_path}/stats'
-
-    def plot(self, symbol_str, df, freq=3):
-        if len(df) <= 0:
-            return
-
-        df['date'] = pd.to_datetime(df['time'], unit='ms')
-        date_strs = []
-
-        for date in df['date']:
-            date_strs.append(date.replace(tzinfo=self.market_timezone).tz_convert(self.timezone).date().strftime('%Y-%m-%d'))
-
-        # remove no current data
-        if date_strs[-1] != self.today:
-            return
-
-        self.daily_return[symbol_str] = df['close'].diff() / df['close'].shift()
-        self.daily_volume_ratio[symbol_str] = df['volume'].diff() / df['volume'].shift()
-
-        df["date"] = df["date"].apply(mdates.date2num)
-
-        quotes = df[['date', 'open', 'high', 'low', 'close']].copy()
-        quotes.reset_index()
-        quotes['date'] = quotes.index
-        # quotes['sma50'] = quotes["close"].rolling(10).mean()
-
-        fig, (ax1, ax2) = plt.subplots(nrows=2, sharex='all', figsize=(15, 8))
-        fig.subplots_adjust(bottom=0.2)
-
-        ax1.set_xticks(quotes.index[::3])
-        ax1.set_xticklabels(date_strs[::3], rotation=45, ha='right')
-        ax1.set_xlim(quotes.index.min(), quotes.index.max())
-        ax1.set_title(f'{symbol_str}')
-        ax1.set_ylabel('price')
-        ax1.grid(True)
-        candlestick_ohlc(ax1, quotes.values, width=0.5, colorup='red', colordown='green')
-
-        ax1.set_xticks(quotes.index[::freq])
-        ax1.set_xticklabels(date_strs[::freq], rotation=45, ha='right')
-        ax1.set_xlim(quotes.index.min(), quotes.index.max())
-        ax2.set_ylabel('volume')
-        plt.bar(quotes.index, df['volume'], width=0.5)
-        plt.savefig(f'{self.dir_path}/{symbol_str}.png')
-        plt.cla()
-        plt.close()
 
     def analysis_var(self, ret_list, var_name):
         avg_return = np.mean(ret_list)
@@ -170,6 +126,7 @@ class KBarUtil:
                     label='3 std deviation')
         plt.legend(fontsize=12, loc='best')
         plt.savefig(f'{self.dir_path}/{var_name}.png')
+        plt.show()
         plt.cla()
 
         # dump stats
@@ -179,55 +136,51 @@ class KBarUtil:
         #
         # store_dict(dump_dict, self.daily_stats_path)
 
-    def dump(self):
-        pd.DataFrame(self.daily_return).to_pickle(self.daily_return_path)
-        pd.DataFrame(self.daily_volume_ratio).to_pickle(self.daily_volume_ratio_path)
-
+    def analysis(self):
         # ========================================================
-
         # returns analysis
-        # ret_list = []
-        # for key, value in self.daily_return.items():
-        #     if value.size <= 0:
-        #         print(key)
-        #         continue
-        #     if np.isnan(value.iloc[-1]):
-        #         print(key)
-        #         continue
-        #     ret_list.append(value.iloc[-1])
-        #
-        # # ret_list = [value.iloc[-1] for value in self.daily_return.values()]
-        # self.analysis_var(ret_list, 'ret')
+        ret_list = []
+        for key, value in self.daily_return.items():
+            if value.size <= 0:
+                print(key)
+                continue
+            if np.isnan(value.iloc[-1]):
+                print(key)
+                continue
+            ret_list.append(value.iloc[-1])
+
+        # ret_list = [value.iloc[-1] for value in self.daily_return.values()]
+        self.analysis_var(ret_list, 'ret')
 
         # ========================================================
 
         # std analysis
-        # std_list = []
-        # for key, value in self.daily_return.items():
-        #     if value.size <= 0:
-        #         print(key)
-        #         continue
-        #     std = np.std(value.dropna())
-        #     if np.isnan(std):
-        #         print(key)
-        #         continue
-        #     std_list.append(std)
-        # self.analysis_var(std_list, 'ret_std')
+        std_list = []
+        for key, value in self.daily_return.items():
+            if value.size <= 0:
+                print(key)
+                continue
+            std = np.std(value.dropna())
+            if np.isnan(std):
+                print(key)
+                continue
+            std_list.append(std)
+        self.analysis_var(std_list, 'ret_std')
 
         # ========================================================
 
-        # # filter stock
-        # stock_list = []
-        # for key, value in self.daily_return.items():
-        #     if value.size <= 0:
-        #         print(key)
-        #         continue
-        #     if np.isnan(value.iloc[-1]):
-        #         print(key)
-        #         continue
-        #     if value.iloc[-1] > 0.02:
-        #         stock_list.append(key)
-        # print(stock_list)
+        # filter stock
+        stock_list = []
+        for key, value in self.daily_return.items():
+            if value.size <= 0:
+                print(key)
+                continue
+            if np.isnan(value.iloc[-1]):
+                print(key)
+                continue
+            if value.iloc[-1] > 0.02:
+                stock_list.append(key)
+        print(stock_list)
 
         # ========================================================
 
@@ -244,85 +197,12 @@ class KBarUtil:
         # plt.scatter(results.iloc[:, 1], results.iloc[:, 2])
         # plt.show()
 
-        # ========================================================
-        # print('Euclidean k-means')
-        # df = pd.DataFrame(self.daily_return).iloc[1: -2, :].T.dropna(how='any')
-        # km = TimeSeriesKMeans(n_clusters=10, verbose=True, random_state=0)
-        # y_pred = km.fit_predict(df.values)
-        # results = pd.DataFrame(df.index, y_pred)
-        #
-        # plt.figure()
-        # for yi in range(10):
-        #     # plt.subplot(10, 10, yi + 1)
-        #     curr_df = results[results.index == yi]
-        #     for row in curr_df.iterrows():
-        #         symbol = row[1][0]
-        #         plt.plot(df[df.index == symbol].values[0], 'k-', alpha=.2)
-        #     plt.plot(km.cluster_centers_[yi], 'r-')
-        #
-        #     plt.xlim(0, df.shape[1])
-        #     plt.show()
-        #     plt.cla()
-
-        # ========================================================
-        # print('DBA k-means')
-        # df = pd.DataFrame(self.daily_return).iloc[1: -2, :].T.dropna(how='any')
-        # km = TimeSeriesKMeans(n_clusters=10, n_init=2, metric="dtw", verbose=True,  max_iter_barycenter=10)
-        # y_pred = km.fit_predict(df.values)
-        # results = pd.DataFrame(df.index, y_pred)
-        # pdb.set_trace()
-        #
-        # plt.figure()
-        # for yi in range(10):
-        #     # plt.subplot(10, 10, yi + 1)
-        #     curr_df = results[results.index == yi]
-        #     for row in curr_df.iterrows():
-        #         symbol = row[1][0]
-        #         plt.plot(df[df.index == symbol].values[0], 'k-', alpha=.2)
-        #     plt.plot(km.cluster_centers_[yi], 'r-')
-        #
-        #     plt.xlim(0, df.shape[1])
-        #     plt.show()
-        #     plt.cla()
-
-
-def filter_stock(symbols):
-    ret = []
-    for symbol_tuple in symbols:
-        # exclude st and index
-        if 'ST' in symbol_tuple[1] or '.SH' in symbol_tuple[0]:
-            continue
-        if symbol_tuple[0][0:2] == '00' or symbol_tuple[0][0:2] == '60' or symbol_tuple[0][0:2] == '30':
-            ret.append(symbol_tuple[0])
-    return ret
-
 
 if __name__ == '__main__':
-    from tigeropen.examples.client_config import get_client_config
-    from tigeropen.quote.quote_client import QuoteClient
 
-    client_config = get_client_config()
-    quote_client = QuoteClient(client_config, logger=None)
+    stats_util = StatsUtil(datetime.today().date() - timedelta(days=1))
 
-    stk_list = quote_client.get_symbol_names(market=Market.CN)
-
-    stk_arr = filter_stock(stk_list)
-    stk_size = len(stk_arr)
-    idx = 0
-
-    k_bar_util = KBarUtil(datetime.today().date())
-    # k_bar_util = KBarUtil(datetime.today().date() - timedelta(days=1))
-
-    try:
-        for symbol_str in stk_arr:
-            print(f'total stk_size: {stk_size}, {idx}')
-            bars = quote_client.get_bars([symbol_str], limit=30)
-            k_bar_util.plot(symbol_str, bars)
-            idx += 1
-    except Exception as e:
-        print(e)
-
-    k_bar_util.dump()
+    stats_util.analysis()
 
     # symbol = '600030'
     # bars = quote_client.get_bars([symbol], limit=30)
