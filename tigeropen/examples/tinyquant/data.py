@@ -119,6 +119,18 @@ class BarUtil(object):
         else:
             return None
 
+    def get_curr_bar(self, symbol, fields):
+        """获取最新的tick"""
+        curr_bar_manager = self.bar_manager.get(symbol)
+        if curr_bar_manager and type(curr_bar_manager.curr_bar) == pd.Series:
+            return curr_bar_manager.curr_bar[fields]
+        else:
+            if type(fields) == list:
+                ret_arr = np.empty(len(fields), dtype=float)
+                ret_arr.fill(np.nan)
+                return pd.Series(ret_arr, index=fields)
+            return np.nan
+
 
 minute_bar_util = BarUtil()
 daily_bar_util = BarUtil()
