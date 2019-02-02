@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from tigeropen.trade.domain.position import Position
 
 from tigeropen.examples.tinyquant.data import Data, minute_bar_util
-from tigeropen.examples.tinyquant.strategy import Strategy
+from tigeropen.examples.tinyquant.strategy import Strategy, CompatibleStrategy
 import tigeropen.examples.tinyquant.setting as setting
 from tigeropen.examples.tinyquant.client import client_config, push_client, trade_client, quote_client, \
     global_context
@@ -20,11 +20,9 @@ logger = logbook.Logger('[engine]')
 
 
 account_id = global_context.account
-strategy = Strategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
 
 # ============= set symbols ===================
-subscribe_symbols = set(strategy.symbol_market_map.keys())
-symbol_market_map = strategy.symbol_market_map
+subscribe_symbols = global_context.subscribed_symbols
 # ============= event trigger config ===================
 OPEN_TIME = setting.OPEN_TIME
 CLOSE_TIME = setting.CLOSE_TIME
@@ -77,11 +75,6 @@ def add_order(order):
     global_context.active_order_manager[order.order_id] = order_manager[order.order_id]
 
 
-# ============= strategy with market trigger ===================
-def on_quote_changed(symbol, items, hour_trading):
-    strategy.on_ticker(symbol, items, hour_trading)
-
-
 # ============= strategy with event trigger ===================
 def on_quote_changed_event_trigger(symbol, items, hour_trading):
     if hour_trading:
@@ -91,10 +84,6 @@ def on_quote_changed_event_trigger(symbol, items, hour_trading):
         minute_bar_util.on_data(symbol, items)
 
 
-def handle_data(data):
-    strategy.on_minute_bar(data)
-
-
 # ============= subscribe info ===================
 def on_asset_changed(account, items):
     # DU575569 [('equity_with_loan', 776871.76), ('gross_position_value', 349025.33), ('excess_liquidity', 653692.01),
@@ -102,7 +91,7 @@ def on_asset_changed(account, items):
     # ('cash', 476021.26), ('net_liquidation', 776871.76), ('maintenance_margin_requirement', 123179.75)]
     logger.info(f'{account}, {items}')
     ret_account = dict(items)
-    curr_account = global_context.asset_manager.get(account_id)
+    curr_account = global_context.asset_manager
     if curr_account:
         curr_account.summary.equity_with_loan = ret_account.get('equity_with_loan')
         curr_account.summary.gross_position_value = ret_account.get('gross_position_value')
@@ -173,11 +162,12 @@ def cancel_all_open_orders():
 
 
 def asset_initialize():
-    accounts = trade_client.get_managed_accounts()
+    # accounts = trade_client.get_managed_accounts()
     assets = trade_client.get_assets()
-
-    global_context.asset_manager = {accounts[0].account: assets[0]}
-
+    if assets:
+        global_context.asset_manager = assets[0]
+    else:
+        raise Exception('no assets')
 
 def position_initialize():
     positions = trade_client.get_positions()
@@ -195,18 +185,44 @@ def order_initialize():
 
 def contract_initialize():
     for symbol in subscribe_symbols:
-        curr_contract = trade_client.get_contracts(symbol, sec_type=symbol_market_map.get('security'),
-                                                   currency=symbol_market_map.get('currency'))[0]
+        curr_contract = trade_client.get_contracts(symbol, sec_type=global_context.security_type_map.get(symbol))
         global_context.contract_map[symbol] = curr_contract
 
 
-def before_trading_start():
-    strategy.before_trading_start()
+if not setting.PLATFORM_COMPATIBLE:
+    strategy = Strategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
+
+    def on_quote_changed(symbol, items, hour_trading):
+        strategy.on_ticker(symbol, items, hour_trading)
+
+    def strategy_initialize():
+        pass
+
+    def before_trading_start(data):
+        strategy.before_trading_start(data=data)
 
 
-def dump():
-    strategy.dump()
+    def handle_data(data):
+        strategy.on_minute_bar(data=data)
 
+
+    def dump():
+        strategy.dump()
+
+else:
+    compatible_strategy = CompatibleStrategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
+
+    def strategy_initialize():
+        compatible_strategy.initialize()
+
+    def before_trading_start(data):
+        compatible_strategy.before_trading_start(data=data)
+
+    def handle_data(data):
+        compatible_strategy.handle_data(data=data)
+
+    def dump():
+        pass
 
 if __name__ == '__main__':
     asset_initialize()
@@ -214,7 +230,10 @@ if __name__ == '__main__':
     order_initialize()
     contract_initialize()
 
-    before_trading_start()
+    strategy_initialize()
+    curr_timezone = pytz.timezone(TIME_ZONE)
+    curr_datetime = datetime.now().astimezone(curr_timezone)
+    before_trading_start(Data(curr_datetime))
 
     push_client.connect(client_config.tiger_id, client_config.private_key)
     subscribe_initialize()
@@ -223,7 +242,7 @@ if __name__ == '__main__':
         if event_trigger:
             # delay 1 minute to get ready for data
             time.sleep(60)
-            curr_timezone = pytz.timezone(TIME_ZONE)
+            # curr_timezone = pytz.timezone(TIME_ZONE)
             today = datetime.now().astimezone(curr_timezone).date()
 
             open_time = datetime.strptime(str(OPEN_TIME), '%H%M%S').replace(tzinfo=curr_timezone).time().replace(second=SYSTEM_DELAY)
