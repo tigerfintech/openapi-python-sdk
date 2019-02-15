@@ -16,8 +16,8 @@ def _order(contract, action, order_type, quantity, limit_price=None, aux_price=N
                              limit_price=limit_price, aux_price=aux_price, trail_stop_price=trail_stop_price,
                              trailing_percent=trailing_percent, percent_offset=percent_offset,
                              time_in_force=time_in_force, outside_rth=outside_rth)
-    if order_obj:
-        return place_order(order_obj)
+    if order_obj and place_order(order_obj):
+        return order_obj.order_id
     return False
 
 
