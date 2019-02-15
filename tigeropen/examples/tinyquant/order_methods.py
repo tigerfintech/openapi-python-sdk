@@ -17,7 +17,8 @@ def _order(contract, action, order_type, quantity, limit_price=None, aux_price=N
                              trailing_percent=trailing_percent, percent_offset=percent_offset,
                              time_in_force=time_in_force, outside_rth=outside_rth)
     if order_obj:
-        place_order(order_obj)
+        return place_order(order_obj)
+    return False
 
 
 def order(asset, amount, style='market', limit_price=0.0):
@@ -26,9 +27,9 @@ def order(asset, amount, style='market', limit_price=0.0):
     action = 'BUY' if amount > 0 else 'SELL'
     contract = global_context.contract_map.get(asset)
     if style == 'market':
-        _order(contract=contract, action=action, order_type='MKT', quantity=abs(amount))
+        return _order(contract=contract, action=action, order_type='MKT', quantity=abs(amount))
     elif style == 'limit' and limit_price > 0:
-        _order(contract=contract, action=action, order_type='LMT', quantity=abs(amount), limit_price=limit_price)
+        return _order(contract=contract, action=action, order_type='LMT', quantity=abs(amount), limit_price=limit_price)
 
 
 def order_value(asset, value, style='market', limit_price=0.0):
@@ -38,9 +39,9 @@ def order_value(asset, value, style='market', limit_price=0.0):
         curr_close = minute_bar_util.get_curr_bar(assets=asset,  fields='close')
         if curr_close is None:
             raise Exception('no price data')
-        _order(contract=contract, action=action, order_type='MKT', quantity=abs(value) // curr_close)
+        return _order(contract=contract, action=action, order_type='MKT', quantity=abs(value) // curr_close)
     elif style == 'limit' and limit_price > 0:
-        _order(contract=contract, action=action, order_type='LMT', quantity=abs(value) // limit_price, limit_price=limit_price)
+        return _order(contract=contract, action=action, order_type='LMT', quantity=abs(value) // limit_price, limit_price=limit_price)
 
 
 def order_percent(asset, percent, style='market', limit_price=0.0):

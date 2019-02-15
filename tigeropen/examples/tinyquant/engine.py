@@ -185,7 +185,9 @@ def order_initialize():
 
 def contract_initialize():
     for symbol in subscribe_symbols:
-        curr_contract = trade_client.get_contracts(symbol, sec_type=global_context.security_type_map.get(symbol))
+        curr_contract = trade_client.get_contracts(symbol,
+                                                   sec_type=global_context.security_type_map.get(symbol),
+                                                   currency=global_context.currency_map.get(symbol))[0]
         global_context.contract_map[symbol] = curr_contract
 
 
@@ -228,7 +230,6 @@ if __name__ == '__main__':
     asset_initialize()
     position_initialize()
     order_initialize()
-    contract_initialize()
 
     strategy_initialize()
     curr_timezone = pytz.timezone(TIME_ZONE)
@@ -237,6 +238,7 @@ if __name__ == '__main__':
 
     push_client.connect(client_config.tiger_id, client_config.private_key)
     subscribe_initialize()
+    contract_initialize()
 
     try:
         if event_trigger:
