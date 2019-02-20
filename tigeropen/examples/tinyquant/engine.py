@@ -1,17 +1,18 @@
 import time
 import pytz
+import logbook
+import sys
 from datetime import datetime, timedelta
 
 
 from tigeropen.trade.domain.position import Position
 
-from tigeropen.examples.tinyquant.data import Data, minute_bar_util
+from tigeropen.examples.tinyquant.data import Data, minute_bar_util, Quote as Data
 from tigeropen.examples.tinyquant.strategy import Strategy, CompatibleStrategy
-import tigeropen.examples.tinyquant.setting as setting
 from tigeropen.examples.tinyquant.client import client_config, push_client, trade_client, quote_client, \
     global_context
-import logbook
-import sys
+import tigeropen.examples.tinyquant.setting as setting
+
 
 
 # ============= initialize engine vars ===================
@@ -242,35 +243,49 @@ if __name__ == '__main__':
 
     try:
         if event_trigger:
-            # delay 1 minute to get ready for data
-            time.sleep(60)
-            # curr_timezone = pytz.timezone(TIME_ZONE)
-            today = datetime.now().astimezone(curr_timezone).date()
-
-            open_time = datetime.strptime(str(OPEN_TIME), '%H%M%S').replace(tzinfo=curr_timezone).time().replace(second=SYSTEM_DELAY)
+            open_time = datetime.strptime(str(OPEN_TIME), '%H%M%S').replace(tzinfo=curr_timezone).time().replace(
+                second=SYSTEM_DELAY)
             close_time = datetime.strptime(str(CLOSE_TIME), '%H%M%S').time()
 
-            one_minute = timedelta(minutes=1)
-            curr_time = (datetime.now().astimezone(curr_timezone).replace(second=SYSTEM_DELAY, microsecond=0) + one_minute).time()
-            open_time = max(curr_time, open_time)
+            if setting.FREQUENCY == 'minute':
+                # delay 1 minute to get ready for data
+                time.sleep(60)
+                # curr_timezone = pytz.timezone(TIME_ZONE)
+                today = datetime.now().astimezone(curr_timezone).date()
 
-            while True:
-                curr_time = datetime.now().astimezone(curr_timezone).time()
-                if open_time >= close_time:
-                    logger.info('event trigger finished')
-                    break
-                elif curr_time >= open_time:
+                curr_time = (datetime.now().astimezone(curr_timezone).replace(second=SYSTEM_DELAY, microsecond=0) + timedelta(minutes=1)).time()
+                open_time = max(curr_time, open_time)
 
-                    last_datetime = datetime.combine(today, open_time, curr_timezone)
-                    curr_datetime = last_datetime + timedelta(minutes=1)
+                while True:
+                    curr_time = datetime.now().astimezone(curr_timezone).time()
+                    if open_time >= close_time:
+                        logger.info('event trigger finished')
+                        break
+                    elif curr_time >= open_time:
 
-                    curr_data = Data(curr_datetime)
-                    # minute_bar_util.set_data(curr_data)
-                    handle_data(curr_data)
-                    open_time = curr_datetime.time()
+                        last_datetime = datetime.combine(today, open_time, curr_timezone)
+                        curr_datetime = last_datetime + timedelta(minutes=1)
 
-                else:
-                    time.sleep(1)
+                        curr_data = Data(curr_datetime)
+                        # minute_bar_util.set_data(curr_data)
+                        handle_data(curr_data)
+                        open_time = curr_datetime.time()
+
+                    else:
+                        time.sleep(1)
+            else:
+                today = datetime.now().astimezone(curr_timezone).date()
+                while True:
+                    curr_datetime = datetime.now().astimezone(curr_timezone)
+                    if curr_datetime.time() >= close_time:
+                        logger.info('daily event trigger finished')
+                    elif curr_datetime.time() >= open_time:
+                        curr_data = Data(curr_datetime)
+                        handle_data(curr_data)
+                        time.sleep(120)
+                        break
+                    else:
+                        time.sleep(1)
         else:
             while True:
                 time.sleep(600)

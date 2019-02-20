@@ -3,6 +3,8 @@
 PLATFORM_COMPATIBLE = False
 
 EVENT_TRIGGER = True
+# 策略运行频率 'minute' 或 'daily'
+FREQUENCY = 'minute'
 TIME_ZONE = 'Asia/Shanghai'
 OPEN_TIME = '093000'
 CLOSE_TIME = '160000'
