@@ -60,14 +60,9 @@ class Strategy(object):
         self.quote_client = quote_client
         self.context = context
 
-        if setting.EVENT_TRIGGER:
-            # [event trigger][not necessary setting] user customer lunch break
-            self.lunch_break = datetime.strptime(setting.LUNCH_BREAK, '%H%M%S').time()
-            self.afternoon_start = datetime.strptime(setting.AFTERNOON_START, '%H%M%S').time()
-
         # [subscribe symbols][necessary setting]
-        # self.context.subscribe('AAPL')
-        self.context.subscribe('01810')
+        self.context.subscribe('AAPL')
+        # self.context.subscribe('01810')
         # [strategy related][not necessary setting] local vars with different strategy
         self.symbol_set = set(self.context.subscribed_symbols)
         self.tick_util = TickerTrendUtil()
@@ -87,20 +82,6 @@ class Strategy(object):
                 print('============= create order =============')
                 contract = self.context.contract_map.get(symbol)
                 self.trade_client.create_order(self.context.account, contract, 'BUY', 'MKT', 100, limit_price=latest_price)
-
-    def on_minute_bar(self, data):
-        """
-        start when time >= open_time
-        stop when time <= end_time
-        """
-        if self.lunch_break <= data.dt.time() < self.afternoon_start:
-            print('============= lunch break =============')
-            return
-        print(data.current('00700', ['open', 'high', 'low', 'close', 'volume', 'time']))
-        # history api is not recommended to use
-        # data cannot be filled in
-        print(data.history('00700', ['open', 'high', 'low', 'close', 'volume', 'time'], 10, '1m'))
-        # print(data.history('00700', 'open', 5, '1m'))
 
     def before_trading_start(self, data):
         """

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from tigeropen.trade.domain.position import Position
 
-from tigeropen.examples.tinyquant.data import Data, minute_bar_util, Quote as Data
+from tigeropen.examples.tinyquant.data import minute_bar_util, Quote as Data
 from tigeropen.examples.tinyquant.strategy import Strategy, CompatibleStrategy
 from tigeropen.examples.tinyquant.client import client_config, push_client, trade_client, quote_client, \
     global_context
@@ -25,15 +25,13 @@ account_id = global_context.account
 # ============= set symbols ===================
 subscribe_symbols = global_context.subscribed_symbols
 # ============= event trigger config ===================
-OPEN_TIME = setting.OPEN_TIME
-CLOSE_TIME = setting.CLOSE_TIME
-TIME_ZONE = setting.TIME_ZONE
+OPEN_TIME = setting.MARKET.OPEN_TIME
+CLOSE_TIME = setting.MARKET.CLOSE_TIME
 SYSTEM_DELAY = setting.SYSTEM_DELAY
+timezone = pytz.timezone(setting.MARKET.TIMEZONE)
+minute_bar_util.set_time_zone(timezone)
 
-minute_bar_util.set_time_zone(pytz.timezone(TIME_ZONE))
-
-UTC = 'UTC'
-event_trigger = setting.EVENT_TRIGGER
+IS_EVENT_TRIGGER = setting.EVENT_TRIGGER
 
 
 def on_query_subscribed_quote(symbols, focus_keys, limit, used):
@@ -43,7 +41,7 @@ def on_query_subscribed_quote(symbols, focus_keys, limit, used):
         logger.info(unsubscribe_symbols)
         push_client.unsubscribe_quote(symbols=unsubscribe_symbols)
 
-    if event_trigger:
+    if IS_EVENT_TRIGGER:
         push_client.quote_changed = on_quote_changed_event_trigger
     else:
         push_client.quote_changed = on_quote_changed
@@ -81,7 +79,7 @@ def on_quote_changed_event_trigger(symbol, items, hour_trading):
     if hour_trading:
         return
     if symbol in subscribe_symbols:
-        logger.info(f'{symbol}, {items}, {hour_trading}')
+        # logger.debug(f'{symbol}, {items}, {hour_trading}')
         minute_bar_util.on_data(symbol, items)
 
 
@@ -186,33 +184,15 @@ def order_initialize():
 
 def contract_initialize():
     for symbol in subscribe_symbols:
-        curr_contract = trade_client.get_contracts(symbol,
+        curr_contracts = trade_client.get_contracts(symbol,
                                                    sec_type=global_context.security_type_map.get(symbol),
-                                                   currency=global_context.currency_map.get(symbol))[0]
-        global_context.contract_map[symbol] = curr_contract
+                                                   currency=global_context.currency_map.get(symbol))
+        if not curr_contracts:
+            raise Exception('can not get contracts')
+        global_context.contract_map[symbol] = curr_contracts[0]
 
 
-if not setting.PLATFORM_COMPATIBLE:
-    strategy = Strategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
-
-    def on_quote_changed(symbol, items, hour_trading):
-        strategy.on_ticker(symbol, items, hour_trading)
-
-    def strategy_initialize():
-        pass
-
-    def before_trading_start(data):
-        strategy.before_trading_start(data=data)
-
-
-    def handle_data(data):
-        strategy.on_minute_bar(data=data)
-
-
-    def dump():
-        strategy.dump()
-
-else:
+if setting.EVENT_TRIGGER:
     compatible_strategy = CompatibleStrategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
 
     def strategy_initialize():
@@ -227,14 +207,31 @@ else:
     def dump():
         pass
 
+else:
+    strategy = Strategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
+
+    def on_quote_changed(symbol, items, hour_trading):
+        strategy.on_ticker(symbol, items, hour_trading)
+
+    def strategy_initialize():
+        pass
+
+    def before_trading_start(data):
+        strategy.before_trading_start(data=data)
+
+    def handle_data(data):
+        pass
+
+    def dump():
+        strategy.dump()
+
 if __name__ == '__main__':
     asset_initialize()
     position_initialize()
     order_initialize()
 
     strategy_initialize()
-    curr_timezone = pytz.timezone(TIME_ZONE)
-    curr_datetime = datetime.now().astimezone(curr_timezone)
+    curr_datetime = datetime.now().astimezone(timezone)
     before_trading_start(Data(curr_datetime))
 
     push_client.connect(client_config.tiger_id, client_config.private_key)
@@ -242,41 +239,53 @@ if __name__ == '__main__':
     contract_initialize()
 
     try:
-        if event_trigger:
-            open_time = datetime.strptime(str(OPEN_TIME), '%H%M%S').replace(tzinfo=curr_timezone).time().replace(
+        if IS_EVENT_TRIGGER:
+            open_time = datetime.strptime(OPEN_TIME, '%H:%M:%S').replace(tzinfo=timezone).time().replace(
                 second=SYSTEM_DELAY)
-            close_time = datetime.strptime(str(CLOSE_TIME), '%H%M%S').time()
+            close_time = datetime.strptime(CLOSE_TIME, '%H:%M:%S').time()
 
             if setting.FREQUENCY == 'minute':
-                # delay 1 minute to get ready for data
-                time.sleep(60)
-                # curr_timezone = pytz.timezone(TIME_ZONE)
-                today = datetime.now().astimezone(curr_timezone).date()
+                today = datetime.now().astimezone(timezone).date()
 
-                curr_time = (datetime.now().astimezone(curr_timezone).replace(second=SYSTEM_DELAY, microsecond=0) + timedelta(minutes=1)).time()
-                open_time = max(curr_time, open_time)
+                curr_time = (datetime.now().astimezone(timezone).replace(second=SYSTEM_DELAY, microsecond=0) + timedelta(minutes=1)).time()
+                next_bar_time = max(curr_time, open_time)
 
-                while True:
-                    curr_time = datetime.now().astimezone(curr_timezone).time()
-                    if open_time >= close_time:
-                        logger.info('event trigger finished')
-                        break
-                    elif curr_time >= open_time:
-
-                        last_datetime = datetime.combine(today, open_time, curr_timezone)
-                        curr_datetime = last_datetime + timedelta(minutes=1)
-
-                        curr_data = Data(curr_datetime)
-                        # minute_bar_util.set_data(curr_data)
-                        handle_data(curr_data)
-                        open_time = curr_datetime.time()
-
-                    else:
-                        time.sleep(1)
+                if setting.MARKET.LUNCH_BREAK_START_TIME:
+                    lunch_break_start = datetime.strptime(setting.MARKET.LUNCH_BREAK_START_TIME, '%H:%M:%S').time()
+                    lunch_break_end = datetime.strptime(setting.MARKET.LUNCH_BREAK_END_TIME, '%H:%M:%S').time()
+                    while True:
+                        curr_time = datetime.now().astimezone(timezone).time()
+                        if next_bar_time >= close_time:
+                            logger.info('event trigger finished')
+                            break
+                        elif lunch_break_start <= next_bar_time < lunch_break_end:
+                            time.sleep(1)
+                        elif curr_time >= next_bar_time:
+                            curr_datetime = datetime.combine(today, next_bar_time, timezone) + timedelta(minutes=1)
+                            curr_data = Data(curr_datetime)
+                            # minute_bar_util.set_data(curr_data)
+                            handle_data(curr_data)
+                            next_bar_time = curr_datetime.time()
+                        else:
+                            time.sleep(1)
+                else:
+                    while True:
+                        curr_time = datetime.now().astimezone(timezone).time()
+                        if next_bar_time >= close_time:
+                            logger.info('event trigger finished')
+                            break
+                        elif curr_time >= next_bar_time:
+                            curr_datetime = datetime.combine(today, next_bar_time, timezone) + timedelta(minutes=1)
+                            curr_data = Data(curr_datetime)
+                            # minute_bar_util.set_data(curr_data)
+                            handle_data(curr_data)
+                            next_bar_time = curr_datetime.time()
+                        else:
+                            time.sleep(1)
             else:
-                today = datetime.now().astimezone(curr_timezone).date()
+                today = datetime.now().astimezone(timezone).date()
                 while True:
-                    curr_datetime = datetime.now().astimezone(curr_timezone)
+                    curr_datetime = datetime.now().astimezone(timezone)
                     if curr_datetime.time() >= close_time:
                         logger.info('daily event trigger finished')
                     elif curr_datetime.time() >= open_time:
