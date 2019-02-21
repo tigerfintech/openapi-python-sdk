@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from tigeropen.common.consts import BarPeriod
 from .client import quote_client
-from .setting import TIME_ZONE
+from .setting import MARKET
 
 COLUMNS = ['symbol', 'time', 'open', 'high', 'low', 'close', 'volume']
 
@@ -140,8 +140,8 @@ daily_bar_util = BarUtil()
 
 
 class Data(object):
-    def __init__(self, dt):
-        self.dt = dt
+    def __init__(self, time):
+        self.time = time
 
     @staticmethod
     def current(assets, fields):
@@ -154,8 +154,8 @@ class Data(object):
             return minute_bar_util.get_last_bar(symbol=assets, fields=fields)
 
     def history(self, assets, fields, bar_count, frequency='1m'):
-        start_dt = (self.dt - timedelta(minutes=bar_count+3))
-        end_dt = self.dt
+        start_dt = (self.time - timedelta(minutes=bar_count + 3))
+        end_dt = self.time
 
         if frequency == '1m':
             if type(assets) == list:
@@ -181,23 +181,23 @@ class Data(object):
 
 
 class Quote:
-    def __init__(self, dt):
-        self.dt = dt
-        self.timezone = pytz.timezone(TIME_ZONE)
+    def __init__(self, time):
+        self.time = time
 
     @staticmethod
     def current(assets, fields):
-        # if 'close' in fields:
-        #     if isinstance(fields, str):
-        #         fields = 'latest_price'
-        #     elif isinstance(fields, list):
-        #         fields[fields.index('close')] = 'latest_price'
+
         if isinstance(assets, list):
             symbols = assets
         else:
             symbols = [assets]
-        data = quote_client.get_stock_briefs(symbols=symbols).rename(columns={'latest_price': 'close'})
 
+        end_ts = round(datetime.now().timestamp() * 1000)
+        bars = list()
+        for symbol in symbols:
+            bar = quote_client.get_bars(symbols=[symbol], period=BarPeriod.ONE_MINUTE, limit=1, end_time=end_ts)
+            bars.append(bar)
+        data = pd.concat(bars, ignore_index=True)
         if isinstance(assets, list) and isinstance(fields, list):
             return data[fields].set_index(pd.Series(assets))
         elif isinstance(assets, list):
@@ -210,21 +210,22 @@ class Quote:
     def history(self, assets, fields, bar_count, frequency='1m'):
         if frequency == '1m':
             period = BarPeriod.ONE_MINUTE
-            delta = timedelta(minutes=bar_count + 3)
         else:
             period = BarPeriod.DAY
-            delta = timedelta(days=bar_count)
-        begin_dt = (self.dt - delta)
-        end_dt = self.dt
-        begin_ts = round(begin_dt.astimezone(self.timezone).timestamp() * 1000)
-        end_ts = round(end_dt.astimezone(self.timezone).timestamp() * 1000)
+        end_dt = self.time
+        end_ts = round(end_dt.timestamp() * 1000)
 
         if isinstance(assets, list):
             symbols = assets
         else:
             symbols = [assets]
-        data = quote_client.get_bars(symbols=symbols, period=period, begin_time=begin_ts, end_time=end_ts)
-        data.time = pd.to_datetime(data.time, unit='ms')
+
+        bars = list()
+        for symbol in symbols:
+            bar = quote_client.get_bars(symbols=[symbol], period=period, limit=bar_count, end_time=end_ts)
+            bars.append(bar)
+        data = pd.concat(bars, ignore_index=True)
+        data.time = pd.to_datetime(data.time, unit='ms').dt.tz_localize('utc').dt.tz_convert(MARKET.TIMEZONE)
         if isinstance(assets, list) and isinstance(fields, list):
             return data.set_index(['time', 'symbol']).to_panel()[fields]
         elif isinstance(assets, list):

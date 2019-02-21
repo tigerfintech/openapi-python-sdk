@@ -1,4 +1,5 @@
 from tigeropen.common.consts import SecurityType, Currency
+from .setting import MARKET
 
 SECURITY_TYPE_MAP = {
     SecurityType.STK.name: SecurityType.STK,  # 股票
@@ -28,7 +29,7 @@ class Context:
         self.currency_map = {}
         self.subscribed_symbols = set()
 
-    def subscribe(self, symbols, currency='USD', security_type='STK', exchange=None):
+    def subscribe(self, symbols, currency=MARKET.CURRENCY, security_type='STK', exchange=None):
         if not (isinstance(symbols, list) or isinstance(symbols, set)):
             symbols = [symbols]
         for symbol in symbols:
