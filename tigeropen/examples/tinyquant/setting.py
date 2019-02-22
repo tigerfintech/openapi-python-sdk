@@ -1,9 +1,13 @@
-
+# 是否使用 sandbox 环境
 IS_SANDBOX = True
+# 私钥的路径, 如 '/Users/tiger/.ssh/rsa_private_key.pem'
 PRIVATE_KEY = ''
+# 申请开放平台账户返回的ID
 TIGER_ID = ''
-ACCOUNT = ''  # 环球账户
-STANDARD_ACCOUNT = None  # 标准账户
+# 环球账户
+ACCOUNT = ''
+# 标准账户
+STANDARD_ACCOUNT = None
 
 
 class MarketSetting:
