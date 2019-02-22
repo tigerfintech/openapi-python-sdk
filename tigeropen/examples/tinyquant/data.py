@@ -184,15 +184,14 @@ class StockQuote:
     def __init__(self, time):
         self.time = time
 
-    @staticmethod
-    def current(assets, fields):
+    def current(self, assets, fields):
 
         if isinstance(assets, list):
             symbols = assets
         else:
             symbols = [assets]
 
-        end_ts = round(datetime.now().timestamp() * 1000)
+        end_ts = int(self.time.timestamp() * 1000)
         bars = list()
         for symbol in symbols:
             bar = quote_client.get_bars(symbols=[symbol], period=BarPeriod.ONE_MINUTE, limit=1, end_time=end_ts)
@@ -215,7 +214,7 @@ class StockQuote:
         else:
             period = BarPeriod.DAY
         end_dt = self.time
-        end_ts = round(end_dt.timestamp() * 1000)
+        end_ts = int(end_dt.timestamp() * 1000)
 
         if isinstance(assets, list):
             symbols = assets
