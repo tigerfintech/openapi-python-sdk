@@ -180,7 +180,7 @@ class Data(object):
         return None
 
 
-class Quote:
+class StockQuote:
     def __init__(self, time):
         self.time = time
 

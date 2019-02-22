@@ -7,8 +7,9 @@ from tigeropen.common.consts import BarPeriod
 from .context import global_context
 from .client import quote_client
 from .setting import MARKET
-from logbook import Logger
-log = Logger('engine')
+import logbook
+logbook.set_datetime_format("local")
+log = logbook.Logger('compatible engine')
 
 
 def symbol(symbol_str, currency=MARKET.CURRENCY, security_type='STK', exchange=None):

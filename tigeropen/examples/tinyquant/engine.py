@@ -4,33 +4,26 @@ import logbook
 import sys
 from datetime import datetime, timedelta
 
-
 from tigeropen.trade.domain.position import Position
-
-from tigeropen.examples.tinyquant.data import minute_bar_util, Quote as Data
+from tigeropen.examples.tinyquant.data import minute_bar_util, StockQuote as Data
 from tigeropen.examples.tinyquant.strategy import Strategy, CompatibleStrategy
 from tigeropen.examples.tinyquant.client import client_config, push_client, trade_client, quote_client, \
     global_context
 import tigeropen.examples.tinyquant.setting as setting
 
 
-
-# ============= initialize engine vars ===================
-logbook.StreamHandler(sys.stdout).push_application()
+logbook.set_datetime_format("local")
+logbook.StreamHandler(sys.stdout,
+                      format_string='[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] {record.level_name}: {record.channel}:{record.lineno}: {record.message}').push_application()
 logger = logbook.Logger('[engine]')
 
 
-account_id = global_context.account
-
 # ============= set symbols ===================
 subscribe_symbols = global_context.subscribed_symbols
-# ============= event trigger config ===================
-OPEN_TIME = setting.MARKET.OPEN_TIME
-CLOSE_TIME = setting.MARKET.CLOSE_TIME
-SYSTEM_DELAY = setting.SYSTEM_DELAY
+
+
 timezone = pytz.timezone(setting.MARKET.TIMEZONE)
 minute_bar_util.set_time_zone(timezone)
-
 IS_EVENT_TRIGGER = setting.EVENT_TRIGGER
 
 
@@ -71,7 +64,7 @@ def unsubscribe_process():
 
 def add_order(order):
     global_context.order_manager[order.order_id] = order
-    global_context.active_order_manager[order.order_id] = order_manager[order.order_id]
+    global_context.active_order_manager[order.order_id] = global_context.order_manager[order.order_id]
 
 
 # ============= strategy with event trigger ===================
@@ -118,7 +111,7 @@ def on_position_changed(account, items):
         curr_position.unrealized_pnl = ret_position.get('unrealized_pnl')
         curr_position.realized_pnl = ret_position.get('realized_pnl')
     else:
-        global_context.position_manager[symbol] = Position(account=account_id,
+        global_context.position_manager[symbol] = Position(account=global_context.account_id,
                                                            contract=global_context.contract_map[symbol],
                                                            quantity=ret_position.get('quantity'),
                                                            average_cost=ret_position.get('average_cost'),
@@ -147,8 +140,8 @@ def on_order_changed(account, items):
         curr_order.commission = ret_order.get('commission')
 
         if curr_order.remaining <= 0:
-            active_order_manager[curr_order.order_id] = None
-            del active_order_manager[curr_order.order_id]
+            global_context.active_order_manager[curr_order.order_id] = None
+            del global_context.active_order_manager[curr_order.order_id]
 
 
 def cancel_all_open_orders():
@@ -175,11 +168,9 @@ def position_initialize():
 
 def order_initialize():
     # cancel_all_open_orders()
-    global order_manager
-    order_manager = {}
+    global_context.order_manager = {}
 
-    global active_order_manager
-    active_order_manager = {}
+    global_context.active_order_manager = {}
 
 
 def contract_initialize():
@@ -247,6 +238,10 @@ if __name__ == '__main__':
 
     try:
         if IS_EVENT_TRIGGER:
+            OPEN_TIME = setting.MARKET.OPEN_TIME
+            CLOSE_TIME = setting.MARKET.CLOSE_TIME
+            SYSTEM_DELAY = setting.SYSTEM_DELAY
+
             open_time = datetime.strptime(OPEN_TIME, '%H:%M:%S').replace(tzinfo=timezone).time().replace(
                 second=SYSTEM_DELAY)
             close_time = datetime.strptime(CLOSE_TIME, '%H:%M:%S').time()
@@ -291,7 +286,7 @@ if __name__ == '__main__':
                             next_bar_time = curr_datetime.time()
                         else:
                             time.sleep(1)
-            else:
+            elif setting.FREQUENCY == 'daily':
                 today = datetime.now().astimezone(timezone).date()
                 while True:
                     curr_datetime = datetime.now().astimezone(timezone)
