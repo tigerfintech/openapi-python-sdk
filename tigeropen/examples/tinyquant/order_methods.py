@@ -1,6 +1,6 @@
 from functools import partial
-from .client import trade_client, global_context
-from .data import minute_bar_util
+from .client import trade_client, global_context, quote_client
+# from .data import minute_bar_util
 
 create_order = partial(trade_client.create_order, account=global_context.account)
 place_order = trade_client.place_order
@@ -36,7 +36,7 @@ def order_value(asset, value, style='market', limit_price=0.0):
     action = 'BUY' if value > 0 else 'SELL'
     contract = global_context.contract_map.get(asset)
     if style == 'market':
-        curr_close = minute_bar_util.get_curr_bar(assets=asset,  fields='close')
+        curr_close = quote_client.get_stock_briefs(symbols=[asset]).latest_price.iloc[0]
         if curr_close is None:
             raise Exception('no price data')
         return _order(contract=contract, action=action, order_type='MKT', quantity=abs(value) // curr_close)
@@ -45,33 +45,38 @@ def order_value(asset, value, style='market', limit_price=0.0):
 
 
 def order_percent(asset, percent, style='market', limit_price=0.0):
-    portfolio_value = global_context.asset_manager.summary.gross_position_value + global_context.asset_manager.summary.available_funds
-    value = portfolio_value * percent
-    return order_value(asset, value, style, limit_price)
+    raise NotImplemented
+    # portfolio_value = global_context.asset_manager.summary.gross_position_value + global_context.asset_manager.summary.available_funds
+    # value = portfolio_value * percent
+    # return order_value(asset, value, style, limit_price)
 
 
 def order_target(asset, amount, style='market', limit_price=0.0):
-    curr_position = global_context.position_manager.get(asset)
-    if curr_position:
-        if curr_position.quantity != amount:
-            diff_amount = amount - curr_position.quantity
-            return order(asset, diff_amount, style, limit_price)
-    else:
-        return order(asset, amount, style, limit_price)
+    raise NotImplemented
+    # curr_position = global_context.position_manager.get(asset)
+    # if curr_position:
+    #     if curr_position.quantity != amount:
+    #         diff_amount = amount - curr_position.quantity
+    #         return order(asset, diff_amount, style, limit_price)
+    # else:
+    #     return order(asset, amount, style, limit_price)
 
 
 def order_target_value(asset, amount, style='market', limit_price=0.0):
-    if style == 'market':
-        curr_price = minute_bar_util.get_curr_bar(assets=asset,  fields='close')
-    else:
-        curr_price = limit_price
-    if curr_price > 0:
-        target_qty = abs(amount) // curr_price
-        return order_target(asset, target_qty if amount >= 0 else (-target_qty), style, limit_price)
+    raise NotImplemented
+    # if style == 'market':
+    #     #curr_price = minute_bar_util.get_curr_bar(assets=asset,  fields='close')
+    #     quote_client.get_stock_briefs(symbols=[asset]).latest_price.iloc[0]
+    # else:
+    #     curr_price = limit_price
+    # if curr_price > 0:
+    #     target_qty = abs(amount) // curr_price
+    #     return order_target(asset, target_qty if amount >= 0 else (-target_qty), style, limit_price)
 
 
 def order_target_percent(asset, percent, style='market', limit_price=0.0):
-    target_value = global_context.asset_manager.summary.gross_position_value + global_context.asset_manager.summary.available_funds * percent
-    return order_target_value(asset, target_value, style, limit_price)
+    raise NotImplemented
+    # target_value = global_context.asset_manager.summary.gross_position_value + global_context.asset_manager.summary.available_funds * percent
+    # return order_target_value(asset, target_value, style, limit_price)
 
 

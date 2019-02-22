@@ -247,38 +247,40 @@ if __name__ == '__main__':
             close_time = datetime.strptime(CLOSE_TIME, '%H:%M:%S').time()
 
             if setting.FREQUENCY == 'minute':
-                today = datetime.now().astimezone(timezone).date()
+                today = datetime.now(tz=timezone).date()
 
-                curr_time = (datetime.now().astimezone(timezone).replace(second=SYSTEM_DELAY, microsecond=0) + timedelta(minutes=1)).time()
+                curr_time = (datetime.now(tz=timezone).replace(second=SYSTEM_DELAY, microsecond=0) + timedelta(minutes=2)).time()
                 next_bar_time = max(curr_time, open_time)
 
                 if setting.MARKET.LUNCH_BREAK_START_TIME:
                     lunch_break_start = datetime.strptime(setting.MARKET.LUNCH_BREAK_START_TIME, '%H:%M:%S').time()
                     lunch_break_end = datetime.strptime(setting.MARKET.LUNCH_BREAK_END_TIME, '%H:%M:%S').time()
                     while True:
-                        curr_time = datetime.now().astimezone(timezone).time()
+                        curr_time = datetime.now(tz=timezone).time()
                         if next_bar_time >= close_time:
                             logger.info('event trigger finished')
                             break
                         elif lunch_break_start <= next_bar_time < lunch_break_end:
                             time.sleep(1)
                         elif curr_time >= next_bar_time:
-                            curr_datetime = datetime.combine(today, next_bar_time, timezone) + timedelta(minutes=1)
+                            curr_datetime = datetime.combine(today, next_bar_time).astimezone(timezone) - timedelta(minutes=1)
                             curr_data = Data(curr_datetime)
                             # minute_bar_util.set_data(curr_data)
+
+                            logger.info(f'next bar time:{curr_datetime}')
                             run_schedule_func(curr_data)
                             handle_data(curr_data)
-                            next_bar_time = curr_datetime.time()
+                            next_bar_time = (curr_datetime + timedelta(minutes=2)).time()
                         else:
                             time.sleep(1)
                 else:
                     while True:
-                        curr_time = datetime.now().astimezone(timezone).time()
+                        curr_time = datetime.now(tz=timezone).astimezone(timezone).time()
                         if next_bar_time >= close_time:
                             logger.info('event trigger finished')
                             break
                         elif curr_time >= next_bar_time:
-                            curr_datetime = datetime.combine(today, next_bar_time, timezone) + timedelta(minutes=1)
+                            curr_datetime = datetime.combine(today, next_bar_time).astimezone(timezone) + timedelta(minutes=1)
                             curr_data = Data(curr_datetime)
                             # minute_bar_util.set_data(curr_data)
                             run_schedule_func(curr_data)
@@ -287,9 +289,9 @@ if __name__ == '__main__':
                         else:
                             time.sleep(1)
             elif setting.FREQUENCY == 'daily':
-                today = datetime.now().astimezone(timezone).date()
+                today = datetime.now(tz=timezone).date()
                 while True:
-                    curr_datetime = datetime.now().astimezone(timezone)
+                    curr_datetime = datetime.now(tz=timezone)
                     if curr_datetime.time() >= close_time:
                         logger.info('daily event trigger finished')
                     elif curr_datetime.time() >= open_time:
