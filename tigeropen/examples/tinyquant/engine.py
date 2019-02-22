@@ -204,6 +204,10 @@ if setting.EVENT_TRIGGER:
     def handle_data(data):
         compatible_strategy.handle_data(data=data)
 
+    def run_schedule_func(data):
+        if hasattr(global_context, 'schedule_function'):
+            global_context.schedule_function.run(data=data)
+
     def dump():
         pass
 
@@ -220,6 +224,9 @@ else:
         strategy.before_trading_start(data=data)
 
     def handle_data(data):
+        pass
+
+    def run_schedule_func(data):
         pass
 
     def dump():
@@ -264,6 +271,7 @@ if __name__ == '__main__':
                             curr_datetime = datetime.combine(today, next_bar_time, timezone) + timedelta(minutes=1)
                             curr_data = Data(curr_datetime)
                             # minute_bar_util.set_data(curr_data)
+                            run_schedule_func(curr_data)
                             handle_data(curr_data)
                             next_bar_time = curr_datetime.time()
                         else:
@@ -278,6 +286,7 @@ if __name__ == '__main__':
                             curr_datetime = datetime.combine(today, next_bar_time, timezone) + timedelta(minutes=1)
                             curr_data = Data(curr_datetime)
                             # minute_bar_util.set_data(curr_data)
+                            run_schedule_func(curr_data)
                             handle_data(curr_data)
                             next_bar_time = curr_datetime.time()
                         else:
@@ -290,6 +299,7 @@ if __name__ == '__main__':
                         logger.info('daily event trigger finished')
                     elif curr_datetime.time() >= open_time:
                         curr_data = Data(curr_datetime)
+                        run_schedule_func(curr_data)
                         handle_data(curr_data)
                         time.sleep(120)
                         break

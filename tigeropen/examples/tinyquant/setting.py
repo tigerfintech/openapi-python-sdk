@@ -16,6 +16,9 @@ class MarketSetting:
         self.name = name.upper() if name else 'US'
         self.TIMEZONE = None
         self.CURRENCY = None
+
+        # 市场指数的symbol
+        self.INDEX = None
         # 开盘时间
         self.OPEN_TIME = None
         # 收盘时间
@@ -33,6 +36,7 @@ class MarketSetting:
             self.OPEN_TIME = '09:30:00'
             self.CLOSE_TIME = '16:00:00'
             self.CURRENCY = 'USD'
+            self.INDEX = '.INX'
 
         elif self.name == 'HK':
             self.TIMEZONE = 'Asia/Hong_Kong'
@@ -41,6 +45,7 @@ class MarketSetting:
             self.LUNCH_BREAK_START_TIME = '12:00:00'
             self.LUNCH_BREAK_END_TIME = '13:00:00'
             self.CURRENCY = 'HKD'
+            self.INDEX = 'HSI'
 
         elif self.name == 'CN' or self.name == 'SH' or self.name == 'SZ':
             self.TIMEZONE = 'Asia/Shanghai'
@@ -49,6 +54,7 @@ class MarketSetting:
             self.LUNCH_BREAK_START_TIME = '11:30:00'
             self.LUNCH_BREAK_END_TIME = '13:00:00'
             self.CURRENCY = 'CNH'
+            self.INDEX = '000001.SH'
 
 
 # 设置市场
