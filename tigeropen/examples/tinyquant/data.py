@@ -198,6 +198,8 @@ class Quote:
             bar = quote_client.get_bars(symbols=[symbol], period=BarPeriod.ONE_MINUTE, limit=1, end_time=end_ts)
             bars.append(bar)
         data = pd.concat(bars, ignore_index=True)
+        if data.empty:
+            return np.nan
         if isinstance(assets, list) and isinstance(fields, list):
             return data[fields].set_index(pd.Series(assets))
         elif isinstance(assets, list):
@@ -225,6 +227,8 @@ class Quote:
             bar = quote_client.get_bars(symbols=[symbol], period=period, limit=bar_count, end_time=end_ts)
             bars.append(bar)
         data = pd.concat(bars, ignore_index=True)
+        if data.empty:
+            return np.nan
         data.time = pd.to_datetime(data.time, unit='ms').dt.tz_localize('utc').dt.tz_convert(MARKET.TIMEZONE)
         if isinstance(assets, list) and isinstance(fields, list):
             return data.set_index(['time', 'symbol']).to_panel()[fields]
