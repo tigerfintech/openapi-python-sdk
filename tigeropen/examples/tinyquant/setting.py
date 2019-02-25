@@ -73,5 +73,6 @@ FREQUENCY = 'minute'
 # system delay time 5s
 SYSTEM_DELAY = 5
 
-
+# context保存路径, 如 './context.pickle'. 若为空则不保存context
+CONTEXT_FILE_PATH = ''
 
