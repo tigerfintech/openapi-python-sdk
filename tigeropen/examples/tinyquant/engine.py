@@ -111,7 +111,7 @@ def on_position_changed(account, items):
         curr_position.unrealized_pnl = ret_position.get('unrealized_pnl')
         curr_position.realized_pnl = ret_position.get('realized_pnl')
     else:
-        global_context.position_manager[symbol] = Position(account=global_context.account_id,
+        global_context.position_manager[symbol] = Position(account=global_context.account,
                                                            contract=global_context.contract_map[symbol],
                                                            quantity=ret_position.get('quantity'),
                                                            average_cost=ret_position.get('average_cost'),
@@ -188,16 +188,19 @@ if setting.EVENT_TRIGGER:
 
     def strategy_initialize():
         compatible_strategy.initialize()
+        global_context.load()
 
     def before_trading_start(data):
         compatible_strategy.before_trading_start(data=data)
 
     def handle_data(data):
         compatible_strategy.handle_data(data=data)
+        global_context.store()
 
     def run_schedule_func(data):
         if hasattr(global_context, 'schedule_function'):
             global_context.schedule_function.run(data=data)
+            global_context.store()
 
     def dump():
         pass
@@ -260,9 +263,11 @@ if __name__ == '__main__':
                         if next_bar_time >= close_time:
                             logger.info('event trigger finished')
                             break
-                        elif lunch_break_start <= next_bar_time < lunch_break_end:
+                        elif lunch_break_start < next_bar_time < lunch_break_end:
+                            curr_datetime = datetime.combine(today, next_bar_time).astimezone(timezone) - timedelta(minutes=1)
+                            next_bar_time = (curr_datetime + timedelta(minutes=2)).time()
                             time.sleep(1)
-                        elif curr_time >= next_bar_time:
+                        elif next_bar_time <= curr_time:
                             curr_datetime = datetime.combine(today, next_bar_time).astimezone(timezone) - timedelta(minutes=1)
                             curr_data = Data(curr_datetime)
                             # minute_bar_util.set_data(curr_data)
@@ -279,7 +284,7 @@ if __name__ == '__main__':
                         if next_bar_time >= close_time:
                             logger.info('event trigger finished')
                             break
-                        elif curr_time >= next_bar_time:
+                        elif next_bar_time <= curr_time:
                             curr_datetime = datetime.combine(today, next_bar_time).astimezone(timezone) + timedelta(minutes=1)
                             curr_data = Data(curr_datetime)
                             # minute_bar_util.set_data(curr_data)
