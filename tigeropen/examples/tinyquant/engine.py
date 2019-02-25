@@ -102,23 +102,24 @@ def on_position_changed(account, items):
     logger.info(f'{account}, {items}')
     ret_position = dict(items)
     symbol = ret_position.get('origin_symbol')
-    curr_position = global_context.position_manager.get(symbol)
-    if curr_position:
-        curr_position.quantity = ret_position.get('quantity')
-        curr_position.average_cost = ret_position.get('average_cost')
-        curr_position.market_price = ret_position.get('market_price')
-        curr_position.market_value = ret_position.get('market_value')
-        curr_position.unrealized_pnl = ret_position.get('unrealized_pnl')
-        curr_position.realized_pnl = ret_position.get('realized_pnl')
-    else:
-        global_context.position_manager[symbol] = Position(account=global_context.account,
-                                                           contract=global_context.contract_map[symbol],
-                                                           quantity=ret_position.get('quantity'),
-                                                           average_cost=ret_position.get('average_cost'),
-                                                           market_price=ret_position.get('market_price'),
-                                                           market_value=ret_position.get('market_value'),
-                                                           realized_pnl=ret_position.get('realized_pnl'),
-                                                           unrealized_pnl=ret_position.get('unrealized_pnl'))
+    if symbol in global_context.contract_map:
+        curr_position = global_context.position_manager.get(symbol)
+        if curr_position:
+            curr_position.quantity = ret_position.get('quantity')
+            curr_position.average_cost = ret_position.get('average_cost')
+            curr_position.market_price = ret_position.get('market_price')
+            curr_position.market_value = ret_position.get('market_value')
+            curr_position.unrealized_pnl = ret_position.get('unrealized_pnl')
+            curr_position.realized_pnl = ret_position.get('realized_pnl')
+        else:
+            global_context.position_manager[symbol] = Position(account=global_context.account,
+                                                               contract=global_context.contract_map[symbol],
+                                                               quantity=ret_position.get('quantity'),
+                                                               average_cost=ret_position.get('average_cost'),
+                                                               market_price=ret_position.get('market_price'),
+                                                               market_value=ret_position.get('market_value'),
+                                                               realized_pnl=ret_position.get('realized_pnl'),
+                                                               unrealized_pnl=ret_position.get('unrealized_pnl'))
 
 
 def on_order_changed(account, items):
