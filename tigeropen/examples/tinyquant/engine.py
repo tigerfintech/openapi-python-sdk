@@ -1,8 +1,14 @@
+import os
+
 import time
 import pytz
 import logbook
 import sys
 from datetime import datetime, timedelta
+
+ENGINE_PATH = os.path.dirname(os.path.realpath(__file__))
+RUN_PATH = os.path.abspath(os.path.join(ENGINE_PATH, os.pardir, os.pardir, os.pardir))
+sys.path.append(RUN_PATH)
 
 from tigeropen.trade.domain.position import Position
 from tigeropen.examples.tinyquant.data import minute_bar_util, StockQuote as Data
