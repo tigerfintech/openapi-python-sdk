@@ -38,4 +38,6 @@
     before_trading_start: (可选) 交易开始前运行一次，盘中启动时也运行。
     handle_data: 每分钟运行一次
     dump：(可选) 每日交易结束后执行。
+    
+5.注意事项
 
