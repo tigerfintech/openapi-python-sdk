@@ -30,7 +30,7 @@ subscribe_symbols = global_context.subscribed_symbols
 
 
 timezone = pytz.timezone(setting.MARKET.TIMEZONE)
-minute_bar_util.set_time_zone(timezone)
+# minute_bar_util.set_time_zone(timezone)
 IS_EVENT_TRIGGER = setting.EVENT_TRIGGER
 
 
@@ -288,7 +288,7 @@ if __name__ == '__main__':
                             time.sleep(1)
                 else:
                     while True:
-                        curr_time = datetime.now(tz=timezone).astimezone(timezone).time()
+                        curr_time = datetime.now(tz=timezone).time()
                         if next_bar_time >= close_time:
                             logger.info('event trigger finished')
                             break
