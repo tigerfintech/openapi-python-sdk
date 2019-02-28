@@ -16,9 +16,7 @@ def get_client_config():
     client_config = TigerOpenClientConfig(sandbox_debug=setting.IS_SANDBOX)
     client_config.private_key = read_private_key(setting.PRIVATE_KEY)
     client_config.tiger_id = setting.TIGER_ID
-    client_config.account = setting.ACCOUNT  # 环球账户
-    client_config.standard_account = setting.STANDARD_ACCOUNT  # 标准账户
-    client_config.paper_account = setting.PAPER_ACCOUNT  # 模拟账户
+    client_config.account = setting.ACCOUNT
     client_config.language = Language.en_US
     return client_config
 

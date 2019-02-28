@@ -1,4 +1,6 @@
 from functools import partial
+from .client import trade_client
+from .setting import IS_PAPER
 
 
 class Portfolio:
@@ -7,19 +9,33 @@ class Portfolio:
 
     @property
     def cash(self):
-        return self.context.asset_manager.summary.available_funds
+        if IS_PAPER:
+            assets = trade_client.get_assets()
+            if assets:
+                return assets[0].summary.available_funds
+        else:
+            return self.context.asset_manager.summary.available_funds
 
     @property
     def positions_value(self):
-        return self.context.asset_manager.summary.gross_position_value
+        if IS_PAPER:
+            assets = trade_client.get_assets()
+            if assets:
+                return assets[0].summary.gross_position_value
+        else:
+            return self.context.asset_manager.summary.gross_position_value
 
     @property
     def portfolio_value(self):
-        return self.context.asset_manager.summary.gross_position_value + self.context.asset_manager.summary.available_funds
+        return self.positions_value + self.cash
 
     @property
     def positions(self):
-        return self.context.position_manager
+        if IS_PAPER:
+            positions = trade_client.get_positions()
+            return {position.contract.symbol: position for position in positions}
+        else:
+            return self.context.position_manager
 
 
 class CompatibleStrategy:

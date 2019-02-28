@@ -4,13 +4,10 @@ IS_SANDBOX = True
 PRIVATE_KEY = ''
 # 申请开放平台账户返回的ID
 TIGER_ID = ''
-# 环球账户
+# 账户
 ACCOUNT = ''
-# 标准账户
-STANDARD_ACCOUNT = None
-# 模拟账户
-PAPER_ACCOUNT = None
-
+# 账户是否是模拟账户
+IS_PAPER = False
 
 class MarketSetting:
     """不同市场的设置
