@@ -8,6 +8,8 @@ TIGER_ID = ''
 ACCOUNT = ''
 # 标准账户
 STANDARD_ACCOUNT = None
+# 模拟账户
+PAPER_ACCOUNT = None
 
 
 class MarketSetting:
