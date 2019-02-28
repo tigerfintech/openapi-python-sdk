@@ -58,7 +58,7 @@ class BarUtil(object):
         # curr_datetime_minute = datetime.fromtimestamp(timestamp / 1000).astimezone(self.timezone).replace(second=0)
         curr_datetime_minute = (pd.to_datetime(timestamp, unit='ms').tz_localize('utc').tz_convert(MARKET.TIMEZONE)).replace(second=0, microsecond=0)
 
-        if self.lunch_break_start < curr_datetime_minute < self.lunch_break_end:
+        if self.lunch_break_start and self.lunch_break_start < curr_datetime_minute < self.lunch_break_end:
             return
         # curr_minute = curr_datetime_minute.minute
 
@@ -87,7 +87,6 @@ class BarUtil(object):
                             idx_datetime = self.lunch_break_end + timedelta(minutes=i)
                             curr_bar.time = int(idx_datetime.timestamp() * 1000)
                             curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
-
                     else:
                         delta = curr_datetime_minute - start_idx
                         for i in range(delta.seconds // 60):
