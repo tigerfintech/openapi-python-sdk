@@ -1,6 +1,27 @@
 from functools import partial
 
 
+class Portfolio:
+    def __init__(self, context):
+        self.context = context
+
+    @property
+    def cash(self):
+        return self.context.asset_manager.summary.available_funds
+
+    @property
+    def positions_value(self):
+        return self.context.asset_manager.summary.gross_position_value
+
+    @property
+    def portfolio_value(self):
+        return self.context.asset_manager.summary.gross_position_value + self.context.asset_manager.summary.available_funds
+
+    @property
+    def positions(self):
+        return self.context.position_manager
+
+
 class CompatibleStrategy:
     """与量化平台兼容的策略"""
     def __init__(self, push_client=None, trade_client=None, quote_client=None, context=None):
@@ -9,23 +30,7 @@ class CompatibleStrategy:
         self.quote_client = quote_client
         self.context = context
 
-        class Portfolio:
-            def __init__(self):
-                pass
-
-            @property
-            def cash(self):
-                return context.asset_manager.summary.available_funds
-
-            @property
-            def positions_value(self):
-                return context.asset_manager.summary.gross_position_value
-
-            @property
-            def portfolio_value(self):
-                return context.asset_manager.summary.gross_position_value + context.asset_manager.summary.available_funds
-
-        self.context.portfolio = Portfolio()
+        self.context.portfolio = Portfolio(context)
 
         self.initialize = self.noop
         self.before_trading_start = self.noop
