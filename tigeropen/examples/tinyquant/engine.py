@@ -272,13 +272,12 @@ if __name__ == '__main__':
                             logger.info('event trigger finished')
                             break
                         elif lunch_break_start < next_bar_time < lunch_break_end:
-                            curr_datetime = datetime.combine(today, next_bar_time).astimezone(timezone) - timedelta(minutes=1)
+                            curr_datetime = timezone.normalize(datetime.combine(today, next_bar_time, tzinfo=timezone)) - timedelta(minutes=1)
                             next_bar_time = (curr_datetime + timedelta(minutes=2)).time()
                             time.sleep(1)
                         elif next_bar_time <= curr_time:
-                            curr_datetime = datetime.combine(today, next_bar_time).astimezone(timezone) - timedelta(minutes=1)
+                            curr_datetime = timezone.normalize(datetime.combine(today, next_bar_time, tzinfo=timezone)) - timedelta(minutes=1)
                             curr_data = Data(curr_datetime)
-                            # minute_bar_util.set_data(curr_data)
 
                             logger.info(f'next bar time:{curr_datetime}')
                             run_schedule_func(curr_data)
@@ -293,9 +292,8 @@ if __name__ == '__main__':
                             logger.info('event trigger finished')
                             break
                         elif next_bar_time <= curr_time:
-                            curr_datetime = datetime.combine(today, next_bar_time).astimezone(timezone) + timedelta(minutes=1)
+                            curr_datetime = timezone.normalize(datetime.combine(today, next_bar_time, tzinfo=timezone)) + timedelta(minutes=1)
                             curr_data = Data(curr_datetime)
-                            # minute_bar_util.set_data(curr_data)
                             run_schedule_func(curr_data)
                             handle_data(curr_data)
                             next_bar_time = curr_datetime.time()
