@@ -294,11 +294,11 @@ if __name__ == '__main__':
                             logger.info('event trigger finished')
                             break
                         elif next_bar_time <= curr_time:
-                            curr_datetime = timezone.localize(datetime.combine(today, next_bar_time) + timedelta(minutes=1))
+                            curr_datetime = timezone.localize(datetime.combine(today, next_bar_time) - timedelta(minutes=1))
                             curr_data = Data(curr_datetime)
                             run_schedule_func(curr_data)
                             handle_data(curr_data)
-                            next_bar_time = curr_datetime.time()
+                            next_bar_time = (curr_datetime + timedelta(minutes=2)).time()
                         else:
                             time.sleep(1)
             elif setting.FREQUENCY == 'daily':
