@@ -80,7 +80,8 @@ def on_quote_changed_event_trigger(symbol, items, hour_trading):
         return
     if symbol in subscribe_symbols:
         # logger.debug(f'{symbol}, {items}, {hour_trading}')
-        minute_bar_util.on_data(symbol, items)
+        if setting.MARKET.name != 'HK' and setting.MARKET.name != 'US':
+            minute_bar_util.on_data(symbol, items)
 
 
 # ============= subscribe info ===================
@@ -168,6 +169,7 @@ def asset_initialize():
         global_context.asset_manager = assets[0]
     else:
         raise Exception('no assets')
+
 
 def position_initialize():
     positions = trade_client.get_positions()
