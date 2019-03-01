@@ -12,9 +12,9 @@ class Portfolio:
         if IS_PAPER:
             assets = trade_client.get_assets()
             if assets:
-                return assets[0].summary.available_funds
+                return assets[0].summary.cash
         else:
-            return self.context.asset_manager.summary.available_funds
+            return self.context.asset_manager.summary.cash
 
     @property
     def positions_value(self):
@@ -27,7 +27,11 @@ class Portfolio:
 
     @property
     def portfolio_value(self):
-        return self.positions_value + self.cash
+        if IS_PAPER:
+            assets = trade_client.get_assets()
+            if assets:
+                return assets[0].summary.net_liquidation
+        return self.context.asset_manager.summary.net_liquidation
 
     @property
     def positions(self):
@@ -36,6 +40,10 @@ class Portfolio:
             return {position.contract.symbol: position for position in positions}
         else:
             return self.context.position_manager
+
+    def __repr__(self):
+        return '<Portfolio: net_liquidation: %s, cash: %s, positions_value: %s>' \
+               % (self.portfolio_value, self.cash, self.positions_value)
 
 
 class CompatibleStrategy:
