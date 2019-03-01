@@ -54,13 +54,10 @@ class BarUtil(object):
         volume = price_dict.get('volume')
         timestamp = price_dict.get('latest_time')
 
-        # pd.to_datetime(data.time, unit='ms').dt.tz_localize('utc').dt.tz_convert(MARKET.TIMEZONE)
-        # curr_datetime_minute = datetime.fromtimestamp(timestamp / 1000).astimezone(self.timezone).replace(second=0)
         curr_datetime_minute = (pd.to_datetime(timestamp, unit='ms').tz_localize('utc').tz_convert(MARKET.TIMEZONE)).replace(second=0, microsecond=0)
 
         if self.lunch_break_start and self.lunch_break_start < curr_datetime_minute < self.lunch_break_end:
             return
-        # curr_minute = curr_datetime_minute.minute
 
         curr_bar_manager = self.bar_manager.get(symbol)
         if latest_price:
@@ -98,35 +95,6 @@ class BarUtil(object):
 
                     curr_bar_manager.last_timestamp = timestamp
 
-                    # if curr_minute < start_idx:
-                    #     # end_idx = 60 + start_idx if curr_minute < start_idx else curr_minute
-                    #     last_datetime_minute = curr_datetime_minute - timedelta(hours=1)
-                    #     for minute_idx in range(start_idx, 60):
-                    #         curr_bar = curr_bar_manager.curr_bar.copy()
-                    #
-                    #         idx_datetime = last_datetime_minute.replace(minute=minute_idx)
-                    #         curr_bar.name = idx_datetime
-                    #         curr_bar.time = idx_datetime.timestamp()
-                    #         curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
-                    #
-                    #     for minute_idx in range(0, curr_minute):
-                    #         curr_bar = curr_bar_manager.curr_bar.copy()
-                    #
-                    #         idx_datetime = curr_datetime_minute.replace(minute=minute_idx)
-                    #         curr_bar.name = idx_datetime
-                    #         curr_bar.time = idx_datetime.timestamp()
-                    #         curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
-                    #
-                    # else:
-                    #     # update history
-                    #     for minute_idx in range(start_idx, curr_minute):
-                    #         curr_bar = curr_bar_manager.curr_bar.copy()
-                    #
-                    #         idx_datetime = curr_datetime_minute.replace(minute=minute_idx)
-                    #         curr_bar.name = idx_datetime
-                    #         curr_bar.time = idx_datetime.timestamp()
-                    #         curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
-
                     # update latest
                     curr_bar_manager.curr_bar = pd.Series([symbol, int(curr_datetime_minute.timestamp() * 1000),
                                                            latest_price, latest_price, latest_price,
@@ -136,12 +104,10 @@ class BarUtil(object):
                 elif curr_datetime_minute == start_idx:
                     if timestamp > curr_bar_manager.last_timestamp:
                         # set time for test
-                        # curr_bar_manager.curr_bar.time = curr_datetime_minute.timestamp
                         curr_bar_manager.curr_bar.high = max(curr_bar_manager.curr_bar.high, latest_price)
                         curr_bar_manager.curr_bar.low = min(curr_bar_manager.curr_bar.low, latest_price)
                         curr_bar_manager.curr_bar.close = latest_price
                         curr_bar_manager.curr_bar.volume = volume - curr_bar_manager.last_volume
-                        # curr_bar_manager.last_volume = volume
                         curr_bar_manager.last_timestamp = timestamp
             else:
                 curr_bar_manager = BarManager()
@@ -153,37 +119,6 @@ class BarUtil(object):
                 curr_bar_manager.last_minute = curr_datetime_minute
                 curr_bar_manager.last_volume = volume
                 curr_bar_manager.last_timestamp = timestamp
-
-    # def get_last_bar(self, symbol, fields):
-    #     curr_bar_manager = self.bar_manager.get(symbol)
-    #     if curr_bar_manager and type(curr_bar_manager.last_bar) == pd.Series:
-    #         return curr_bar_manager.last_bar[fields]
-    #     else:
-    #         if type(fields) == list:
-    #             ret_arr = np.empty(len(fields), dtype=float)
-    #             ret_arr.fill(np.nan)
-    #             return pd.Series(ret_arr, index=fields)
-    #         return np.nan
-    #
-    # def get_curr_bar(self, symbol, fields):
-    #     """获取最新的tick"""
-    #     curr_bar_manager = self.bar_manager.get(symbol)
-    #     if curr_bar_manager and type(curr_bar_manager.curr_bar) == pd.Series:
-    #         return curr_bar_manager.curr_bar[fields]
-    #     else:
-    #         if type(fields) == list:
-    #             ret_arr = np.empty(len(fields), dtype=float)
-    #             ret_arr.fill(np.nan)
-    #             return pd.Series(ret_arr, index=fields)
-    #         return np.nan
-
-    # def get_bar_arr(self, symbol, start_dt, end_dt, fields):
-    #     curr_bar_manager = self.bar_manager.get(symbol)
-    #     if curr_bar_manager:
-    #         return curr_bar_manager.data_bar[(curr_bar_manager.data_bar.index >= start_dt.strftime('%Y-%m-%d %H:%M:%S'))
-    #                                          & (curr_bar_manager.data_bar.index <= end_dt.strftime('%Y-%m-%d %H:%M:%S'))][fields]
-    #     else:
-    #         return None
 
     def get_bar_arr(self, symbols, period, limit, end_time):
         if period == BarPeriod.DAY:
@@ -206,48 +141,6 @@ class BarUtil(object):
 
 
 minute_bar_util = BarUtil()
-daily_bar_util = BarUtil()
-
-
-# class Data(object):
-#     def __init__(self, time):
-#         self.time = time
-#
-#     @staticmethod
-#     def current(assets, fields):
-#         if type(assets) == list:
-#             if type(fields) == list:
-#                 return pd.DataFrame([minute_bar_util.get_last_bar(asset, fields) for asset in assets], index=assets)
-#             else:
-#                 return pd.Series([minute_bar_util.get_last_bar(asset, fields) for asset in assets], index=assets)
-#         else:
-#             return minute_bar_util.get_last_bar(symbol=assets, fields=fields)
-#
-#     def history(self, assets, fields, bar_count, frequency='1m'):
-#         start_dt = (self.time - timedelta(minutes=bar_count + 3))
-#         end_dt = self.time
-#
-#         if frequency == '1m':
-#             if type(assets) == list:
-#                 if type(fields) == list:
-#                     ret = {}
-#                     for asset in assets:
-#                         curr_df = minute_bar_util.get_bar_arr(asset, start_dt, end_dt, fields)
-#                         df_len = min(len(curr_df), bar_count)
-#                         ret[asset] = curr_df[-df_len:]
-#                     return pd.Panel(ret)
-#                 else:
-#                     ret = []
-#                     for asset in assets:
-#                         curr_df = minute_bar_util.get_bar_arr(asset, start_dt, end_dt, fields)
-#                         df_len = min(len(curr_df), bar_count)
-#                         ret.append(curr_df[-df_len:])
-#                     return pd.DataFrame(ret, columns=assets)
-#             else:
-#                 curr_df = minute_bar_util.get_bar_arr(assets, start_dt, end_dt, fields)
-#                 df_len = min(len(curr_df), bar_count)
-#                 return curr_df[-df_len:]
-#         return None
 
 
 class StockQuote:
@@ -300,7 +193,6 @@ class StockQuote:
 
         bars = list()
         for symbol in symbols:
-            # bar = quote_client.get_bars(symbols=[symbol], period=period, limit=bar_count, end_time=end_ts)
             bar = self.get_bars(symbol, period, bar_count, end_ts)
             bars.append(bar)
         data = pd.concat(bars, ignore_index=True)
