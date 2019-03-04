@@ -10,15 +10,16 @@
 
 1.运行模式：
     
-    行情驱动：on_ticker，将行情数据推送至strategy:on_ticker
-    时间事件驱动：on_minute_bar,开盘后每分钟会运行一次直至收盘
+    行情驱动：on_ticker，将行情数据推送至strategy_quote_trigger:on_ticker
+    时间事件驱动：handle_data, 开盘后每分钟会运行一次直至收盘
     支持盘前启动，盘中重启。
     盘中重启，当前的外挂订单是否撤单，需用户自行定义。
 
 2.配置：
 
-    setting.py 配置引擎基本信息
-    client_config.py 配置账户，私钥等用户信息
+    setting.py 配置引擎及账户，私钥等信息。
+    其中, 若 EVENT_TRIGGER = True 则为时间事件驱动模式运行(默认), False 则为行情驱动模式运行.
+
 
 
 3.运行方式：
@@ -26,10 +27,17 @@
     python engine.py
 
 4.修改策略：
-
-    strategy.py 若基于本文件修改策略后，需重新安装包【注意】
     
-    before_trading_start: 交易开始前运行一次，盘中启动时也运行。
-    dump：每日交易结束后，可以落地相应的交易数据。
+    行情驱动 strategy_quote_trigger.py, 需实现:
+    before_trading_start: (可选) 交易开始前运行一次，盘中启动时也运行。
+    dump：(可选) 每日交易结束后执行。
     on_ticker：行情驱动策略入口
-    on_minute_bar：时间事件驱动策略入口
+    
+    时间事件驱动 strategy_event_trigger.py, 需实现:
+    initialize: 交易开始时运行一次，进行初始化
+    before_trading_start: (可选) 交易开始前运行一次，盘中启动时也运行。
+    handle_data: 每分钟运行一次
+    dump：(可选) 每日交易结束后执行。
+    
+5.注意事项
+
