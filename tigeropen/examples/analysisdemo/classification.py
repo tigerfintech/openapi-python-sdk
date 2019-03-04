@@ -49,9 +49,11 @@ class Classification:
 
         self.daily_stats_path = f'{self.dir_path}/stats'
 
-    def classify(self):
-        # ========================================================
-        print('Euclidean k-means')
+    def euclidean_k_means_classify(self):
+        """
+        Euclidean k-means
+        :return:
+        """
         df = pd.DataFrame(self.daily_return).iloc[1: -2, :].T.dropna(how='any')
         km = TimeSeriesKMeans(n_clusters=10, verbose=True, random_state=0)
         y_pred = km.fit_predict(df.values)
@@ -70,10 +72,13 @@ class Classification:
             plt.show()
             plt.cla()
 
-        # ========================================================
-        print('DBA k-means')
+    def dba_k_means_classify(self):
+        """
+        DBA k-means
+        :return:
+        """
         df = pd.DataFrame(self.daily_return).iloc[1: -2, :].T.dropna(how='any')
-        km = TimeSeriesKMeans(n_clusters=10, n_init=2, metric="dtw", verbose=True,  max_iter_barycenter=10)
+        km = TimeSeriesKMeans(n_clusters=10, n_init=2, metric="dtw", verbose=True, max_iter_barycenter=10)
         y_pred = km.fit_predict(df.values)
         results = pd.DataFrame(df.index, y_pred)
 
@@ -89,6 +94,10 @@ class Classification:
             plt.xlim(0, df.shape[1])
             plt.show()
             plt.cla()
+
+    def classify(self):
+        self.euclidean_k_means_classify()
+        self.dba_k_means_classify()
 
 
 if __name__ == '__main__':
