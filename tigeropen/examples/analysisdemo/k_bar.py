@@ -59,6 +59,13 @@ class KBarUtil:
         self.daily_stats_path = f'{self.dir_path}/stats'
 
     def plot(self, symbol_str, df, freq=3):
+        """
+        plot and save k bars & volume
+        :param symbol_str:
+        :param df: stock price data
+        :param freq: x axis frequency
+        :return:
+        """
         if len(df) <= 0:
             return
 
@@ -102,102 +109,9 @@ class KBarUtil:
         plt.cla()
         plt.close()
 
-    def analysis_var(self, ret_list, var_name):
-        avg_return = np.mean(ret_list)
-        median_return = np.median(ret_list)
-        std_return = np.std(ret_list)
-        skew_return = stats.skew(np.array(ret_list))
-        kurt_return = stats.kurtosis(ret_list)
-        size = len(ret_list)
-
-        count_1_std = np.sum(np.array(ret_list) > (avg_return + std_return * 1.0))
-        ratio_1 = count_1_std / size
-
-        count_2_std = np.sum(np.array(ret_list) > (avg_return + std_return * 2.0))
-        ratio_2 = count_2_std / size
-
-        count_3_std = np.sum(np.array(ret_list) > (avg_return + std_return * 3.0))
-        ratio_3 = count_3_std / size
-
-        x = np.linspace(avg_return - 3 * std_return, avg_return + 3 * std_return, 100)
-        y = mlab.normpdf(x, avg_return, std_return)
-
-        kde = stats.gaussian_kde(ret_list)
-
-        plt.title(var_name)
-        plt.subplot(121)
-        plt.hist(ret_list, bins=100)
-
-        plt.axvline(x=avg_return, color='red', linestyle='--', linewidth=0.8, label='mean')
-        plt.axvline(x=avg_return - 2 * std_return, color='blue', linestyle='--', linewidth=0.8,
-                    label='-2 std deviation')
-        plt.axvline(x=avg_return + 2 * std_return, color='blue', linestyle='--', linewidth=0.8, label='2 std deviation')
-        plt.axvline(x=avg_return - 3 * std_return, color='orange', linestyle='--', linewidth=0.8,
-                    label='-3 std deviation')
-        plt.axvline(x=avg_return + 3 * std_return, color='orange', linestyle='--', linewidth=0.8,
-                    label='3 std deviation')
-        plt.ylabel('percentage', fontsize=10)
-        plt.legend(fontsize=12)
-
-        plt.subplot(122)
-        plt.plot(x, kde(x), label='kernel density estimation')
-        plt.plot(x, y, color='black', linewidth=1, label='normal fit')
-        plt.ylabel('probability', fontsize=10)
-        plt.axvline(x=avg_return, color='red', linestyle='--', linewidth=0.8, label='mean')
-        plt.axvline(x=avg_return - 2 * std_return, color='blue', linestyle='--', linewidth=0.8,
-                    label='-2 std deviation')
-        plt.axvline(x=avg_return + 2 * std_return, color='blue', linestyle='--', linewidth=0.8, label='2 std deviation')
-        plt.axvline(x=avg_return - 3 * std_return, color='orange', linestyle='--', linewidth=0.8,
-                    label='-3 std deviation')
-        plt.axvline(x=avg_return + 3 * std_return, color='orange', linestyle='--', linewidth=0.8,
-                    label='3 std deviation')
-        plt.legend(fontsize=12, loc='best')
-        plt.savefig(f'{self.dir_path}/{var_name}.png')
-        plt.cla()
-
-        # dump stats
-        # dump_dict = {'avg_return:': avg_return, 'median_return': median_return, 'std_return': std_return,
-        #              'skew_return': skew_return, 'kurt_return': kurt_return, 'size': size,
-        #              'above_1_std_ratio': ratio_1, 'above_2_std_ratio': ratio_2, 'above_3_std_ratio': ratio_3}
-        #
-        # store_dict(dump_dict, self.daily_stats_path)
-
     def dump(self):
         pd.DataFrame(self.daily_return).to_pickle(self.daily_return_path)
         pd.DataFrame(self.daily_volume_ratio).to_pickle(self.daily_volume_ratio_path)
-
-        # ========================================================
-
-        # returns analysis
-        # ret_list = []
-        # for key, value in self.daily_return.items():
-        #     if value.size <= 0:
-        #         print(key)
-        #         continue
-        #     if np.isnan(value.iloc[-1]):
-        #         print(key)
-        #         continue
-        #     ret_list.append(value.iloc[-1])
-        #
-        # # ret_list = [value.iloc[-1] for value in self.daily_return.values()]
-        # self.analysis_var(ret_list, 'ret')
-
-        # ========================================================
-
-        # std analysis
-        # std_list = []
-        # for key, value in self.daily_return.items():
-        #     if value.size <= 0:
-        #         print(key)
-        #         continue
-        #     std = np.std(value.dropna())
-        #     if np.isnan(std):
-        #         print(key)
-        #         continue
-        #     std_list.append(std)
-        # self.analysis_var(std_list, 'ret_std')
-
-        # ========================================================
 
 
 def filter_stock(symbols):
