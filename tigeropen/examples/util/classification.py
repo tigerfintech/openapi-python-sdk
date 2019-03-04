@@ -11,21 +11,21 @@ def check_file_exists(file_path):
     return os.path.isfile(file_path)
 
 
-# def dtw_distance(s1, s2):
-#     dtw = {}
-#
-#     for i in range(len(s1)):
-#         dtw[(i, -1)] = float('inf')
-#     for i in range(len(s2)):
-#         dtw[(-1, i)] = float('inf')
-#
-#     dtw[(-1, -1)] = 0
-#     for i in range(len(s1)):
-#         for j in range(len(s2)):
-#             dist = (s1[i] - s2[j])**2
-#             dtw[(i, j)] = dist + min(dtw[(i-1, j)], dtw[i, j-1], dtw[i-1, j-1])
-#
-#     return sqrt(dtw[len(s1)-1, len(s2)-1])
+def dtw_distance(s1, s2):
+    dtw = {}
+
+    for i in range(len(s1)):
+        dtw[(i, -1)] = float('inf')
+    for i in range(len(s2)):
+        dtw[(-1, i)] = float('inf')
+
+    dtw[(-1, -1)] = 0
+    for i in range(len(s1)):
+        for j in range(len(s2)):
+            dist = (s1[i] - s2[j])**2
+            dtw[(i, j)] = dist + min(dtw[(i-1, j)], dtw[i, j-1], dtw[i-1, j-1])
+
+    return sqrt(dtw[len(s1)-1, len(s2)-1])
 
 
 class Classification:

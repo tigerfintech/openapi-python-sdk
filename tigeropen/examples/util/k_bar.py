@@ -36,23 +36,6 @@ def check_file_exists(file_path):
     return os.path.isfile(file_path)
 
 
-# def dtw_distance(s1, s2):
-#     dtw = {}
-#
-#     for i in range(len(s1)):
-#         dtw[(i, -1)] = float('inf')
-#     for i in range(len(s2)):
-#         dtw[(-1, i)] = float('inf')
-#
-#     dtw[(-1, -1)] = 0
-#     for i in range(len(s1)):
-#         for j in range(len(s2)):
-#             dist = (s1[i] - s2[j])**2
-#             dtw[(i, j)] = dist + min(dtw[(i-1, j)], dtw[i, j-1], dtw[i-1, j-1])
-#
-#     return sqrt(dtw[len(s1)-1, len(s2)-1])
-
-
 class KBarUtil:
     def __init__(self, today):
         self.today = today.strftime('%Y-%m-%d')
@@ -216,75 +199,6 @@ class KBarUtil:
 
         # ========================================================
 
-        # # filter stock
-        # stock_list = []
-        # for key, value in self.daily_return.items():
-        #     if value.size <= 0:
-        #         print(key)
-        #         continue
-        #     if np.isnan(value.iloc[-1]):
-        #         print(key)
-        #         continue
-        #     if value.iloc[-1] > 0.02:
-        #         stock_list.append(key)
-        # print(stock_list)
-
-        # ========================================================
-
-        # df = pd.DataFrame(self.daily_return).iloc[-7: -2, :].T.dropna(how='any')
-        #
-        # df2 = pd.DataFrame(self.daily_return).iloc[-7:, :].T.dropna(how='any')
-        #
-        # estimator = KMeans(n_clusters=10)
-        # estimator.fit(df.values)
-        # labels = estimator.labels_
-        # results = pd.DataFrame([df.index, labels, df2.iloc[:, -1]]).T
-        # print(results)
-        #
-        # plt.scatter(results.iloc[:, 1], results.iloc[:, 2])
-        # plt.show()
-
-        # ========================================================
-        # print('Euclidean k-means')
-        # df = pd.DataFrame(self.daily_return).iloc[1: -2, :].T.dropna(how='any')
-        # km = TimeSeriesKMeans(n_clusters=10, verbose=True, random_state=0)
-        # y_pred = km.fit_predict(df.values)
-        # results = pd.DataFrame(df.index, y_pred)
-        #
-        # plt.figure()
-        # for yi in range(10):
-        #     # plt.subplot(10, 10, yi + 1)
-        #     curr_df = results[results.index == yi]
-        #     for row in curr_df.iterrows():
-        #         symbol = row[1][0]
-        #         plt.plot(df[df.index == symbol].values[0], 'k-', alpha=.2)
-        #     plt.plot(km.cluster_centers_[yi], 'r-')
-        #
-        #     plt.xlim(0, df.shape[1])
-        #     plt.show()
-        #     plt.cla()
-
-        # ========================================================
-        # print('DBA k-means')
-        # df = pd.DataFrame(self.daily_return).iloc[1: -2, :].T.dropna(how='any')
-        # km = TimeSeriesKMeans(n_clusters=10, n_init=2, metric="dtw", verbose=True,  max_iter_barycenter=10)
-        # y_pred = km.fit_predict(df.values)
-        # results = pd.DataFrame(df.index, y_pred)
-        # pdb.set_trace()
-        #
-        # plt.figure()
-        # for yi in range(10):
-        #     # plt.subplot(10, 10, yi + 1)
-        #     curr_df = results[results.index == yi]
-        #     for row in curr_df.iterrows():
-        #         symbol = row[1][0]
-        #         plt.plot(df[df.index == symbol].values[0], 'k-', alpha=.2)
-        #     plt.plot(km.cluster_centers_[yi], 'r-')
-        #
-        #     plt.xlim(0, df.shape[1])
-        #     plt.show()
-        #     plt.cla()
-
 
 def filter_stock(symbols):
     ret = []
@@ -323,10 +237,5 @@ if __name__ == '__main__':
         print(e)
 
     k_bar_util.dump()
-
-    # symbol = '600030'
-    # bars = quote_client.get_bars([symbol], limit=30)
-    # print(bars)
-    # k_bar_util.plot(symbol, bars)
 
 

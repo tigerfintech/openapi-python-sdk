@@ -36,23 +36,6 @@ def check_file_exists(file_path):
     return os.path.isfile(file_path)
 
 
-# def dtw_distance(s1, s2):
-#     dtw = {}
-#
-#     for i in range(len(s1)):
-#         dtw[(i, -1)] = float('inf')
-#     for i in range(len(s2)):
-#         dtw[(-1, i)] = float('inf')
-#
-#     dtw[(-1, -1)] = 0
-#     for i in range(len(s1)):
-#         for j in range(len(s2)):
-#             dist = (s1[i] - s2[j])**2
-#             dtw[(i, j)] = dist + min(dtw[(i-1, j)], dtw[i, j-1], dtw[i-1, j-1])
-#
-#     return sqrt(dtw[len(s1)-1, len(s2)-1])
-
-
 class StatsUtil:
     def __init__(self, today):
         self.today = today.strftime('%Y-%m-%d')
@@ -184,19 +167,6 @@ class StatsUtil:
 
         # ========================================================
 
-        # df = pd.DataFrame(self.daily_return).iloc[-7: -2, :].T.dropna(how='any')
-        #
-        # df2 = pd.DataFrame(self.daily_return).iloc[-7:, :].T.dropna(how='any')
-        #
-        # estimator = KMeans(n_clusters=10)
-        # estimator.fit(df.values)
-        # labels = estimator.labels_
-        # results = pd.DataFrame([df.index, labels, df2.iloc[:, -1]]).T
-        # print(results)
-        #
-        # plt.scatter(results.iloc[:, 1], results.iloc[:, 2])
-        # plt.show()
-
 
 if __name__ == '__main__':
 
@@ -204,9 +174,5 @@ if __name__ == '__main__':
 
     stats_util.analysis()
 
-    # symbol = '600030'
-    # bars = quote_client.get_bars([symbol], limit=30)
-    # print(bars)
-    # k_bar_util.plot(symbol, bars)
 
 
