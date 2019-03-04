@@ -1,12 +1,9 @@
 from functools import partial
 from .client import trade_client, global_context, quote_client
-# from .data import minute_bar_util
 
 create_order = partial(trade_client.create_order, account=global_context.account)
 place_order = trade_client.place_order
-cancel_order = partial(trade_client.cancel_order, account=global_context.account)
 get_open_orders = partial(trade_client.get_open_orders, account=global_context.account)
-get_order = partial(trade_client.get_order, account=global_context.account)
 
 
 def _order(contract, action, order_type, quantity, limit_price=None, aux_price=None,
@@ -42,6 +39,14 @@ def order_value(asset, value, style='market', limit_price=0.0):
         return _order(contract=contract, action=action, order_type='MKT', quantity=abs(value) // curr_close)
     elif style == 'limit' and limit_price > 0:
         return _order(contract=contract, action=action, order_type='LMT', quantity=abs(value) // limit_price, limit_price=limit_price)
+
+
+def get_order(order_id):
+    return trade_client.get_order(account=global_context.account, order_id=order_id)
+
+
+def cancel_order(order_id):
+    return trade_client.cancel_order(account=global_context.account, order_id=order_id)
 
 
 def order_percent(asset, percent, style='market', limit_price=0.0):
