@@ -7,7 +7,7 @@ from .order_methods import *
 
 # 策略初始化方法， 只在开始执行回测时运行一次
 def initialize(context):
-    context.asset = symbol('600999')
+    context.asset = symbol('AAPL')
 
 
 def handle_data(context, data):
