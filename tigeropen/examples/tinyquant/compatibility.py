@@ -2,7 +2,7 @@
 provide compatibility for tiger quant platform strategies.
 """
 import pytz
-from datetime import datetime
+from datetime import datetime, timedelta
 from tigeropen.common.consts import BarPeriod
 from .context import global_context
 from .client import quote_client
@@ -48,6 +48,7 @@ class Schedule:
         self.date_rule = date_rule
         self.time_rule = time_rule
         self.last_trade_date = self.get_last_trade_date()
+        self.market_end_time = MARKET.CLOSE_TIME - timedelta(minutes=2)
 
     def get_last_trade_date(self):
         ms_timestamp = quote_client.get_bars(symbols=[MARKET.INDEX], period=BarPeriod.DAY, limit=1).time.iloc[0]
@@ -59,7 +60,7 @@ class Schedule:
         if (self.date_rule == 'month_start' and self.last_trade_date.month != curr_time.month) or self.date_rule is None:
             if (self.time_rule == 'market_open' or self.time_rule is None) and curr_clock == MARKET.OPEN_TIME:
                 self.func(global_context, data)
-            elif self.time_rule == 'market_end' and curr_clock == MARKET.CLOSE_TIME:
+            elif self.time_rule == 'market_end' and curr_clock == self.market_end_time:
                 self.func(global_context, data)
             elif self.time_rule == 'always':
                 self.func(global_context, data)
