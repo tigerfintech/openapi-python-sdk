@@ -85,6 +85,7 @@ class KBarUtil:
         df["date"] = df["date"].apply(mdates.date2num)
 
         quotes = df[['date', 'open', 'high', 'low', 'close']].copy()
+        # only keep trading days
         quotes.reset_index()
         quotes['date'] = quotes.index
         # quotes['sma50'] = quotes["close"].rolling(10).mean()
