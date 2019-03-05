@@ -51,7 +51,7 @@ class Classification:
 
     def euclidean_k_means_classify(self):
         """
-        Euclidean k-means
+        Euclidean k-means classification based on stock daily return shape
         :return:
         """
         df = pd.DataFrame(self.daily_return).iloc[1: -2, :].T.dropna(how='any')
@@ -74,7 +74,7 @@ class Classification:
 
     def dba_k_means_classify(self):
         """
-        DBA k-means
+        DBA k-means classification based on stock daily return shape
         :return:
         """
         df = pd.DataFrame(self.daily_return).iloc[1: -2, :].T.dropna(how='any')

@@ -59,19 +59,32 @@ class StatsUtil:
         self.daily_stats_path = f'{self.dir_path}/stats'
 
     def analysis_var(self, ret_list, var_name):
+        """
+
+        :param ret_list: daily return list
+        :param var_name: statistics variable name
+        :return:
+        """
         avg_return = np.mean(ret_list)
+        # daily return median
         median_return = np.median(ret_list)
+        # daily return std
         std_return = np.std(ret_list)
+        # daily return skew
         skew_return = stats.skew(np.array(ret_list))
+        # daily return kurt
         kurt_return = stats.kurtosis(ret_list)
         size = len(ret_list)
 
+        # 1 std ratio
         count_1_std = np.sum(np.array(ret_list) > (avg_return + std_return * 1.0))
         ratio_1 = count_1_std / size
 
+        # 2 std ratio
         count_2_std = np.sum(np.array(ret_list) > (avg_return + std_return * 2.0))
         ratio_2 = count_2_std / size
 
+        # 3 std ratio
         count_3_std = np.sum(np.array(ret_list) > (avg_return + std_return * 3.0))
         ratio_3 = count_3_std / size
 
@@ -80,6 +93,7 @@ class StatsUtil:
 
         kde = stats.gaussian_kde(ret_list)
 
+        # plot daily return distribution
         plt.title(var_name)
         plt.subplot(121)
         plt.hist(ret_list, bins=100)
