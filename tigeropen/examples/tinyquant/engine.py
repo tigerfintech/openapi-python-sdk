@@ -38,7 +38,7 @@ def on_query_subscribed_quote(symbols, focus_keys, limit, used):
     unsubscribe_symbols = set(symbols) - subscribe_symbols
     if unsubscribe_symbols:
         logger.debug(unsubscribe_symbols)
-        push_client.unsubscribe_quote(symbols=unsubscribe_symbols)
+        # push_client.unsubscribe_quote(symbols=unsubscribe_symbols)
 
     if IS_EVENT_TRIGGER:
         push_client.quote_changed = on_quote_changed_event_trigger
@@ -64,7 +64,7 @@ def unsubscribe_process():
     push_client.unsubscribe_order()
     push_client.unsubscribe_position()
     push_client.unsubscribe_asset()
-    push_client.unsubscribe_quote(subscribe_symbols)
+    push_client.unsubscribe_quote(symbols=subscribe_symbols)
     push_client.disconnect()
 
 
@@ -214,7 +214,8 @@ else:
     strategy = Strategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
 
     def on_quote_changed(symbol, items, hour_trading):
-        strategy.on_ticker(symbol, items, hour_trading)
+        if symbol in subscribe_symbols:
+            strategy.on_ticker(symbol, items, hour_trading)
 
     def strategy_initialize():
         pass
