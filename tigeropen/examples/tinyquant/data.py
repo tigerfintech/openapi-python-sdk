@@ -156,8 +156,6 @@ class StockQuote:
         if data.empty:
             return np.nan
         if isinstance(assets, list) and isinstance(fields, list):
-            import pdb
-            pdb.set_trace()
             return data[fields].set_index(pd.Series(assets))
         elif isinstance(assets, list):
             return data.set_index(pd.Series(assets))[fields]
