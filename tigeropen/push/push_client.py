@@ -58,14 +58,19 @@ class PushClient(object):
         self.disconnect_callback = None
         self.error_callback = None
 
-    def connect(self, tiger_id, private_key):
-        sign = sign_with_rsa(private_key, tiger_id, 'utf-8')
+    def _connect(self):
+        sign = sign_with_rsa(self.private_key, self.tiger_id, 'utf-8')
         self.stomp_connection = stomp.Connection10(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
                                                    keepalive=True)
         # self.stomp_connection.set_listener('stats', stomp.StatsListener())
         self.stomp_connection.set_listener('push', self)
         self.stomp_connection.start()
-        self.stomp_connection.connect(tiger_id, sign, wait=True)
+        self.stomp_connection.connect(self.tiger_id, sign, wait=True)
+
+    def connect(self, tiger_id, private_key):
+        self.tiger_id = tiger_id
+        self.private_key = private_key
+        self._connect()
 
     def disconnect(self):
         if self.stomp_connection:
@@ -75,7 +80,14 @@ class PushClient(object):
         if self.connect_callback:
             self.connect_callback()
 
+    def _reconnect(self):
+        for _ in range(5):
+            self._connect()
+            if self.stomp_connection.is_connected():
+                break
+
     def on_disconnected(self):
+        self._reconnect()
         if self.disconnect_callback:
             self.disconnect_callback()
 
