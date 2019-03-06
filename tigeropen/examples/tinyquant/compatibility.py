@@ -25,9 +25,9 @@ def symbol(symbol_str, currency=MARKET.CURRENCY, security_type='STK', exchange=N
 
 
 def symbols(*args, currency=MARKET.CURRENCY, security_type='STK', exchange=None):
-    for sym in list(*args):
+    for sym in list(args):
         symbol(sym, currency=currency, security_type=security_type, exchange=exchange)
-    return list(*args)
+    return list(args)
 
 
 def record(**kwargs):
