@@ -60,8 +60,8 @@ class PushClient(object):
 
     def _connect(self):
         sign = sign_with_rsa(self.private_key, self.tiger_id, 'utf-8')
-        self.stomp_connection = stomp.Connection12(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
-                                                   keepalive=True, heartbeats=(4000, 4000))
+        self.stomp_connection = stomp.Connection10(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
+                                                   keepalive=True)
         # self.stomp_connection.set_listener('stats', stomp.StatsListener())
         self.stomp_connection.set_listener('push', self)
         self.stomp_connection.start()
