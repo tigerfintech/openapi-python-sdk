@@ -38,20 +38,20 @@ class Strategy(object):
         self.quote_client = quote_client
         self.context = context
 
-        self.symbol_set = symbols('AAPL', 'BABA')
+        self.symbol_set = symbols('00700', '01810')
 
         self.tick_util = TickerTrendUtil()
 
-    def on_ticker(self, symbol, items, hour_trading):
+    def on_ticker(self, symbol_str, items, hour_trading):
         """
         run after subscribing market data
         """
         if hour_trading:
             return
         latest_price = dict(items).get('latest_price')
-        if symbol in self.symbol_set:
-            if self.tick_util.on_latest_price(symbol, latest_price):
-                contract = self.context.contract_map.get(symbol)
+        if symbol_str in self.symbol_set:
+            if self.tick_util.on_latest_price(symbol_str, latest_price):
+                contract = self.context.contract_map.get(symbol_str)
                 self.trade_client.create_order(self.context.account, contract, 'BUY', 'MKT', 100, limit_price=latest_price)
 
     def before_trading_start(self, data):
