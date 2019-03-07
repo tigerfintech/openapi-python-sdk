@@ -9,7 +9,7 @@ from .client import quote_client
 from .setting import MARKET
 import logbook
 logbook.set_datetime_format("local")
-log = logbook.Logger('compatible engine')
+log = logbook.Logger('engine')
 
 
 def symbol(symbol_str, currency=MARKET.CURRENCY, security_type='STK', exchange=None):

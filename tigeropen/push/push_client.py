@@ -5,6 +5,8 @@ Created on 2018/10/30
 @author: gaoan
 """
 import json
+import time
+import threading
 import stomp
 import six
 import traceback
@@ -33,7 +35,7 @@ POSITION_KEYS_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity',
 ORDER_KEYS_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderType': 'order_type',
                        'limitPrice': 'limit_price', 'auxPrice': 'aux_price', 'avgFillPrice': 'avg_fill_price',
                        'totalQuantity': 'quantity', 'filledQuantity': 'filled', 'lastFillPrice': 'last_fill_price',
-                       'orderType': 'order_type', 'realizedPnl': 'realized_pnl', 'secType': 'sec_type',
+                       'realizedPnl': 'realized_pnl', 'secType': 'sec_type',
                        'remark': 'reason', 'localSymbol': 'local_symbol', 'originSymbol': 'origin_symbol',
                        'outsideRth': 'outside_rth', 'timeInForce': 'time_in_force', 'openTime': 'order_time',
                        'latestTime': 'trade_time', 'contractId': 'contract_id', 'trailStopPrice': 'trail_stop_price',
@@ -41,7 +43,7 @@ ORDER_KEYS_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTyp
 
 
 class PushClient(object):
-    def __init__(self, host, port, use_ssl=True):
+    def __init__(self, host, port, use_ssl=True, auto_reconnect=True):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
@@ -57,20 +59,43 @@ class PushClient(object):
         self.connect_callback = None
         self.disconnect_callback = None
         self.error_callback = None
+        self._connection_check_thread = None
+        self.auto_reconnect = auto_reconnect
 
     def _connect(self):
-        sign = sign_with_rsa(self.private_key, self.tiger_id, 'utf-8')
+        self.stomp_connection.connect(self.tiger_id, self.sign, wait=True)
+
+    def _reconnect(self):
+        for _ in range(5):
+            self._connect()
+            if self.stomp_connection.is_connected():
+                return True
+        return False
+
+    def _check_loop(self):
+        while True:
+            if not self.stomp_connection.is_connected():
+                self._reconnect()
+            time.sleep(5)
+
+    def _run_connection_check_thread(self):
+        if not self._connection_check_thread:
+            self._connection_check_thread = threading.Thread(target=self._check_loop)
+            self._connection_check_thread.daemon = True
+            self._connection_check_thread.start()
+
+    def connect(self, tiger_id, private_key):
+        self.tiger_id = tiger_id
+        self.private_key = private_key
+        self.sign = sign_with_rsa(self.private_key, self.tiger_id, 'utf-8')
         self.stomp_connection = stomp.Connection10(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
                                                    keepalive=True)
         # self.stomp_connection.set_listener('stats', stomp.StatsListener())
         self.stomp_connection.set_listener('push', self)
         self.stomp_connection.start()
-        self.stomp_connection.connect(self.tiger_id, sign, wait=True)
-
-    def connect(self, tiger_id, private_key):
-        self.tiger_id = tiger_id
-        self.private_key = private_key
         self._connect()
+        if self.auto_reconnect:
+            self._run_connection_check_thread()
 
     def disconnect(self):
         if self.stomp_connection:
@@ -80,14 +105,9 @@ class PushClient(object):
         if self.connect_callback:
             self.connect_callback()
 
-    def _reconnect(self):
-        for _ in range(5):
-            self._connect()
-            if self.stomp_connection.is_connected():
-                break
-
     def on_disconnected(self):
-        self._reconnect()
+        if self.auto_reconnect and self._reconnect():
+            return
         if self.disconnect_callback:
             self.disconnect_callback()
 
