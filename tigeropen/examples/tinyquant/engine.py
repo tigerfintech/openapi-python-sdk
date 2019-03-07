@@ -11,8 +11,7 @@ sys.path.insert(0, RUN_PATH)
 
 from tigeropen.trade.domain.position import Position
 from tigeropen.examples.tinyquant.data import minute_bar_util, StockQuote as Data
-from tigeropen.examples.tinyquant.strategy import CompatibleStrategy
-from tigeropen.examples.tinyquant.strategy_quote_trigger import Strategy
+from tigeropen.examples.tinyquant.strategy import CompatibleStrategy, TickStrategy
 from tigeropen.examples.tinyquant.client import client_config, push_client, trade_client, quote_client, \
     global_context
 import tigeropen.examples.tinyquant.setting as setting
@@ -211,14 +210,15 @@ if setting.EVENT_TRIGGER:
         pass
 
 else:
-    strategy = Strategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
+    strategy = TickStrategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
 
     def on_quote_changed(symbol, items, hour_trading):
         if symbol in subscribe_symbols:
-            strategy.on_ticker(symbol, items, hour_trading)
+            strategy.on_ticker(symbol_str=symbol, items=items, hour_trading=hour_trading)
 
     def strategy_initialize():
-        pass
+        strategy.initialize()
+        global_context.load()
 
     def before_trading_start(data):
         strategy.before_trading_start(data=data)
@@ -231,6 +231,8 @@ else:
 
     def dump():
         strategy.dump()
+        global_context.store()
+
 
 if __name__ == '__main__':
     asset_initialize()
