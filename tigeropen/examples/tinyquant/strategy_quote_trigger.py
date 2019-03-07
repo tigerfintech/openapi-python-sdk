@@ -1,10 +1,9 @@
-from tigeropen.examples.tinyquant.compatibility import symbols
 from .compatibility import *
 from .order_methods import *
 
 
 def initialize(context):
-    symbol_set = symbols('00700', '01810')
+    symbol_set = symbols('AAPL', 'BABA')
 
 
 def on_ticker(context, symbol_str, items, hour_trading):
