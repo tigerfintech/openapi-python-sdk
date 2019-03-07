@@ -38,7 +38,7 @@
     时间事件驱动 strategy_event_trigger.py, 需实现:
     initialize: 交易开始时运行一次，进行初始化. 若是A股，则需要在此处调用 symbol 订阅要交易的标的；其他市场不需要显示订阅
     before_trading_start: (可选) 交易开始前运行一次，盘中启动时也运行。
-    handle_data: 每分钟运行一次
+    handle_data: 每个bar运行一次
     dump：(可选) 每日交易结束后执行。
     
 5.注意事项
