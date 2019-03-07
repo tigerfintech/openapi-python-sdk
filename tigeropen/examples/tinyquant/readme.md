@@ -28,13 +28,14 @@
 
 4.修改策略：
     
-    行情驱动 strategy_quote_trigger.py, 需实现:
+    行情驱动 strategy_quote_trigger.py, 需实现 Strategy 类中的下列方法:
     before_trading_start: (可选) 交易开始前运行一次，盘中启动时也运行。
     dump：(可选) 每日交易结束后执行。
     on_ticker：行情驱动策略入口
     
+    
     时间事件驱动 strategy_event_trigger.py, 需实现:
-    initialize: 交易开始时运行一次，进行初始化
+    initialize: 交易开始时运行一次，进行初始化. 若是A股，则需要在此处调用 symbol 订阅要交易的标的；其他市场不需要显示订阅
     before_trading_start: (可选) 交易开始前运行一次，盘中启动时也运行。
     handle_data: 每分钟运行一次
     dump：(可选) 每日交易结束后执行。
