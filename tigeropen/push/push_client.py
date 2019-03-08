@@ -5,6 +5,7 @@ Created on 2018/10/30
 @author: gaoan
 """
 import json
+import time
 import stomp
 import six
 import traceback
@@ -79,6 +80,7 @@ class PushClient(object):
             self._connect()
             if self.stomp_connection.is_connected():
                 return True
+            time.sleep(10)
         return False
 
     def connect(self, tiger_id, private_key):
