@@ -41,7 +41,7 @@ ORDER_KEYS_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTyp
 
 
 class PushClient(object):
-    def __init__(self, host, port, use_ssl=True, connection_timeout=6, auto_reconnect=True):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=60, auto_reconnect=True):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
