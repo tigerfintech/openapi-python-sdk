@@ -63,6 +63,16 @@ class PushClient(object):
         self.auto_reconnect = auto_reconnect
 
     def _connect(self):
+        if hasattr(self, 'stomp_connection'):
+            try:
+                self.stomp_connection.remove_listener('push')
+                self.stomp_connection.transport.cleanup()
+            except:
+                pass
+        self.stomp_connection = stomp.Connection10(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
+                                                   keepalive=True)
+        self.stomp_connection.set_listener('push', self)
+        self.stomp_connection.start()
         self.stomp_connection.connect(self.tiger_id, self.sign, wait=True)
 
     def _reconnect(self):
@@ -88,11 +98,7 @@ class PushClient(object):
         self.tiger_id = tiger_id
         self.private_key = private_key
         self.sign = sign_with_rsa(self.private_key, self.tiger_id, 'utf-8')
-        self.stomp_connection = stomp.Connection10(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
-                                                   keepalive=True)
-        # self.stomp_connection.set_listener('stats', stomp.StatsListener())
-        self.stomp_connection.set_listener('push', self)
-        self.stomp_connection.start()
+
         self._connect()
         if self.auto_reconnect:
             self._run_connection_check_thread()
