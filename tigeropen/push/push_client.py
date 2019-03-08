@@ -5,7 +5,6 @@ Created on 2018/10/30
 @author: gaoan
 """
 import json
-import time
 import stomp
 import six
 import traceback
@@ -42,7 +41,7 @@ ORDER_KEYS_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTyp
 
 
 class PushClient(object):
-    def __init__(self, host, port, use_ssl=True, connection_timeout=60, auto_reconnect=True, reconnect_count=5):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=6, auto_reconnect=True):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
@@ -60,7 +59,6 @@ class PushClient(object):
         self.error_callback = None
         self._connection_timeout = connection_timeout
         self._auto_reconnect = auto_reconnect
-        self._reconnect_count = reconnect_count
 
     def _connect(self):
         try:
@@ -69,26 +67,18 @@ class PushClient(object):
                 self.stomp_connection.transport.cleanup()
         except:
             pass
+
         self.stomp_connection = stomp.Connection10(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
                                                    keepalive=True, timeout=self._connection_timeout)
         self.stomp_connection.set_listener('push', self)
         self.stomp_connection.start()
         self.stomp_connection.connect(self.tiger_id, self.sign, wait=True)
 
-    def _reconnect(self):
-        for _ in range(self._reconnect_count):
-            self._connect()
-            if self.stomp_connection.is_connected():
-                return True
-            time.sleep(10)
-        return False
-
     def connect(self, tiger_id, private_key):
         self.tiger_id = tiger_id
         self.private_key = private_key
         self.sign = sign_with_rsa(self.private_key, self.tiger_id, 'utf-8')
         self._connect()
-
 
     def disconnect(self):
         if self.stomp_connection:
@@ -99,10 +89,10 @@ class PushClient(object):
             self.connect_callback()
 
     def on_disconnected(self):
-        if self._auto_reconnect and self._reconnect():
-            return
         if self.disconnect_callback:
             self.disconnect_callback()
+        elif self._auto_reconnect:
+            self._connect()
 
     def on_message(self, headers, body):
         """
