@@ -68,13 +68,13 @@ class BarUtil(object):
                             curr_bar = curr_bar_manager.curr_bar.copy()
                             idx_datetime = start_idx + timedelta(minutes=i)
                             curr_bar.time = int(idx_datetime.timestamp() * 1000)
-                            curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
+                            curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar, ignore_index=True)
 
                         for i in range(delta2.seconds // 60):
                             curr_bar = curr_bar_manager.curr_bar.copy()
                             idx_datetime = self.lunch_break_end + timedelta(minutes=i)
                             curr_bar.time = int(idx_datetime.timestamp() * 1000)
-                            curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
+                            curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar, ignore_index=True)
                     else:
                         delta = curr_datetime_minute - start_idx
                         for i in range(delta.seconds // 60):
