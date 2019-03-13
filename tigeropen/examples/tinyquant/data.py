@@ -12,9 +12,7 @@ COLUMNS = ['symbol', 'time', 'open', 'high', 'low', 'close', 'volume']
 class BarManager(object):
     def __init__(self):
         self.curr_bar = None
-        # self.last_bar = None
         self.data_bar = pd.DataFrame(columns=COLUMNS)
-        # self.data_bar.set_index('time')
         self.last_minute = None
         self.last_volume = 0.0
         self.last_timestamp = None
@@ -37,9 +35,6 @@ class BarUtil(object):
             self.bar_func = self.get_bar_arr
         else:
             self.bar_func = quote_client.get_bars
-
-    # def set_time_zone(self, timezone):
-    #     self.timezone = timezone
 
     def on_data(self, symbol, items):
         """
@@ -65,10 +60,6 @@ class BarUtil(object):
                 start_idx = curr_bar_manager.last_minute
 
                 if curr_datetime_minute > start_idx:
-
-                    # finish last bar
-                    # curr_bar_manager.last_bar = curr_bar_manager.curr_bar.copy()
-
                     if (curr_datetime_minute >= self.lunch_break_end) and (start_idx <= self.lunch_break_start):
                         delta1 = self.lunch_break_start - start_idx
                         delta2 = curr_datetime_minute - self.lunch_break_end
@@ -77,13 +68,13 @@ class BarUtil(object):
                             curr_bar = curr_bar_manager.curr_bar.copy()
                             idx_datetime = start_idx + timedelta(minutes=i)
                             curr_bar.time = int(idx_datetime.timestamp() * 1000)
-                            curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
+                            curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar, ignore_index=True)
 
                         for i in range(delta2.seconds // 60):
                             curr_bar = curr_bar_manager.curr_bar.copy()
                             idx_datetime = self.lunch_break_end + timedelta(minutes=i)
                             curr_bar.time = int(idx_datetime.timestamp() * 1000)
-                            curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar)
+                            curr_bar_manager.data_bar = curr_bar_manager.data_bar.append(curr_bar, ignore_index=True)
                     else:
                         delta = curr_datetime_minute - start_idx
                         for i in range(delta.seconds // 60):
@@ -103,7 +94,6 @@ class BarUtil(object):
                     curr_bar_manager.last_volume = volume
                 elif curr_datetime_minute == start_idx:
                     if timestamp > curr_bar_manager.last_timestamp:
-                        # set time for test
                         curr_bar_manager.curr_bar.high = max(curr_bar_manager.curr_bar.high, latest_price)
                         curr_bar_manager.curr_bar.low = min(curr_bar_manager.curr_bar.low, latest_price)
                         curr_bar_manager.curr_bar.close = latest_price
@@ -115,14 +105,13 @@ class BarUtil(object):
                 curr_bar_manager.curr_bar = pd.Series([symbol, int(curr_datetime_minute.timestamp() * 1000),
                                                        latest_price, latest_price, latest_price,
                                                        latest_price, volume], index=COLUMNS)
-                # curr_bar_manager.last_bar = curr_bar_manager.curr_bar.copy()
                 curr_bar_manager.last_minute = curr_datetime_minute
                 curr_bar_manager.last_volume = volume
                 curr_bar_manager.last_timestamp = timestamp
 
     def get_bar_arr(self, symbols, period, limit, end_time):
         if period == BarPeriod.DAY:
-            return quote_client.get_bars(symbols, period, limit, end_time)
+            return quote_client.get_bars(symbols=symbols, period=period, limit=limit, end_time=end_time)
         else:
             frames = []
             for symbol in symbols:
@@ -161,15 +150,12 @@ class StockQuote:
         end_ts = int(self.time.timestamp() * 1000)
         bars = list()
         for symbol in symbols:
-            # bar = quote_client.get_bars(symbols=[symbol], period=BarPeriod.ONE_MINUTE, limit=1, end_time=end_ts)
             bar = self.get_bars(symbol, BarPeriod.ONE_MINUTE, 1, end_ts)
             bars.append(bar)
         data = pd.concat(bars, ignore_index=True)
         if data.empty:
             return np.nan
         if isinstance(assets, list) and isinstance(fields, list):
-            import pdb
-            pdb.set_trace()
             return data[fields].set_index(pd.Series(assets))
         elif isinstance(assets, list):
             return data.set_index(pd.Series(assets))[fields]
