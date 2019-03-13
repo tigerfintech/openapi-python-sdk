@@ -70,3 +70,34 @@ class CompatibleStrategy:
 
     def noop(self, *args, **kwargs):
         pass
+
+
+class TickStrategy:
+    """行情驱动策略"""
+    def __init__(self, push_client=None, trade_client=None, quote_client=None, context=None):
+        self.push_client = push_client
+        self.trade_client = trade_client
+        self.quote_client = quote_client
+
+        self.context = context
+        self.context.push_client = push_client
+        self.context.trade_client = trade_client
+        self.context.quote_client = quote_client
+
+        self.initialize = self.noop
+        self.before_trading_start = self.noop
+        self.on_ticker = self.noop
+        self.dump = self.noop
+
+        from . import strategy_quote_trigger
+        if hasattr(strategy_quote_trigger, 'initialize'):
+            self.initialize = partial(strategy_quote_trigger.initialize, context=self.context)
+        if hasattr(strategy_quote_trigger, 'before_trading_start'):
+            self.before_trading_start = partial(strategy_quote_trigger.before_trading_start, context=self.context)
+        if hasattr(strategy_quote_trigger, 'on_ticker'):
+            self.on_ticker = partial(strategy_quote_trigger.on_ticker, context=self.context)
+        if hasattr(strategy_quote_trigger, 'dump'):
+            self.dump = partial(strategy_quote_trigger.dump, context=self.context)
+
+    def noop(self, *args, **kwargs):
+        pass
