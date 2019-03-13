@@ -111,7 +111,7 @@ class BarUtil(object):
 
     def get_bar_arr(self, symbols, period, limit, end_time):
         if period == BarPeriod.DAY:
-            return quote_client.get_bars(symbols, period, limit, end_time)
+            return quote_client.get_bars(symbols=symbols, period=period, limit=limit, end_time=end_time)
         else:
             frames = []
             for symbol in symbols:
