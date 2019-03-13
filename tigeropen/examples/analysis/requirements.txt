@@ -1,0 +1,9 @@
+mpl_finance==0.10.0
+pandas==0.22.0
+numpy==1.15.0
+pytz==2018.7
+scipy==1.1.0
+matplotlib==2.2.3
+tslearn==0.1.27
+scikit_learn==0.20.3
+tigeropen==1.1.2

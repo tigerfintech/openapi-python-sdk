@@ -16,7 +16,7 @@ def symbol(symbol_str, currency=MARKET.CURRENCY, security_type='STK', exchange=N
     """
     :param symbol_str: 证券类型, 默认股票
     :param security_type: 非股票需要指定security_type
-    :param currency: 非美股symbol需要制定currency
+    :param currency: 非美股symbol需要指定currency
     :param exchange:
     :return:
     """
