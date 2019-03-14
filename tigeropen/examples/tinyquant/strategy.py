@@ -1,120 +1,103 @@
-import numpy as np
-from datetime import datetime
-
-from tigeropen.common.consts import SecurityType, Currency
-import tigeropen.examples.tinyquant.setting as setting
+from functools import partial
+from .client import trade_client
+from .setting import IS_PAPER
 
 
-class TickerTrendUtil:
-    def __init__(self):
-        self.price_dict = {}
+class Portfolio:
+    def __init__(self, context):
+        self.context = context
 
-    def on_latest_price(self, symbol, latest_price):
-        """
-        093003 latest_price1
-        093006 latest_price2
-        093009 latest_price3
-
-        return latest_price1 > latest_price2 < latest_price3
-        """
-        curr_price = self.price_dict.get(symbol)
-        if curr_price:
-            if len(curr_price) == 1:
-                curr_price.append(latest_price)
-                return False
-            else:
-                first = curr_price.pop(0)
-                second = curr_price[0]
-
-                curr_price.append(latest_price)
-
-                return first > second < latest_price
+    @property
+    def cash(self):
+        if IS_PAPER:
+            assets = trade_client.get_assets()
+            if assets:
+                return assets[0].summary.cash
         else:
-            self.price_dict[symbol] = [latest_price]
-            return False
+            return self.context.asset_manager.summary.cash
+
+    @property
+    def positions_value(self):
+        if IS_PAPER:
+            assets = trade_client.get_assets()
+            if assets:
+                return assets[0].summary.gross_position_value
+        else:
+            return self.context.asset_manager.summary.gross_position_value
+
+    @property
+    def portfolio_value(self):
+        if IS_PAPER:
+            assets = trade_client.get_assets()
+            if assets:
+                return assets[0].summary.net_liquidation
+        return self.context.asset_manager.summary.net_liquidation
+
+    @property
+    def positions(self):
+        if IS_PAPER:
+            positions = trade_client.get_positions()
+            return {position.contract.symbol: position for position in positions}
+        else:
+            return self.context.position_manager
+
+    def __repr__(self):
+        return '<Portfolio: net_liquidation: %s, cash: %s, positions_value: %s>' \
+               % (self.portfolio_value, self.cash, self.positions_value)
 
 
-class EMAUtil:
-    def __init__(self, size):
-        self.buf = np.zeros(size)
-        self.maxsize = size
-        self.head = 0
-        self.sum = 0
-
-    def get_osc(self):
-        return self.sum / self.maxsize
-
-    def on_new_value(self, value):
-        tmp = self.buf[self.head]
-        self.buf[self.head] = value
-        self.sum += value - tmp
-        self.head += 1
-        if self.head >= self.maxsize:
-            self.head -= self.maxsize
-
-
-class Strategy(object):
+class CompatibleStrategy:
+    """与量化平台兼容的策略"""
     def __init__(self, push_client=None, trade_client=None, quote_client=None, context=None):
-
         self.push_client = push_client
         self.trade_client = trade_client
         self.quote_client = quote_client
         self.context = context
 
-        if setting.EVENT_TRIGGER:
-            # [event trigger][not necessary setting] user customer lunch break
-            self.lunch_break = datetime.strptime(setting.LUNCH_BREAK, '%H%M%S').time()
-            self.afternoon_start = datetime.strptime(setting.AFTERNOON_START, '%H%M%S').time()
+        self.context.portfolio = Portfolio(context)
 
-        # [subscribe symbols][necessary setting]
-        self.symbol_market_map = {'00700': {'security': SecurityType.STK, 'per_trade': 100}}
-        # self.symbol_market_map = {'AAPL': {'security': SecurityType.STK, 'per_trade': 100}}
+        self.initialize = self.noop
+        self.before_trading_start = self.noop
+        self.handle_data = self.noop
 
-        # [strategy related][not necessary setting] local vars with different strategy
-        self.symbol_set = set(self.symbol_market_map.keys())
-        self.tick_util = TickerTrendUtil()
-        self.short_min_ma = EMAUtil(10)
-        self.long_min_ma = EMAUtil(20)
+        from . import strategy_event_trigger
+        if hasattr(strategy_event_trigger, 'initialize'):
+            self.initialize = partial(strategy_event_trigger.initialize, context=self.context)
+        if hasattr(strategy_event_trigger, 'before_trading_start'):
+            self.before_trading_start = partial(strategy_event_trigger.before_trading_start, context=self.context)
+        if hasattr(strategy_event_trigger, 'handle_data'):
+            self.handle_data = partial(strategy_event_trigger.handle_data, context=self.context)
 
-    def on_ticker(self, symbol, items, hour_trading):
-        """
-        run after subscribing market data
-        """
-        if hour_trading:
-            return
-        print(symbol, items, hour_trading)
-        latest_price = dict(items).get('latest_price')
-        if symbol in self.symbol_set:
-            if self.tick_util.on_latest_price(symbol, latest_price):
-                print('============= create order =============')
-                contract = self.context.contract_map.get(symbol)
-                symbol_market = self.symbol_market_map[symbol]
-                self.trade_client.create_order(self.context.account, contract, 'BUY', 'MKT', symbol_market['per_trade'], limit_price=latest_price)
-
-    def on_minute_bar(self, data):
-        """
-        start when time >= open_time
-        stop when time <= end_time
-        """
-        if self.lunch_break <= data.dt.time() < self.afternoon_start:
-            print('============= lunch break =============')
-            return
-        print(data.current('00700', ['open', 'high', 'low', 'close', 'volume', 'time']))
-        # history api is not recommended to use
-        # data cannot be filled in
-        print(data.history('00700', ['open', 'high', 'low', 'close', 'volume', 'time'], 10, '1m'))
-        # print(data.history('00700', 'open', 5, '1m'))
-
-    def before_trading_start(self):
-        """
-        run when starting engine
-        """
+    def noop(self, *args, **kwargs):
         pass
 
-    def dump(self):
-        """
-        dump some data which user needs
-        run after close_time
-        run before end
-        """
+
+class TickStrategy:
+    """行情驱动策略"""
+    def __init__(self, push_client=None, trade_client=None, quote_client=None, context=None):
+        self.push_client = push_client
+        self.trade_client = trade_client
+        self.quote_client = quote_client
+
+        self.context = context
+        self.context.push_client = push_client
+        self.context.trade_client = trade_client
+        self.context.quote_client = quote_client
+
+        self.initialize = self.noop
+        self.before_trading_start = self.noop
+        self.on_ticker = self.noop
+        self.dump = self.noop
+
+        from . import strategy_quote_trigger
+        if hasattr(strategy_quote_trigger, 'initialize'):
+            self.initialize = partial(strategy_quote_trigger.initialize, context=self.context)
+        if hasattr(strategy_quote_trigger, 'before_trading_start'):
+            self.before_trading_start = partial(strategy_quote_trigger.before_trading_start, context=self.context)
+        if hasattr(strategy_quote_trigger, 'on_ticker'):
+            self.on_ticker = partial(strategy_quote_trigger.on_ticker, context=self.context)
+        if hasattr(strategy_quote_trigger, 'dump'):
+            self.dump = partial(strategy_quote_trigger.dump, context=self.context)
+
+    def noop(self, *args, **kwargs):
         pass

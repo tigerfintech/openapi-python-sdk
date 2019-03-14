@@ -4,10 +4,13 @@ Created on 2018/10/30
 
 @author: gaoan
 """
+import sys
 import json
 import stomp
 import six
 import traceback
+import logging
+from stomp.exception import ConnectFailedException
 from tigeropen.common.util.signature_utils import sign_with_rsa
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 
@@ -33,15 +36,20 @@ POSITION_KEYS_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity',
 ORDER_KEYS_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderType': 'order_type',
                        'limitPrice': 'limit_price', 'auxPrice': 'aux_price', 'avgFillPrice': 'avg_fill_price',
                        'totalQuantity': 'quantity', 'filledQuantity': 'filled', 'lastFillPrice': 'last_fill_price',
-                       'orderType': 'order_type', 'realizedPnl': 'realized_pnl', 'secType': 'sec_type',
+                       'realizedPnl': 'realized_pnl', 'secType': 'sec_type',
                        'remark': 'reason', 'localSymbol': 'local_symbol', 'originSymbol': 'origin_symbol',
                        'outsideRth': 'outside_rth', 'timeInForce': 'time_in_force', 'openTime': 'order_time',
                        'latestTime': 'trade_time', 'contractId': 'contract_id', 'trailStopPrice': 'trail_stop_price',
                        'trailingPercent': 'trailing_percent', 'percentOffset': 'percent_offset'}
 
+if sys.platform == 'linux' or sys.platform == 'linux2':
+    KEEPALIVE = True
+else:
+    KEEPALIVE = False
+
 
 class PushClient(object):
-    def __init__(self, host, port, use_ssl=True):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=120, auto_reconnect=True):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
@@ -57,15 +65,31 @@ class PushClient(object):
         self.connect_callback = None
         self.disconnect_callback = None
         self.error_callback = None
+        self._connection_timeout = connection_timeout
+        self._auto_reconnect = auto_reconnect
 
-    def connect(self, tiger_id, private_key):
-        sign = sign_with_rsa(private_key, tiger_id, 'utf-8')
+    def _connect(self):
+        try:
+            if self.stomp_connection:
+                self.stomp_connection.remove_listener('push')
+                self.stomp_connection.transport.cleanup()
+        except:
+            pass
+
         self.stomp_connection = stomp.Connection10(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
-                                                   keepalive=True)
-        # self.stomp_connection.set_listener('stats', stomp.StatsListener())
+                                                   keepalive=KEEPALIVE, timeout=self._connection_timeout)
         self.stomp_connection.set_listener('push', self)
         self.stomp_connection.start()
-        self.stomp_connection.connect(tiger_id, sign, wait=True)
+        try:
+            self.stomp_connection.connect(self.tiger_id, self.sign, wait=True)
+        except ConnectFailedException:
+            logging.warning('Stomp connection failed')
+
+    def connect(self, tiger_id, private_key):
+        self.tiger_id = tiger_id
+        self.private_key = private_key
+        self.sign = sign_with_rsa(self.private_key, self.tiger_id, 'utf-8')
+        self._connect()
 
     def disconnect(self):
         if self.stomp_connection:
@@ -78,6 +102,8 @@ class PushClient(object):
     def on_disconnected(self):
         if self.disconnect_callback:
             self.disconnect_callback()
+        elif self._auto_reconnect:
+            self._connect()
 
     def on_message(self, headers, body):
         """
