@@ -1,69 +1,45 @@
-# -*- coding: utf-8 -*-
-"""
-Created on 2019/1/29
-
-@author: xuqiang
-"""
+import os
 import time
 import pytz
-from datetime import datetime, timedelta
-
-from tigeropen.trade.trade_client import TradeClient
-from tigeropen.push.push_client import PushClient
-from tigeropen.quote.quote_client import QuoteClient
-from tigeropen.trade.domain.position import Position
-
-from tigeropen.examples.client_config import get_client_config
-from tigeropen.examples.tinyquant.data import Data, minute_bar_util
-from tigeropen.examples.tinyquant.context import global_context
-from tigeropen.examples.tinyquant.strategy import Strategy
-import tigeropen.examples.tinyquant.settings as settings
-
 import logbook
 import sys
+from datetime import datetime, timedelta
 
-# ============= initialize engine vars ===================
-logbook.StreamHandler(sys.stdout).push_application()
+ENGINE_PATH = os.path.dirname(os.path.realpath(__file__))
+RUN_PATH = os.path.abspath(os.path.join(ENGINE_PATH, os.pardir, os.pardir, os.pardir))
+sys.path.insert(0, RUN_PATH)
+
+from tigeropen.trade.domain.position import Position
+from tigeropen.examples.tinyquant.data import minute_bar_util, StockQuote as Data
+from tigeropen.examples.tinyquant.strategy import CompatibleStrategy, TickStrategy
+from tigeropen.examples.tinyquant.client import client_config, push_client, trade_client, quote_client, \
+    global_context
+import tigeropen.examples.tinyquant.settings as settings
+
+
+logbook.set_datetime_format("local")
+logbook.StreamHandler(sys.stdout,
+                      format_string='[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] {record.level_name}: {record.channel}:{record.lineno}: {record.message}').push_application()
 logger = logbook.Logger('[engine]')
 
-# ============= get client config ===================
-client_config = get_client_config()
-account_id = client_config.account
-
-global_context.account = account_id
-
-# ============= initialize push client & trade_client & quote_client ===================
-protocol, host, port = client_config.socket_host_port
-push_client = PushClient(host, port, use_ssl=(protocol == 'ssl'))
-trade_client = TradeClient(client_config, logger=None)
-quote_client = QuoteClient(client_config, logger=None)
-
-strategy = Strategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client,
-                    context=global_context)
 
 # ============= set symbols ===================
-subscribe_symbols = set(strategy.symbol_market_map.keys())
-symbol_market_map = strategy.symbol_market_map
-# ============= event trigger config ===================
-OPEN_TIME = settings.OPEN_TIME
-CLOSE_TIME = settings.CLOSE_TIME
-TIME_ZONE = settings.TIME_ZONE
-SYSTEM_DELAY = settings.SYSTEM_DELAY
+subscribe_symbols = global_context.subscribed_symbols
 
-minute_bar_util.set_time_zone(pytz.timezone(TIME_ZONE))
 
-UTC = 'UTC'
-event_trigger = settings.EVENT_TRIGGER
+timezone = pytz.timezone(settings.MARKET.TIMEZONE)
+IS_EVENT_TRIGGER = settings.EVENT_TRIGGER
 
 
 def on_query_subscribed_quote(symbols, focus_keys, limit, used):
-    logger.info(f'{symbols}, {focus_keys}, {limit}, {used}')
+    logger.debug('{symbols}, {focus_keys}, {limit}, {used}'.format(
+        symbols=symbols, focus_keys=focus_keys, limit=limit, used=used))
     unsubscribe_symbols = set(symbols) - subscribe_symbols
     if unsubscribe_symbols:
-        logger.info(unsubscribe_symbols)
-        push_client.unsubscribe_quote(symbols=unsubscribe_symbols)
+        logger.debug(unsubscribe_symbols)
+        # push_client.unsubscribe_quote(symbols=unsubscribe_symbols)
 
-    if event_trigger:
+    if IS_EVENT_TRIGGER:
         push_client.quote_changed = on_quote_changed_event_trigger
     else:
         push_client.quote_changed = on_quote_changed
@@ -87,18 +63,13 @@ def unsubscribe_process():
     push_client.unsubscribe_order()
     push_client.unsubscribe_position()
     push_client.unsubscribe_asset()
-    push_client.unsubscribe_quote(subscribe_symbols)
+    push_client.unsubscribe_quote(symbols=subscribe_symbols)
     push_client.disconnect()
 
 
 def add_order(order):
     global_context.order_manager[order.order_id] = order
-    global_context.active_order_manager[order.order_id] = order_manager[order.order_id]
-
-
-# ============= strategy with market trigger ===================
-def on_quote_changed(symbol, items, hour_trading):
-    strategy.on_ticker(symbol, items, hour_trading)
+    global_context.active_order_manager[order.order_id] = global_context.order_manager[order.order_id]
 
 
 # ============= strategy with event trigger ===================
@@ -106,12 +77,8 @@ def on_quote_changed_event_trigger(symbol, items, hour_trading):
     if hour_trading:
         return
     if symbol in subscribe_symbols:
-        logger.info(f'{symbol}, {items}, {hour_trading}')
-        minute_bar_util.on_data(symbol, items)
-
-
-def handle_data(data):
-    strategy.on_minute_bar(data)
+        if settings.MARKET.name != 'HK' and settings.MARKET.name != 'US':
+            minute_bar_util.on_data(symbol, items)
 
 
 # ============= subscribe info ===================
@@ -119,9 +86,9 @@ def on_asset_changed(account, items):
     # DU575569 [('equity_with_loan', 776871.76), ('gross_position_value', 349025.33), ('excess_liquidity', 653692.01),
     # ('available_funds', 648601.77), ('initial_margin_requirement', 128269.99), ('buying_power', 4324011.82),
     # ('cash', 476021.26), ('net_liquidation', 776871.76), ('maintenance_margin_requirement', 123179.75)]
-    logger.info(f'{account}, {items}')
+    logger.debug('{account}, {items}'.format(account=account, items=items))
     ret_account = dict(items)
-    curr_account = global_context.asset_manager.get(account_id)
+    curr_account = global_context.asset_manager
     if curr_account:
         curr_account.summary.equity_with_loan = ret_account.get('equity_with_loan')
         curr_account.summary.gross_position_value = ret_account.get('gross_position_value')
@@ -137,30 +104,31 @@ def on_asset_changed(account, items):
 def on_position_changed(account, items):
     # DU575569 [('market_price', 23.37599945), ('market_value', 9350.4), ('sec_type', 'STK'),
     # ('origin_symbol', '600053'), ('unrealized_pnl', -101.62), ('quantity', 400.0), ('average_cost', 23.630052)]
-    logger.info(f'{account}, {items}')
+    logger.debug('{account}, {items}'.format(account=account, items=items))
     ret_position = dict(items)
     symbol = ret_position.get('origin_symbol')
-    curr_position = global_context.position_manager.get(symbol)
-    if curr_position:
-        curr_position.quantity = ret_position.get('quantity')
-        curr_position.average_cost = ret_position.get('average_cost')
-        curr_position.market_price = ret_position.get('market_price')
-        curr_position.market_value = ret_position.get('market_value')
-        curr_position.unrealized_pnl = ret_position.get('unrealized_pnl')
-        curr_position.realized_pnl = ret_position.get('realized_pnl')
-    else:
-        global_context.position_manager[symbol] = Position(account=account_id,
-                                                           contract=global_context.contract_map[symbol],
-                                                           quantity=ret_position.get('quantity'),
-                                                           average_cost=ret_position.get('average_cost'),
-                                                           market_price=ret_position.get('market_price'),
-                                                           market_value=ret_position.get('market_value'),
-                                                           realized_pnl=ret_position.get('realized_pnl'),
-                                                           unrealized_pnl=ret_position.get('unrealized_pnl'))
+    if symbol in global_context.contract_map:
+        curr_position = global_context.position_manager.get(symbol)
+        if curr_position:
+            curr_position.quantity = ret_position.get('quantity')
+            curr_position.average_cost = ret_position.get('average_cost')
+            curr_position.market_price = ret_position.get('market_price')
+            curr_position.market_value = ret_position.get('market_value')
+            curr_position.unrealized_pnl = ret_position.get('unrealized_pnl')
+            curr_position.realized_pnl = ret_position.get('realized_pnl')
+        else:
+            global_context.position_manager[symbol] = Position(account=global_context.account,
+                                                               contract=global_context.contract_map[symbol],
+                                                               quantity=ret_position.get('quantity'),
+                                                               average_cost=ret_position.get('average_cost'),
+                                                               market_price=ret_position.get('market_price'),
+                                                               market_value=ret_position.get('market_value'),
+                                                               realized_pnl=ret_position.get('realized_pnl'),
+                                                               unrealized_pnl=ret_position.get('unrealized_pnl'))
 
 
 def on_order_changed(account, items):
-    logger.info(f'{account}, {items}')
+    logger.debug('{account}, {items}'.format(account=account, items=items))
     # DU575569 [('order_type', 'LMT'), ('order_id', 1000051287), ('sec_type', 'STK'),
     # ('filled', 100), ('origin_symbol', '000513'), ('quantity', 100), ('order_time', 1547620277910),
     # ('time_in_force', 'DAY'), ('limit_price', 27.81), ('last_fill_price', 0.0), ('outside_rth', True),
@@ -178,8 +146,8 @@ def on_order_changed(account, items):
         curr_order.commission = ret_order.get('commission')
 
         if curr_order.remaining <= 0:
-            active_order_manager[curr_order.order_id] = None
-            del active_order_manager[curr_order.order_id]
+            global_context.active_order_manager[curr_order.order_id] = None
+            del global_context.active_order_manager[curr_order.order_id]
 
 
 def cancel_all_open_orders():
@@ -192,10 +160,11 @@ def cancel_all_open_orders():
 
 
 def asset_initialize():
-    accounts = trade_client.get_managed_accounts()
     assets = trade_client.get_assets()
-
-    global_context.asset_manager = {accounts[0].account: assets[0]}
+    if assets:
+        global_context.asset_manager = assets[0]
+    else:
+        raise Exception('No assets')
 
 
 def position_initialize():
@@ -204,78 +173,150 @@ def position_initialize():
 
 
 def order_initialize():
-    # cancel_all_open_orders()
-    global order_manager
-    order_manager = {}
-
-    global active_order_manager
-    active_order_manager = {}
+    global_context.order_manager = {}
+    global_context.active_order_manager = {}
 
 
 def contract_initialize():
     for symbol in subscribe_symbols:
-        curr_contract = trade_client.get_contracts(symbol, sec_type=symbol_market_map.get('security'),
-                                                   currency=symbol_market_map.get('currency'))[0]
-        global_context.contract_map[symbol] = curr_contract
+        curr_contracts = trade_client.get_contracts(symbol,
+                                                   sec_type=global_context.security_type_map.get(symbol),
+                                                   currency=global_context.currency_map.get(symbol))
+        if not curr_contracts:
+            raise Exception('Can not get contracts')
+        global_context.contract_map[symbol] = curr_contracts[0]
 
 
-def before_trading_start():
-    strategy.before_trading_start()
+if settings.EVENT_TRIGGER:
+    compatible_strategy = CompatibleStrategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
 
+    def strategy_initialize():
+        compatible_strategy.initialize()
+        global_context.load()
 
-def dump():
-    strategy.dump()
+    def before_trading_start(data):
+        compatible_strategy.before_trading_start(data=data)
+
+    def handle_data(data):
+        compatible_strategy.handle_data(data=data)
+        global_context.store()
+
+    def run_schedule_func(data):
+        if hasattr(global_context, 'schedule_function'):
+            global_context.schedule_function.run(data=data)
+            global_context.store()
+
+    def dump():
+        pass
+
+else:
+    strategy = TickStrategy(push_client=push_client, trade_client=trade_client, quote_client=quote_client, context=global_context)
+
+    def on_quote_changed(symbol, items, hour_trading):
+        if symbol in subscribe_symbols:
+            strategy.on_ticker(symbol_str=symbol, items=items, hour_trading=hour_trading)
+
+    def strategy_initialize():
+        strategy.initialize()
+        global_context.load()
+
+    def before_trading_start(data):
+        strategy.before_trading_start(data=data)
+
+    def handle_data(data):
+        pass
+
+    def run_schedule_func(data):
+        pass
+
+    def dump():
+        strategy.dump()
+        global_context.store()
 
 
 if __name__ == '__main__':
     asset_initialize()
     position_initialize()
     order_initialize()
-    contract_initialize()
 
-    before_trading_start()
+    strategy_initialize()
+    curr_datetime = datetime.now().astimezone(timezone)
+    before_trading_start(Data(curr_datetime))
 
     push_client.connect(client_config.tiger_id, client_config.private_key)
     subscribe_initialize()
+    contract_initialize()
 
     try:
-        if event_trigger:
-            # delay 1 minute to get ready for data
-            time.sleep(60)
-            curr_timezone = pytz.timezone(TIME_ZONE)
-            today = datetime.now().astimezone(curr_timezone).date()
+        if IS_EVENT_TRIGGER:
+            OPEN_TIME = settings.MARKET.OPEN_TIME
+            CLOSE_TIME = settings.MARKET.CLOSE_TIME
+            SYSTEM_DELAY = settings.SYSTEM_DELAY
 
-            open_time = datetime.strptime(str(OPEN_TIME), '%H%M%S').replace(tzinfo=curr_timezone).time().replace(
+            open_time = datetime.strptime(OPEN_TIME, '%H:%M:%S').replace(tzinfo=timezone).time().replace(
                 second=SYSTEM_DELAY)
-            close_time = datetime.strptime(str(CLOSE_TIME), '%H%M%S').time()
+            close_time = datetime.strptime(CLOSE_TIME, '%H:%M:%S').time()
 
-            one_minute = timedelta(minutes=1)
-            curr_time = (datetime.now().astimezone(curr_timezone).replace(second=SYSTEM_DELAY,
-                                                                          microsecond=0) + one_minute).time()
-            open_time = max(curr_time, open_time)
+            if settings.FREQUENCY == 'minute':
+                today = datetime.now(tz=timezone).date()
 
-            while True:
-                curr_time = datetime.now().astimezone(curr_timezone).time()
-                if open_time >= close_time:
-                    logger.info('event trigger finished')
-                    break
-                elif curr_time >= open_time:
+                curr_time = (datetime.now(tz=timezone).replace(second=SYSTEM_DELAY, microsecond=0) + timedelta(minutes=2)).time()
+                next_bar_time = max(curr_time, open_time)
 
-                    last_datetime = datetime.combine(today, open_time, curr_timezone)
-                    curr_datetime = last_datetime + timedelta(minutes=1)
+                if settings.MARKET.LUNCH_BREAK_START_TIME:
+                    lunch_break_start = datetime.strptime(settings.MARKET.LUNCH_BREAK_START_TIME, '%H:%M:%S').time()
+                    lunch_break_end = datetime.strptime(settings.MARKET.LUNCH_BREAK_END_TIME, '%H:%M:%S').time()
+                    while True:
+                        curr_time = datetime.now(tz=timezone).time()
+                        if next_bar_time >= close_time:
+                            logger.debug('event trigger finished')
+                            break
+                        elif lunch_break_start < next_bar_time < lunch_break_end:
+                            curr_datetime = timezone.localize(datetime.combine(today, next_bar_time) - timedelta(minutes=1))
+                            next_bar_time = (curr_datetime + timedelta(minutes=2)).time()
+                            time.sleep(1)
+                        elif next_bar_time <= curr_time:
+                            curr_datetime = timezone.localize(datetime.combine(today, next_bar_time) - timedelta(minutes=1))
+                            curr_data = Data(curr_datetime)
 
-                    curr_data = Data(curr_datetime)
-                    # minute_bar_util.set_data(curr_data)
-                    handle_data(curr_data)
-                    open_time = curr_datetime.time()
-
+                            logger.debug(f'next bar time:{curr_datetime}')
+                            run_schedule_func(curr_data)
+                            handle_data(curr_data)
+                            next_bar_time = (curr_datetime + timedelta(minutes=2)).time()
+                        else:
+                            time.sleep(1)
                 else:
-                    time.sleep(1)
+                    while True:
+                        curr_time = datetime.now(tz=timezone).time()
+                        if next_bar_time >= close_time:
+                            logger.debug('event trigger finished')
+                            break
+                        elif next_bar_time <= curr_time:
+                            curr_datetime = timezone.localize(datetime.combine(today, next_bar_time) - timedelta(minutes=1))
+                            curr_data = Data(curr_datetime)
+                            run_schedule_func(curr_data)
+                            handle_data(curr_data)
+                            next_bar_time = (curr_datetime + timedelta(minutes=2)).time()
+                        else:
+                            time.sleep(1)
+            elif settings.FREQUENCY == 'daily':
+                today = datetime.now(tz=timezone).date()
+                while True:
+                    curr_datetime = datetime.now(tz=timezone)
+                    if curr_datetime.time() >= close_time:
+                        logger.debug('daily event trigger finished')
+                    elif curr_datetime.time() >= open_time:
+                        curr_data = Data(curr_datetime)
+                        run_schedule_func(curr_data)
+                        handle_data(curr_data)
+                        time.sleep(120)
+                        break
+                    else:
+                        time.sleep(1)
         else:
             while True:
                 time.sleep(600)
     except (KeyboardInterrupt, SystemExit):
-        logger.info('keyboard interrupt, system exit')
-    # cancel_all_open_orders()
+        logger.debug('keyboard interrupt, system exit')
     unsubscribe_process()
     dump()
