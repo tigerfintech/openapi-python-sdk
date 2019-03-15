@@ -92,7 +92,7 @@ class PushClient(object):
         try:
             self.stomp_connection.connect(self.tiger_id, self.sign, wait=True)
         except ConnectFailedException:
-            logging.warning('PUSH Client failed to connect!')
+            logging.error('PUSH Client failed to connect!')
 
     def disconnect(self):
         if self.stomp_connection:
