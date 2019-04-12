@@ -145,7 +145,7 @@ class TradeClient(TigerOpenClient):
             params.sec_type = sec_type.value
         params.market = market.value
         params.symbol = symbol
-        params.start_data = start_time
+        params.start_date = start_time
         params.end_date = end_time
         params.limit = limit
         params.is_brief = is_brief
@@ -178,7 +178,7 @@ class TradeClient(TigerOpenClient):
             params.sec_type = sec_type.value
         params.market = market.value
         params.symbol = symbol
-        params.start_data = start_time
+        params.start_date = start_time
         params.end_date = end_time
         request = OpenApiRequest(ACTIVE_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
