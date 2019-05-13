@@ -301,6 +301,9 @@ class OrderParams(object):
         if self.lang:
             params['lang'] = self.lang
 
+        if self.id:
+            params['id'] = self.id
+
         return params
 
 

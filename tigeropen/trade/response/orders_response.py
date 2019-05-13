@@ -15,7 +15,7 @@ from tigeropen.trade.response import CONTRACT_FIELDS
 ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderType': 'order_type',
                         'limitPrice': 'limit_price', 'auxPrice': 'aux_price', 'avgFillPrice': 'avg_fill_price',
                         'totalQuantity': 'quantity', 'filledQuantity': 'filled', 'lastFillPrice': 'last_fill_price',
-                        'orderType': 'order_type', 'realizedPnl': 'realized_pnl', 'secType': 'sec_type',
+                        'realizedPnl': 'realized_pnl', 'secType': 'sec_type',
                         'remark': 'reason',
                         'localSymbol': 'local_symbol', 'originSymbol': 'origin_symbol', 'outsideRth': 'outside_rth',
                         'timeInForce': 'time_in_force', 'openTime': 'order_time', 'latestTime': 'trade_time',
