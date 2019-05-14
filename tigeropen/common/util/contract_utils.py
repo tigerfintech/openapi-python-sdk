@@ -18,7 +18,7 @@ def option_contract(symbol, expiry, strike, put_call, currency, multiplier=100, 
                     multiplier=multiplier, local_symbol=local_symbol, contract_id=contract_id)
 
 
-def option_contract(identifier, multiplier=100, currency='USD'):
+def option_contract_full(identifier, multiplier=100, currency='USD'):
     symbol, expiry, put_call, strike = extract_option_info(identifier)
     if expiry and '-' in expiry:
         expiry = expiry.replace('-', '')
@@ -26,8 +26,9 @@ def option_contract(identifier, multiplier=100, currency='USD'):
                     multiplier=multiplier)
 
 
-def future_contract(symbol, currency, expiry, multiplier=None, local_symbol=None):
-    return Contract(symbol, currency, sec_type='FUT', expiry=expiry, multiplier=multiplier, local_symbol=local_symbol)
+def future_contract(symbol, currency, expiry, exchange, multiplier=None, local_symbol=None):
+    return Contract(symbol, currency, sec_type='FUT', expiry=expiry, exchange=exchange, multiplier=multiplier,
+                    local_symbol=local_symbol)
 
 
 def future_option_contract(symbol, currency, expiry, strike, put_call, multiplier=None, local_symbol=None,
