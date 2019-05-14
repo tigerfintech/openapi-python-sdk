@@ -9,7 +9,7 @@ import pandas as pd
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.string_utils import get_string
 
-COLUMNS = ['index', 'time', 'price', 'volume', 'direction']
+COLUMNS = ['symbol', 'index', 'time', 'price', 'volume', 'direction']
 
 
 class TradeTickResponse(TigerResponse):
