@@ -21,9 +21,9 @@ class CorporateSplitResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            split_data = list()
+            items = list()
             for symbol, split_items in self.data.items():
                 for item in split_items:
                     item['symbol'] = symbol
-                    split_data.append(item)
-            self.corporate_split = pd.DataFrame(split_data).rename(columns=SPLIT_FIELD_MAPPINGS)[COLUMNS]
+                    items.append(item)
+            self.corporate_split = pd.DataFrame(items).rename(columns=SPLIT_FIELD_MAPPINGS)[COLUMNS]

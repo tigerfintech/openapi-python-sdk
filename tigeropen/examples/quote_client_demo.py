@@ -6,7 +6,8 @@ Created on 2018/10/31
 """
 import logging
 import pandas as pd
-from tigeropen.common.consts import Market, QuoteRight
+from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, FinancialDailyField, \
+    FinancialReportField
 from tigeropen.quote.quote_client import QuoteClient
 
 from tigeropen.examples.client_config import get_client_config
@@ -70,8 +71,33 @@ def get_future_quote():
     print(briefs)
 
 
+def get_fundamental():
+    financial_daily = openapi_client.get_financial_daily(symbols=['AAPL', 'MSFT'],
+                                                         market=Market.US,
+                                                         fields=FinancialDailyField.tev_ebitda,
+                                                         begin_date='2019-01-01',
+                                                         end_date='2019-01-10')
+    print(financial_daily)
+    financial_report = openapi_client.get_financial_report(symbols=['AAPL', 'GOOG'],
+                                                           market=Market.US,
+                                                           fields=FinancialReportField.total_assets,
+                                                           period_type=FinancialReportPeriodType.ANNUAL)
+    print(financial_report)
+    corporatge_split = openapi_client.get_corporate_split(symbols=['UVXY', 'TQQQ'],
+                                                          market=Market.US,
+                                                          begin_date='2017-01-01',
+                                                          end_date='2019-01-01')
+    print(corporatge_split)
+    corporatge_dividend = openapi_client.get_corporate_dividend(symbols=['MSFT', 'AAPL'],
+                                                                market=Market.US,
+                                                                begin_date='2018-01-01',
+                                                                end_date='2019-01-01')
+    print(corporatge_dividend)
+
+
 if __name__ == '__main__':
     with pd.option_context('display.max_rows', None, 'display.max_columns', None):
         get_quote()
         get_option_quote()
         get_future_quote()
+        get_fundamental()
