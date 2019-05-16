@@ -7,6 +7,7 @@ Created on 2018/9/20
 import threading
 import platform
 from enum import Enum, unique
+from .fundamental_fields import FinancialDailyField, FinancialReportField
 
 python_version = platform.python_version()
 
@@ -91,3 +92,21 @@ class BarPeriod(Enum):
     FIFTEEN_MINUTES = '15min'  # 15分钟
     HALF_HOUR = '30min'  # 30分钟
     ONE_HOUR = '60min'  # 60分钟
+
+
+@unique
+class FinancialReportPeriodType(Enum):
+    """
+    财报类型
+    """
+    ANNUAL = 'Annual'  # 年报
+    QUARTERLY = 'Quarterly'  # 季报
+    LTM = 'LTM'  # 最近四个季度
+
+@unique
+class CorporateActionType(Enum):
+    """
+    公司行动类型
+    """
+    SPLIT = 'split'  # 拆合股
+    DIVIDEND = 'dividend'  # 分红

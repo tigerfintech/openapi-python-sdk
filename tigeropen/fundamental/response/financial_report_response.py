@@ -1,0 +1,36 @@
+# -*- coding: utf-8 -*-
+
+import pandas as pd
+import six
+from tigeropen.common.util.string_utils import get_string
+from tigeropen.common.response import TigerResponse
+from tigeropen.common.consts import FinancialReportField
+
+COLUMNS = ['symbol', 'currency', 'field', 'value', 'filing_date', 'period_end_date']
+REPORT_FIELD_MAPPINGS = {'filingDate': 'filing_date', 'periodEndDate': 'period_end_date'}
+REPORT_FIELD_VALUE_MAPPINGS = {field.value: field.name for field in FinancialReportField}
+
+
+class FinancialReportResponse(TigerResponse):
+    def __init__(self):
+        super(FinancialReportResponse, self).__init__()
+        self.financial_report = None
+        self._is_success = None
+
+    def parse_response_content(self, response_content):
+        response = super(FinancialReportResponse, self).parse_response_content(response_content)
+        if 'is_success' in response:
+            self._is_success = response['is_success']
+
+        if self.data and isinstance(self.data, list):
+            items = list()
+            for item in self.data:
+                item_values = dict()
+                for key, value in item.items():
+                    if isinstance(value, six.string_types):
+                        value = get_string(value)
+                        value = REPORT_FIELD_VALUE_MAPPINGS[value] if value in REPORT_FIELD_VALUE_MAPPINGS else value
+                    item_values[key] = value
+                items.append(item_values)
+            self.financial_report = pd.DataFrame(items, columns=COLUMNS).rename(
+                columns=REPORT_FIELD_VALUE_MAPPINGS)[COLUMNS]

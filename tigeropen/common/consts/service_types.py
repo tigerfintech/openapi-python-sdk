@@ -57,3 +57,8 @@ FUTURE_KLINE = "future_kline"
 FUTURE_REAL_TIME_QUOTE = "future_real_time_quote"
 FUTURE_TICK = "future_tick"
 FUTURE_TRADING_DATE = "future_trading_date"
+
+# 公司行动, 财务数据
+FINANCIAL_DAILY = 'financial_daily'
+FINANCIAL_REPORT = 'financial_report'
+CORPORATE_ACTION = 'corporate_action'
