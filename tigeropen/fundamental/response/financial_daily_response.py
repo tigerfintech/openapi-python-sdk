@@ -8,7 +8,7 @@ from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.consts import FinancialDailyField
 
 COLUMNS = ['symbol', 'field', 'date', 'value']
-FINANCIAL_DAILY_FIELD_VALUE_MAPPINGS = {field.value: field.name for field in FinancialDailyField}
+FINANCIAL_DAILY_VALUE_MAPPINGS = {field.value: field.name for field in FinancialDailyField}
 
 
 class FinancialDailyResponse(TigerResponse):
@@ -27,12 +27,10 @@ class FinancialDailyResponse(TigerResponse):
             for item in self.data:
                 item_values = dict()
                 for key, value in item.items():
-
                     if isinstance(value, six.string_types):
                         value = get_string(value)
-                        value = FINANCIAL_DAILY_FIELD_VALUE_MAPPINGS[value] if value in FINANCIAL_DAILY_FIELD_VALUE_MAPPINGS \
+                        value = FINANCIAL_DAILY_VALUE_MAPPINGS[value] if value in FINANCIAL_DAILY_VALUE_MAPPINGS \
                             else value
                     item_values[key] = value
                 items.append(item_values)
-            self.financial_daily = pd.DataFrame(items, columns=COLUMNS).rename(
-                columns=FINANCIAL_DAILY_FIELD_VALUE_MAPPINGS)[COLUMNS]
+            self.financial_daily = pd.DataFrame(items, columns=COLUMNS)

@@ -22,9 +22,9 @@ class CorporateDividendResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            dividend_data = list()
-            for symbol, split_items in self.data.items():
-                for item in split_items:
+            items = list()
+            for symbol, dividend_items in self.data.items():
+                for item in dividend_items:
                     item['symbol'] = symbol
-                    dividend_data.append(item)
-            self.corporate_dividend = pd.DataFrame(dividend_data).rename(columns=DIVIDEND_FIELD_MAPPINGS)[COLUMNS]
+                    items.append(item)
+            self.corporate_dividend = pd.DataFrame(items).rename(columns=DIVIDEND_FIELD_MAPPINGS)[COLUMNS]

@@ -6,9 +6,9 @@ from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.consts import FinancialReportField
 
-COLUMNS = ['symbol', 'currency', 'field', 'value', 'filing_date', 'period_end_date']
-REPORT_FIELD_MAPPINGS = {'filingDate': 'filing_date', 'periodEndDate': 'period_end_date'}
-REPORT_FIELD_VALUE_MAPPINGS = {field.value: field.name for field in FinancialReportField}
+COLUMNS = ['symbol', 'currency', 'field', 'value', 'period_end_date', 'filing_date']
+REPORT_FIELD_MAPPINGS = {'periodEndDate': 'period_end_date', 'filingDate': 'filing_date'}
+REPORT_VALUE_MAPPINGS = {field.value: field.name for field in FinancialReportField}
 
 
 class FinancialReportResponse(TigerResponse):
@@ -29,8 +29,7 @@ class FinancialReportResponse(TigerResponse):
                 for key, value in item.items():
                     if isinstance(value, six.string_types):
                         value = get_string(value)
-                        value = REPORT_FIELD_VALUE_MAPPINGS[value] if value in REPORT_FIELD_VALUE_MAPPINGS else value
+                        value = REPORT_VALUE_MAPPINGS[value] if value in REPORT_VALUE_MAPPINGS else value
                     item_values[key] = value
                 items.append(item_values)
-            self.financial_report = pd.DataFrame(items, columns=COLUMNS).rename(
-                columns=REPORT_FIELD_VALUE_MAPPINGS)[COLUMNS]
+            self.financial_report = pd.DataFrame(items).rename(columns=REPORT_FIELD_MAPPINGS)[COLUMNS]
