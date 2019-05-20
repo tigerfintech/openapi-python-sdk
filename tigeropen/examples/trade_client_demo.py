@@ -14,7 +14,7 @@ from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.trade_client import TradeClient
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.examples.client_config import get_client_config
-from tigeropen.common.util.contract_utils import option_contract
+from tigeropen.common.util.contract_utils import option_contract, future_contract
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s',
@@ -65,7 +65,10 @@ def trade_apis():
     contract = openapi_client.get_contracts('AAPL')[0]
     # option
     # contract = option_contract(identifier='AAPL  190118P00160000')
-    order = openapi_client.create_order(account, contract, 'BUY', 'LMT', 100, limit_price=5.0)
+    # future
+    # contract = future_contract('CHF', 'USD', '20190617', multiplier=125000)
+    # contract.exchange = 'GLOBEX'
+    order = openapi_client.create_order(account, contract, 'BUY', 'LMT', 100, limit_price=0.1)
     order_id = order.order_id  # you can operate order via id too
     openapi_client.place_order(order)
     new_order = openapi_client.get_order(order_id=order.order_id)

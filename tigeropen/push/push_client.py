@@ -31,7 +31,8 @@ ASSET_KEYS_MAPPINGS = {'buyingPower': 'buying_power', 'cashBalance': 'cash',
 POSITION_KEYS_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity', 'latestPrice': 'market_price',
                           'marketValue': 'market_value', 'orderType': 'order_type', 'realizedPnl': 'realized_pnl',
                           'unrealizedPnl': 'unrealized_pnl', 'secType': 'sec_type', 'localSymbol': 'local_symbol',
-                          'originSymbol': 'origin_symbol', 'contractId': 'contract_id'}
+                          'originSymbol': 'origin_symbol', 'contractId': 'contract_id', 'symbol': 'symbol',
+                          'currency': 'currency', 'strike': 'strike', 'expiry': 'expiry', 'right': 'right'}
 
 ORDER_KEYS_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderType': 'order_type',
                        'limitPrice': 'limit_price', 'auxPrice': 'aux_price', 'avgFillPrice': 'avg_fill_price',
@@ -40,7 +41,8 @@ ORDER_KEYS_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTyp
                        'remark': 'reason', 'localSymbol': 'local_symbol', 'originSymbol': 'origin_symbol',
                        'outsideRth': 'outside_rth', 'timeInForce': 'time_in_force', 'openTime': 'order_time',
                        'latestTime': 'trade_time', 'contractId': 'contract_id', 'trailStopPrice': 'trail_stop_price',
-                       'trailingPercent': 'trailing_percent', 'percentOffset': 'percent_offset'}
+                       'trailingPercent': 'trailing_percent', 'percentOffset': 'percent_offset', 'action': 'action',
+                       'status': 'status', 'currency': 'currency', 'remaining': 'remaining', 'id': 'id'}
 
 if sys.platform == 'linux' or sys.platform == 'linux2':
     KEEPALIVE = True
