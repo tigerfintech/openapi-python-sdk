@@ -105,6 +105,9 @@ class OrdersResponse(TigerResponse):
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:
             order.trade_time = order_fields.get('trade_time')
+        if 'reason' in order_fields:
+            order.reason = order_fields.get('reason')
+
         order.status = status
 
         return order
