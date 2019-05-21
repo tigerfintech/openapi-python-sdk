@@ -18,7 +18,7 @@ QUOTE_KEYS_MAPPINGS = {'latestTime': 'latest_time', 'latestPrice': 'latest_price
                        'preClose': 'prev_close', 'PreClose': 'prev_close', 'volume': 'volume', 'Volume': 'volume',
                        'open': 'open', 'high': 'high', 'low': 'low', 'close': 'close', 'askPrice': 'ask_price',
                        'askSize': 'ask_size', 'bidPrice': 'bid_price', 'bidSize': 'bid_size',
-                       'timestamp': 'latest_time'}
+                       'timestamp': 'latest_time', 'mi': 'minute'}
 
 ASSET_KEYS_MAPPINGS = {'buyingPower': 'buying_power', 'cashBalance': 'cash',
                        'grossPositionValue': 'gross_position_value',
