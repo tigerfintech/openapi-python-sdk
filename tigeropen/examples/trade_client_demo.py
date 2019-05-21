@@ -70,6 +70,8 @@ def trade_apis():
 
     # option
     # contract = option_contract_full(identifier='AAPL  190118P00160000')
+    # future
+    # contract = future_contract('CHF', 'USD', '20190617', multiplier=125000, exchange='GLOBEX')
 
     order = openapi_client.create_order(account, contract, 'BUY', 'LMT', 100, limit_price=5.0)
     # 或者本地构造订单对象
