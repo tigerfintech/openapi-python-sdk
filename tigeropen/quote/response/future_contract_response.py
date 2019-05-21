@@ -10,11 +10,11 @@ import pandas as pd
 from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.response import TigerResponse
 
-COLUMNS = ['contract_code', 'type', 'name', 'contract_month', 'currency', 'first_notice_date',
-           'last_bidding_close_time', 'last_trading_date', 'trade', 'continuous']
-CONTRACT_FIELD_MAPPINGS = {'contractCode': 'contract_code', 'contractMonth': 'contract_month',
-                           'firstNoticeDate': 'first_notice_date', 'lastBiddingCloseTime': 'last_bidding_close_time',
-                           'lastTradingDate': 'last_trading_date'}
+COLUMNS = ['contract_code', 'symbol', 'type', 'name', 'contract_month', 'multiplier', 'exchange', 'currency',
+           'first_notice_date', 'last_bidding_close_time', 'last_trading_date', 'trade', 'continuous']
+CONTRACT_FIELD_MAPPINGS = {'contractCode': 'contract_code', 'exchangeCode': 'exchange', 'ibCode': 'symbol',
+                           'contractMonth': 'contract_month', 'firstNoticeDate': 'first_notice_date',
+                           'lastBiddingCloseTime': 'last_bidding_close_time', 'lastTradingDate': 'last_trading_date'}
 
 
 class FutureContractResponse(TigerResponse):
@@ -51,8 +51,12 @@ class FutureContractResponse(TigerResponse):
         for key, value in item.items():
             if value is None:
                 continue
+
             if isinstance(value, six.string_types):
                 value = get_string(value)
+
+            if key in ('lastBiddingCloseTime', 'firstNoticeDate') and (value == 0 or value == ''):
+                continue
             tag = CONTRACT_FIELD_MAPPINGS[key] if key in CONTRACT_FIELD_MAPPINGS else key
             item_values[tag] = value
         return item_values
