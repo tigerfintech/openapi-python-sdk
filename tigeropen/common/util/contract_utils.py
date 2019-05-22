@@ -13,12 +13,12 @@ def stock_contract(symbol, currency, local_symbol=None, exchange=None, contract_
                     contract_id=contract_id)
 
 
-def option_contract(symbol, expiry, strike, put_call, currency, multiplier=100, local_symbol=None, contract_id=None):
+def option_contract_by_symbol(symbol, expiry, strike, put_call, currency, multiplier=100, local_symbol=None, contract_id=None):
     return Contract(symbol, currency, sec_type='OPT', expiry=expiry, strike=strike, put_call=put_call,
                     multiplier=multiplier, local_symbol=local_symbol, contract_id=contract_id)
 
 
-def option_contract_full(identifier, multiplier=100, currency='USD'):
+def option_contract(identifier, multiplier=100, currency='USD'):
     symbol, expiry, put_call, strike = extract_option_info(identifier)
     if expiry and '-' in expiry:
         expiry = expiry.replace('-', '')

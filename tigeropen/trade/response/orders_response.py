@@ -8,8 +8,9 @@ import json
 import six
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.string_utils import get_string
+from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.trade.domain.contract import Contract
-from tigeropen.trade.domain.order import Order, ORDER_STATUS
+from tigeropen.trade.domain.order import Order
 from tigeropen.trade.response import CONTRACT_FIELDS
 
 ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderType': 'order_type',
@@ -94,7 +95,7 @@ class OrdersResponse(TigerResponse):
         id = order_fields.get('id')
         order_id = order_fields.get('order_id')
         parent_id = order_fields.get('parent_id')
-        status = OrdersResponse.get_status(order_fields.get('status'))
+        status = get_order_status(order_fields.get('status'))
 
         order = Order(account, contract, action, order_type, quantity, limit_price=limit_price, aux_price=aux_price,
                       trail_stop_price=trail_stop_price, trailing_percent=trailing_percent,
@@ -112,26 +113,3 @@ class OrdersResponse(TigerResponse):
 
         return order
 
-    @staticmethod
-    def get_status(value):
-        """
-        Invalid(-2), Initial(-1), PendingCancel(3), Cancelled(4), Submitted(5), Filled(6), Inactive(7), PendingSubmit(8)
-        :param value:
-        :return:
-        """
-        if value == -1 or value == 'Initial':
-            return ORDER_STATUS.NEW
-        elif value == 2 or value == 5 or value == 8 or value == 'Submitted':
-            return ORDER_STATUS.HELD
-        elif value == 3 or value == 'PendingCancel':
-            return ORDER_STATUS.PENDING_CANCEL
-        elif value == 4 or value == 'Cancelled':
-            return ORDER_STATUS.CANCELLED
-        elif value == 6 or value == 'Filled':
-            return ORDER_STATUS.FILLED
-        elif value == 7 or value == 'Inactive':
-            return ORDER_STATUS.REJECTED
-        elif value == -2 or value == 'Invalid':
-            return ORDER_STATUS.EXPIRED
-
-        return ORDER_STATUS.PENDING_NEW
