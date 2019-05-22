@@ -7,6 +7,7 @@ Created on 2018/9/20
 import threading
 import platform
 from enum import Enum, unique
+from .quote_keys import QuoteChangeKey
 
 python_version = platform.python_version()
 
@@ -91,3 +92,15 @@ class BarPeriod(Enum):
     FIFTEEN_MINUTES = '15min'  # 15分钟
     HALF_HOUR = '30min'  # 30分钟
     ONE_HOUR = '60min'  # 60分钟
+
+
+class ORDER_STATUS(Enum):
+    PENDING_NEW = 'PendingNew'
+    NEW = 'Initial'
+    HELD = 'Submitted'
+    PARTIALLY_FILLED = 'Submitted'
+    FILLED = 'Filled'
+    CANCELLED = 'Cancelled'
+    PENDING_CANCEL = 'PendingCancel'
+    REJECTED = 'Inactive'
+    EXPIRED = 'Invalid'

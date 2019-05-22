@@ -14,7 +14,7 @@ from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.trade_client import TradeClient
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.examples.client_config import get_client_config
-# from tigeropen.common.util.contract_utils import stock_contract, option_contract_full
+# from tigeropen.common.util.contract_utils import stock_contract, option_contract, future_contract
 # from tigeropen.common.util.order_utils import limit_order
 
 logging.basicConfig(level=logging.INFO,
@@ -53,6 +53,10 @@ def get_account_apis():
     openapi_client.get_managed_accounts()
     # 获取订单
     openapi_client.get_orders()
+    # 获取未成交订单
+    # openapi_client.get_open_orders()
+    # 获取已成交订单
+    # openapi_client.get_filled_orders(start_time='2019-05-01', end_time='2019-05-21')
     # 获取持仓
     openapi_client.get_positions()
     # 获取资产
@@ -69,7 +73,7 @@ def trade_apis():
     # contract = stock_contract(symbol='AAPL', currency='USD')
 
     # option
-    # contract = option_contract_full(identifier='AAPL  190118P00160000')
+    # contract = option_contract(identifier='AAPL  190118P00160000')
     # future
     # contract = future_contract('CHF', 'USD', '20190617', multiplier=125000, exchange='GLOBEX')
 
