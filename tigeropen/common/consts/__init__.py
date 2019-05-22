@@ -7,6 +7,7 @@ Created on 2018/9/20
 import threading
 import platform
 from enum import Enum, unique
+from .quote_keys import QuoteChangeKey
 
 python_version = platform.python_version()
 
@@ -94,7 +95,7 @@ class BarPeriod(Enum):
 
 
 class ORDER_STATUS(Enum):
-    PENDING_NEW = 'Initial'
+    PENDING_NEW = 'PendingNew'
     NEW = 'Initial'
     HELD = 'Submitted'
     PARTIALLY_FILLED = 'Submitted'
