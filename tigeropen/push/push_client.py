@@ -8,8 +8,6 @@ import sys
 import json
 import stomp
 import six
-import traceback
-import logging
 from stomp.exception import ConnectFailedException
 from tigeropen.common.util.signature_utils import sign_with_rsa
 from tigeropen.common.util.order_utils import get_order_status
@@ -50,13 +48,19 @@ else:
 
 
 class PushClient(object):
-    def __init__(self, host, port, use_ssl=True, connection_timeout=120, auto_reconnect=True):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=120, auto_reconnect=True, heartbeats=(60, 60)):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
-        self.stomp_connection = None
-        self.counter = 0
-        self.subscriptions = {}  # subscription callbacks indexed by subscriber's ID
+        self._tiger_id = None
+        self._private_key = None
+        self._sign = None
+        self._stomp_connection = None
+        self._quote_counter = 0
+        self._asset_counter = 0
+        self._position_counter = 0
+        self._order_counter = 0
+        # self.subscriptions = {}  # subscription callbacks indexed by subscriber's ID
 
         self.subscribed_symbols = None
         self.quote_changed = None
@@ -68,33 +72,35 @@ class PushClient(object):
         self.error_callback = None
         self._connection_timeout = connection_timeout
         self._auto_reconnect = auto_reconnect
+        self._heartbeats = heartbeats
 
     def _connect(self):
         try:
-            if self.stomp_connection:
-                self.stomp_connection.remove_listener('push')
-                self.stomp_connection.transport.cleanup()
+            if self._stomp_connection:
+                self._stomp_connection.remove_listener('push')
+                self._stomp_connection.transport.cleanup()
         except:
             pass
 
-        self.stomp_connection = stomp.Connection10(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
-                                                   keepalive=KEEPALIVE, timeout=self._connection_timeout)
-        self.stomp_connection.set_listener('push', self)
-        self.stomp_connection.start()
+        self._stomp_connection = stomp.Connection12(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
+                                                    keepalive=KEEPALIVE, timeout=self._connection_timeout,
+                                                    heartbeats=self._heartbeats)
+        self._stomp_connection.set_listener('push', self)
+        self._stomp_connection.start()
         try:
-            self.stomp_connection.connect(self.tiger_id, self.sign, wait=True)
-        except ConnectFailedException:
-            logging.warning('Stomp connection failed')
+            self._stomp_connection.connect(self._tiger_id, self._sign, wait=True)
+        except ConnectFailedException as e:
+            raise e
 
     def connect(self, tiger_id, private_key):
-        self.tiger_id = tiger_id
-        self.private_key = private_key
-        self.sign = sign_with_rsa(self.private_key, self.tiger_id, 'utf-8')
+        self._tiger_id = tiger_id
+        self._private_key = private_key
+        self._sign = sign_with_rsa(self._private_key, self._tiger_id, 'utf-8')
         self._connect()
 
     def disconnect(self):
-        if self.stomp_connection:
-            self.stomp_connection.disconnect()
+        if self._stomp_connection:
+            self._stomp_connection.disconnect()
 
     def on_connected(self, headers, body):
         if self.connect_callback:
@@ -113,96 +119,96 @@ class PushClient(object):
         :param dict headers: a dictionary containing all headers sent by the server as key/value pairs.
         :param body: the frame's payload - the message body.
         """
-        try:
-            response_type = headers.get('ret-type')
-            if response_type == str(ResponseType.GET_SUB_SYMBOLS_END.value):
-                if self.subscribed_symbols:
-                    data = json.loads(body)
-                    limit = data.get('limit')
-                    symbols = data.get('subscribedSymbols')
-                    used = data.get('used')
-                    symbol_focus_keys = data.get('symbolFocusKeys')
-                    focus_keys = dict()
-                    for sym, keys in symbol_focus_keys.items():
-                        keys = [QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys]
-                        focus_keys[sym] = keys
-                    self.subscribed_symbols(symbols, focus_keys, limit, used)
-            elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
-                if self.quote_changed:
-                    data = json.loads(body)
-                    hour_trading = False
-                    if 'hourTradingLatestPrice' in data:
-                        hour_trading = True
-                    if 'symbol' in data:
-                        symbol = data.get('symbol')
-                        items = []
-                        for key, value in data.items():
-                            if key.startswith('hourTrading'):
-                                key = key[11:]
-                            if key == 'latestTime' and isinstance(value, six.string_types):
-                                continue
-                            if key in QUOTE_KEYS_MAPPINGS:
-                                items.append((QUOTE_KEYS_MAPPINGS.get(key), value))
-                        if items:
-                            self.quote_changed(symbol, items, hour_trading)
-            elif response_type == str(ResponseType.SUBSCRIBE_ASSET.value):
-                if self.asset_changed:
-                    data = json.loads(body)
-                    if 'account' in data:
-                        account = data.get('account')
-                        items = []
-                        for key, value in data.items():
-                            if key in ASSET_KEYS_MAPPINGS:
-                                items.append((ASSET_KEYS_MAPPINGS.get(key), value))
-                        if items:
-                            self.asset_changed(account, items)
-            elif response_type == str(ResponseType.SUBSCRIBE_POSITION.value):
-                if self.position_changed:
-                    data = json.loads(body)
-                    if 'account' in data:
-                        account = data.get('account')
-                        items = []
-                        for key, value in data.items():
-                            if key in POSITION_KEYS_MAPPINGS:
-                                items.append((POSITION_KEYS_MAPPINGS.get(key), value))
-                        if items:
-                            self.position_changed(account, items)
-            elif response_type == str(ResponseType.SUBSCRIBE_ORDER_STATUS.value):
-                if self.order_changed:
-                    data = json.loads(body)
-                    if 'account' in data:
-                        account = data.get('account')
-                        items = []
-                        for key, value in data.items():
-                            if key in ORDER_KEYS_MAPPINGS:
-                                if key == 'status':
-                                    value = get_order_status(value)
-                                items.append((ORDER_KEYS_MAPPINGS.get(key), value))
-                        if items:
-                            self.order_changed(account, items)
-        except Exception as e:
-            print(traceback.format_exc())
+        response_type = headers.get('ret-type')
+        if response_type == str(ResponseType.GET_SUB_SYMBOLS_END.value):
+            if self.subscribed_symbols:
+                data = json.loads(body)
+                limit = data.get('limit')
+                symbols = data.get('subscribedSymbols')
+                used = data.get('used')
+                symbol_focus_keys = data.get('symbolFocusKeys')
+                focus_keys = dict()
+                for sym, keys in symbol_focus_keys.items():
+                    keys = [QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys]
+                    focus_keys[sym] = keys
+                self.subscribed_symbols(symbols, focus_keys, limit, used)
+        elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
+            if self.quote_changed:
+                data = json.loads(body)
+                hour_trading = False
+                if 'hourTradingLatestPrice' in data:
+                    hour_trading = True
+                if 'symbol' in data:
+                    symbol = data.get('symbol')
+                    items = []
+                    for key, value in data.items():
+                        if key.startswith('hourTrading'):
+                            key = key[11:]
+                        if key == 'latestTime' and isinstance(value, six.string_types):
+                            continue
+                        if key in QUOTE_KEYS_MAPPINGS:
+                            items.append((QUOTE_KEYS_MAPPINGS.get(key), value))
+                    if items:
+                        self.quote_changed(symbol, items, hour_trading)
+        elif response_type == str(ResponseType.SUBSCRIBE_ASSET.value):
+            if self.asset_changed:
+                data = json.loads(body)
+                if 'account' in data:
+                    account = data.get('account')
+                    items = []
+                    for key, value in data.items():
+                        if key in ASSET_KEYS_MAPPINGS:
+                            items.append((ASSET_KEYS_MAPPINGS.get(key), value))
+                    if items:
+                        self.asset_changed(account, items)
+        elif response_type == str(ResponseType.SUBSCRIBE_POSITION.value):
+            if self.position_changed:
+                data = json.loads(body)
+                if 'account' in data:
+                    account = data.get('account')
+                    items = []
+                    for key, value in data.items():
+                        if key in POSITION_KEYS_MAPPINGS:
+                            items.append((POSITION_KEYS_MAPPINGS.get(key), value))
+                    if items:
+                        self.position_changed(account, items)
+        elif response_type == str(ResponseType.SUBSCRIBE_ORDER_STATUS.value):
+            if self.order_changed:
+                data = json.loads(body)
+                if 'account' in data:
+                    account = data.get('account')
+                    items = []
+                    for key, value in data.items():
+                        if key in ORDER_KEYS_MAPPINGS:
+                            if key == 'status':
+                                value = get_order_status(value)
+                            items.append((ORDER_KEYS_MAPPINGS.get(key), value))
+                    if items:
+                        self.order_changed(account, items)
 
     def on_error(self, headers, body):
         pass
 
-    def subscribe_asset(self, account=None):
+    @staticmethod
+    def _get_subscribe_id(counter):
+        return 'sub-' + str(counter)
+
+    def subscribe_asset(self):
         """
         订阅账户资产更新
         :return:
         """
-        id = "sub-" + str(self.counter)
+        self._asset_counter += 1
+        sub_id = self._get_subscribe_id(self._asset_counter)
         headers = dict()
         headers['destination'] = 'trade/asset'
         headers['subscription'] = 'Asset'
-        headers['id'] = id
-        self.counter += 1
+        headers['id'] = sub_id
 
-        self.stomp_connection.subscribe('trade/asset', id=id, headers=headers)
+        self._stomp_connection.subscribe('trade/asset', id=sub_id, headers=headers)
+        return sub_id
 
-        return id
-
-    def unsubscribe_asset(self, id=None, account=None):
+    def unsubscribe_asset(self, id=None):
         """
         退订账户资产更新
         :return:
@@ -210,25 +216,26 @@ class PushClient(object):
         headers = dict()
         headers['destination'] = 'trade/asset'
         headers['subscription'] = 'Asset'
-        if id:
-            headers['id'] = id
-        self.stomp_connection.subscribe('trade/asset', id=id, headers=headers)
+        sub_id = id if id else self._get_subscribe_id(self._asset_counter)
+        headers['id'] = sub_id
+        self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
 
-    def subscribe_position(self, account=None):
+    def subscribe_position(self):
         """
         订阅账户持仓更新
         :return:
         """
-        id = "sub-" + str(self.counter)
+        self._position_counter += 1
+        sub_id = self._get_subscribe_id(self._position_counter)
         headers = dict()
         headers['destination'] = 'trade/position'
         headers['subscription'] = 'Position'
-        headers['id'] = id
-        self.counter += 1
+        headers['id'] = sub_id
 
-        self.stomp_connection.subscribe('trade/position', id=id, headers=headers)
+        self._stomp_connection.subscribe('trade/position', id=sub_id, headers=headers)
+        return sub_id
 
-    def unsubscribe_position(self, id=None, account=None):
+    def unsubscribe_position(self, id=None):
         """
         退订账户持仓更新
         :return:
@@ -236,26 +243,27 @@ class PushClient(object):
         headers = dict()
         headers['destination'] = 'trade/position'
         headers['subscription'] = 'Position'
-        if id:
-            headers['id'] = id
+        sub_id = id if id else self._get_subscribe_id(self._position_counter)
+        headers['id'] = sub_id
 
-        self.stomp_connection.subscribe('trade/position', id=id, headers=headers)
+        self._stomp_connection.unsubscribe(id=id, headers=headers)
 
     def subscribe_order(self):
         """
         订阅账户订单更新
         :return:
         """
-        id = "sub-" + str(self.counter)
+        self._order_counter += 1
+        sub_id = self._get_subscribe_id(self._order_counter)
         headers = dict()
         headers['destination'] = 'trade/order'
         headers['subscription'] = 'OrderStatus'
-        headers['id'] = id
-        self.counter += 1
+        headers['id'] = sub_id
 
-        self.stomp_connection.subscribe('trade/order', id=id, headers=headers)
+        self._stomp_connection.subscribe('trade/order', id=sub_id, headers=headers)
+        return sub_id
 
-    def unsubscribe_order(self, id=None, account=None):
+    def unsubscribe_order(self, id=None):
         """
         退订账户订单更新
         :return:
@@ -263,21 +271,22 @@ class PushClient(object):
         headers = dict()
         headers['destination'] = 'trade/order'
         headers['subscription'] = 'OrderStatus'
-        if id:
-            headers['id'] = id
+        sub_id = id if id else self._get_subscribe_id(self._order_counter)
+        headers['id'] = sub_id
 
-        self.stomp_connection.unsubscribe('trade/order', id=id, headers=headers)
+        self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
 
     def subscribe_quote(self, symbols, focus_keys=None):
         """
         订阅行情更新
         :return:
         """
-        id = "sub-" + str(self.counter)
+        self._quote_counter += 1
+        sub_id = self._get_subscribe_id(self._quote_counter)
         headers = dict()
         headers['destination'] = 'quote'
         headers['subscription'] = 'Quote'
-        headers['id'] = id
+        headers['id'] = sub_id
         if symbols:
             headers['symbols'] = ','.join(symbols)
         if focus_keys:
@@ -289,9 +298,9 @@ class PushClient(object):
                 else:
                     keys.append(key.value)
             headers['keys'] = ','.join(keys)
-        self.counter += 1
 
-        self.stomp_connection.subscribe('quote', id=id, headers=headers)
+        self._stomp_connection.subscribe('quote', id=sub_id, headers=headers)
+        return sub_id
 
     def query_subscribed_quote(self):
         """
@@ -301,7 +310,7 @@ class PushClient(object):
         headers = dict()
         headers['destination'] = 'quote'
         headers['req-type'] = RequestType.REQ_SUB_SYMBOLS.value
-        self.stomp_connection.send('quote', "{}", headers=headers)
+        self._stomp_connection.send('quote', "{}", headers=headers)
 
     def unsubscribe_quote(self, symbols=None, id=None):
         """
@@ -311,9 +320,9 @@ class PushClient(object):
         headers = dict()
         headers['destination'] = 'quote'
         headers['subscription'] = 'Quote'
-        if id:
-            headers['id'] = id
+        sub_id = id if id else self._get_subscribe_id(self._quote_counter)
+        headers['id'] = sub_id
         if symbols:
             headers['symbols'] = ','.join(symbols)
 
-        self.stomp_connection.unsubscribe('quote', id=id, headers=headers)
+        self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
