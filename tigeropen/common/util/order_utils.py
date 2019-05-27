@@ -5,6 +5,7 @@ Created on 2018/11/1
 @author: gaoan
 """
 from tigeropen.trade.domain.order import Order
+from tigeropen.common.consts import ORDER_STATUS
 
 
 def market_order(account, contract, action, quantity):
@@ -71,3 +72,27 @@ def trail_order(account, contract, action, quantity, trailing_percent=None, aux_
     :return:
     """
     return Order(account, contract, action, 'TRAIL', quantity, trailing_percent=trailing_percent, aux_price=aux_price)
+
+
+def get_order_status(value):
+    """
+    Invalid(-2), Initial(-1), PendingCancel(3), Cancelled(4), Submitted(5), Filled(6), Inactive(7), PendingSubmit(8)
+    :param value:
+    :return:
+    """
+    if value == -1 or value == 'Initial':
+        return ORDER_STATUS.NEW
+    elif value == 2 or value == 5 or value == 8 or value == 'Submitted':
+        return ORDER_STATUS.HELD
+    elif value == 3 or value == 'PendingCancel':
+        return ORDER_STATUS.PENDING_CANCEL
+    elif value == 4 or value == 'Cancelled':
+        return ORDER_STATUS.CANCELLED
+    elif value == 6 or value == 'Filled':
+        return ORDER_STATUS.FILLED
+    elif value == 7 or value == 'Inactive':
+        return ORDER_STATUS.REJECTED
+    elif value == -2 or value == 'Invalid':
+        return ORDER_STATUS.EXPIRED
+
+    return ORDER_STATUS.PENDING_NEW
