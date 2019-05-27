@@ -48,7 +48,16 @@ else:
 
 
 class PushClient(object):
-    def __init__(self, host, port, use_ssl=True, connection_timeout=120, auto_reconnect=True, heartbeats=(60, 60)):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=120, auto_reconnect=True,
+                 heartbeats=(30 * 1000, 30 * 1000)):
+        """
+        :param host:
+        :param port:
+        :param use_ssl:
+        :param connection_timeout: second
+        :param auto_reconnect:
+        :param heartbeats: tuple of millisecond
+        """
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
@@ -246,7 +255,7 @@ class PushClient(object):
         sub_id = id if id else self._get_subscribe_id(self._position_counter)
         headers['id'] = sub_id
 
-        self._stomp_connection.unsubscribe(id=id, headers=headers)
+        self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
 
     def subscribe_order(self):
         """
