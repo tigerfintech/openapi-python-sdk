@@ -301,6 +301,9 @@ class OrderParams(object):
         if self.lang:
             params['lang'] = self.lang
 
+        if self.id:
+            params['id'] = self.id
+
         return params
 
 
@@ -315,6 +318,7 @@ class OrdersParams(object):
         self._start_date = None
         self._end_date = None
         self._limit = None
+        self._states = None
 
     @property
     def account(self):
@@ -388,6 +392,14 @@ class OrdersParams(object):
     def lang(self, value):
         self._lang = value
 
+    @property
+    def states(self):
+        return self._states
+
+    @states.setter
+    def states(self, value):
+        self._states = value
+
     def to_openapi_dict(self):
         params = dict()
         if self.account:
@@ -416,6 +428,9 @@ class OrdersParams(object):
 
         if self.lang:
             params['lang'] = self.lang
+
+        if self.states:
+            params['states'] = self.states
 
         return params
 
