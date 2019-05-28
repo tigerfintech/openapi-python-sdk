@@ -5,12 +5,9 @@ Created on 2018/9/20
 @author: gaoan
 """
 from six import text_type
-from enum import Enum
+from tigeropen.common.consts import ORDER_STATUS
 
 ORDER_FIELDS_TO_IGNORE = {'type', '_status', 'contract', '_remaining'}
-
-ORDER_STATUS = Enum('OrderStatus', ('PENDING_NEW', 'NEW', 'HELD', 'PARTIALLY_FILLED', 'FILLED',
-                                    'CANCELLED', 'PENDING_CANCEL', 'REJECTED', 'EXPIRED',))
 
 
 class Order(object):

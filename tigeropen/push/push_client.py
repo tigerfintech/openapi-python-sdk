@@ -12,13 +12,12 @@ import traceback
 import logging
 from stomp.exception import ConnectFailedException
 from tigeropen.common.util.signature_utils import sign_with_rsa
+from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.consts.push_types import RequestType, ResponseType
+from tigeropen.common.consts.quote_keys import QuoteChangeKey
 
-QUOTE_KEYS_MAPPINGS = {'latestTime': 'latest_time', 'latestPrice': 'latest_price', 'LatestPrice': 'latest_price',
-                       'preClose': 'prev_close', 'PreClose': 'prev_close', 'volume': 'volume', 'Volume': 'volume',
-                       'open': 'open', 'high': 'high', 'low': 'low', 'close': 'close', 'askPrice': 'ask_price',
-                       'askSize': 'ask_size', 'bidPrice': 'bid_price', 'bidSize': 'bid_size',
-                       'timestamp': 'latest_time'}
+QUOTE_KEYS_MAPPINGS = {field.value: field.name for field in QuoteChangeKey}  # like {'askPrice': 'ask_price'}
+REVERSED_QUOTE_KEYS_MAPPINGS = {field.name: field.value for field in QuoteChangeKey}  # like {'ask_price': 'askPrice'}
 
 ASSET_KEYS_MAPPINGS = {'buyingPower': 'buying_power', 'cashBalance': 'cash',
                        'grossPositionValue': 'gross_position_value',
@@ -121,8 +120,12 @@ class PushClient(object):
                     data = json.loads(body)
                     limit = data.get('limit')
                     symbols = data.get('subscribedSymbols')
-                    focus_keys = data.get('symbolFocusKeys')
                     used = data.get('used')
+                    symbol_focus_keys = data.get('symbolFocusKeys')
+                    focus_keys = dict()
+                    for sym, keys in symbol_focus_keys.items():
+                        keys = [QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys]
+                        focus_keys[sym] = keys
                     self.subscribed_symbols(symbols, focus_keys, limit, used)
             elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
                 if self.quote_changed:
@@ -172,6 +175,8 @@ class PushClient(object):
                         items = []
                         for key, value in data.items():
                             if key in ORDER_KEYS_MAPPINGS:
+                                if key == 'status':
+                                    value = get_order_status(value)
                                 items.append((ORDER_KEYS_MAPPINGS.get(key), value))
                         if items:
                             self.order_changed(account, items)
@@ -276,7 +281,14 @@ class PushClient(object):
         if symbols:
             headers['symbols'] = ','.join(symbols)
         if focus_keys:
-            headers['keys'] = ','.join(focus_keys)
+            keys = list()
+            for key in focus_keys:
+                if isinstance(key, str):
+                    key = REVERSED_QUOTE_KEYS_MAPPINGS.get(key, key)
+                    keys.append(key)
+                else:
+                    keys.append(key.value)
+            headers['keys'] = ','.join(keys)
         self.counter += 1
 
         self.stomp_connection.subscribe('quote', id=id, headers=headers)
