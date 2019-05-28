@@ -5,12 +5,9 @@ Created on 2018/9/20
 @author: gaoan
 """
 from six import text_type
-from enum import Enum
+from tigeropen.common.consts import OrderStatus
 
 ORDER_FIELDS_TO_IGNORE = {'type', '_status', 'contract', '_remaining'}
-
-ORDER_STATUS = Enum('OrderStatus', ('PENDING_NEW', 'NEW', 'HELD', 'PARTIALLY_FILLED', 'FILLED',
-                                    'CANCELLED', 'PENDING_CANCEL', 'REJECTED', 'EXPIRED',))
 
 
 class Order(object):
@@ -45,7 +42,7 @@ class Order(object):
         self.avg_fill_price = avg_fill_price
         self.realized_pnl = realized_pnl
         self.commission = commission
-        self._status = ORDER_STATUS.NEW
+        self._status = OrderStatus.NEW
         self.time_in_force = time_in_force
         self.outside_rth = outside_rth
         self.order_type = order_type
@@ -70,9 +67,9 @@ class Order(object):
     @property
     def status(self):
         if not self.remaining:
-            return ORDER_STATUS.FILLED
-        elif self._status == ORDER_STATUS.HELD and self.filled:
-            return ORDER_STATUS.PARTIALLY_FILLED
+            return OrderStatus.FILLED
+        elif self._status == OrderStatus.HELD and self.filled:
+            return OrderStatus.PARTIALLY_FILLED
         else:
             return self._status
 
@@ -82,8 +79,8 @@ class Order(object):
 
     @property
     def active(self):
-        return self.status in [ORDER_STATUS.PENDING_NEW, ORDER_STATUS.NEW, ORDER_STATUS.PARTIALLY_FILLED,
-                               ORDER_STATUS.HELD, ORDER_STATUS.PENDING_CANCEL]
+        return self.status in [OrderStatus.PENDING_NEW, OrderStatus.NEW, OrderStatus.PARTIALLY_FILLED,
+                               OrderStatus.HELD, OrderStatus.PENDING_CANCEL]
 
     @property
     def remaining(self):
