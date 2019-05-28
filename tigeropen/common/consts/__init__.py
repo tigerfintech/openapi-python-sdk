@@ -8,7 +8,7 @@ import threading
 import platform
 from enum import Enum, unique
 from .quote_keys import QuoteChangeKey
-from .fundamental_fields import FinancialDailyField, FinancialReportField
+from .fundamental_fields import Valuation, Income, Balance, CashFlow, FinancialDaily, FinancialReport
 
 python_version = platform.python_version()
 

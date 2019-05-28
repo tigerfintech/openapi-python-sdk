@@ -640,7 +640,7 @@ class QuoteClient(TigerOpenClient):
         params = FinancialDailyParams()
         params.symbols = symbols
         params.market = market.value
-        params.fields = fields.value
+        params.fields = [field.value for field in fields]
         params.begin_date = begin_date
         params.end_date = end_date
 
@@ -668,7 +668,7 @@ class QuoteClient(TigerOpenClient):
         params = FinancialReportParams()
         params.symbols = symbols
         params.market = market.value
-        params.fields = fields.value
+        params.fields = [field.value for field in fields]
         params.period_type = period_type.value
 
         request = OpenApiRequest(FINANCIAL_REPORT, biz_model=params)

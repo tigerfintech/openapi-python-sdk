@@ -3,11 +3,11 @@
 import pandas as pd
 from tigeropen.common.response import TigerResponse
 
-COLUMNS = ['symbol', 'contract_id', 'action_type', 'amount', 'currency', 'announced_date', 'execute_date',
-           'record_date', 'pay_date', 'market', 'exchange', 'id']
+COLUMNS = ['symbol', 'action_type', 'amount', 'currency', 'announced_date', 'execute_date',
+           'record_date', 'pay_date', 'market', 'exchange']
 DIVIDEND_FIELD_MAPPINGS = {'actionType': 'action_type', 'announcedDate': 'announced_date',
                            'executeDate': 'execute_date', 'recordDate': 'record_date', 'payDate': 'pay_date',
-                           'contractId': 'contract_id'}
+                           }
 
 
 class CorporateDividendResponse(TigerResponse):

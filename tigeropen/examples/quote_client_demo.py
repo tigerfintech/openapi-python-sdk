@@ -6,8 +6,8 @@ Created on 2018/10/31
 """
 import logging
 import pandas as pd
-from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, FinancialDailyField, \
-    FinancialReportField
+from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, Valuation, FinancialReport
+
 from tigeropen.quote.quote_client import QuoteClient
 
 from tigeropen.examples.client_config import get_client_config
@@ -74,13 +74,13 @@ def get_future_quote():
 def get_fundamental():
     financial_daily = openapi_client.get_financial_daily(symbols=['AAPL', 'MSFT'],
                                                          market=Market.US,
-                                                         fields=FinancialDailyField.tev_ebitda,
+                                                         fields=Valuation.tev_ebitda,
                                                          begin_date='2019-01-01',
                                                          end_date='2019-01-10')
     print(financial_daily)
     financial_report = openapi_client.get_financial_report(symbols=['AAPL', 'GOOG'],
                                                            market=Market.US,
-                                                           fields=FinancialReportField.total_assets,
+                                                           fields=FinancialReport.total_assets,
                                                            period_type=FinancialReportPeriodType.ANNUAL)
     print(financial_report)
     corporatge_split = openapi_client.get_corporate_split(symbols=['UVXY', 'TQQQ'],
