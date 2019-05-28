@@ -3,10 +3,9 @@
 import pandas as pd
 from tigeropen.common.response import TigerResponse
 
-COLUMNS = ['symbol', 'contract_id', 'action_type', 'from_factor', 'to_factor', 'ratio', 'execute_date', 'market',
-           'exchange', 'id']
+COLUMNS = ['symbol', 'action_type', 'from_factor', 'to_factor', 'ratio', 'execute_date', 'market', 'exchange']
 SPLIT_FIELD_MAPPINGS = {'actionType': 'action_type', 'fromFactor': 'from_factor', 'toFactor': 'to_factor',
-                        'executeDate': 'execute_date', 'contractId': 'contract_id'}
+                        'executeDate': 'execute_date'}
 
 
 class CorporateSplitResponse(TigerResponse):

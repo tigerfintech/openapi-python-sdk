@@ -5,10 +5,10 @@ import six
 
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.string_utils import get_string
-from tigeropen.common.consts import FinancialDailyField
+from tigeropen.common.consts import Valuation
 
 COLUMNS = ['symbol', 'field', 'date', 'value']
-FINANCIAL_DAILY_VALUE_MAPPINGS = {field.value: field.name for field in FinancialDailyField}
+FINANCIAL_DAILY_VALUE_MAPPINGS = {field.value: field.name for field in Valuation}
 
 
 class FinancialDailyResponse(TigerResponse):
