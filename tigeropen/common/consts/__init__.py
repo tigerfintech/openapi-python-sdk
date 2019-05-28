@@ -7,6 +7,7 @@ Created on 2018/9/20
 import threading
 import platform
 from enum import Enum, unique
+from .quote_keys import QuoteChangeKey
 from .fundamental_fields import FinancialDailyField, FinancialReportField
 
 python_version = platform.python_version()
@@ -94,6 +95,18 @@ class BarPeriod(Enum):
     ONE_HOUR = '60min'  # 60分钟
 
 
+class ORDER_STATUS(Enum):
+    PENDING_NEW = 'PendingNew'
+    NEW = 'Initial'
+    HELD = 'Submitted'
+    PARTIALLY_FILLED = 'Submitted'
+    FILLED = 'Filled'
+    CANCELLED = 'Cancelled'
+    PENDING_CANCEL = 'PendingCancel'
+    REJECTED = 'Inactive'
+    EXPIRED = 'Invalid'
+
+
 @unique
 class FinancialReportPeriodType(Enum):
     """
@@ -102,6 +115,7 @@ class FinancialReportPeriodType(Enum):
     ANNUAL = 'Annual'  # 年报
     QUARTERLY = 'Quarterly'  # 季报
     LTM = 'LTM'  # 最近四个季度
+
 
 @unique
 class CorporateActionType(Enum):
