@@ -4,18 +4,20 @@ Created on 2018/10/30
 
 @author: gaoan
 """
+import sys
 import json
 import stomp
 import six
 import traceback
+import logging
+from stomp.exception import ConnectFailedException
 from tigeropen.common.util.signature_utils import sign_with_rsa
+from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.consts.push_types import RequestType, ResponseType
+from tigeropen.common.consts.quote_keys import QuoteChangeKey
 
-QUOTE_KEYS_MAPPINGS = {'latestTime': 'latest_time', 'latestPrice': 'latest_price', 'LatestPrice': 'latest_price',
-                       'preClose': 'prev_close', 'PreClose': 'prev_close', 'volume': 'volume', 'Volume': 'volume',
-                       'open': 'open', 'high': 'high', 'low': 'low', 'close': 'close', 'askPrice': 'ask_price',
-                       'askSize': 'ask_size', 'bidPrice': 'bid_price', 'bidSize': 'bid_size',
-                       'timestamp': 'latest_time'}
+QUOTE_KEYS_MAPPINGS = {field.value: field.name for field in QuoteChangeKey}  # like {'askPrice': 'ask_price'}
+REVERSED_QUOTE_KEYS_MAPPINGS = {field.name: field.value for field in QuoteChangeKey}  # like {'ask_price': 'askPrice'}
 
 ASSET_KEYS_MAPPINGS = {'buyingPower': 'buying_power', 'cashBalance': 'cash',
                        'grossPositionValue': 'gross_position_value',
@@ -34,22 +36,30 @@ POSITION_KEYS_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity',
 ORDER_KEYS_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderType': 'order_type',
                        'limitPrice': 'limit_price', 'auxPrice': 'aux_price', 'avgFillPrice': 'avg_fill_price',
                        'totalQuantity': 'quantity', 'filledQuantity': 'filled', 'lastFillPrice': 'last_fill_price',
-                       'orderType': 'order_type', 'realizedPnl': 'realized_pnl', 'secType': 'sec_type',
+                       'realizedPnl': 'realized_pnl', 'secType': 'sec_type',
                        'remark': 'reason', 'localSymbol': 'local_symbol', 'originSymbol': 'origin_symbol',
                        'outsideRth': 'outside_rth', 'timeInForce': 'time_in_force', 'openTime': 'order_time',
                        'latestTime': 'trade_time', 'contractId': 'contract_id', 'trailStopPrice': 'trail_stop_price',
                        'trailingPercent': 'trailing_percent', 'percentOffset': 'percent_offset', 'action': 'action',
                        'status': 'status', 'currency': 'currency', 'remaining': 'remaining', 'id': 'id'}
 
+if sys.platform == 'linux' or sys.platform == 'linux2':
+    KEEPALIVE = True
+else:
+    KEEPALIVE = False
+
 
 class PushClient(object):
-    def __init__(self, host, port, use_ssl=True):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=120, auto_reconnect=True):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
         self.stomp_connection = None
         self.counter = 0
         self.subscriptions = {}  # subscription callbacks indexed by subscriber's ID
+
+        self.tiger_id = None
+        self.sign = None
 
         self.subscribed_symbols = None
         self.quote_changed = None
@@ -59,15 +69,30 @@ class PushClient(object):
         self.connect_callback = None
         self.disconnect_callback = None
         self.error_callback = None
+        self._connection_timeout = connection_timeout
+        self._auto_reconnect = auto_reconnect
 
-    def connect(self, tiger_id, private_key):
-        sign = sign_with_rsa(private_key, tiger_id, 'utf-8')
+    def _connect(self):
+        try:
+            if self.stomp_connection:
+                self.stomp_connection.remove_listener('push')
+                self.stomp_connection.transport.cleanup()
+        except:
+            pass
+
         self.stomp_connection = stomp.Connection10(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
-                                                   keepalive=True)
-        # self.stomp_connection.set_listener('stats', stomp.StatsListener())
+                                                   keepalive=KEEPALIVE, timeout=self._connection_timeout)
         self.stomp_connection.set_listener('push', self)
         self.stomp_connection.start()
-        self.stomp_connection.connect(tiger_id, sign, wait=True)
+        try:
+            self.stomp_connection.connect(self.tiger_id, self.sign, wait=True)
+        except ConnectFailedException:
+            logging.warning('Stomp connection failed')
+
+    def connect(self, tiger_id, private_key):
+        self.tiger_id = tiger_id
+        self.sign = sign_with_rsa(private_key, tiger_id, 'utf-8')
+        self._connect()
 
     def disconnect(self):
         if self.stomp_connection:
@@ -80,6 +105,8 @@ class PushClient(object):
     def on_disconnected(self):
         if self.disconnect_callback:
             self.disconnect_callback()
+        elif self._auto_reconnect:
+            self._connect()
 
     def on_message(self, headers, body):
         """
@@ -95,8 +122,12 @@ class PushClient(object):
                     data = json.loads(body)
                     limit = data.get('limit')
                     symbols = data.get('subscribedSymbols')
-                    focus_keys = data.get('symbolFocusKeys')
                     used = data.get('used')
+                    symbol_focus_keys = data.get('symbolFocusKeys')
+                    focus_keys = dict()
+                    for sym, keys in symbol_focus_keys.items():
+                        keys = [QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys]
+                        focus_keys[sym] = keys
                     self.subscribed_symbols(symbols, focus_keys, limit, used)
             elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
                 if self.quote_changed:
@@ -146,6 +177,8 @@ class PushClient(object):
                         items = []
                         for key, value in data.items():
                             if key in ORDER_KEYS_MAPPINGS:
+                                if key == 'status':
+                                    value = get_order_status(value)
                                 items.append((ORDER_KEYS_MAPPINGS.get(key), value))
                         if items:
                             self.order_changed(account, items)
@@ -250,7 +283,14 @@ class PushClient(object):
         if symbols:
             headers['symbols'] = ','.join(symbols)
         if focus_keys:
-            headers['keys'] = ','.join(focus_keys)
+            keys = list()
+            for key in focus_keys:
+                if isinstance(key, str):
+                    key = REVERSED_QUOTE_KEYS_MAPPINGS.get(key, key)
+                    keys.append(key)
+                else:
+                    keys.append(key.value)
+            headers['keys'] = ','.join(keys)
         self.counter += 1
 
         self.stomp_connection.subscribe('quote', id=id, headers=headers)
