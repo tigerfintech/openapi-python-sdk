@@ -8,6 +8,7 @@ import sys
 import json
 import stomp
 import six
+import logging
 from stomp.exception import ConnectFailedException
 from tigeropen.common.util.signature_utils import sign_with_rsa
 from tigeropen.common.util.order_utils import get_order_status
@@ -128,72 +129,75 @@ class PushClient(object):
         :param dict headers: a dictionary containing all headers sent by the server as key/value pairs.
         :param body: the frame's payload - the message body.
         """
-        response_type = headers.get('ret-type')
-        if response_type == str(ResponseType.GET_SUB_SYMBOLS_END.value):
-            if self.subscribed_symbols:
-                data = json.loads(body)
-                limit = data.get('limit')
-                symbols = data.get('subscribedSymbols')
-                used = data.get('used')
-                symbol_focus_keys = data.get('symbolFocusKeys')
-                focus_keys = dict()
-                for sym, keys in symbol_focus_keys.items():
-                    keys = [QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys]
-                    focus_keys[sym] = keys
-                self.subscribed_symbols(symbols, focus_keys, limit, used)
-        elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
-            if self.quote_changed:
-                data = json.loads(body)
-                hour_trading = False
-                if 'hourTradingLatestPrice' in data:
-                    hour_trading = True
-                if 'symbol' in data:
-                    symbol = data.get('symbol')
-                    items = []
-                    for key, value in data.items():
-                        if key.startswith('hourTrading'):
-                            key = key[11:]
-                        if key == 'latestTime' and isinstance(value, six.string_types):
-                            continue
-                        if key in QUOTE_KEYS_MAPPINGS:
-                            items.append((QUOTE_KEYS_MAPPINGS.get(key), value))
-                    if items:
-                        self.quote_changed(symbol, items, hour_trading)
-        elif response_type == str(ResponseType.SUBSCRIBE_ASSET.value):
-            if self.asset_changed:
-                data = json.loads(body)
-                if 'account' in data:
-                    account = data.get('account')
-                    items = []
-                    for key, value in data.items():
-                        if key in ASSET_KEYS_MAPPINGS:
-                            items.append((ASSET_KEYS_MAPPINGS.get(key), value))
-                    if items:
-                        self.asset_changed(account, items)
-        elif response_type == str(ResponseType.SUBSCRIBE_POSITION.value):
-            if self.position_changed:
-                data = json.loads(body)
-                if 'account' in data:
-                    account = data.get('account')
-                    items = []
-                    for key, value in data.items():
-                        if key in POSITION_KEYS_MAPPINGS:
-                            items.append((POSITION_KEYS_MAPPINGS.get(key), value))
-                    if items:
-                        self.position_changed(account, items)
-        elif response_type == str(ResponseType.SUBSCRIBE_ORDER_STATUS.value):
-            if self.order_changed:
-                data = json.loads(body)
-                if 'account' in data:
-                    account = data.get('account')
-                    items = []
-                    for key, value in data.items():
-                        if key in ORDER_KEYS_MAPPINGS:
-                            if key == 'status':
-                                value = get_order_status(value)
-                            items.append((ORDER_KEYS_MAPPINGS.get(key), value))
-                    if items:
-                        self.order_changed(account, items)
+        try:
+            response_type = headers.get('ret-type')
+            if response_type == str(ResponseType.GET_SUB_SYMBOLS_END.value):
+                if self.subscribed_symbols:
+                    data = json.loads(body)
+                    limit = data.get('limit')
+                    symbols = data.get('subscribedSymbols')
+                    used = data.get('used')
+                    symbol_focus_keys = data.get('symbolFocusKeys')
+                    focus_keys = dict()
+                    for sym, keys in symbol_focus_keys.items():
+                        keys = [QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys]
+                        focus_keys[sym] = keys
+                    self.subscribed_symbols(symbols, focus_keys, limit, used)
+            elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
+                if self.quote_changed:
+                    data = json.loads(body)
+                    hour_trading = False
+                    if 'hourTradingLatestPrice' in data:
+                        hour_trading = True
+                    if 'symbol' in data:
+                        symbol = data.get('symbol')
+                        items = []
+                        for key, value in data.items():
+                            if key.startswith('hourTrading'):
+                                key = key[11:]
+                            if key == 'latestTime' and isinstance(value, six.string_types):
+                                continue
+                            if key in QUOTE_KEYS_MAPPINGS:
+                                items.append((QUOTE_KEYS_MAPPINGS.get(key), value))
+                        if items:
+                            self.quote_changed(symbol, items, hour_trading)
+            elif response_type == str(ResponseType.SUBSCRIBE_ASSET.value):
+                if self.asset_changed:
+                    data = json.loads(body)
+                    if 'account' in data:
+                        account = data.get('account')
+                        items = []
+                        for key, value in data.items():
+                            if key in ASSET_KEYS_MAPPINGS:
+                                items.append((ASSET_KEYS_MAPPINGS.get(key), value))
+                        if items:
+                            self.asset_changed(account, items)
+            elif response_type == str(ResponseType.SUBSCRIBE_POSITION.value):
+                if self.position_changed:
+                    data = json.loads(body)
+                    if 'account' in data:
+                        account = data.get('account')
+                        items = []
+                        for key, value in data.items():
+                            if key in POSITION_KEYS_MAPPINGS:
+                                items.append((POSITION_KEYS_MAPPINGS.get(key), value))
+                        if items:
+                            self.position_changed(account, items)
+            elif response_type == str(ResponseType.SUBSCRIBE_ORDER_STATUS.value):
+                if self.order_changed:
+                    data = json.loads(body)
+                    if 'account' in data:
+                        account = data.get('account')
+                        items = []
+                        for key, value in data.items():
+                            if key in ORDER_KEYS_MAPPINGS:
+                                if key == 'status':
+                                    value = get_order_status(value)
+                                items.append((ORDER_KEYS_MAPPINGS.get(key), value))
+                        if items:
+                            self.order_changed(account, items)
+        except Exception as e:
+            logging.error(e, exc_info=True)
 
     def on_error(self, headers, body):
         pass
