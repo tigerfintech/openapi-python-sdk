@@ -74,13 +74,13 @@ def get_future_quote():
 def get_fundamental():
     financial_daily = openapi_client.get_financial_daily(symbols=['AAPL', 'MSFT'],
                                                          market=Market.US,
-                                                         fields=Valuation.tev_ebitda,
+                                                         fields=Valuation.shares_outstanding,
                                                          begin_date='2019-01-01',
                                                          end_date='2019-01-10')
     print(financial_daily)
     financial_report = openapi_client.get_financial_report(symbols=['AAPL', 'GOOG'],
                                                            market=Market.US,
-                                                           fields=FinancialReport.total_assets,
+                                                           fields=FinancialReport.revenues,
                                                            period_type=FinancialReportPeriodType.ANNUAL)
     print(financial_report)
     corporatge_split = openapi_client.get_corporate_split(symbols=['UVXY', 'TQQQ'],
