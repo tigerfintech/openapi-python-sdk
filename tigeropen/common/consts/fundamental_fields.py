@@ -3,11 +3,6 @@
 from enum import Enum, unique
 
 
-def _copy_enum_fields(source, destination):
-    for field in source:
-        setattr(destination, field.name, field.value)
-
-
 @unique
 class Valuation(Enum):
     """
@@ -596,14 +591,3 @@ class Profitability(Enum):
     unlevered_free_cash_flow_margin = "unlevered_free_cash_flow_margin"
     normalized_net_income_margin = "normalized_net_income_margin"
 
-
-class FinancialReport(Enum):
-    """
-    财报字段汇总
-    """
-    pass
-
-
-_copy_enum_fields(Income, FinancialReport)
-_copy_enum_fields(Balance, FinancialReport)
-_copy_enum_fields(CashFlow, FinancialReport)
