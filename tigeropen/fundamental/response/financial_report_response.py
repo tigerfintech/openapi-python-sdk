@@ -4,7 +4,7 @@ import pandas as pd
 import six
 from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.consts import FinancialReport
+from tigeropen.common.consts.fundamental_fields import FinancialReport
 
 COLUMNS = ['symbol', 'currency', 'field', 'value', 'period_end_date', 'filing_date']
 REPORT_FIELD_MAPPINGS = {'periodEndDate': 'period_end_date', 'filingDate': 'filing_date'}

@@ -6,7 +6,8 @@ Created on 2018/10/31
 """
 import logging
 import pandas as pd
-from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, Valuation, FinancialReport
+from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, Valuation, \
+    Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability
 
 from tigeropen.quote.quote_client import QuoteClient
 
@@ -72,27 +73,36 @@ def get_future_quote():
 
 
 def get_fundamental():
+    """获取基础数据"""
+    
+    # 日级财务数据
     financial_daily = openapi_client.get_financial_daily(symbols=['AAPL', 'MSFT'],
                                                          market=Market.US,
-                                                         fields=Valuation.shares_outstanding,
+                                                         fields=[Valuation.shares_outstanding],
                                                          begin_date='2019-01-01',
                                                          end_date='2019-01-10')
     print(financial_daily)
+    
+    # 财报数据(季报或年报)
     financial_report = openapi_client.get_financial_report(symbols=['AAPL', 'GOOG'],
                                                            market=Market.US,
-                                                           fields=FinancialReport.revenues,
+                                                           fields=[Income.revenues, CashFlow.cash_from_investing],
                                                            period_type=FinancialReportPeriodType.ANNUAL)
     print(financial_report)
-    corporatge_split = openapi_client.get_corporate_split(symbols=['UVXY', 'TQQQ'],
-                                                          market=Market.US,
-                                                          begin_date='2017-01-01',
-                                                          end_date='2019-01-01')
-    print(corporatge_split)
-    corporatge_dividend = openapi_client.get_corporate_dividend(symbols=['MSFT', 'AAPL'],
-                                                                market=Market.US,
-                                                                begin_date='2018-01-01',
-                                                                end_date='2019-01-01')
-    print(corporatge_dividend)
+
+    # 拆合股数据
+    corporate_split = openapi_client.get_corporate_split(symbols=['UVXY', 'TQQQ'],
+                                                         market=Market.US,
+                                                         begin_date='2017-01-01',
+                                                         end_date='2019-01-01')
+    print(corporate_split)
+
+    # 派息数据
+    corporate_dividend = openapi_client.get_corporate_dividend(symbols=['MSFT', 'AAPL'],
+                                                               market=Market.US,
+                                                               begin_date='2018-01-01',
+                                                               end_date='2019-01-01')
+    print(corporate_dividend)
 
 
 if __name__ == '__main__':
