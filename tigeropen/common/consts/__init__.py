@@ -90,10 +90,17 @@ class BarPeriod(Enum):
     MONTH = 'month'  # 月K
     YEAR = 'year'  # 年K
     ONE_MINUTE = '1min'  # 1分钟
+    THREE_MINUTES = '3min'  # 3分钟
     FIVE_MINUTES = '5min'  # 5分钟
+    TEN_MINUTES = '10min'  # 10分钟
     FIFTEEN_MINUTES = '15min'  # 15分钟
     HALF_HOUR = '30min'  # 30分钟
+    FORTY_FIVE_MINUTES = '45min'  # 45分钟
     ONE_HOUR = '60min'  # 60分钟
+    TWO_HOURS = '2hour'  # 2小时
+    THREE_HOURS = '3hour'  # 3小时
+    FOUR_HOURS = '4hour'  # 4小时
+    SIX_HOURS = '6hour'  # 6小时
 
 
 class ORDER_STATUS(Enum):
