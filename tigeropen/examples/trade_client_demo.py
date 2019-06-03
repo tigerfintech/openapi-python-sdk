@@ -53,6 +53,10 @@ def get_account_apis():
     openapi_client.get_managed_accounts()
     # 获取订单
     openapi_client.get_orders()
+    # 获取未成交订单
+    # openapi_client.get_open_orders()
+    # 获取已成交订单
+    # openapi_client.get_filled_orders(start_time='2019-05-01', end_time='2019-05-21')
     # 获取持仓
     openapi_client.get_positions()
     # 获取资产
@@ -69,7 +73,7 @@ def trade_apis():
     # contract = stock_contract(symbol='AAPL', currency='USD')
 
     # option
-    # contract = option_contract_full(identifier='AAPL  190118P00160000')
+    # contract = option_contract(identifier='AAPL  190118P00160000')
     # future
     # contract = future_contract('CHF', 'USD', '20190617', multiplier=125000, exchange='GLOBEX')
 
