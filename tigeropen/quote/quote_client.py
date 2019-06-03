@@ -656,7 +656,7 @@ class QuoteClient(TigerOpenClient):
 
     def get_corporate_dividend(self, symbols, market, begin_date, end_date):
         """
-        获取公司分红数据
+        获取公司派息数据
         :param symbols:
         :param market:
         :param begin_date:
