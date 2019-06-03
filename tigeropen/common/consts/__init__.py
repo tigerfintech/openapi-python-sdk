@@ -8,7 +8,8 @@ import threading
 import platform
 from enum import Enum, unique
 from .quote_keys import QuoteChangeKey
-from .fundamental_fields import Valuation, Income, Balance, CashFlow, FinancialDaily, FinancialReport
+from .fundamental_fields import Valuation, Income, Balance, CashFlow, BalanceSheetRatio, Growth, \
+    Leverage, Profitability
 
 python_version = platform.python_version()
 

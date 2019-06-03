@@ -5,6 +5,7 @@ Created on 2018/10/31
 @author: gaoan
 """
 import re
+import enum
 import delorean
 import six
 
@@ -627,62 +628,6 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_financial_daily(self, symbols, market, fields, begin_date, end_date):
-        """
-        获取日级的财务数据
-        :param symbols:
-        :param market:
-        :param fields:
-        :param begin_date:
-        :param end_date:
-        :return:
-        """
-        params = FinancialDailyParams()
-        params.symbols = symbols
-        params.market = market.value
-        params.fields = [field.value for field in fields]
-        params.begin_date = begin_date
-        params.end_date = end_date
-
-        request = OpenApiRequest(FINANCIAL_DAILY, biz_model=params)
-        response_content = self.__fetch_data(request)
-        if response_content:
-            response = FinancialDailyResponse()
-            response.parse_response_content(response_content)
-            if response.is_success():
-                return response.financial_daily
-            else:
-                raise ApiException(response.code, response.message)
-
-        return None
-
-    def get_financial_report(self, symbols, market, fields, period_type):
-        """
-        获取财报数据
-        :param symbols:
-        :param market:
-        :param fields:
-        :param period_type:
-        :return:
-        """
-        params = FinancialReportParams()
-        params.symbols = symbols
-        params.market = market.value
-        params.fields = [field.value for field in fields]
-        params.period_type = period_type.value
-
-        request = OpenApiRequest(FINANCIAL_REPORT, biz_model=params)
-        response_content = self.__fetch_data(request)
-        if response_content:
-            response = FinancialReportResponse()
-            response.parse_response_content(response_content)
-            if response.is_success():
-                return response.financial_report
-            else:
-                raise ApiException(response.code, response.message)
-
-        return None
-
     def get_corporate_split(self, symbols, market, begin_date, end_date):
         """
         获取公司拆合股数据
@@ -708,8 +653,6 @@ class QuoteClient(TigerOpenClient):
                 return response.corporate_split
             else:
                 raise ApiException(response.code, response.message)
-
-        return None
 
     def get_corporate_dividend(self, symbols, market, begin_date, end_date):
         """
@@ -737,4 +680,54 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-        return None
+    def get_financial_daily(self, symbols, market, fields, begin_date, end_date):
+        """
+        获取日级的财务数据
+        :param symbols:
+        :param market:
+        :param fields:
+        :param begin_date:
+        :param end_date:
+        :return:
+        """
+        params = FinancialDailyParams()
+        params.symbols = symbols
+        params.market = market.value
+        params.fields = [field.value if isinstance(field, enum.Enum) else field for field in fields]
+        params.begin_date = begin_date
+        params.end_date = end_date
+
+        request = OpenApiRequest(FINANCIAL_DAILY, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FinancialDailyResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.financial_daily
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_financial_report(self, symbols, market, fields, period_type):
+        """
+        获取财报数据
+        :param symbols:
+        :param market:
+        :param fields:
+        :param period_type:
+        :return:
+        """
+        params = FinancialReportParams()
+        params.symbols = symbols
+        params.market = market.value
+        params.fields = [field.value if isinstance(field, enum.Enum) else field for field in fields]
+        params.period_type = period_type.value
+
+        request = OpenApiRequest(FINANCIAL_REPORT, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FinancialReportResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.financial_report
+            else:
+                raise ApiException(response.code, response.message)
