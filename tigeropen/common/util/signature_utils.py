@@ -6,7 +6,11 @@ Created on 2018/9/20
 """
 
 import base64
+import binascii
 import json
+import logging
+import sys
+
 import rsa
 
 from tigeropen.common.consts import PYTHON_VERSION_3
@@ -56,8 +60,14 @@ def fill_public_key_marker(public_key):
 def sign_with_rsa(private_key, sign_content, charset):
     if PYTHON_VERSION_3:
         sign_content = sign_content.encode(charset)
-    private_key = fill_private_key_marker(private_key)
-    signature = rsa.sign(sign_content, rsa.PrivateKey.load_pkcs1(private_key, format='PEM'), 'SHA-1')
+    try:
+        private_key = rsa.PrivateKey.load_pkcs1(fill_private_key_marker(private_key), format='PEM')
+    except binascii.Error:
+        logging.error("私钥格式错误, 请参考文档进行修改. https://quant.itiger.com/openapi/py-docs/zh-cn/docs/intro/quickstart.html ")
+        sys.exit(1)
+
+    signature = rsa.sign(sign_content, private_key, 'SHA-1')
+
     sign = base64.b64encode(signature)
     if PYTHON_VERSION_3:
         sign = str(sign, encoding=charset)
