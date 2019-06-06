@@ -8,6 +8,8 @@ import threading
 import platform
 from enum import Enum, unique
 from .quote_keys import QuoteChangeKey
+from .fundamental_fields import Valuation, Income, Balance, CashFlow, BalanceSheetRatio, Growth, \
+    Leverage, Profitability
 
 python_version = platform.python_version()
 
@@ -88,10 +90,17 @@ class BarPeriod(Enum):
     MONTH = 'month'  # 月K
     YEAR = 'year'  # 年K
     ONE_MINUTE = '1min'  # 1分钟
+    THREE_MINUTES = '3min'  # 3分钟
     FIVE_MINUTES = '5min'  # 5分钟
+    TEN_MINUTES = '10min'  # 10分钟
     FIFTEEN_MINUTES = '15min'  # 15分钟
     HALF_HOUR = '30min'  # 30分钟
+    FORTY_FIVE_MINUTES = '45min'  # 45分钟
     ONE_HOUR = '60min'  # 60分钟
+    TWO_HOURS = '2hour'  # 2小时
+    THREE_HOURS = '3hour'  # 3小时
+    FOUR_HOURS = '4hour'  # 4小时
+    SIX_HOURS = '6hour'  # 6小时
 
 
 class OrderStatus(Enum):
@@ -104,3 +113,22 @@ class OrderStatus(Enum):
     PENDING_CANCEL = 'PendingCancel'
     REJECTED = 'Inactive'
     EXPIRED = 'Invalid'
+
+
+@unique
+class FinancialReportPeriodType(Enum):
+    """
+    财报类型
+    """
+    ANNUAL = 'Annual'  # 年报
+    QUARTERLY = 'Quarterly'  # 季报
+    LTM = 'LTM'  # 最近四个季度
+
+
+@unique
+class CorporateActionType(Enum):
+    """
+    公司行动类型
+    """
+    SPLIT = 'split'  # 拆合股
+    DIVIDEND = 'dividend'  # 分红
