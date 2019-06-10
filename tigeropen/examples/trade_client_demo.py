@@ -7,7 +7,7 @@ Created on 2018/9/20
 import logging
 import traceback
 
-from tigeropen.trade.domain.order import ORDER_STATUS
+from tigeropen.trade.domain.order import OrderStatus
 from tigeropen.trade.request.model import AccountsParams
 from tigeropen.common.response import TigerResponse
 from tigeropen.tiger_open_client import TigerOpenClient
@@ -90,7 +90,7 @@ def trade_apis():
     assert new_order.quantity == 150
     openapi_client.cancel_order(order_id=order_id)
     new_order = openapi_client.get_order(order_id=order_id)
-    assert new_order.status == ORDER_STATUS.CANCELLED or new_order.status == ORDER_STATUS.PENDING_CANCEL
+    assert new_order.status == OrderStatus.CANCELLED or new_order.status == OrderStatus.PENDING_CANCEL
 
 
 if __name__ == '__main__':

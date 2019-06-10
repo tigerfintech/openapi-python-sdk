@@ -5,7 +5,7 @@ Created on 2018/11/1
 @author: gaoan
 """
 from tigeropen.trade.domain.order import Order
-from tigeropen.common.consts import ORDER_STATUS
+from tigeropen.common.consts import OrderStatus
 
 
 def market_order(account, contract, action, quantity):
@@ -81,18 +81,18 @@ def get_order_status(value):
     :return:
     """
     if value == -1 or value == 'Initial':
-        return ORDER_STATUS.NEW
+        return OrderStatus.NEW
     elif value == 2 or value == 5 or value == 8 or value == 'Submitted':
-        return ORDER_STATUS.HELD
+        return OrderStatus.HELD
     elif value == 3 or value == 'PendingCancel':
-        return ORDER_STATUS.PENDING_CANCEL
+        return OrderStatus.PENDING_CANCEL
     elif value == 4 or value == 'Cancelled':
-        return ORDER_STATUS.CANCELLED
+        return OrderStatus.CANCELLED
     elif value == 6 or value == 'Filled':
-        return ORDER_STATUS.FILLED
+        return OrderStatus.FILLED
     elif value == 7 or value == 'Inactive':
-        return ORDER_STATUS.REJECTED
+        return OrderStatus.REJECTED
     elif value == -2 or value == 'Invalid':
-        return ORDER_STATUS.EXPIRED
+        return OrderStatus.EXPIRED
 
-    return ORDER_STATUS.PENDING_NEW
+    return OrderStatus.PENDING_NEW
