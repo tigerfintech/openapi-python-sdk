@@ -103,7 +103,7 @@ class BarPeriod(Enum):
     SIX_HOURS = '6hour'  # 6小时
 
 
-class ORDER_STATUS(Enum):
+class OrderStatus(Enum):
     PENDING_NEW = 'PendingNew'
     NEW = 'Initial'
     HELD = 'Submitted'
