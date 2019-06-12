@@ -115,4 +115,5 @@ class PortfolioAccount(object):
         return self._market_values
 
     def __repr__(self):
-        return "PortfolioAccount({0})".format(self.__dict__)
+        return "PortfolioAccount({0})".format({'account': self.account, 'summary': self.summary,
+                                               'segments': self.segments, 'market_values': self.market_values})
