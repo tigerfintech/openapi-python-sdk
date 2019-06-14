@@ -15,6 +15,9 @@ from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey
 
+HOUR_TRADING_QUOTE_KEYS_MAPPINGS = {'hourTradingLatestPrice': 'latest_price', 'hourTradingPreClose': 'pre_close',
+                                    'hourTradingLatestTime': 'latest_time', 'hourTradingVolume': 'volume',
+                                    }
 QUOTE_KEYS_MAPPINGS = {field.value: field.name for field in QuoteChangeKey}  # like {'askPrice': 'ask_price'}
 REVERSED_QUOTE_KEYS_MAPPINGS = {field.name: field.value for field in QuoteChangeKey}  # like {'ask_price': 'askPrice'}
 
@@ -147,14 +150,14 @@ class PushClient(object):
                 if self.quote_changed:
                     data = json.loads(body)
                     hour_trading = False
-                    if 'hourTradingLatestPrice' in data:
+                    if 'hourTradingTag' in data:
                         hour_trading = True
                     if 'symbol' in data:
                         symbol = data.get('symbol')
                         items = []
                         for key, value in data.items():
-                            if key.startswith('hourTrading'):
-                                key = key[11:]
+                            if key.startswith('hourTrading') and key in HOUR_TRADING_QUOTE_KEYS_MAPPINGS:
+                                items.append((HOUR_TRADING_QUOTE_KEYS_MAPPINGS.get(key), value))
                             if key == 'latestTime' and isinstance(value, six.string_types):
                                 continue
                             if key in QUOTE_KEYS_MAPPINGS:
