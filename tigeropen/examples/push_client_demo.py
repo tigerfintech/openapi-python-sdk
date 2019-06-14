@@ -11,10 +11,25 @@ from tigeropen.examples.client_config import get_client_config
 
 
 def on_query_subscribed_quote(symbols, focus_keys, limit, used):
+    """
+    查询已订阅symbol回调
+    :param symbols: 订阅合约的列表
+    :param focus_keys: 每个合约订阅的 key 列表
+    :param limit: 当前 tigerid 可以订阅的合约数量
+    :param used: 目前已订阅的合约数量
+    :return:
+    """
     print(symbols, focus_keys, limit, used)
 
 
 def on_quote_changed(symbol, items, hour_trading):
+    """
+    行情推送回调
+    :param symbol: 订阅的证券代码
+    :param items: list，每个元素是一个tuple，对应订阅的字段名称和值
+    :param hour_trading: 是否为盘前盘后的交易
+    :return:
+    """
     print(symbol, items, hour_trading)
 
 
