@@ -40,6 +40,14 @@ class TradeClient(TigerOpenClient):
             self._paper_account = None
 
     def get_managed_accounts(self, account=None):
+        """
+        获取管理的账号列表
+        :param account:
+        :return: AccountProfile 对象, 有如下属性：
+            account： 交易账户
+            capability： 账户类型(CASH:现金账户, MGRN: Reg T 保证金账户, PMGRN: 投资组合保证金)
+            status： 账户状态(New, Funded, Open, Pending, Abandoned, Rejected, Closed, Unknown)
+        """
         params = AccountsParams()
         params.account = account if account else self._account
         request = OpenApiRequest(ACCOUNTS, biz_model=params)
@@ -93,8 +101,25 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_positions(self, account=None, sec_type=SecurityType.STK, currency=Currency.ALL, market=Market.ALL,
-                      symbol=None,
-                      sub_accounts=None):
+                      symbol=None, sub_accounts=None):
+        """
+        获取持仓数据
+        :param account:
+        :param sec_type:
+        :param currency:
+        :param market:
+        :param symbol:
+        :param sub_accounts:
+        :return: 由 Position 对象构成的列表. Position 对象有如下属性:
+            account: 所属账户
+            contract: 合约对象
+            quantity: 持仓数量
+            average_cost: 持仓成本
+            market_price: 最新价格
+            market_value: 市值
+            realized_pnl: 实现盈亏
+            unrealized_pnl: 持仓盈亏
+        """
         params = PositionParams()
         params.account = account if account else self._account
         if sec_type:
@@ -119,6 +144,36 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_assets(self, account=None, sub_accounts=None, segment=False, market_value=False):
+        """
+        获取账户资产信息
+        :param account:
+        :param sub_accounts: 子账户列表
+        :param segment: 是否包含证券/期货分类
+        :param market_value: 是否包含分市场市值
+        :return: 由 PortfolioAccount 对象构成的列表. PortfolioAccount 对象下的 summary 属性包含一个 Account 对象，
+         Account 对象有如下属性：
+            net_liquidation: 净清算值
+            accrued_cash: 净累计利息
+            accrued_dividend: 净累计分红
+            available_funds: 可用资金(可用于交易)
+            accrued_interest: 累计利息
+            buying_power: 购买力
+            cash: 证券账户金额+期货账户金额
+            currency: 货币
+            cushion: 当前保证金缓存
+            day_trades_remaining: 剩余日内交易次数，-1表示无限制
+            equity_with_loan: 含借贷值股权
+            excess_liquidity: 当前结余流动性，为保持当前拥有的头寸，必须维持的缓冲保证金的数额，日内风险数值（App）
+            gross_position_value: 持仓市值
+            initial_margin_requirement: 初始保证金要求
+            maintenance_margin_requirement: 维持保证金要求
+            regt_equity: RegT 资产
+            regt_margin: RegT 保证金
+            sma: 特殊备忘录账户，隔夜风险数值（App）
+            settled_cash: 结算利息
+            leverage: 总杠杆
+            net_leverage: 净杠杆
+        """
         params = AssetParams()
         params.account = account if account else self._account
         params.sub_accounts = sub_accounts
@@ -139,6 +194,20 @@ class TradeClient(TigerOpenClient):
 
     def get_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None, end_time=None,
                    limit=100, is_brief=False, states=None):
+        """
+        获取订单列表
+        :param account:
+        :param sec_type:
+        :param market:
+        :param symbol:
+        :param start_time: 开始时间. 若是时间戳需要精确到毫秒, 为13位整数；
+                                    或是日期时间格式的字符串，如"2017-01-01"和 "2017-01-01 12:00:00"
+        :param end_time: 截至时间. 格式同 start_time
+        :param limit: 每次获取订单的数量
+        :param is_brief: 是否返回精简的订单数据
+        :param states: 订单状态枚举对象列表, 可选, 若传递则按状态筛选
+        :return: Order 对象构成的列表
+        """
         params = OrdersParams()
         params.account = account if account else self._account
         if sec_type:
@@ -164,14 +233,7 @@ class TradeClient(TigerOpenClient):
     def get_open_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
                         end_time=None):
         """
-        获取待成交订单列表
-        :param account:
-        :param sec_type:
-        :param market:
-        :param symbol:
-        :param start_time:
-        :param end_time:
-        :return:
+        获取待成交订单列表. 参数同 get_orders
         """
         params = OrdersParams()
         params.account = account if account else self._account
@@ -195,14 +257,7 @@ class TradeClient(TigerOpenClient):
     def get_cancelled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
                              end_time=None):
         """
-        获取已撤销订单列表
-        :param account:
-        :param sec_type:
-        :param market:
-        :param symbol:
-        :param start_time:
-        :param end_time:
-        :return:
+        获取已撤销订单列表. 参数同 get_orders
         """
         params = OrdersParams()
         params.account = account if account else self._account
@@ -226,14 +281,7 @@ class TradeClient(TigerOpenClient):
     def get_filled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
                           end_time=None):
         """
-        获取已成交订单列表
-        :param account:
-        :param sec_type:
-        :param market:
-        :param symbol:
-        :param start_time:
-        :param end_time:
-        :return:
+        获取已成交订单列表. 参数同 get_orders
         """
         params = OrdersParams()
         params.account = account if account else self._account
@@ -255,6 +303,14 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_order(self, account=None, id=None, order_id=None, is_brief=False):
+        """
+        获取指定订单
+        :param account:
+        :param id:
+        :param order_id:
+        :param is_brief: 是否返回精简的订单数据
+        :return:
+        """
         params = OrderParams()
         params.account = account if account else self._account
         params.id = id
@@ -274,6 +330,22 @@ class TradeClient(TigerOpenClient):
     def create_order(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
                      outside_rth=None):
+        """
+        创建订单对象.
+        :param account:
+        :param contract:
+        :param action:
+        :param order_type:
+        :param quantity:
+        :param limit_price: 限价
+        :param aux_price: 在止损单表示止损价格; 在跟踪止损单表示价差
+        :param trail_stop_price: 跟踪止损单--触发止损单的价格
+        :param trailing_percent: 跟踪止损单--百分比
+        :param percent_offset:
+        :param time_in_force: 订单有效期， 'DAY'（当日有效）和'GTC'（取消前有效)
+        :param outside_rth: 是否允许盘前盘后交易(美股专属)
+        :return:
+        """
         params = AccountsParams()
         params.account = account if account else self._account
         request = OpenApiRequest(ORDER_NO, biz_model=params)
@@ -294,6 +366,11 @@ class TradeClient(TigerOpenClient):
         return None
 
     def place_order(self, order):
+        """
+        下单
+        :param order:  Order 对象
+        :return:
+        """
         params = PlaceModifyOrderParams()
         params.account = order.account
         params.contract = order.contract
@@ -324,6 +401,19 @@ class TradeClient(TigerOpenClient):
     def modify_order(self, order, quantity=None, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None,
                      time_in_force=None, outside_rth=None):
+        """
+        修改订单
+        :param order:
+        :param quantity:
+        :param limit_price: 限价
+        :param aux_price: 在止损单表示止损价格; 在跟踪止损单表示价差
+        :param trail_stop_price: 跟踪止损单--触发止损单的价格
+        :param trailing_percent: 跟踪止损单--百分比
+        :param percent_offset:
+        :param time_in_force: 订单有效期， 'DAY'（当日有效）和'GTC'（取消前有效)
+        :param outside_rth: 是否允许盘前盘后交易(美股专属)
+        :return:
+        """
         params = PlaceModifyOrderParams()
         params.account = order.account
         params.order_id = order.order_id
@@ -352,6 +442,13 @@ class TradeClient(TigerOpenClient):
         return False
 
     def cancel_order(self, account=None, id=None, order_id=None):
+        """
+        取消订单
+        :param account:
+        :param id: 全局订单 id
+        :param order_id: 账户自增订单 id
+        :return:
+        """
         params = CancelOrderParams()
         params.account = account if account else self._account
         params.order_id = order_id
@@ -376,6 +473,3 @@ class TradeClient(TigerOpenClient):
             if THREAD_LOCAL.logger:
                 THREAD_LOCAL.logger.error(e, exc_info=True)
             raise e
-            # print(traceback.format_exc())
-
-        return None
