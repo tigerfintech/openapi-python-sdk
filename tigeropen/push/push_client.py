@@ -144,7 +144,7 @@ class PushClient(object):
                     symbol_focus_keys = data.get('symbolFocusKeys')
                     focus_keys = dict()
                     for sym, keys in symbol_focus_keys.items():
-                        keys = {QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys}
+                        keys = set(QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys)
                         focus_keys[sym] = list(keys)
                     self.subscribed_symbols(symbols, focus_keys, limit, used)
             elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
