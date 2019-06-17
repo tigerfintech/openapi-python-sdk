@@ -106,8 +106,8 @@ class BarPeriod(Enum):
 class OrderStatus(Enum):
     PENDING_NEW = 'PendingNew'
     NEW = 'Initial'  # 订单初始状态
-    HELD = 'PendingSubmit'  # 待提交
-    PARTIALLY_FILLED = 'Submitted'  # 已提交或部分成交
+    HELD = 'Submitted'  # 已提交
+    PARTIALLY_FILLED = 'Submitted'  # 部分成交
     FILLED = 'Filled'  # 完全成交
     CANCELLED = 'Cancelled'  # 已取消
     PENDING_CANCEL = 'PendingCancel'  # 待取消
