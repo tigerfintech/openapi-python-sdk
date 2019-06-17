@@ -7,7 +7,7 @@ Created on 2018/9/20
 import threading
 import platform
 from enum import Enum, unique
-from .quote_keys import QuoteChangeKey
+from .quote_keys import QuoteChangeKey, QuoteKeyType
 from .fundamental_fields import Valuation, Income, Balance, CashFlow, BalanceSheetRatio, Growth, \
     Leverage, Profitability
 
