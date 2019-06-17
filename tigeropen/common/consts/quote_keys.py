@@ -4,7 +4,7 @@ from enum import Enum, unique
 
 @unique
 class QuoteChangeKey(Enum):
-    latest_time = 'latestTime'
+    latest_time = 'timestamp'
     latest_price = 'latestPrice'
     prev_close = 'preClose'
     volume = 'volume'
@@ -16,5 +16,13 @@ class QuoteChangeKey(Enum):
     ask_size = 'askSize'
     bid_price = 'bidPrice'
     bid_size = 'bidSize'
-    timestamp = 'timestamp'
     minute = 'mi'
+
+
+@unique
+class QuoteKeyType(Enum):
+    ALL = None
+    QUOTE = 'askPrice,askSize,bidPrice,bidSize,timestamp'
+    TRADE = 'open,high,low,close,preClose,volume,timestamp,latestPrice,hourTradingLatestPrice,' \
+            'hourTradingVolume,hourTradingPreClose,hourTradingLatestTime'
+    TIMELINE = 'mi'

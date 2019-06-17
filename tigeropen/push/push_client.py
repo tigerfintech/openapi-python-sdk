@@ -19,7 +19,8 @@ HOUR_TRADING_QUOTE_KEYS_MAPPINGS = {'hourTradingLatestPrice': 'latest_price', 'h
                                     'hourTradingLatestTime': 'latest_time', 'hourTradingVolume': 'volume',
                                     }
 QUOTE_KEYS_MAPPINGS = {field.value: field.name for field in QuoteChangeKey}  # like {'askPrice': 'ask_price'}
-REVERSED_QUOTE_KEYS_MAPPINGS = {field.name: field.value for field in QuoteChangeKey}  # like {'ask_price': 'askPrice'}
+QUOTE_KEYS_MAPPINGS.update(HOUR_TRADING_QUOTE_KEYS_MAPPINGS)
+# REVERSED_QUOTE_KEYS_MAPPINGS = {field.name: field.value for field in QuoteChangeKey}  # like {'ask_price': 'askPrice'}
 
 ASSET_KEYS_MAPPINGS = {'buyingPower': 'buying_power', 'cashBalance': 'cash',
                        'grossPositionValue': 'gross_position_value',
@@ -143,22 +144,20 @@ class PushClient(object):
                     symbol_focus_keys = data.get('symbolFocusKeys')
                     focus_keys = dict()
                     for sym, keys in symbol_focus_keys.items():
-                        keys = [QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys]
-                        focus_keys[sym] = keys
+                        keys = {QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys}
+                        focus_keys[sym] = list(keys)
                     self.subscribed_symbols(symbols, focus_keys, limit, used)
             elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
                 if self.quote_changed:
                     data = json.loads(body)
                     hour_trading = False
-                    if 'hourTradingTag' in data:
+                    if 'hourTradingLatestPrice' in data:
                         hour_trading = True
                     if 'symbol' in data:
                         symbol = data.get('symbol')
                         items = []
                         for key, value in data.items():
-                            if key.startswith('hourTrading') and key in HOUR_TRADING_QUOTE_KEYS_MAPPINGS:
-                                items.append((HOUR_TRADING_QUOTE_KEYS_MAPPINGS.get(key), value))
-                            if key == 'latestTime' and isinstance(value, six.string_types):
+                            if (key == 'latestTime' or key == 'hourTradingLatestTime') and isinstance(value, six.string_types):
                                 continue
                             if key in QUOTE_KEYS_MAPPINGS:
                                 items.append((QUOTE_KEYS_MAPPINGS.get(key), value))
@@ -292,7 +291,7 @@ class PushClient(object):
 
         self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
 
-    def subscribe_quote(self, symbols, focus_keys=None):
+    def subscribe_quote(self, symbols, focus_keys=None, quote_key_type=None):
         """
         订阅行情更新
         :return:
@@ -309,11 +308,12 @@ class PushClient(object):
             keys = list()
             for key in focus_keys:
                 if isinstance(key, str):
-                    key = REVERSED_QUOTE_KEYS_MAPPINGS.get(key, key)
                     keys.append(key)
                 else:
                     keys.append(key.value)
             headers['keys'] = ','.join(keys)
+        elif quote_key_type and quote_key_type.value:
+            headers['keys'] = quote_key_type.value
 
         self._stomp_connection.subscribe('quote', id=sub_id, headers=headers)
         return sub_id
