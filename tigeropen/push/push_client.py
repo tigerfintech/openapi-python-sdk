@@ -307,7 +307,7 @@ class PushClient(object):
         if focus_keys:
             keys = list()
             for key in focus_keys:
-                if isinstance(key, str):
+                if isinstance(key, six.string_types):
                     keys.append(key)
                 else:
                     keys.append(key.value)
