@@ -5,7 +5,7 @@ Created on 2018/10/30
 @author: gaoan
 """
 import time
-# from tigeropen.common.consts import QuoteChangeKey
+# from tigeropen.common.consts import QuoteKeyType
 from tigeropen.push.push_client import PushClient
 from tigeropen.examples.client_config import get_client_config
 
@@ -66,8 +66,8 @@ if __name__ == '__main__':
 
     # 订阅行情
     push_client.subscribe_quote(['AAPL', 'GOOG'])
-    # 可以指定关注的 key
-    # push_client.subscribe_quote(['MSFT', 'AMD'], focus_keys=[QuoteChangeKey.ask_price, QuoteChangeKey.bid_price])
+    # 可以指定关注的行情key的类型, QuoteKeyType.TRADE 为成交数据, QuoteKeyType.QUOTE 为盘口数据
+    # push_client.subscribe_quote(['MSFT', 'AMD'], quote_key_type=QuoteKeyType.TRADE)
     # 订阅资产变动
     push_client.subscribe_asset()
     # 订阅订单变动

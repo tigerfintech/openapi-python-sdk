@@ -16,8 +16,8 @@ from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetP
     OrderParams, PlaceModifyOrderParams, CancelOrderParams
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.trade.response.assets_response import AssetsResponse
-from tigeropen.common.consts.service_types import CONTRACT, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, CANCEL_ORDER, \
-    MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS
+from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
+    CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS
 
 import logging
 
@@ -64,37 +64,20 @@ class TradeClient(TigerOpenClient):
     def get_contracts(self, symbol, sec_type=SecurityType.STK, currency=Currency.USD, exchange=None):
         params = ContractParams()
         params.account = self._account
-        params.symbol = symbol
+        params.symbols = symbol if isinstance(symbol, list) else [symbol]
         if sec_type:
             params.sec_type = sec_type.value
         if currency:
             params.currency = currency.value
         params.exchange = exchange
 
-        request = OpenApiRequest(CONTRACT, biz_model=params)
+        request = OpenApiRequest(CONTRACTS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
             response = ContractsResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.contracts
-            else:
-                raise ApiException(response.code, response.message)
-
-        return None
-
-    def get_contract(self, contract_id):
-        params = ContractParams()
-        params.account = self._account
-        params.contract_id = contract_id
-
-        request = OpenApiRequest(CONTRACT, biz_model=params)
-        response_content = self.__fetch_data(request)
-        if response_content:
-            response = ContractsResponse()
-            response.parse_response_content(response_content)
-            if response.is_success():
-                return response.contracts[0] if len(response.contracts) == 1 else None
             else:
                 raise ApiException(response.code, response.message)
 

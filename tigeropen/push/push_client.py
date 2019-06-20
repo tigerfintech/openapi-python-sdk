@@ -13,14 +13,13 @@ from stomp.exception import ConnectFailedException
 from tigeropen.common.util.signature_utils import sign_with_rsa
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.consts.push_types import RequestType, ResponseType
-from tigeropen.common.consts.quote_keys import QuoteChangeKey
+from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
 
 HOUR_TRADING_QUOTE_KEYS_MAPPINGS = {'hourTradingLatestPrice': 'latest_price', 'hourTradingPreClose': 'pre_close',
                                     'hourTradingLatestTime': 'latest_time', 'hourTradingVolume': 'volume',
                                     }
 QUOTE_KEYS_MAPPINGS = {field.value: field.name for field in QuoteChangeKey}  # like {'askPrice': 'ask_price'}
 QUOTE_KEYS_MAPPINGS.update(HOUR_TRADING_QUOTE_KEYS_MAPPINGS)
-# REVERSED_QUOTE_KEYS_MAPPINGS = {field.name: field.value for field in QuoteChangeKey}  # like {'ask_price': 'askPrice'}
 
 ASSET_KEYS_MAPPINGS = {'buyingPower': 'buying_power', 'cashBalance': 'cash',
                        'grossPositionValue': 'gross_position_value',
@@ -291,9 +290,12 @@ class PushClient(object):
 
         self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
 
-    def subscribe_quote(self, symbols, focus_keys=None, quote_key_type=None):
+    def subscribe_quote(self, symbols, quote_key_type=QuoteKeyType.TRADE, focus_keys=None):
         """
         订阅行情更新
+        :param symbols:
+        :param quote_key_type: 行情类型, 值为 common.consts.quote_keys.QuoteKeyType 枚举类型
+        :param focus_keys: 行情 key
         :return:
         """
         self._quote_counter += 1
@@ -314,7 +316,6 @@ class PushClient(object):
             headers['keys'] = ','.join(keys)
         elif quote_key_type and quote_key_type.value:
             headers['keys'] = quote_key_type.value
-
         self._stomp_connection.subscribe('quote', id=sub_id, headers=headers)
         return sub_id
 
