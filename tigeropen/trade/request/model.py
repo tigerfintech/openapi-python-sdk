@@ -166,7 +166,7 @@ class ContractParams(object):
     def __init__(self):
         self._account = None
         self._contract_id = None
-        self._symbol = None
+        self._symbols = None
         self._sec_type = None
         self._currency = None
         self._exchange = None
@@ -188,12 +188,12 @@ class ContractParams(object):
         self._contract_id = value
 
     @property
-    def symbol(self):
-        return self._symbol
+    def symbols(self):
+        return self._symbols
 
-    @symbol.setter
-    def symbol(self, value):
-        self._symbol = value
+    @symbols.setter
+    def symbols(self, value):
+        self._symbols = value
 
     @property
     def sec_type(self):
@@ -224,8 +224,8 @@ class ContractParams(object):
         if self.account:
             params['account'] = self.account
 
-        if self.symbol:
-            params['symbol'] = self.symbol
+        if self.symbols:
+            params['symbols'] = self.symbols
 
         if self.sec_type:
             params['sec_type'] = self.sec_type
@@ -235,6 +235,9 @@ class ContractParams(object):
 
         if self.exchange:
             params['exchange'] = self.exchange
+
+        if self.contract_id:
+            params['contract_id'] = self.contract_id
 
         return params
 
