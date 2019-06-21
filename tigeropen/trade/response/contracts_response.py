@@ -12,7 +12,7 @@ from tigeropen.trade.domain.contract import Contract
 from tigeropen.trade.response import CONTRACT_FIELDS
 
 CONTRACT_FIELD_MAPPINGS = {'secType': 'sec_type', 'localSymbol': 'local_symbol', 'originSymbol': 'origin_symbol',
-                           'conid': 'contract_id'}
+                           'conid': 'contract_id', 'contractId': 'contract_id'}
 
 
 class ContractsResponse(TigerResponse):

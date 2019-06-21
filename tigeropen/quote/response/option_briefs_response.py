@@ -12,10 +12,12 @@ from tigeropen.common.util.common_utils import eastern
 from tigeropen.common.util.contract_utils import get_option_identifier
 
 COLUMNS = ['identifier', 'symbol', 'expiry', 'strike', 'put_call', 'multiplier', 'ask_price', 'ask_size', 'bid_price',
-           'bid_size', 'pre_close', 'latest_price', 'latest_time', 'volume', 'open_interest', 'open', 'high', 'low']
+           'bid_size', 'pre_close', 'latest_price', 'latest_time', 'volume', 'open_interest', 'open', 'high', 'low',
+           'rates_bonds']
 BRIEF_FIELD_MAPPINGS = {'askPrice': 'ask_price', 'askSize': 'ask_size', 'bidPrice': 'bid_price', 'bidSize': 'bid_size',
                         'latestPrice': 'latest_price', 'openInterest': 'open_interest', 'preClose': 'pre_close',
-                        'right': 'put_call', 'latestTime': 'latest_time', 'openInt': 'open_interest'}
+                        'right': 'put_call', 'latestTime': 'latest_time', 'openInt': 'open_interest',
+                        'ratesBonds': 'rates_bonds'}
 
 
 class OptionBriefsResponse(TigerResponse):

@@ -7,7 +7,7 @@ Created on 2018/9/20
 import threading
 import platform
 from enum import Enum, unique
-from .quote_keys import QuoteChangeKey
+from .quote_keys import QuoteChangeKey, QuoteKeyType
 from .fundamental_fields import Valuation, Income, Balance, CashFlow, BalanceSheetRatio, Growth, \
     Leverage, Profitability
 
@@ -105,14 +105,14 @@ class BarPeriod(Enum):
 
 class OrderStatus(Enum):
     PENDING_NEW = 'PendingNew'
-    NEW = 'Initial'
-    HELD = 'Submitted'
-    PARTIALLY_FILLED = 'Submitted'
-    FILLED = 'Filled'
-    CANCELLED = 'Cancelled'
-    PENDING_CANCEL = 'PendingCancel'
-    REJECTED = 'Inactive'
-    EXPIRED = 'Invalid'
+    NEW = 'Initial'  # 订单初始状态
+    HELD = 'Submitted'  # 已提交
+    PARTIALLY_FILLED = 'Submitted'  # 部分成交
+    FILLED = 'Filled'  # 完全成交
+    CANCELLED = 'Cancelled'  # 已取消
+    PENDING_CANCEL = 'PendingCancel'  # 待取消
+    REJECTED = 'Inactive'  # 已失效
+    EXPIRED = 'Invalid'  # 非法状态
 
 
 @unique
