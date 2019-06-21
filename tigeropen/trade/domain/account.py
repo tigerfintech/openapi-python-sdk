@@ -57,7 +57,6 @@ class Account(object):
         self.equity_with_loan = float('inf')
         self.excess_liquidity = float('inf')
         self.gross_position_value = float('inf')
-        # self.leverage = float('inf') # todo
         self.initial_margin_requirement = float('inf')
         self.maintenance_margin_requirement = float('inf')
         self.net_liquidation = float('inf')
