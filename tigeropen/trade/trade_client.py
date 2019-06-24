@@ -61,7 +61,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_contracts(self, symbol, sec_type=SecurityType.STK, currency=Currency.USD, exchange=None):
+    def get_contracts(self, symbol, sec_type=SecurityType.STK, currency=None, exchange=None):
         params = ContractParams()
         params.account = self._account
         params.symbols = symbol if isinstance(symbol, list) else [symbol]
