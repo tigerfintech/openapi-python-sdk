@@ -84,7 +84,7 @@ class Order(object):
 
     @property
     def status(self):
-        if not self.remaining:
+        if not self.remaining and self.filled:
             return OrderStatus.FILLED
         elif self._status == OrderStatus.HELD and self.filled:
             return OrderStatus.PARTIALLY_FILLED
