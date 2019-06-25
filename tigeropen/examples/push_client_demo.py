@@ -45,6 +45,26 @@ def on_position_changed(account, items):
     print(account, items)
 
 
+# def connect_callback():
+#     """连接建立回调"""
+#     print('connected')
+#
+#
+# def disconnect_callback():
+#     """连接断开回调. 此处利用回调进行重连"""
+#     for t in range(1, 200):
+#         try:
+#             print('disconnected, reconnecting')
+#             push_client.connect(client_config.tiger_id, client_config.private_key)
+#         except:
+#             print('connect failed, retry')
+#             time.sleep(t)
+#         else:
+#             print('reconnect success')
+#             break
+#     print('reconnect failed, please check your network')
+#
+
 if __name__ == '__main__':
     client_config = get_client_config()
     protocol, host, port = client_config.socket_host_port
@@ -63,6 +83,8 @@ if __name__ == '__main__':
 
     # 建立推送连接
     push_client.connect(client_config.tiger_id, client_config.private_key)
+    # 断线重连
+    # push_client.disconnect_callback = disconnect_callback
 
     # 订阅行情
     push_client.subscribe_quote(['AAPL', 'GOOG'])
