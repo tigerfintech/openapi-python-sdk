@@ -30,7 +30,7 @@ python setup.py install
 
 ### 快速上手
 - 行情和交易接口
-```````
+```
 import traceback
 
 from tigeropen.common.consts import Language, Market, TimelinePeriod, QuoteRight
