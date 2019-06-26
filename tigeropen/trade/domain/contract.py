@@ -8,7 +8,7 @@ Created on 2018/9/20
 
 class Contract(object):
     def __init__(self, symbol, currency, contract_id=None, sec_type=None, exchange=None, origin_symbol=None,
-                 local_symbol=None, expiry=None, strike=None, put_call=None, multiplier=None):
+                 local_symbol=None, expiry=None, strike=None, put_call=None, multiplier=None, name=None):
         self.contract_id = contract_id
         self.symbol = symbol
         self.currency = currency
@@ -20,6 +20,7 @@ class Contract(object):
         self.strike = strike
         self.put_call = put_call
         self.multiplier = multiplier
+        self.name = name
 
     def __repr__(self):
         if self.symbol:

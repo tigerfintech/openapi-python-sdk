@@ -9,6 +9,16 @@ Created on 2018/9/20
 class Position(object):
     def __init__(self, account, contract, quantity=0, average_cost=None, market_price=None, market_value=None,
                  realized_pnl=None, unrealized_pnl=None):
+        """
+        - account: 对应的账户ID
+        - contract: 合约对象
+        - quantity: 合约数量
+        - average_cost: 含佣金的平均成本
+        - market_price: 市价
+        - market_value: 市值
+        - realized_pnl: 已实现盈亏
+        - unrealized_pnl: 未实现盈亏
+        """
         self.account = account
         self.contract = contract
         self.quantity = quantity
