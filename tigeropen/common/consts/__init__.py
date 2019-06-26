@@ -107,7 +107,7 @@ class OrderStatus(Enum):
     PENDING_NEW = 'PendingNew'
     NEW = 'Initial'  # 订单初始状态
     HELD = 'Submitted'  # 已提交
-    PARTIALLY_FILLED = 'Submitted'  # 部分成交
+    PARTIALLY_FILLED = 'PartiallyFilled'  # 部分成交
     FILLED = 'Filled'  # 完全成交
     CANCELLED = 'Cancelled'  # 已取消
     PENDING_CANCEL = 'PendingCancel'  # 待取消
