@@ -106,7 +106,7 @@ class TradeClient(TigerOpenClient):
             response = ContractsResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.contracts
+                return response.contracts[0] if len(response.contracts) == 1 else None
             else:
                 raise ApiException(response.code, response.message)
 
