@@ -51,7 +51,8 @@ class ContractsResponse(TigerResponse):
                     strike = contract_fields.get('strike')
                     put_call = contract_fields.get('right')
                     multiplier = contract_fields.get('multiplier')
+                    name = contract_fields.get('name')
                     contract = Contract(symbol, currency, contract_id=contract_id, sec_type=sec_type, exchange=exchange,
                                         origin_symbol=origin_symbol, local_symbol=local_symbol, expiry=expiry,
-                                        strike=strike, put_call=put_call, multiplier=multiplier)
+                                        strike=strike, put_call=put_call, multiplier=multiplier, name=name)
                     self.contracts.append(contract)
