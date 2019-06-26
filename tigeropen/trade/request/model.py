@@ -165,11 +165,14 @@ class PositionParams(object):
 class ContractParams(object):
     def __init__(self):
         self._account = None
-        self._contract_id = None
+        self._symbol = None
         self._symbols = None
         self._sec_type = None
         self._currency = None
         self._exchange = None
+        self._expiry = None
+        self._strike = None
+        self._right = None
 
     @property
     def account(self):
@@ -180,12 +183,12 @@ class ContractParams(object):
         self._account = value
 
     @property
-    def contract_id(self):
-        return self._contract_id
+    def symbol(self):
+        return self._symbol
 
-    @contract_id.setter
-    def contract_id(self, value):
-        self._contract_id = value
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
 
     @property
     def symbols(self):
@@ -219,10 +222,37 @@ class ContractParams(object):
     def exchange(self, value):
         self._exchange = value
 
+    @property
+    def expiry(self):
+        return self._expiry
+
+    @expiry.setter
+    def expiry(self, value):
+        self._expiry= value
+
+    @property
+    def strike(self):
+        return self._strike
+
+    @strike.setter
+    def strike(self, value):
+        self._strike = value
+
+    @property
+    def right(self):
+        return self._right
+
+    @right.setter
+    def right(self, value):
+        self._right = value
+
     def to_openapi_dict(self):
         params = dict()
         if self.account:
             params['account'] = self.account
+
+        if self.symbol:
+            params['symbol'] = self.symbol
 
         if self.symbols:
             params['symbols'] = self.symbols
@@ -236,8 +266,14 @@ class ContractParams(object):
         if self.exchange:
             params['exchange'] = self.exchange
 
-        if self.contract_id:
-            params['contract_id'] = self.contract_id
+        if self.expiry:
+            params['expiry'] = self.expiry
+
+        if self.strike:
+            params['strike'] = self.strike
+
+        if self.right:
+            params['right'] = self.right
 
         return params
 

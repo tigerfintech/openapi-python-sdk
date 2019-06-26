@@ -25,6 +25,7 @@ FILLED_ORDERS = "filled_orders"  # 已成交订单
 """
 合约
 """
+CONTRACT = "contract"
 CONTRACTS = "contracts"
 
 """
