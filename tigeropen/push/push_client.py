@@ -14,6 +14,7 @@ from tigeropen.common.util.signature_utils import sign_with_rsa
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
+from tigeropen.common.consts import OrderStatus
 
 HOUR_TRADING_QUOTE_KEYS_MAPPINGS = {'hourTradingLatestPrice': 'latest_price', 'hourTradingPreClose': 'pre_close',
                                     'hourTradingLatestTime': 'latest_time', 'hourTradingVolume': 'volume',
@@ -194,6 +195,10 @@ class PushClient(object):
                             if key in ORDER_KEYS_MAPPINGS:
                                 if key == 'status':
                                     value = get_order_status(value)
+                                    # 部分成交 (服务端推送 'Submitted' 状态)
+                                    if value == OrderStatus.HELD and data.get('filledQuantity'):
+
+                                        value = OrderStatus.PARTIALLY_FILLED
                                 items.append((ORDER_KEYS_MAPPINGS.get(key), value))
                         if items:
                             self.order_changed(account, items)
