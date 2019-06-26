@@ -197,7 +197,6 @@ class PushClient(object):
                                     value = get_order_status(value)
                                     # 部分成交 (服务端推送 'Submitted' 状态)
                                     if value == OrderStatus.HELD and data.get('filledQuantity'):
-
                                         value = OrderStatus.PARTIALLY_FILLED
                                 items.append((ORDER_KEYS_MAPPINGS.get(key), value))
                         if items:
