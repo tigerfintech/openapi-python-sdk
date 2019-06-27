@@ -77,7 +77,10 @@ class QuoteClient(TigerOpenClient):
         获取市场状态
         :param market: US 美股，HK 港股， CN A股，ALL 所有
         :param lang: 语言支持: zh_CN,zh_TW,en_US
-        :return:
+        :return: MarketStatus 对象构成的列表. MarketStatus 对象有如下属性：
+            market: 字符串，市场名称
+            status: 字符串，当前市场所处的状态
+            open_time: 带 tzinfo 的 datetime 对象，表示最近的开盘、交易时间
         """
         params = MarketParams()
         params.market = market.value
@@ -98,7 +101,7 @@ class QuoteClient(TigerOpenClient):
         """
         获取股票代号列表
         :param market: US 美股，HK 港股， CN A股，ALL 所有
-        :return:
+        :return: 所有 symbol 的列表，包含退市和不可交易的部分代码. 其中以.开头的代码为指数， 如 .DJI 表示道琼斯指数
         """
         params = MarketParams()
         params.market = market.value
@@ -120,7 +123,7 @@ class QuoteClient(TigerOpenClient):
         获取股票代号列表和名称
         :param market: US 美股，HK 港股， CN A股，ALL 所有
         :param lang: 语言支持: zh_CN,zh_TW,en_US
-        :return:
+        :return: list, list 中的每个对象是一个 tuple. tuple 的第一个元素是 symbol，第二个是 name
         """
         params = MarketParams()
         params.market = market.value
@@ -141,8 +144,12 @@ class QuoteClient(TigerOpenClient):
     def get_trade_metas(self, symbols):
         """
         获取股票交易需要的信息(最新数量和报价单位等)
-        :param 股票代号列表
-        :return:
+        :param symbols: 股票代号列表
+        :return: pandas.DataFrame, 各 column 的含义如下:
+            symbol: 证券代码
+            lot_size: 每股手数
+            min_tick: 价格最小变动单位
+            spread_scale: 报价精度
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
@@ -193,7 +200,26 @@ class QuoteClient(TigerOpenClient):
         获取股票实时行情
         :param symbols: 股票代号列表
         :param lang: 语言支持: zh_CN,zh_TW,en_US
-        :return:
+        :return: pandas.DataFrame.  各 column 含义如下：
+            symbol: 证券代码
+            ask_price: 卖一价
+            ask_size: 卖一量
+            bid_price: 买一价
+            bid_size: 买一量
+            pre_close: 前收价
+            latest_price: 最新价
+            latest_time: 最新成交时间
+            volume: 成交量
+            open: 开盘价
+            high: 最高价
+            low: 最低价
+            status: 交易状态:
+                "UNKNOWN": 未知
+                "NORMAL": 正常
+                "HALTED": 停牌
+                "DELIST": 退市
+                "NEW": 新股
+                "ALTER": 变更
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
@@ -214,11 +240,19 @@ class QuoteClient(TigerOpenClient):
     def get_timeline(self, symbols, include_hour_trading=False, begin_time=-1, lang=None):
         """
         获取当日分时数据
-        :param symbols: 股票代码
+        :param symbols: 股票代号列表
         :param include_hour_trading: 是否包含盘前盘后分时
-        :param begin_time: 开始时间
+        :param begin_time: 开始时间. 若是时间戳需要精确到毫秒, 为13位整数;
+                                    或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
         :param lang: 语言支持: zh_CN,zh_TW,en_US
-        :return:
+        :return: pandas.DataFrame, DataFrame 的 column 及含义如下：
+            symbol: 证券代码
+            time: 精确到毫秒的时间戳
+            price: 当前分钟的收盘价
+            avg_price: 截至到当前时间的成交量加权均价
+            pre_close: 昨日收盘价
+            volume: 这一分钟的成交量
+            trading_session: 字符串， "pre_market" 表示盘前交易, "regular" 表示盘中交易, "after_hours"表示盘后交易
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
@@ -240,14 +274,21 @@ class QuoteClient(TigerOpenClient):
                  lang=None):
         """
         获取K线数据
-        :param symbols: 股票代码
+        :param symbols: 股票代号列表
         :param period: day: 日K,week: 周K,month:月K ,year:年K,1min:1分钟,5min:5分钟,15min:15分钟,30min:30分钟,60min:60分钟
-        :param begin_time: 开始时间
-        :param end_time: 结束时间
-        :param right: 复权选项 ，br: 前复权，nr: 不复权
+        :param begin_time: 开始时间. 若是时间戳需要精确到毫秒, 为13位整数;
+                                    或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
+        :param end_time: 结束时间. 格式同 begin_time
+        :param right: 复权选项 ，QuoteRight.BR: 前复权，nQuoteRight.NR: 不复权
         :param limit: 数量限制
         :param lang: 语言支持: zh_CN,zh_TW,en_US
-        :return:
+        :return: pandas.DataFrame 对象，各 column 的含义如下；
+            time: 毫秒时间戳
+            open: Bar 的开盘价
+            close: Bar 的收盘价
+            high: Bar 的最高价
+            low: Bar 的最低价
+            volume: Bar 的成交量
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
@@ -272,12 +313,17 @@ class QuoteClient(TigerOpenClient):
     def get_trade_ticks(self, symbols, begin_index=0, end_index=30, limit=30, lang=None):
         """
         获取逐笔成交
-        :param symbols: 股票代码
+        :param symbols: 股票代号列表
         :param begin_index: 开始索引
         :param end_index: 结束索引
         :param limit: 数量限制
         :param lang: 语言支持: zh_CN,zh_TW,en_US
-        :return:
+        :return: pandas.DataFrame 对象， column 有如下属性：
+            index: 索引值
+            time: 毫秒时间戳
+            price: 成交价
+            volume: 成交量
+            direction: 价格变动方向，"-"表示向下变动， "+" 表示向上变动
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
@@ -301,9 +347,15 @@ class QuoteClient(TigerOpenClient):
     def get_short_interest(self, symbols, lang=None):
         """
         获取美股的做空数据
-        :param symbols: 股票列表
-        :param lang:
-        :return:
+        :param symbols: 股票代号列表
+        :param lang: 语言支持: zh_CN,zh_TW,en_US
+        :return: pandas.DataFrame 对象，各 column 含义如下：
+            symbol: 证券代码
+            settlement_date: 收集信息的时间
+            short_interest: 未平仓做空股数
+            avg_daily_volume: 过去一年的日均成交量
+            days_to_cover: 回补天数。使用最近一次获取的未平仓做空股数/日均成交量得到
+            percent_of_float: 未平仓股数占流通股本的比重
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
@@ -324,8 +376,11 @@ class QuoteClient(TigerOpenClient):
     def get_option_expirations(self, symbols):
         """
         返回美股期权的过期日
-        :param symbols: 股票列表
-        :return:
+        :param symbols: 股票代码列表
+        :return: pandas.DataFrame， 各 column 的含义如下：
+            symbol: 证券代码
+            date: 到日期 YYYY-MM-DD 格式的字符串
+            timestamp: 到期日，精确到毫秒的时间戳
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
@@ -346,8 +401,22 @@ class QuoteClient(TigerOpenClient):
         """
         获取美股期权链
         :param symbol: 股票代码
-        :param expiry: 过期日(类似2019-01-04或者1546578000000)
-        :return:
+        :param expiry: 过期日 ( 类似 '2021-06-18' 或者 1560484800000 )
+        :return: pandas.DataFrame，各 column 含义如下：
+            identifier: 期权代码
+            symbol: 期权对应的正股代码
+            expiry: 期权到期日，毫秒级别的时间戳
+            strike: 行权价
+            put_call: 期权的方向
+            multiplier: 乘数
+            ask_price: 卖价
+            ask_size: 卖量
+            bid_price: 买价
+            bid_size: 买量
+            pre_close: 前收价
+            latest_price: 最新价
+            volume: 成交量
+            open_interest: 未平仓数量
         """
         params = MultipleContractParams()
         param = SingleContractParams()
@@ -373,7 +442,25 @@ class QuoteClient(TigerOpenClient):
         """
         获取期权最新行情
         :param identifiers: 期权代码
-        :return:
+        :return: pandas.DataFrame， 各 column 的含义如下：
+            identifier: 期权代码
+            symbol: 期权对应的正股代码
+            expiry: 到期日，毫秒级时间戳
+            strike: 行权价
+            put_call: 期权方向
+            multiplier: 乘数
+            ask_price: 卖价
+            ask_size: 卖量
+            bid_price: 买价
+            bid_size: 买量
+            pre_close: 前收价
+            latest_price: 最新价
+            latest_time: 最新交易时间
+            volume: 成交量
+            open_interest: 未平仓数量
+            open: 开盘价
+            high: 最高价
+            low: 最低价
         """
         params = MultipleContractParams()
         contracts = []
@@ -403,11 +490,22 @@ class QuoteClient(TigerOpenClient):
 
     def get_option_bars(self, identifiers, begin_time=-1, end_time=4070880000000):
         """
-        获取K线(DAY)数据
-        :param identifiers: 期权代码
-        :param begin_time: 开始时间
-        :param end_time: 结束时间
-        :return:
+        获取期权日K数据
+        :param identifiers: 期权代码列表
+        :param begin_time: 开始时间. 若是时间戳需要精确到毫秒, 为13位整数;
+                                    或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
+        :param end_time: 结束时间. 格式同 begin_time
+        :return: pandas.DataFrame, 各 column 含义如下：
+            time: 毫秒级时间戳
+            open: 开盘价
+            high: 最高价
+            low: 最低价
+            close: 收盘价
+            volume: 成交量
+            open_interest: 未平仓数量
+            expiry: 期权到期时间
+            strike: 行权价
+            put_call: 期权方向
         """
         params = MultipleContractParams()
         contracts = []
@@ -439,8 +537,15 @@ class QuoteClient(TigerOpenClient):
     def get_option_trade_ticks(self, identifiers):
         """
         获取期权逐笔成交
-        :param identifiers: 期权代码
-        :return:
+        :param identifiers: 期权代码列表
+        :return: pandas.DataFrame, 各 column 的含义如下：
+            symbol: 期权对应的正股代码
+            expiry: 期权到期时间， YYYY-MM-DD 格式的字符串
+            put_call: 期权方向
+            strike: 行权价
+            time: 成交时间
+            price: 成交价格
+            volume: 成交量
         """
         params = MultipleContractParams()
         contracts = []
@@ -471,9 +576,12 @@ class QuoteClient(TigerOpenClient):
     def get_future_exchanges(self, sec_type=SecurityType.FUT, lang=None):
         """
         获取期货交易所列表
-        :param sec_type: FUT/FOP
+        :param sec_type: FUT: 期货;  FOP: 期货期权
         :param lang:
-        :return:
+        :return: pandas.DataFrame ， 各 column 的含义如下：
+            code: 交易所代码
+            name: 交易所名称
+            zone: 交易所所在时区
         """
         params = MarketParams()
         params.sec_type = sec_type.value
@@ -495,7 +603,17 @@ class QuoteClient(TigerOpenClient):
         获取交易所下的可交易合约
         :param exchange:
         :param lang:
-        :return:
+        :return: pandas.DataFrame, 各 column 含义如下：
+            contract_code: 合约代码
+            type: 期货合约对应的交易品种， 如 CL
+            name: 期货合约的名称
+            contract_month: 合约交割月份
+            currency: 交易的货币
+            first_notice_date: 第一通知日，合约在第一通知日后无法开多仓。已有的多仓会在第一通知日之前（通常为前三个交易日）被强制平仓。
+            last_bidding_close_time: 竞价截止时间
+            last_trading_date: 最后交易日
+            trade: 是否可交易
+            continuous: 是否为连续合约
         """
         params = FutureExchangeParams()
         params.exchange_code = exchange
@@ -517,7 +635,17 @@ class QuoteClient(TigerOpenClient):
         查询指定品种的当前合约
         :param future_type: 期货合约对应的交易品种， 如 CL
         :param lang:
-        :return:
+        :return: pandas.DataFrame, 各 column 的含义如下：
+            contract_code: 合约代码
+            type: 期货合约对应的交易品种， 如 CL
+            name: 期货合约的名称
+            contract_month: 合约交割月份
+            currency: 交易的货币
+            first_notice_date: 第一通知日，合约在第一通知日后无法开多仓。已有的多仓会在第一通知日之前（通常为前三个交易日）被强制平仓。
+            last_bidding_close_time: 竞价截止时间
+            last_trading_date: 最后交易日
+            trade: 是否可交易
+            continuous: 是否为连续合约
         """
         params = FutureTypeParams()
         params.type = future_type
@@ -537,9 +665,15 @@ class QuoteClient(TigerOpenClient):
     def get_future_trading_times(self, identifier, trading_date=None):
         """
         查询指定期货合约的交易时间
-        :param identifier:
-        :param trading_date:
-        :return:
+        :param identifier: 合约代码
+        :param trading_date: 指定交易日的时间. 若是时间戳需要精确到毫秒, 为13位整数;
+                                             或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
+        :return: pandas.DataFrame， 各column含义如下：
+            start: 交易开始时间
+            end: 交易结束时间
+            trading: 是否为连续交易
+            bidding: 是否为竞价交易
+            zone: 时区
         """
         params = FutureTradingTimeParams()
         params.contract_code = identifier
@@ -559,12 +693,23 @@ class QuoteClient(TigerOpenClient):
     def get_future_bars(self, identifiers, period=BarPeriod.DAY, begin_time=-1, end_time=-1, limit=1000):
         """
         获取期货K线数据
-        :param identifiers: 期货代码
+        :param identifiers: 期货代码列表
         :param period: day: 日K,week: 周K,month:月K ,year:年K,1min:1分钟,5min:5分钟,15min:15分钟,30min:30分钟,60min:60分钟
-        :param begin_time: 开始时间
-        :param end_time: 结束时间
+        :param begin_time: 开始时间. 若是时间戳需要精确到毫秒, 为13位整数;
+                                    或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
+        :param end_time: 结束时间. 格式同 begin_time
         :param limit: 数量限制
-        :return:
+        :return: pandas.DataFrame, 各column 含义如下：
+            identifier: 期货合约代码
+            time: Bar对应的时间戳, 即Bar的结束时间。Bar的切割方式与交易所一致，以CN1901举例，T日的17:00至T+1日的16:30的数据会被合成一个日级Bar。
+            latest_time: Bar 最后的更新时间
+            open: 开盘价
+            high: 最高价
+            low: 最低价
+            close: 收盘价
+            settlement: 结算价，在未生成结算价时返回0
+            volume: 成交量
+            open_interest: 未平仓合约数量
         """
         params = FutureQuoteParams()
         params.contract_codes = identifiers
@@ -587,11 +732,15 @@ class QuoteClient(TigerOpenClient):
     def get_future_trade_ticks(self, identifiers, begin_index=0, end_index=30, limit=1000):
         """
         获取期货逐笔成交
-        :param identifiers: 期货代码
+        :param identifiers: 期货代码列表
         :param begin_index: 开始索引
         :param end_index: 结束索引
         :param limit: 数量限制
-        :return:
+        :return: pandas.DataFrame, 各 column 含义如下
+            index: 索引值
+            time: 成交时间，精确到毫秒的时间戳
+            price: 成交价格
+            volume: 成交量
         """
         params = FutureQuoteParams()
         params.contract_codes = identifiers
@@ -612,8 +761,24 @@ class QuoteClient(TigerOpenClient):
     def get_future_brief(self, identifiers):
         """
         获取期货最新行情
-        :param identifiers: 期货代码
-        :return:
+        :param identifiers: 期货代码列表
+        :return: pandas.DataFrame，各 column 含义如下
+            identifier: 期货代码
+            ask_price: 卖价
+            ask_size: 卖量
+            bid_price: 买价
+            bid_size: 买量
+            pre_close: 前收价
+            latest_price: 最新价
+            latest_size: 最新成交量
+            latest_time: 最新价成交时间
+            volume: 当日累计成交手数
+            open_interest: 未平仓合约数量
+            open: 开盘价
+            high: 最高价
+            low: 最低价
+            limit_up: 涨停价
+            limit_down: 跌停价
         """
         params = FutureQuoteParams()
         params.contract_codes = identifiers
@@ -631,11 +796,20 @@ class QuoteClient(TigerOpenClient):
     def get_corporate_split(self, symbols, market, begin_date, end_date):
         """
         获取公司拆合股数据
-        :param symbols:
-        :param market:
-        :param begin_date:
-        :param end_date:
-        :return:
+        :param symbols: 证券代码列表
+        :param market: 查询的市场. 可选的值为 common.consts.Market 枚举类型, 如 Market.US
+        :param begin_date: 起始时间. 若是时间戳需要精确到毫秒, 为13位整数;
+                                    或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
+        :param end_date: 截止时间. 格式同 begin_date
+        :return: pandas.DataFrame, 各 column 的含义如下:
+            symbol: 证券代码
+            action_type: 固定为 "SPLIT"
+            from_factor: 公司行动前的因子
+            to_factor: 公司行动后的因子
+            ratio: 拆合股比例
+            excute_date: 除权除息日
+            market: 所属市场
+            exchange: 所属交易所
         """
         params = CorporateActionParams()
         params.action_type = CorporateActionType.SPLIT.value
@@ -657,11 +831,22 @@ class QuoteClient(TigerOpenClient):
     def get_corporate_dividend(self, symbols, market, begin_date, end_date):
         """
         获取公司派息数据
-        :param symbols:
-        :param market:
-        :param begin_date:
-        :param end_date:
-        :return:
+        :param symbols: 证券代码列表
+        :param market: 查询的市场. 可选的值为 common.consts.Market 枚举类型, 如 Market.US
+        :param begin_date: 起始时间. 若是时间戳需要精确到毫秒, 为13位整数;
+                                    或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
+        :param end_date: 截止时间. 格式同 begin_date
+        :return: pandas.DataFrame, 各 column 的含义如下:
+            symbol: 证券代码
+            action_type: 固定为 "DIVIDEND"
+            amount: 分红金额
+            currency: 分红货币类型
+            announced_date: 公告日期
+            excute_date: 除权除息日
+            record_date: 股权登记日
+            pay_date: 现金到账日
+            market: 所属市场
+            exchange: 所属交易所
         """
         params = CorporateActionParams()
         params.action_type = CorporateActionType.DIVIDEND.value
@@ -683,12 +868,16 @@ class QuoteClient(TigerOpenClient):
     def get_financial_daily(self, symbols, market, fields, begin_date, end_date):
         """
         获取日级的财务数据
-        :param symbols:
-        :param market:
-        :param fields:
-        :param begin_date:
-        :param end_date:
-        :return:
+        :param symbols: 证券代码列表
+        :param market: 查询的市场. 可选的值为 common.consts.Market 枚举类型, 如 Market.US
+        :param fields: 查询的字段列表, 可选的项为 common.consts.Valuation 枚举类型, 如 Valuation.shares_outstanding
+        :param begin_date: 开始时间.  如: '2019-01-01'
+        :param end_date: 结束时间. 格式同 begin_date
+        :return: pandas.DataFrame, 各 column 的含义如下:
+            symbol: 证券代码
+            field: 查询的字段名称
+            date: 查询的日期
+            value: 字段对应的值
         """
         params = FinancialDailyParams()
         params.symbols = symbols
@@ -711,10 +900,17 @@ class QuoteClient(TigerOpenClient):
         """
         获取财报数据
         :param symbols:
-        :param market:
-        :param fields:
-        :param period_type:
-        :return:
+        :param market: 查询的市场. 可选的值为 common.consts.Market 枚举类型, 如 Market.US
+        :param fields: 查询的字段列表. 可选的项为 common.consts 下的 Income, Balance, CashFlow, BalanceSheetRatio,
+                        Growth, Leverage, Profitability 枚举类型. 如 Income.total_revenue
+        :param period_type: 查询的周期类型. 可选的值为 common.consts.FinancialReportPeriodType 枚举类型
+        :return: pandas.DataFrame, 各 column 的含义如下:
+            symbol: 证券代码
+            currency: 财报使用的币种
+            field: 查询的字段名称
+            value: 字段对应的值
+            period_end_date: 这条记录对应财报的所属自然季度日期
+            filing_date: 财报的发布日期
         """
         params = FinancialReportParams()
         params.symbols = symbols

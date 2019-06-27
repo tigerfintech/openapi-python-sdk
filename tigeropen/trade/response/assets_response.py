@@ -12,7 +12,7 @@ from tigeropen.common.util.string_utils import camel_to_underline
 ACCOUNT_FIELD_MAPPINGS = {'sMA': 'sma', 'updateTime': 'timestamp', 'realizedPnL': 'realized_pnl',
                           'unrealizedPnL': 'unrealized_pnl', 'regTMargin': 'regt_margin', 'regTEquity': 'regt_equity',
                           'cashValue': 'cash', 'initMarginReq': 'initial_margin_requirement',
-                          'maintMarginReq': 'maintenance_margin_requirement'}
+                          'maintMarginReq': 'maintenance_margin_requirement', 'futuresPnl': 'futures_pnl'}
 
 MARKET_VALUE_FIELD_MAPPINGS = {'updateTime': 'timestamp'}
 
