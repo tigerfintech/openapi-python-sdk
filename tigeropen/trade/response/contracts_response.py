@@ -27,7 +27,7 @@ class ContractsResponse(TigerResponse):
             self._is_success = response['is_success']
         
         if self.data:
-            data_json = json.loads(self.data)
+            data_json = self.data if isinstance(self.data, dict) else json.loads(self.data)
             if 'items' in data_json:
                 for item in data_json['items']:
                     contract_fields = {}
