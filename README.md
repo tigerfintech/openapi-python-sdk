@@ -21,7 +21,7 @@ python setup.py install
 
 ### 使用须知
 
-- 接入前需要在[开放平台](https://quant.itiger.com/#firm)登记开发者信息
+- 接入前需要在[开放平台](https://quant.itiger.com/#openapi)登记开发者信息
 - 详情查看[接入说明](https://quant.itiger.com/openapi/py-docs/zh-cn/docs/intro/quickstart.html)
 
 ###### 注: 本SDK当前支持Python2, Python3
