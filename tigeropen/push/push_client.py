@@ -13,10 +13,14 @@ from stomp.exception import ConnectFailedException
 from tigeropen.common.util.signature_utils import sign_with_rsa
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.consts.push_types import RequestType, ResponseType
-from tigeropen.common.consts.quote_keys import QuoteChangeKey
+from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
+from tigeropen.common.consts import OrderStatus
 
+HOUR_TRADING_QUOTE_KEYS_MAPPINGS = {'hourTradingLatestPrice': 'latest_price', 'hourTradingPreClose': 'pre_close',
+                                    'hourTradingLatestTime': 'latest_time', 'hourTradingVolume': 'volume',
+                                    }
 QUOTE_KEYS_MAPPINGS = {field.value: field.name for field in QuoteChangeKey}  # like {'askPrice': 'ask_price'}
-REVERSED_QUOTE_KEYS_MAPPINGS = {field.name: field.value for field in QuoteChangeKey}  # like {'ask_price': 'askPrice'}
+QUOTE_KEYS_MAPPINGS.update(HOUR_TRADING_QUOTE_KEYS_MAPPINGS)
 
 ASSET_KEYS_MAPPINGS = {'buyingPower': 'buying_power', 'cashBalance': 'cash',
                        'grossPositionValue': 'gross_position_value',
@@ -140,8 +144,8 @@ class PushClient(object):
                     symbol_focus_keys = data.get('symbolFocusKeys')
                     focus_keys = dict()
                     for sym, keys in symbol_focus_keys.items():
-                        keys = [QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys]
-                        focus_keys[sym] = keys
+                        keys = set(QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys)
+                        focus_keys[sym] = list(keys)
                     self.subscribed_symbols(symbols, focus_keys, limit, used)
             elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
                 if self.quote_changed:
@@ -153,9 +157,7 @@ class PushClient(object):
                         symbol = data.get('symbol')
                         items = []
                         for key, value in data.items():
-                            if key.startswith('hourTrading'):
-                                key = key[11:]
-                            if key == 'latestTime' and isinstance(value, six.string_types):
+                            if (key == 'latestTime' or key == 'hourTradingLatestTime') and isinstance(value, six.string_types):
                                 continue
                             if key in QUOTE_KEYS_MAPPINGS:
                                 items.append((QUOTE_KEYS_MAPPINGS.get(key), value))
@@ -193,6 +195,9 @@ class PushClient(object):
                             if key in ORDER_KEYS_MAPPINGS:
                                 if key == 'status':
                                     value = get_order_status(value)
+                                    # 部分成交 (服务端推送 'Submitted' 状态)
+                                    if value == OrderStatus.HELD and data.get('filledQuantity'):
+                                        value = OrderStatus.PARTIALLY_FILLED
                                 items.append((ORDER_KEYS_MAPPINGS.get(key), value))
                         if items:
                             self.order_changed(account, items)
@@ -289,9 +294,12 @@ class PushClient(object):
 
         self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
 
-    def subscribe_quote(self, symbols, focus_keys=None):
+    def subscribe_quote(self, symbols, quote_key_type=QuoteKeyType.TRADE, focus_keys=None):
         """
         订阅行情更新
+        :param symbols:
+        :param quote_key_type: 行情类型, 值为 common.consts.quote_keys.QuoteKeyType 枚举类型
+        :param focus_keys: 行情 key
         :return:
         """
         self._quote_counter += 1
@@ -305,13 +313,13 @@ class PushClient(object):
         if focus_keys:
             keys = list()
             for key in focus_keys:
-                if isinstance(key, str):
-                    key = REVERSED_QUOTE_KEYS_MAPPINGS.get(key, key)
+                if isinstance(key, six.string_types):
                     keys.append(key)
                 else:
                     keys.append(key.value)
             headers['keys'] = ','.join(keys)
-
+        elif quote_key_type and quote_key_type.value:
+            headers['keys'] = quote_key_type.value
         self._stomp_connection.subscribe('quote', id=sub_id, headers=headers)
         return sub_id
 
