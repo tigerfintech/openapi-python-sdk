@@ -211,7 +211,7 @@ class PushClient(object):
     def _get_subscribe_id(counter):
         return 'sub-' + str(counter)
 
-    def subscribe_asset(self):
+    def subscribe_asset(self, account=None):
         """
         订阅账户资产更新
         :return:
@@ -222,6 +222,8 @@ class PushClient(object):
         headers['destination'] = 'trade/asset'
         headers['subscription'] = 'Asset'
         headers['id'] = sub_id
+        if account:
+            headers['account'] = account
 
         self._stomp_connection.subscribe('trade/asset', id=sub_id, headers=headers)
         return sub_id
@@ -238,7 +240,7 @@ class PushClient(object):
         headers['id'] = sub_id
         self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
 
-    def subscribe_position(self):
+    def subscribe_position(self, account=None):
         """
         订阅账户持仓更新
         :return:
@@ -249,6 +251,8 @@ class PushClient(object):
         headers['destination'] = 'trade/position'
         headers['subscription'] = 'Position'
         headers['id'] = sub_id
+        if account:
+            headers['account'] = account
 
         self._stomp_connection.subscribe('trade/position', id=sub_id, headers=headers)
         return sub_id
@@ -266,7 +270,7 @@ class PushClient(object):
 
         self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
 
-    def subscribe_order(self):
+    def subscribe_order(self, account=None):
         """
         订阅账户订单更新
         :return:
@@ -277,6 +281,8 @@ class PushClient(object):
         headers['destination'] = 'trade/order'
         headers['subscription'] = 'OrderStatus'
         headers['id'] = sub_id
+        if account:
+            headers['account'] = account
 
         self._stomp_connection.subscribe('trade/order', id=sub_id, headers=headers)
         return sub_id
