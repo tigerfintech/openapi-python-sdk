@@ -61,7 +61,7 @@ def on_position_changed(account, items):
 #             time.sleep(t)
 #         else:
 #             print('reconnect success')
-#             break
+#             return
 #     print('reconnect failed, please check your network')
 #
 
