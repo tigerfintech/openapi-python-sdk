@@ -8,7 +8,9 @@ Created on 2018/9/20
 
 class Contract(object):
     def __init__(self, symbol, currency, contract_id=None, sec_type=None, exchange=None, origin_symbol=None,
-                 local_symbol=None, expiry=None, strike=None, put_call=None, multiplier=None, name=None):
+                 local_symbol=None, expiry=None, strike=None, put_call=None, multiplier=None, name=None,
+                 short_margin=None, short_fee_rate=None, shortable=None, long_initial_margin=None,
+                 long_maintenance_margin=None):
         self.contract_id = contract_id
         self.symbol = symbol
         self.currency = currency
@@ -21,6 +23,11 @@ class Contract(object):
         self.put_call = put_call
         self.multiplier = multiplier
         self.name = name
+        self.short_margin = short_margin
+        self.short_fee_rate = short_fee_rate
+        self.shortable = shortable
+        self.long_initial_margin = long_initial_margin
+        self.long_maintenance_margin = long_maintenance_margin
 
     def __repr__(self):
         if self.symbol:
