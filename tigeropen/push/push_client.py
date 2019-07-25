@@ -29,7 +29,7 @@ ASSET_KEYS_MAPPINGS = {'buyingPower': 'buying_power', 'cashBalance': 'cash',
                        'initMarginReq': 'initial_margin_requirement',
                        'maintMarginReq': 'maintenance_margin_requirement',
                        'availableFunds': 'available_funds', 'excessLiquidity': 'excess_liquidity',
-                       'dayTradesRemaining': 'day_trades_remaining', 'currency': 'currency'}
+                       'dayTradesRemaining': 'day_trades_remaining', 'currency': 'currency', 'segment': 'segment'}
 
 POSITION_KEYS_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity', 'latestPrice': 'market_price',
                           'marketValue': 'market_value', 'orderType': 'order_type', 'realizedPnl': 'realized_pnl',
