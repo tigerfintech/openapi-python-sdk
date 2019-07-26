@@ -12,7 +12,10 @@ from tigeropen.trade.domain.contract import Contract
 from tigeropen.trade.response import CONTRACT_FIELDS
 
 CONTRACT_FIELD_MAPPINGS = {'secType': 'sec_type', 'localSymbol': 'local_symbol', 'originSymbol': 'origin_symbol',
-                           'conid': 'contract_id', 'contractId': 'contract_id', 'lastTradingDate': 'expiry'}
+                           'conid': 'contract_id', 'contractId': 'contract_id', 'lastTradingDate': 'expiry',
+                           'shortMargin': 'short_margin', 'shortFeeRate': 'short_fee_rate',
+                           'longInitialMargin': 'long_initial_margin',
+                           'longMaintenanceMargin': 'long_maintenance_margin'}
 
 
 class ContractsResponse(TigerResponse):
@@ -52,7 +55,16 @@ class ContractsResponse(TigerResponse):
                     put_call = contract_fields.get('right')
                     multiplier = contract_fields.get('multiplier')
                     name = contract_fields.get('name')
+                    short_margin = contract_fields.get('short_margin')
+                    short_fee_rate = contract_fields.get('short_fee_rate')
+                    shortable = contract_fields.get('shortable')
+                    long_initial_margin = contract_fields.get('long_initial_margin')
+                    long_maintenance_margin = contract_fields.get('long_maintenance_margin')
+
                     contract = Contract(symbol, currency, contract_id=contract_id, sec_type=sec_type, exchange=exchange,
                                         origin_symbol=origin_symbol, local_symbol=local_symbol, expiry=expiry,
-                                        strike=strike, put_call=put_call, multiplier=multiplier, name=name)
+                                        strike=strike, put_call=put_call, multiplier=multiplier, name=name,
+                                        short_margin=short_margin, short_fee_rate=short_fee_rate, shortable=shortable,
+                                        long_initial_margin=long_initial_margin,
+                                        long_maintenance_margin=long_maintenance_margin)
                     self.contracts.append(contract)
