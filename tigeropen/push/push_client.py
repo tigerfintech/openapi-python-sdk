@@ -53,7 +53,7 @@ else:
     KEEPALIVE = False
 
 
-class PushClient(object):
+class PushClient(stomp.ConnectionListener):
     def __init__(self, host, port, use_ssl=True, connection_timeout=120, auto_reconnect=True,
                  heartbeats=(30 * 1000, 30 * 1000)):
         """
