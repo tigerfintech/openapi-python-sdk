@@ -21,6 +21,7 @@ HOUR_TRADING_QUOTE_KEYS_MAPPINGS = {'hourTradingLatestPrice': 'latest_price', 'h
                                     }
 QUOTE_KEYS_MAPPINGS = {field.value: field.name for field in QuoteChangeKey}  # like {'askPrice': 'ask_price'}
 QUOTE_KEYS_MAPPINGS.update(HOUR_TRADING_QUOTE_KEYS_MAPPINGS)
+PRICE_FIELDS = {'open', 'high', 'low', 'close', 'prev_close', 'ask_price', 'bid_price', 'latest_price'}
 
 ASSET_KEYS_MAPPINGS = {'buyingPower': 'buying_power', 'cashBalance': 'cash',
                        'grossPositionValue': 'gross_position_value',
@@ -28,23 +29,25 @@ ASSET_KEYS_MAPPINGS = {'buyingPower': 'buying_power', 'cashBalance': 'cash',
                        'initMarginReq': 'initial_margin_requirement',
                        'maintMarginReq': 'maintenance_margin_requirement',
                        'availableFunds': 'available_funds', 'excessLiquidity': 'excess_liquidity',
-                       'dayTradesRemaining': 'day_trades_remaining', 'currency': 'currency'}
+                       'dayTradesRemaining': 'day_trades_remaining', 'currency': 'currency', 'segment': 'segment'}
 
 POSITION_KEYS_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity', 'latestPrice': 'market_price',
                           'marketValue': 'market_value', 'orderType': 'order_type', 'realizedPnl': 'realized_pnl',
                           'unrealizedPnl': 'unrealized_pnl', 'secType': 'sec_type', 'localSymbol': 'local_symbol',
                           'originSymbol': 'origin_symbol', 'contractId': 'contract_id', 'symbol': 'symbol',
-                          'currency': 'currency', 'strike': 'strike', 'expiry': 'expiry', 'right': 'right'}
+                          'currency': 'currency', 'strike': 'strike', 'expiry': 'expiry', 'right': 'right',
+                          'segment': 'segment'}
 
 ORDER_KEYS_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderType': 'order_type',
                        'limitPrice': 'limit_price', 'auxPrice': 'aux_price', 'avgFillPrice': 'avg_fill_price',
                        'totalQuantity': 'quantity', 'filledQuantity': 'filled', 'lastFillPrice': 'last_fill_price',
-                       'realizedPnl': 'realized_pnl', 'secType': 'sec_type',
+                       'realizedPnl': 'realized_pnl', 'secType': 'sec_type', 'symbol': 'symbol',
                        'remark': 'reason', 'localSymbol': 'local_symbol', 'originSymbol': 'origin_symbol',
                        'outsideRth': 'outside_rth', 'timeInForce': 'time_in_force', 'openTime': 'order_time',
                        'latestTime': 'trade_time', 'contractId': 'contract_id', 'trailStopPrice': 'trail_stop_price',
                        'trailingPercent': 'trailing_percent', 'percentOffset': 'percent_offset', 'action': 'action',
-                       'status': 'status', 'currency': 'currency', 'remaining': 'remaining', 'id': 'id'}
+                       'status': 'status', 'currency': 'currency', 'remaining': 'remaining', 'id': 'id',
+                       'segment': 'segment'}
 
 if sys.platform == 'linux' or sys.platform == 'linux2':
     KEEPALIVE = True
@@ -52,7 +55,7 @@ else:
     KEEPALIVE = False
 
 
-class PushClient(object):
+class PushClient(stomp.ConnectionListener):
     def __init__(self, host, port, use_ssl=True, connection_timeout=120, auto_reconnect=True,
                  heartbeats=(30 * 1000, 30 * 1000)):
         """
@@ -155,12 +158,34 @@ class PushClient(object):
                         hour_trading = True
                     if 'symbol' in data:
                         symbol = data.get('symbol')
+                        offset = data.get('offset', 0)
                         items = []
-                        for key, value in data.items():
-                            if (key == 'latestTime' or key == 'hourTradingLatestTime') and isinstance(value, six.string_types):
-                                continue
-                            if key in QUOTE_KEYS_MAPPINGS:
-                                items.append((QUOTE_KEYS_MAPPINGS.get(key), value))
+                        # 期货行情推送的价格都乘了 10 的 offset 次方变成了整数, 需要除回去变为正常单位的价格
+                        if offset:
+                            for key, value in data.items():
+                                if (key == 'latestTime' or key == 'hourTradingLatestTime') and \
+                                        isinstance(value, six.string_types):
+                                    continue
+                                if key in QUOTE_KEYS_MAPPINGS:
+                                    key = QUOTE_KEYS_MAPPINGS.get(key)
+                                    if key in PRICE_FIELDS:
+                                        value /= 10 ** offset
+                                    elif key == 'minute':
+                                        minute_item = dict()
+                                        for m_key, m_value in value.items():
+                                            if m_key in {'p', 'h', 'l'}:
+                                                m_value /= 10 ** offset
+                                            minute_item[m_key] = m_value
+                                            value = minute_item
+                                    items.append((key, value))
+                        else:
+                            for key, value in data.items():
+                                if (key == 'latestTime' or key == 'hourTradingLatestTime') and \
+                                        isinstance(value, six.string_types):
+                                    continue
+                                if key in QUOTE_KEYS_MAPPINGS:
+                                    key = QUOTE_KEYS_MAPPINGS.get(key)
+                                    items.append((key, value))
                         if items:
                             self.quote_changed(symbol, items, hour_trading)
             elif response_type == str(ResponseType.SUBSCRIBE_ASSET.value):
