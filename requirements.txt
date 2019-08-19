@@ -1,8 +1,7 @@
-logbook
 six
 simplejson
 delorean
-pandas
+pandas==0.24.2
 python-dateutil
 pytz
 pyasn1==0.4.2
