@@ -35,10 +35,11 @@ from tigeropen.quote.response.stock_short_interest_response import ShortInterest
 from tigeropen.quote.response.stock_trade_meta_response import TradeMetaResponse
 from tigeropen.quote.response.symbol_names_response import SymbolNamesResponse
 from tigeropen.quote.response.symbols_response import SymbolsResponse
+from tigeropen.quote.response.quote_depth_entry_response import DepthEntryResponse
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams
+    SingleOptionQuoteParams, DepthEntryParams
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
 from tigeropen.quote.response.market_status_response import MarketStatusResponse
@@ -46,7 +47,8 @@ from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
     FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
-    FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE, FINANCIAL_DAILY, FINANCIAL_REPORT, CORPORATE_ACTION
+    FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE, FINANCIAL_DAILY, FINANCIAL_REPORT, CORPORATE_ACTION, \
+    DEPTH_ENTRY
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod
 from tigeropen.common.util.contract_utils import extract_option_info
 from tigeropen.common.util.common_utils import eastern
@@ -372,6 +374,25 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
         return None
+
+    def get_depth_entry(self, symbols):
+        """
+        获取深度行情
+        :param symbols:
+        :return:
+        """
+        params = DepthEntryParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+
+        request = OpenApiRequest(DEPTH_ENTRY, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = DepthEntryResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.depth_entry
+            else:
+                raise ApiException(response.code, response.message)
 
     def get_option_expirations(self, symbols):
         """

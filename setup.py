@@ -4,13 +4,16 @@ Created on 2018/9/16
 
 @author: gaoan
 """
+from os import path
 from setuptools import find_packages, setup
 
-install_requires = ['six', 'simplejson', 'delorean', 'pandas', 'python-dateutil', 'pytz', 'pyasn1==0.4.4', 'rsa==4.0', 'stomp.py']
+here = path.abspath(path.dirname(__file__))
+with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
+    install_requires = f.read()
 
 setup(
     name='tigeropen',
-    version='1.1.7',
+    version='1.1.8',
     description='TigerBrokers Open API',
     packages=find_packages(exclude=[]),
     author='TigerBrokers',
