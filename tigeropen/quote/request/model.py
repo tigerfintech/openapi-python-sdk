@@ -650,7 +650,7 @@ class FutureQuoteParams(MarketParams):
         return params
 
 
-class DepthEntryParams(object):
+class OrderBookParams(object):
     def __init__(self):
         self._symbols = None
 

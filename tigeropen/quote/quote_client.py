@@ -35,11 +35,11 @@ from tigeropen.quote.response.stock_short_interest_response import ShortInterest
 from tigeropen.quote.response.stock_trade_meta_response import TradeMetaResponse
 from tigeropen.quote.response.symbol_names_response import SymbolNamesResponse
 from tigeropen.quote.response.symbols_response import SymbolsResponse
-from tigeropen.quote.response.quote_depth_entry_response import DepthEntryResponse
+from tigeropen.quote.response.quote_order_book_response import OrderBookResponse
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams, DepthEntryParams
+    SingleOptionQuoteParams, OrderBookParams
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
 from tigeropen.quote.response.market_status_response import MarketStatusResponse
@@ -48,7 +48,7 @@ from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
     FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
     FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE, FINANCIAL_DAILY, FINANCIAL_REPORT, CORPORATE_ACTION, \
-    DEPTH_ENTRY
+    ORDER_BOOK
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod
 from tigeropen.common.util.contract_utils import extract_option_info
 from tigeropen.common.util.common_utils import eastern
@@ -375,22 +375,51 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_depth_entry(self, symbols):
+    def get_order_book(self, symbols):
         """
         获取深度行情
         :param symbols:
         :return:
+        数据结构:
+            若返回单个 symbol:
+            {'symbol': '02833',
+             'asks': [(27.4, 300, 2), (27.45, 500, 1), (27.5, 4400, 1), (27.55, 0, 0), (27.6, 5700, 3), (27.65, 0, 0),
+                      (27.7, 500, 1), (27.75, 0, 0), (27.8, 0, 0), (27.85, 0, 0)],
+             'bids': [(27, 4000, 3), (26.95, 200, 1), (26.9, 0, 0), (26.85, 400, 1), (26.8, 0, 0), (26.75, 0, 0),
+                      (26.7, 0, 0), (26.65, 0, 0), (26.6, 0, 0), (26.55, 0, 0)]
+            }
+
+            若返回多个 symbol:
+            {'02833':
+                {'symbol': '02833',
+                 'asks': [(27.35, 200, 1), (27.4, 2100, 2), (27.45, 500, 1), (27.5, 4400, 1), (27.55, 0, 0),
+                         (27.6, 5700, 3), (27.65, 0, 0), (27.7, 500, 1), (27.75, 0, 0), (27.8, 0, 0)],
+                 'bids': [(27.05, 100, 1), (27, 5000, 4), (26.95, 200, 1), (26.9, 0, 0), (26.85, 400, 1), (26.8, 0, 0),
+                        (26.75, 0, 0), (26.7, 0, 0), (26.65, 0, 0), (26.6, 0, 0)]
+                },
+            '02828':
+                {'symbol': '02828',
+                 'asks': [(106.6, 6800, 7), (106.7, 110200, 10), (106.8, 64400, 8), (106.9, 80600, 8), (107, 9440, 16),
+                        (107.1, 31800, 5), (107.2, 11800, 4), (107.3, 9800, 2), (107.4, 9400, 1), (107.5, 21000, 9)],
+                 'bids': [(106.5, 62800, 17), (106.4, 68200, 9), (106.3, 78400, 6), (106.2, 52400, 4), (106.1, 3060, 4),
+                         (106, 33400, 4), (105.9, 29600, 3), (105.8, 9600, 2), (105.7, 15200, 2), (105.6, 0, 0)]}
+                }
+
+        asks 和 bids 列表项数据含义为:
+            [(ask_price1, ask_volume1, order_count), (ask_price2, ask_volume2, order_count), ...]
+            [(bid_price1, bid_volume2, order_count), (bid_price2, bid_volume2, order_count), ...]
+
         """
-        params = DepthEntryParams()
+        params = OrderBookParams()
         params.symbols = symbols if isinstance(symbols, list) else [symbols]
 
-        request = OpenApiRequest(DEPTH_ENTRY, biz_model=params)
+        request = OpenApiRequest(ORDER_BOOK, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
-            response = DepthEntryResponse()
+            response = OrderBookResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.depth_entry
+                return response.order_book
             else:
                 raise ApiException(response.code, response.message)
 
