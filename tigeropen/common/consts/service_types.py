@@ -42,7 +42,7 @@ TRADE_TICK = "trade_tick"
 QUOTE_REAL_TIME = "quote_real_time"
 QUOTE_SHORTABLE_STOCKS = "quote_shortable_stocks"
 QUOTE_STOCK_TRADE = "quote_stock_trade"
-DEPTH_ENTRY = "ask_bid"  # level2 深度行情
+ORDER_BOOK = "ask_bid"  # level2 深度行情
 
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"
