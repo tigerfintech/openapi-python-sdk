@@ -19,7 +19,7 @@ class Order(object):
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
                  outside_rth=None, filled=0, avg_fill_price=0, commission=None, realized_pnl=None,
-                 id=None, order_id=None, parent_id=None):
+                 id=None, order_id=None, parent_id=None, order_time=None, trade_time=None):
         """
         - account: 订单所属的账户
         - id: 全局订单 id
@@ -69,8 +69,8 @@ class Order(object):
         self.trail_stop_price = trail_stop_price
         self.trailing_percent = trailing_percent
         self.percent_offset = percent_offset
-        self.order_time = None
-        self.trade_time = None
+        self.order_time = order_time
+        self.trade_time = trade_time
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
