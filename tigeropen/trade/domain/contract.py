@@ -10,7 +10,7 @@ class Contract(object):
     def __init__(self, symbol, currency, contract_id=None, sec_type=None, exchange=None, origin_symbol=None,
                  local_symbol=None, expiry=None, strike=None, put_call=None, multiplier=None, name=None,
                  short_margin=None, short_fee_rate=None, shortable=None, long_initial_margin=None,
-                 long_maintenance_margin=None):
+                 long_maintenance_margin=None, contract_month=None):
         self.contract_id = contract_id
         self.symbol = symbol
         self.currency = currency
@@ -28,6 +28,7 @@ class Contract(object):
         self.shortable = shortable
         self.long_initial_margin = long_initial_margin
         self.long_maintenance_margin = long_maintenance_margin
+        self.contract_month = contract_month
 
     def __repr__(self):
         if self.symbol:
