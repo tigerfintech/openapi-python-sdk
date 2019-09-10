@@ -61,10 +61,11 @@ class ContractsResponse(TigerResponse):
                     long_initial_margin = contract_fields.get('long_initial_margin')
                     long_maintenance_margin = contract_fields.get('long_maintenance_margin')
                     contract_month = contract_fields.get('contract_month')
+                    identifier = contract_fields.get('identifier')
                     contract = Contract(symbol, currency, contract_id=contract_id, sec_type=sec_type, exchange=exchange,
                                         origin_symbol=origin_symbol, local_symbol=local_symbol, expiry=expiry,
                                         strike=strike, put_call=put_call, multiplier=multiplier, name=name,
                                         short_margin=short_margin, short_fee_rate=short_fee_rate, shortable=shortable,
                                         long_initial_margin=long_initial_margin, contract_month=contract_month,
-                                        long_maintenance_margin=long_maintenance_margin)
+                                        long_maintenance_margin=long_maintenance_margin, identifier=identifier)
                     self.contracts.append(contract)
