@@ -461,6 +461,8 @@ class QuoteClient(TigerOpenClient):
             open: 开盘价
             high: 最高价
             low: 最低价
+            rates_bonds: 无风险利率
+            volatility: 历史波动率
         """
         params = MultipleContractParams()
         contracts = []
