@@ -18,6 +18,14 @@ def on_query_subscribed_quote(symbols, focus_keys, limit, used):
     :param limit: 当前 tigerid 可以订阅的合约数量
     :param used: 目前已订阅的合约数量
     :return:
+        返回示例:
+        symbols: ['00700', 'SPY'],
+        focus_keys: {'00700': ['ask_size', 'latest_price', 'ask_price', 'prev_close', 'open', 'minute', 'low', 'volume',
+         'bid_price', 'bid_size', 'high', 'close'], 'SPY': ['ask_size', 'latest_price', 'ask_price', 'prev_close',
+         'open', 'minute', 'low', 'volume', 'bid_price', 'bid_size', 'high', 'close']},
+        limit: 100,
+        used: 2
+
     """
     print(symbols, focus_keys, limit, used)
 
@@ -29,19 +37,56 @@ def on_quote_changed(symbol, items, hour_trading):
     :param items: list，每个元素是一个tuple，对应订阅的字段名称和值
     :param hour_trading: 是否为盘前盘后的交易
     :return:
+    items 数据示例
+        [('latest_price', 339.8), ('ask_size', 42500), ('ask_price', 340.0), ('bid_size', 1400), ('bid_price', 339.8),
+         ('high', 345.0), ('prev_close', 342.4), ('low', 339.2), ('open', 344.0), ('volume', 7361440),
+         ('minute', {'p': 339.8, 'a': 341.084, 't': 1568098440000, 'v': 7000, 'h': 340.0, 'l': 339.8}),
+         ('timestamp', '1568098469463')]
     """
     print(symbol, items, hour_trading)
 
 
 def on_order_changed(account, items):
+    """
+
+    :param account:
+    :param items:
+    :return:
+    items 数据示例:
+        [('order_type', 'LMT'), ('symbol', 'ABCD'), ('order_id', 1000101463), ('sec_type', 'STK'), ('filled', 100),
+        ('quantity', 100), ('segment', 'summary'), ('action', 'BUY'), ('currency', 'USD'), ('id', 173612806463631360),
+        ('order_time', 1568095814556), ('time_in_force', 'DAY'), ('identifier', 'ABCD'), ('limit_price', 113.7),
+        ('outside_rth', True), ('avg_fill_price', 113.7), ('trade_time', 1568095815418),
+        ('status', <OrderStatus.FILLED: 'Filled'>)]
+    """
     print(account, items)
 
 
 def on_asset_changed(account, items):
+    """
+
+    :param account:
+    :param items:
+    :return:
+    items 数据示例:
+        [('equity_with_loan', 721583.83), ('gross_position_value', 1339641.94),
+        ('excess_liquidity', 378624.18), ('available_funds', 320059.1), ('initial_margin_requirement', 497419.25),
+        ('buying_power', 2293551.51), ('cash', 950059.0), ('segment', 'summary'), ('net_liquidation', 817685.72),
+        ('maintenance_margin_requirement', 439061.54)]
+    """
     print(account, items)
 
 
 def on_position_changed(account, items):
+    """
+
+    :param account:
+    :param items:
+    :return:
+    items 数据示例:
+        [('symbol', 'ABCD'), ('market_price', 3.68525), ('market_value', 0.0), ('sec_type', 'STK'),
+        ('segment', 'summary'), ('currency', 'USD'), ('quantity', 0.0), ('average_cost', 3.884548)]
+    """
     print(account, items)
 
 
