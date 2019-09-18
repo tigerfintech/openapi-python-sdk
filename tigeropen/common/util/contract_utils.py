@@ -26,9 +26,9 @@ def option_contract(identifier, multiplier=100, currency='USD'):
                     multiplier=multiplier)
 
 
-def future_contract(symbol, currency, expiry, exchange, multiplier=None, local_symbol=None):
-    return Contract(symbol, currency, sec_type='FUT', expiry=expiry, exchange=exchange, multiplier=multiplier,
-                    local_symbol=local_symbol)
+def future_contract(symbol, currency, expiry=None, exchange=None, contract_month=None, multiplier=None, local_symbol=None):
+    return Contract(symbol, currency, sec_type='FUT', expiry=expiry, exchange=exchange, contract_month=contract_month,
+                    multiplier=multiplier, local_symbol=local_symbol)
 
 
 def future_option_contract(symbol, currency, expiry, strike, put_call, multiplier=None, local_symbol=None,

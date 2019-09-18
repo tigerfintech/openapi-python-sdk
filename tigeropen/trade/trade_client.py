@@ -62,6 +62,14 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_contracts(self, symbol, sec_type=SecurityType.STK, currency=None, exchange=None):
+        """
+        批量获取合约
+        :param symbol:
+        :param sec_type:
+        :param currency:
+        :param exchange:
+        :return: 合约对象列表, 每个列表项的对象信息同 get_contract 返回
+        """
         params = ContractParams()
         params.account = self._account
         params.symbols = symbol if isinstance(symbol, list) else [symbol]
@@ -85,6 +93,33 @@ class TradeClient(TigerOpenClient):
 
     def get_contract(self, symbol, sec_type=SecurityType.STK, currency=None, exchange=None, expiry=None, strike=None,
                      right=None):
+        """
+        获取合约
+        :param symbol:
+        :param sec_type:
+        :param currency:
+        :param exchange:
+        :param expiry:
+        :param strike:
+        :param right:
+        :return: Contract 对象. 有如下属性:
+            symbol: 合约 symbol
+            identifier: 合约唯一标识
+            currency: 币种
+            exchange: 交易所
+            name: 合约名称
+            sec_type: 合约类型
+            long_initial_margin: 做多初始保证金比例
+            long_maintenance_margin: 做多维持保证金比例
+            short_fee_rate: 做空费率
+            short_margin: 做空保证金
+            shortable: 做空池剩余
+            multiplier: 合约乘数
+            expiry: 合约到期日(期货/期权)
+            contract_month: 合约月份(期货)
+            strike: 行权价(期权)
+            put_call: 看跌/看涨(期权)
+        """
         params = ContractParams()
         params.account = self._account
         params.symbol = symbol
@@ -218,7 +253,7 @@ class TradeClient(TigerOpenClient):
         :param limit: 每次获取订单的数量
         :param is_brief: 是否返回精简的订单数据
         :param states: 订单状态枚举对象列表, 可选, 若传递则按状态筛选
-        :return: Order 对象构成的列表
+        :return: Order 对象构成的列表. Order 对象信息参见 tigeropen.trade.domain.order
         """
         params = OrdersParams()
         params.account = account if account else self._account
@@ -321,7 +356,7 @@ class TradeClient(TigerOpenClient):
         :param id:
         :param order_id:
         :param is_brief: 是否返回精简的订单数据
-        :return:
+        :return: Order 对象. 对象信息参见 tigeropen.trade.domain.order
         """
         params = OrderParams()
         params.account = account if account else self._account
