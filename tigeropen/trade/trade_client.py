@@ -417,7 +417,7 @@ class TradeClient(TigerOpenClient):
         """
         预览订单
         :param order:  Order 对象
-        :return:
+        :return: dict. 字段如下
             init_margin_before      下单前账户初始保证金
             init_margin             预计下单后的账户初始保证金
             maint_margin_before     下单前账户的维持保证金
