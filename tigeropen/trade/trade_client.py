@@ -428,6 +428,9 @@ class TradeClient(TigerOpenClient):
             min_commission          预期最低佣金
             max_commission          预期最高佣金
             commission_currency     佣金货币币种
+
+            若无法下单, 返回的 dict 中仅有如下字段:
+            warning_text            无法下单的原因
         """
         params = PlaceModifyOrderParams()
         params.account = order.account
