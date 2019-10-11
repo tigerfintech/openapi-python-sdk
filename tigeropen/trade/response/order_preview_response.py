@@ -1,10 +1,4 @@
 import json
-
-tmp = {"initMarginBefore":324749.22,"commissionCurrency":"USD","maintMargin":279948.41,
-"equityWithLoan":704652.64,"minCommission":0.26051,"maintMarginBefore":273257.34,
-"initMargin":332121.39,"equityWithLoanBefore":700658.61,"marginCurrency":"USD",
-"maxCommission":1.34051}
-
 from tigeropen.common.response import TigerResponse
 
 PREVIEW_ORDER_FIELD_MAPPING = {"initMarginBefore": "init_margin_before", "commissionCurrency": "commission_currency",
