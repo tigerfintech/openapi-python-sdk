@@ -5,7 +5,8 @@ PREVIEW_ORDER_FIELD_MAPPING = {"initMarginBefore": "init_margin_before", "commis
                                "maintMargin": "maint_margin", "equityWithLoan": "equity_with_loan",
                                "minCommission": "min_commission", "maintMarginBefore": "maint_margin_before",
                                "initMargin": "init_margin", "equityWithLoanBefore": "equity_with_loan_before",
-                               "marginCurrency": "margin_currency", "maxCommission": "max_commission"}
+                               "marginCurrency": "margin_currency", "maxCommission": "max_commission",
+                               "warningText": "warning_text"}
 
 
 class PreviewOrderResponse(TigerResponse):
