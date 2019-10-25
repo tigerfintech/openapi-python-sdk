@@ -10,6 +10,7 @@ from tigeropen.trade.response.account_profile_response import ProfilesResponse
 
 from tigeropen.trade.response.contracts_response import ContractsResponse
 from tigeropen.trade.response.order_id_response import OrderIdResponse
+from tigeropen.trade.response.order_preview_response import PreviewOrderResponse
 from tigeropen.trade.response.orders_response import OrdersResponse
 from tigeropen.tiger_open_client import TigerOpenClient, ApiException
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
@@ -17,7 +18,7 @@ from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetP
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.trade.response.assets_response import AssetsResponse
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
-    CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT
+    CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER
 
 import logging
 
@@ -62,6 +63,14 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_contracts(self, symbol, sec_type=SecurityType.STK, currency=None, exchange=None):
+        """
+        批量获取合约
+        :param symbol:
+        :param sec_type:
+        :param currency:
+        :param exchange:
+        :return: 合约对象列表, 每个列表项的对象信息同 get_contract 返回
+        """
         params = ContractParams()
         params.account = self._account
         params.symbols = symbol if isinstance(symbol, list) else [symbol]
@@ -85,6 +94,33 @@ class TradeClient(TigerOpenClient):
 
     def get_contract(self, symbol, sec_type=SecurityType.STK, currency=None, exchange=None, expiry=None, strike=None,
                      right=None):
+        """
+        获取合约
+        :param symbol:
+        :param sec_type:
+        :param currency:
+        :param exchange:
+        :param expiry:
+        :param strike:
+        :param right:
+        :return: Contract 对象. 有如下属性:
+            symbol: 合约 symbol
+            identifier: 合约唯一标识
+            currency: 币种
+            exchange: 交易所
+            name: 合约名称
+            sec_type: 合约类型
+            long_initial_margin: 做多初始保证金比例
+            long_maintenance_margin: 做多维持保证金比例
+            short_fee_rate: 做空费率
+            short_margin: 做空保证金
+            shortable: 做空池剩余
+            multiplier: 合约乘数
+            expiry: 合约到期日(期货/期权)
+            contract_month: 合约月份(期货)
+            strike: 行权价(期权)
+            put_call: 看跌/看涨(期权)
+        """
         params = ContractParams()
         params.account = self._account
         params.symbol = symbol
@@ -218,7 +254,7 @@ class TradeClient(TigerOpenClient):
         :param limit: 每次获取订单的数量
         :param is_brief: 是否返回精简的订单数据
         :param states: 订单状态枚举对象列表, 可选, 若传递则按状态筛选
-        :return: Order 对象构成的列表
+        :return: Order 对象构成的列表. Order 对象信息参见 tigeropen.trade.domain.order
         """
         params = OrdersParams()
         params.account = account if account else self._account
@@ -321,7 +357,7 @@ class TradeClient(TigerOpenClient):
         :param id:
         :param order_id:
         :param is_brief: 是否返回精简的订单数据
-        :return:
+        :return: Order 对象. 对象信息参见 tigeropen.trade.domain.order
         """
         params = OrderParams()
         params.account = account if account else self._account
@@ -376,6 +412,49 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
         return None
+
+    def preview_order(self, order):
+        """
+        预览订单
+        :param order:  Order 对象
+        :return: dict. 字段如下
+            init_margin_before      下单前账户初始保证金
+            init_margin             预计下单后的账户初始保证金
+            maint_margin_before     下单前账户的维持保证金
+            maint_margin            预计下单后的账户维持保证金
+            margin_currency         保证金货币币种
+            equity_with_loan_before 下单前账户的含借贷值股权(含贷款价值资产)
+            equity_with_loan        下单后账户的含借贷值股权(含贷款价值资产)
+            min_commission          预期最低佣金
+            max_commission          预期最高佣金
+            commission_currency     佣金货币币种
+
+            若无法下单, 返回的 dict 中仅有如下字段:
+            warning_text            无法下单的原因
+        """
+        params = PlaceModifyOrderParams()
+        params.account = order.account
+        params.contract = order.contract
+        params.action = order.action
+        params.order_type = order.order_type
+        params.order_id = order.order_id
+        params.quantity = order.quantity
+        params.limit_price = order.limit_price
+        params.aux_price = order.aux_price
+        params.trail_stop_price = order.trail_stop_price
+        params.trailing_percent = order.trailing_percent
+        params.percent_offset = order.percent_offset
+        params.time_in_force = order.time_in_force
+        params.outside_rth = order.outside_rth
+        request = OpenApiRequest(PREVIEW_ORDER, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = PreviewOrderResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.preview_order
+            else:
+                raise ApiException(response.code, response.message)
 
     def place_order(self, order):
         """
