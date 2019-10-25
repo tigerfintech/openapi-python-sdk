@@ -21,7 +21,7 @@ class QuoteChangeKey(Enum):
 
 @unique
 class QuoteKeyType(Enum):
-    ALL = None  # 所有行情数据
+    ALL = 'askPrice,askSize,bidPrice,bidSize,open,high,low,close,preClose,volume,latestPrice,mi'  # 所有行情数据
     QUOTE = 'askPrice,askSize,bidPrice,bidSize'  # 盘口数据
     TRADE = 'open,high,low,close,preClose,volume,latestPrice'  # 成交数据
     TIMELINE = 'mi'  # 分时数据
