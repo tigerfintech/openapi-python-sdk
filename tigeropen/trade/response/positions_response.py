@@ -13,9 +13,9 @@ from tigeropen.trade.domain.position import Position
 from tigeropen.trade.response import CONTRACT_FIELDS
 
 POSITION_FIELD_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity', 'latestPrice': 'market_price',
-    'marketValue': 'market_value', 'orderType': 'order_type', 'realizedPnl': 'realized_pnl',
-    'unrealizedPnl': 'unrealized_pnl', 'secType': 'sec_type', 'localSymbol': 'local_symbol',
-    'originSymbol': 'origin_symbol', 'contractId':'contract_id'}
+                           'marketValue': 'market_value', 'orderType': 'order_type', 'realizedPnl': 'realized_pnl',
+                           'unrealizedPnl': 'unrealized_pnl', 'secType': 'sec_type', 'localSymbol': 'local_symbol',
+                           'originSymbol': 'origin_symbol', 'contractId': 'contract_id', 'identifier': 'identifier'}
 
 
 class PositionsResponse(TigerResponse):
@@ -57,9 +57,11 @@ class PositionsResponse(TigerResponse):
                     strike = contract_fields.get('strike')
                     put_call = contract_fields.get('right')
                     multiplier = contract_fields.get('multiplier')
+                    identifier = contract_fields.get('identifier')
                     contract = Contract(symbol, currency, contract_id=contract_id, sec_type=sec_type,
                                         exchange=exchange, origin_symbol=origin_symbol, local_symbol=local_symbol,
-                                        expiry=expiry, strike=strike, put_call=put_call, multiplier=multiplier)
+                                        expiry=expiry, strike=strike, put_call=put_call, multiplier=multiplier,
+                                        identifier=identifier)
                     account = position_fields.get('account')
                     quantity = position_fields.get('quantity')
                     average_cost = position_fields.get('average_cost')

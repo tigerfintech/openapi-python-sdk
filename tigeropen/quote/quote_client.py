@@ -441,7 +441,7 @@ class QuoteClient(TigerOpenClient):
     def get_option_briefs(self, identifiers):
         """
         获取期权最新行情
-        :param identifiers: 期权代码
+        :param identifiers: 期权代码列表
         :return: pandas.DataFrame， 各 column 的含义如下：
             identifier: 期权代码
             symbol: 期权对应的正股代码
@@ -461,6 +461,8 @@ class QuoteClient(TigerOpenClient):
             open: 开盘价
             high: 最高价
             low: 最低价
+            rates_bonds: 无风险利率
+            volatility: 历史波动率
         """
         params = MultipleContractParams()
         contracts = []

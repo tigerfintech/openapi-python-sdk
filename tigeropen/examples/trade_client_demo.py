@@ -92,6 +92,10 @@ def trade_apis():
     new_order = openapi_client.get_order(order_id=order_id)
     assert new_order.status == OrderStatus.CANCELLED or new_order.status == OrderStatus.PENDING_CANCEL
 
+    # 预览订单 (下单前后保证金要求, 佣金等预览)
+    result = openapi_client.preview_order(order)
+    print(result)
+
 
 if __name__ == '__main__':
     get_account_info()
