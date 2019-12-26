@@ -310,7 +310,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_trade_ticks(self, symbols, begin_index=0, end_index=30, limit=30, lang=None):
+    def get_trade_ticks(self, symbols, begin_index=None, end_index=None, limit=None, lang=None):
         """
         获取逐笔成交
         :param symbols: 股票代号列表
