@@ -12,7 +12,7 @@ with open(path.join(path.abspath(path.dirname(__file__)), 'requirements.txt'), e
 
 setup(
     name='tigeropen',
-    version='1.1.8',
+    version='1.1.9',
     description='TigerBrokers Open API',
     packages=find_packages(exclude=[]),
     author='TigerBrokers',
