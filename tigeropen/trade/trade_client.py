@@ -10,6 +10,7 @@ from tigeropen.trade.response.account_profile_response import ProfilesResponse
 
 from tigeropen.trade.response.contracts_response import ContractsResponse
 from tigeropen.trade.response.order_id_response import OrderIdResponse
+from tigeropen.trade.response.order_preview_response import PreviewOrderResponse
 from tigeropen.trade.response.orders_response import OrdersResponse
 from tigeropen.tiger_open_client import TigerOpenClient, ApiException
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
@@ -17,7 +18,7 @@ from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetP
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.trade.response.assets_response import AssetsResponse
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
-    CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT
+    CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER
 
 import logging
 
@@ -411,6 +412,49 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
         return None
+
+    def preview_order(self, order):
+        """
+        预览订单
+        :param order:  Order 对象
+        :return: dict. 字段如下
+            init_margin_before      下单前账户初始保证金
+            init_margin             预计下单后的账户初始保证金
+            maint_margin_before     下单前账户的维持保证金
+            maint_margin            预计下单后的账户维持保证金
+            margin_currency         保证金货币币种
+            equity_with_loan_before 下单前账户的含借贷值股权(含贷款价值资产)
+            equity_with_loan        下单后账户的含借贷值股权(含贷款价值资产)
+            min_commission          预期最低佣金
+            max_commission          预期最高佣金
+            commission_currency     佣金货币币种
+
+            若无法下单, 返回的 dict 中仅有如下字段:
+            warning_text            无法下单的原因
+        """
+        params = PlaceModifyOrderParams()
+        params.account = order.account
+        params.contract = order.contract
+        params.action = order.action
+        params.order_type = order.order_type
+        params.order_id = order.order_id
+        params.quantity = order.quantity
+        params.limit_price = order.limit_price
+        params.aux_price = order.aux_price
+        params.trail_stop_price = order.trail_stop_price
+        params.trailing_percent = order.trailing_percent
+        params.percent_offset = order.percent_offset
+        params.time_in_force = order.time_in_force
+        params.outside_rth = order.outside_rth
+        request = OpenApiRequest(PREVIEW_ORDER, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = PreviewOrderResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.preview_order
+            else:
+                raise ApiException(response.code, response.message)
 
     def place_order(self, order):
         """
