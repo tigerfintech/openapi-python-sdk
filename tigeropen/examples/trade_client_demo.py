@@ -15,7 +15,8 @@ from tigeropen.trade.trade_client import TradeClient
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.examples.client_config import get_client_config
 # from tigeropen.common.util.contract_utils import stock_contract, option_contract, future_contract
-# from tigeropen.common.util.order_utils import limit_order
+from tigeropen.common.util.order_utils import limit_order, limit_order_with_attach
+
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s',
@@ -95,6 +96,19 @@ def trade_apis():
     # 预览订单 (下单前后保证金要求, 佣金等预览)
     result = openapi_client.preview_order(order)
     print(result)
+
+    # 限价单 + 附加订单 (仅主订单为限价单时支持附加订单)
+    main_order = openapi_client.create_order(account, contract, 'BUY', 'LMT', quantity=100, limit_price=10.0,
+                                             attach_type='BRACKETS', stop_loss_price=8.0, stop_loss_tif='GTC',
+                                             profit_taker_price=12.0, profit_taker_tif='GTC')
+    # 本地构造限价单 + 附加订单
+    # main_order = limit_order_with_attach(account, contract, 'BUY', 100, limit_price=10.0, attach_type='LOSS',
+    #                                      stop_loss_price=8.0, stop_loss_tif='DAY')
+    openapi_client.place_order(main_order)
+    print(main_order)
+    # 查询主订单所关联的附加订单
+    attach_orders = openapi_client.get_open_orders(account, parent_id=main_order.order_id)
+    print(attach_orders)
 
 
 if __name__ == '__main__':

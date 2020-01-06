@@ -74,6 +74,27 @@ def trail_order(account, contract, action, quantity, trailing_percent=None, aux_
     return Order(account, contract, action, 'TRAIL', quantity, trailing_percent=trailing_percent, aux_price=aux_price)
 
 
+def limit_order_with_attach(account, contract, action, quantity, limit_price, attach_type=None, stop_loss_price=None,
+                            stop_loss_tif='DAY', profit_taker_price=None, profit_taker_tif='DAY'):
+    """
+    限价单 + 附加订单(仅环球账户支持)
+    :param account:
+    :param contract:
+    :param action: BUY/SELL
+    :param quantity:
+    :param limit_price: 限价单价格
+    :param attach_type: 附加订单类型. PROFIT 止盈单类型,  LOSS 止损单类型, BRACKETS 括号订单类型(止损和止盈)
+    :param stop_loss_price: 附加止损单价格. attach_type 为 LOSS 或 BRACKETS 时必选
+    :param stop_loss_tif: 附加止损单有效期. 'DAY'（当日有效）和'GTC'（取消前有效 Good-Til-Canceled).
+    :param profit_taker_price: 附加止盈单价格. attach_type 为 PROFIT 或 BRACKETS 时必选
+    :param profit_taker_tif: 附加止盈单有效期. 'DAY'（当日有效）和'GTC'（取消前有效).
+    :return:
+    """
+    return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, attach_type=attach_type,
+                 stop_loss_price=stop_loss_price, stop_loss_tif=stop_loss_tif, profit_taker_price=profit_taker_price,
+                 profit_taker_tif=profit_taker_tif)
+
+
 def get_order_status(value):
     """
     Invalid(-2), Initial(-1), PendingCancel(3), Cancelled(4), Submitted(5), Filled(6), Inactive(7), PendingSubmit(8)
