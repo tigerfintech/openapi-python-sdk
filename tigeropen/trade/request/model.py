@@ -502,15 +502,7 @@ class PlaceModifyOrderParams(object):
         self.percent_offset = None
         self.time_in_force = None
         self.outside_rth = None
-        self.attach_type = None
-        self.profit_taker_order_id = None
-        self.profit_taker_price = None
-        self.profit_taker_tif = None
-        self.profit_taker_rth = None
-        self.stop_loss_order_id = None
-        self.stop_loss_price = None
-        self.stop_loss_tif = None
-        self.stop_loss_rth = None
+        self.attach_order = None
 
     def to_openapi_dict(self):
         params = dict()
@@ -563,24 +555,25 @@ class PlaceModifyOrderParams(object):
             if self.outside_rth is not None:
                 params['outside_rth'] = self.outside_rth
 
-            if self.attach_type is not None:
-                params['attach_type'] = self.attach_type
-            if self.profit_taker_order_id is not None:
-                params['profit_taker_order_id'] = self.profit_taker_order_id
-            if self.profit_taker_price is not None:
-                params['profit_taker_price'] = self.profit_taker_price
-            if self.profit_taker_tif is not None:
-                params['profit_taker_tif'] = self.profit_taker_tif
-            if self.profit_taker_rth is not None:
-                params['profit_taker_rth'] = self.profit_taker_rth
-            if self.stop_loss_order_id is not None:
-                params['stop_loss_order_id'] = self.stop_loss_order_id
-            if self.stop_loss_price is not None:
-                params['stop_loss_price'] = self.stop_loss_price
-            if self.stop_loss_tif is not None:
-                params['stop_loss_tif'] = self.stop_loss_tif
-            if self.stop_loss_rth is not None:
-                params['stop_loss_rth'] = self.stop_loss_rth
+            if self.attach_order:
+                if self.attach_order.attach_type is not None:
+                    params['attach_type'] = self.attach_order.attach_type
+                if self.attach_order.profit_taker_order_id is not None:
+                    params['profit_taker_order_id'] = self.attach_order.profit_taker_order_id
+                if self.attach_order.profit_taker_price is not None:
+                    params['profit_taker_price'] = self.attach_order.profit_taker_price
+                if self.attach_order.profit_taker_tif is not None:
+                    params['profit_taker_tif'] = self.attach_order.profit_taker_tif
+                if self.attach_order.profit_taker_rth is not None:
+                    params['profit_taker_rth'] = self.attach_order.profit_taker_rth
+                if self.attach_order.stop_loss_order_id is not None:
+                    params['stop_loss_order_id'] = self.attach_order.stop_loss_order_id
+                if self.attach_order.stop_loss_price is not None:
+                    params['stop_loss_price'] = self.attach_order.stop_loss_price
+                if self.attach_order.stop_loss_tif is not None:
+                    params['stop_loss_tif'] = self.attach_order.stop_loss_tif
+                if self.attach_order.stop_loss_rth is not None:
+                    params['stop_loss_rth'] = self.attach_order.stop_loss_rth
 
         return params
 

@@ -379,9 +379,7 @@ class TradeClient(TigerOpenClient):
 
     def create_order(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
-                     outside_rth=None, attach_type=None, stop_loss_price=None, stop_loss_tif='DAY', stop_loss_rth=None,
-                     stop_loss_order_id=None, profit_taker_price=None, profit_taker_tif='DAY', profit_taker_rth=None,
-                     profit_taker_order_id=None):
+                     outside_rth=None, attach_order=None):
         """
         创建订单对象.
         :param account:
@@ -396,16 +394,7 @@ class TradeClient(TigerOpenClient):
         :param percent_offset:
         :param time_in_force: 订单有效期， 'DAY'（当日有效）和'GTC'（取消前有效)
         :param outside_rth: 是否允许盘前盘后交易(美股专属)
-
-        :param attach_type: 附加订单类型(仅限价单支持). PROFIT 止盈单类型, LOSS 止损单类型, BRACKETS 括号订单类型(止损和止盈)
-        :param stop_loss_price: 附加止损单价格
-        :param stop_loss_tif: 附加止损单有效期. 'DAY'（当日有效）和'GTC'（取消前有效). 同 time_in_force 字段
-        :param stop_loss_rth: 附加止损单是否允许盘前盘后交易(美股专属). True 允许, False 不允许. 同 outside_rth 字段
-        :param stop_loss_order_id: 附加止损单号. 可以通过订单号接口获取, 如果传0或为空, 则服务器端会自动生成止损单号
-        :param profit_taker_price: 附加止盈单价格
-        :param profit_taker_tif: 附加止盈单有效期. 'DAY'（当日有效）和'GTC'（取消前有效). 同 time_in_force 字段
-        :param profit_taker_rth: 附加止盈单是否允许盘前盘后交易(美股专属). True 允许, False 不允许. 同 outside_rth 字段
-        :param profit_taker_order_id: 附加止盈单号. 可以通过订单号接口获取, 如果传0或为空, 则服务器端会自动生成止盈单号
+        :param attach_order: 附加订单
         """
         params = AccountsParams()
         params.account = account if account else self._account
@@ -420,10 +409,7 @@ class TradeClient(TigerOpenClient):
                               aux_price=aux_price, trail_stop_price=trail_stop_price,
                               trailing_percent=trailing_percent, percent_offset=percent_offset,
                               time_in_force=time_in_force, outside_rth=outside_rth, order_id=order_id,
-                              attach_type=attach_type, stop_loss_price=stop_loss_price, stop_loss_tif=stop_loss_tif,
-                              stop_loss_rth=stop_loss_rth, stop_loss_order_id=stop_loss_order_id,
-                              profit_taker_price=profit_taker_price, profit_taker_tif=profit_taker_tif,
-                              profit_taker_rth=profit_taker_rth, profit_taker_order_id=profit_taker_order_id)
+                              attach_order=attach_order)
                 return order
             else:
                 raise ApiException(response.code, response.message)
@@ -493,15 +479,7 @@ class TradeClient(TigerOpenClient):
         params.percent_offset = order.percent_offset
         params.time_in_force = order.time_in_force
         params.outside_rth = order.outside_rth
-        params.attach_type = order.attach_type
-        params.stop_loss_price = order.stop_loss_price
-        params.stop_loss_tif = order.stop_loss_tif
-        params.stop_loss_rth = order.stop_loss_rth
-        params.stop_loss_order_id = order.stop_loss_order_id
-        params.profit_taker_price = order.profit_taker_price
-        params.profit_taker_tif = order.profit_taker_tif
-        params.profit_taker_rth = order.profit_taker_rth
-        params.profit_taker_order_id = order.profit_taker_order_id
+        params.attach_order = order.attach_order
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
