@@ -4,7 +4,7 @@ Created on 2018/11/1
 
 @author: gaoan
 """
-from tigeropen.trade.domain.order import Order, AttachOrder
+from tigeropen.trade.domain.order import Order, OrderLeg
 from tigeropen.common.consts import OrderStatus
 
 
@@ -74,21 +74,20 @@ def trail_order(account, contract, action, quantity, trailing_percent=None, aux_
     return Order(account, contract, action, 'TRAIL', quantity, trailing_percent=trailing_percent, aux_price=aux_price)
 
 
-def attach_order(attach_type, stop_loss_price=None, stop_loss_tif='DAY', profit_taker_price=None,
-                 profit_taker_tif='DAY'):
+def order_leg(type, stop_loss_price=None, stop_loss_tif='DAY', profit_taker_price=None, profit_taker_tif='DAY'):
     """
     附加订单
-    :param attach_type: 附加订单类型. PROFIT 止盈单类型,  LOSS 止损单类型, BRACKETS 括号订单类型(止损和止盈). 必选
-    :param stop_loss_price: 附加止损单价格. attach_type 为 LOSS 或 BRACKETS 时必选
+    :param type: 附加订单类型. PROFIT 止盈单类型,  LOSS 止损单类型, BRACKETS 括号订单类型(止损和止盈). 必选
+    :param stop_loss_price: 附加止损单价格. type 为 LOSS 或 BRACKETS 时必选
     :param stop_loss_tif: 附加止损单有效期. 'DAY'（当日有效）和'GTC'（取消前有效 Good-Til-Canceled).
-    :param profit_taker_price: 附加止盈单价格. attach_type 为 PROFIT 或 BRACKETS 时必选
+    :param profit_taker_price: 附加止盈单价格. type 为 PROFIT 或 BRACKETS 时必选
     :param profit_taker_tif: 附加止盈单有效期. 'DAY'（当日有效）和'GTC'（取消前有效).
     """
-    return AttachOrder(attach_type=attach_type, stop_loss_price=stop_loss_price, stop_loss_tif=stop_loss_tif,
-                       profit_taker_price=profit_taker_price, profit_taker_tif=profit_taker_tif)
+    return OrderLeg(type=type, stop_loss_price=stop_loss_price, stop_loss_tif=stop_loss_tif,
+                    profit_taker_price=profit_taker_price, profit_taker_tif=profit_taker_tif)
 
 
-def limit_order_with_attach(account, contract, action, quantity, limit_price, attach_order=None):
+def limit_order_with_legs(account, contract, action, quantity, limit_price, order_legs=None):
     """
     限价单 + 附加订单(仅环球账户支持)
     :param account:
@@ -96,10 +95,10 @@ def limit_order_with_attach(account, contract, action, quantity, limit_price, at
     :param action: BUY/SELL
     :param quantity:
     :param limit_price: 限价单价格
-    :param attach_order: 附加订单
+    :param order_legs: 附加订单
     :return:
     """
-    return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, attach_order=attach_order)
+    return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, order_legs=order_legs)
 
 
 def get_order_status(value):
