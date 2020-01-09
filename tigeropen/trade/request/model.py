@@ -502,7 +502,7 @@ class PlaceModifyOrderParams(object):
         self.percent_offset = None
         self.time_in_force = None
         self.outside_rth = None
-        self.attach_order = None
+        self.order_legs = None
 
     def to_openapi_dict(self):
         params = dict()
@@ -555,25 +555,26 @@ class PlaceModifyOrderParams(object):
             if self.outside_rth is not None:
                 params['outside_rth'] = self.outside_rth
 
-            if self.attach_order:
-                if self.attach_order.attach_type is not None:
-                    params['attach_type'] = self.attach_order.attach_type
-                if self.attach_order.profit_taker_order_id is not None:
-                    params['profit_taker_order_id'] = self.attach_order.profit_taker_order_id
-                if self.attach_order.profit_taker_price is not None:
-                    params['profit_taker_price'] = self.attach_order.profit_taker_price
-                if self.attach_order.profit_taker_tif is not None:
-                    params['profit_taker_tif'] = self.attach_order.profit_taker_tif
-                if self.attach_order.profit_taker_rth is not None:
-                    params['profit_taker_rth'] = self.attach_order.profit_taker_rth
-                if self.attach_order.stop_loss_order_id is not None:
-                    params['stop_loss_order_id'] = self.attach_order.stop_loss_order_id
-                if self.attach_order.stop_loss_price is not None:
-                    params['stop_loss_price'] = self.attach_order.stop_loss_price
-                if self.attach_order.stop_loss_tif is not None:
-                    params['stop_loss_tif'] = self.attach_order.stop_loss_tif
-                if self.attach_order.stop_loss_rth is not None:
-                    params['stop_loss_rth'] = self.attach_order.stop_loss_rth
+            if self.order_legs and self.order_legs.type is not None:
+                params['attach_type'] = self.order_legs.type
+                if self.order_legs.type in ('PROFIT', 'BRACKETS'):
+                    if self.order_legs.profit_taker_order_id is not None:
+                        params['profit_taker_order_id'] = self.order_legs.profit_taker_order_id
+                    if self.order_legs.profit_taker_price is not None:
+                        params['profit_taker_price'] = self.order_legs.profit_taker_price
+                    if self.order_legs.profit_taker_tif is not None:
+                        params['profit_taker_tif'] = self.order_legs.profit_taker_tif
+                    if self.order_legs.profit_taker_rth is not None:
+                        params['profit_taker_rth'] = self.order_legs.profit_taker_rth
+                if self.order_legs.type in ('LOSS', 'BRACKETS'):
+                    if self.order_legs.stop_loss_order_id is not None:
+                        params['stop_loss_order_id'] = self.order_legs.stop_loss_order_id
+                    if self.order_legs.stop_loss_price is not None:
+                        params['stop_loss_price'] = self.order_legs.stop_loss_price
+                    if self.order_legs.stop_loss_tif is not None:
+                        params['stop_loss_tif'] = self.order_legs.stop_loss_tif
+                    if self.order_legs.stop_loss_rth is not None:
+                        params['stop_loss_rth'] = self.order_legs.stop_loss_rth
 
         return params
 
