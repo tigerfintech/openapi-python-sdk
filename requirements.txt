@@ -7,3 +7,4 @@ pytz==2019.3
 pyasn1==0.4.2
 rsa==4.0
 stomp.py==4.1.22
+enum34==1.1.6
