@@ -131,7 +131,7 @@ class OrderLeg(object):
         :param time_in_force: 附加订单有效期. 'DAY'（当日有效）和'GTC'（取消前有效).
         :param outside_rth: 附加订单是否允许盘前盘后交易(美股专属). True 允许, False 不允许.
         """
-        self.type = leg_type
+        self.leg_type = leg_type
         self.price = price
         self.time_in_force = time_in_force
         self.outside_rth = outside_rth
