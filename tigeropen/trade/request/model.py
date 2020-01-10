@@ -555,26 +555,27 @@ class PlaceModifyOrderParams(object):
             if self.outside_rth is not None:
                 params['outside_rth'] = self.outside_rth
 
-            if self.order_legs and self.order_legs.type is not None:
-                params['attach_type'] = self.order_legs.type
-                if self.order_legs.type in ('PROFIT', 'BRACKETS'):
-                    if self.order_legs.profit_taker_order_id is not None:
-                        params['profit_taker_order_id'] = self.order_legs.profit_taker_order_id
-                    if self.order_legs.profit_taker_price is not None:
-                        params['profit_taker_price'] = self.order_legs.profit_taker_price
-                    if self.order_legs.profit_taker_tif is not None:
-                        params['profit_taker_tif'] = self.order_legs.profit_taker_tif
-                    if self.order_legs.profit_taker_rth is not None:
-                        params['profit_taker_rth'] = self.order_legs.profit_taker_rth
-                if self.order_legs.type in ('LOSS', 'BRACKETS'):
-                    if self.order_legs.stop_loss_order_id is not None:
-                        params['stop_loss_order_id'] = self.order_legs.stop_loss_order_id
-                    if self.order_legs.stop_loss_price is not None:
-                        params['stop_loss_price'] = self.order_legs.stop_loss_price
-                    if self.order_legs.stop_loss_tif is not None:
-                        params['stop_loss_tif'] = self.order_legs.stop_loss_tif
-                    if self.order_legs.stop_loss_rth is not None:
-                        params['stop_loss_rth'] = self.order_legs.stop_loss_rth
+            if self.order_legs:
+                for order_leg in self.order_legs:
+                    if order_leg.type == 'PROFIT':
+                        params['attach_type'] = 'PROFIT'
+                        if order_leg.price is not None:
+                            params['profit_taker_price'] = order_leg.price
+                        if order_leg.time_in_force is not None:
+                            params['profit_taker_tif'] = order_leg.time_in_force
+                        if order_leg.outside_rth is not None:
+                            params['profit_taker_rth'] = order_leg.outside_rth
+                    if order_leg.type == 'LOSS':
+                        params['attach_type'] = 'LOSS'
+                        if order_leg.price is not None:
+                            params['stop_loss_price'] = order_leg.price
+                        if order_leg.time_in_force is not None:
+                            params['stop_loss_tif'] = order_leg.time_in_force
+                        if order_leg.outside_rth is not None:
+                            params['stop_loss_rth'] = order_leg.outside_rth
+                # 括号订单(止盈和止损)
+                if len(self.order_legs) > 1:
+                    params['attach_type'] = 'BRACKETS'
 
         return params
 
