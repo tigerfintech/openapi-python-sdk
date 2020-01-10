@@ -557,7 +557,7 @@ class PlaceModifyOrderParams(object):
 
             if self.order_legs:
                 for order_leg in self.order_legs:
-                    if order_leg.type == 'PROFIT':
+                    if order_leg.leg_type == 'PROFIT':
                         params['attach_type'] = 'PROFIT'
                         if order_leg.price is not None:
                             params['profit_taker_price'] = order_leg.price
@@ -565,7 +565,7 @@ class PlaceModifyOrderParams(object):
                             params['profit_taker_tif'] = order_leg.time_in_force
                         if order_leg.outside_rth is not None:
                             params['profit_taker_rth'] = order_leg.outside_rth
-                    if order_leg.type == 'LOSS':
+                    if order_leg.leg_type == 'LOSS':
                         params['attach_type'] = 'LOSS'
                         if order_leg.price is not None:
                             params['stop_loss_price'] = order_leg.price
