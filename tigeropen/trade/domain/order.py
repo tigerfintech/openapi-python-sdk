@@ -41,11 +41,11 @@ class Order(object):
         - percent_offset: None,
         - order_type: 订单类型, 'MKT' 市价单 / 'LMT' 限价单 / 'STP' 止损单 / 'STP_LMT' 止损限价单 / 'TRAIL' 跟踪止损单
         - time_in_force: 有效期,'DAY' 日内有效 / 'GTC' 撤销前有效
-        - outside_rth: 是否允许盘前盘后交易(美股专属). True 允许, False 不允许
+        - outside_rth: 是否允许盘前盘后交易(outside of regular trading hours 美股专属). True 允许, False 不允许
         - contract: 合约对象
         - status: Order_Status 的枚举, 表示订单状态
         - remaining: 未成交的数量
-        - order_legs: 附加订单
+        - order_legs: 附加订单列表
         """
 
         self.id = id
@@ -124,31 +124,17 @@ class OrderLeg(object):
     附加订单
     """
 
-    def __init__(self, type, stop_loss_price=None, stop_loss_tif=None, stop_loss_rth=None,
-                 stop_loss_order_id=None, profit_taker_price=None, profit_taker_tif=None, profit_taker_rth=None,
-                 profit_taker_order_id=None):
+    def __init__(self, leg_type, price, time_in_force='DAY', outside_rth=None):
         """
-        :param type: 附加订单类型(仅限价单支持). PROFIT 止盈单类型, LOSS 止损单类型, BRACKETS 括号订单类型(止损和止盈)
-        :param stop_loss_price: 附加止损单价格
-        :param stop_loss_tif: 附加止损单有效期. 'DAY'（当日有效）和'GTC'（取消前有效). 同 time_in_force 字段
-        :param stop_loss_rth: 附加止损单是否允许盘前盘后交易(美股专属). True 允许, False 不允许. 同 outside_rth 字段
-        :param stop_loss_order_id: 附加止损单号. 可以通过订单号接口获取, 如果传0或为空, 则服务器端会自动生成止损单号
-        :param profit_taker_price: 附加止盈单价格
-        :param profit_taker_tif: 附加止盈单有效期. 'DAY'（当日有效）和'GTC'（取消前有效). 同 time_in_force 字段
-        :param profit_taker_rth: 附加止盈单是否允许盘前盘后交易(美股专属). True 允许, False 不允许. 同 outside_rth 字段
-        :param profit_taker_order_id: 附加止盈单号. 可以通过订单号接口获取, 如果传0或为空, 则服务器端会自动生成止盈单号
+        :param leg_type: 附加订单类型(仅限价单支持). PROFIT 止盈单类型, LOSS 止损单类型
+        :param price: 附加订单价格
+        :param time_in_force: 附加订单有效期. 'DAY'（当日有效）和'GTC'（取消前有效).
+        :param outside_rth: 附加订单是否允许盘前盘后交易(美股专属). True 允许, False 不允许.
         """
-        self.type = type
-        if self.type == 'LOSS' or self.type == 'BRACKETS':
-            self.stop_loss_price = stop_loss_price
-            self.stop_loss_tif = stop_loss_tif
-            self.stop_loss_rth = stop_loss_rth
-            self.stop_loss_order_id = stop_loss_order_id
-        if self.type == 'PROFIT' or self.type == 'BRACKETS':
-            self.profit_taker_price = profit_taker_price
-            self.profit_taker_tif = profit_taker_tif
-            self.profit_taker_rth = profit_taker_rth
-            self.profit_taker_order_id = profit_taker_order_id
+        self.type = leg_type
+        self.price = price
+        self.time_in_force = time_in_force
+        self.outside_rth = outside_rth
 
     def to_dict(self):
         return self.__dict__
