@@ -556,8 +556,12 @@ class PlaceModifyOrderParams(object):
                 params['outside_rth'] = self.outside_rth
 
             if self.order_legs:
+                if len(self.order_legs) > 2:
+                    raise Exception('2 order legs at most')
+                leg_types = set()
                 for order_leg in self.order_legs:
                     if order_leg.leg_type == 'PROFIT':
+                        leg_types.add('PROFIT')
                         params['attach_type'] = 'PROFIT'
                         if order_leg.price is not None:
                             params['profit_taker_price'] = order_leg.price
@@ -566,6 +570,7 @@ class PlaceModifyOrderParams(object):
                         if order_leg.outside_rth is not None:
                             params['profit_taker_rth'] = order_leg.outside_rth
                     if order_leg.leg_type == 'LOSS':
+                        leg_types.add('LOSS')
                         params['attach_type'] = 'LOSS'
                         if order_leg.price is not None:
                             params['stop_loss_price'] = order_leg.price
@@ -574,7 +579,7 @@ class PlaceModifyOrderParams(object):
                         if order_leg.outside_rth is not None:
                             params['stop_loss_rth'] = order_leg.outside_rth
                 # 括号订单(止盈和止损)
-                if len(self.order_legs) > 1:
+                if len(leg_types) == 2:
                     params['attach_type'] = 'BRACKETS'
 
         return params
