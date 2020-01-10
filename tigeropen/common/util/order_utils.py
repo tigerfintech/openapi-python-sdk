@@ -96,6 +96,8 @@ def limit_order_with_legs(account, contract, action, quantity, limit_price, orde
     :param order_legs: 附加订单列表
     :return:
     """
+    if order_legs and len(order_legs) > 2:
+        raise Exception('2 order legs at most')
     return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, order_legs=order_legs)
 
 

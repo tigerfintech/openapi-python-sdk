@@ -98,14 +98,14 @@ def trade_apis():
     print(result)
 
     # 限价单 + 附加订单 (仅主订单为限价单时支持附加订单)
-    stop_loss_order_legs = order_leg('LOSS', 8.0, time_in_force='GTC')  # 附加止损
-    profit_taker_order_legs = order_leg('PROFIT', 12.0, time_in_force='GTC')  # 附加止盈
+    stop_loss_order_leg = order_leg('LOSS', 8.0, time_in_force='GTC')  # 附加止损
+    profit_taker_order_leg = order_leg('PROFIT', 12.0, time_in_force='GTC')  # 附加止盈
 
     main_order = openapi_client.create_order(account, contract, 'BUY', 'LMT', quantity=100, limit_price=10.0,
-                                             order_legs=[stop_loss_order_legs, profit_taker_order_legs])
+                                             order_legs=[stop_loss_order_leg, profit_taker_order_leg])
     # 本地构造限价单 + 附加订单
     # main_order = limit_order_with_legs(account, contract, 'BUY', 100, limit_price=10.0,
-    # order_legs=[stop_loss_order_legs])
+    # order_legs=[stop_loss_order_leg])
 
     openapi_client.place_order(main_order)
     print(main_order)
