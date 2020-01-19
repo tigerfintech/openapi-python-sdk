@@ -7,12 +7,12 @@ Created on 2018/9/16
 from os import path
 from setuptools import find_packages, setup
 
-with open(path.join(path.abspath(path.dirname(__file__)), 'requirements.txt'), encoding='utf-8') as f:
+with open(path.join(path.abspath(path.dirname(__file__)), 'requirements.txt')) as f:
     install_requires = f.read()
 
 setup(
     name='tigeropen',
-    version='1.1.9',
+    version='1.1.10',
     description='TigerBrokers Open API',
     packages=find_packages(exclude=[]),
     author='TigerBrokers',

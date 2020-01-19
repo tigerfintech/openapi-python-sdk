@@ -228,7 +228,7 @@ class ContractParams(object):
 
     @expiry.setter
     def expiry(self, value):
-        self._expiry= value
+        self._expiry = value
 
     @property
     def strike(self):
@@ -358,6 +358,7 @@ class OrdersParams(object):
         self._end_date = None
         self._limit = None
         self._states = None
+        self._parent_id = None
 
     @property
     def account(self):
@@ -439,6 +440,14 @@ class OrdersParams(object):
     def states(self, value):
         self._states = value
 
+    @property
+    def parent_id(self):
+        return self._parent_id
+
+    @parent_id.setter
+    def parent_id(self, value):
+        self._parent_id = value
+
     def to_openapi_dict(self):
         params = dict()
         if self.account:
@@ -471,6 +480,9 @@ class OrdersParams(object):
         if self.states:
             params['states'] = self.states
 
+        if self.parent_id:
+            params['parent_id'] = self.parent_id
+
         return params
 
 
@@ -490,6 +502,7 @@ class PlaceModifyOrderParams(object):
         self.percent_offset = None
         self.time_in_force = None
         self.outside_rth = None
+        self.order_legs = None
 
     def to_openapi_dict(self):
         params = dict()
@@ -541,6 +554,33 @@ class PlaceModifyOrderParams(object):
                 params['time_in_force'] = self.time_in_force
             if self.outside_rth is not None:
                 params['outside_rth'] = self.outside_rth
+
+            if self.order_legs:
+                if len(self.order_legs) > 2:
+                    raise Exception('2 order legs at most')
+                leg_types = set()
+                for order_leg in self.order_legs:
+                    if order_leg.leg_type == 'PROFIT':
+                        leg_types.add('PROFIT')
+                        params['attach_type'] = 'PROFIT'
+                        if order_leg.price is not None:
+                            params['profit_taker_price'] = order_leg.price
+                        if order_leg.time_in_force is not None:
+                            params['profit_taker_tif'] = order_leg.time_in_force
+                        if order_leg.outside_rth is not None:
+                            params['profit_taker_rth'] = order_leg.outside_rth
+                    if order_leg.leg_type == 'LOSS':
+                        leg_types.add('LOSS')
+                        params['attach_type'] = 'LOSS'
+                        if order_leg.price is not None:
+                            params['stop_loss_price'] = order_leg.price
+                        if order_leg.time_in_force is not None:
+                            params['stop_loss_tif'] = order_leg.time_in_force
+                        if order_leg.outside_rth is not None:
+                            params['stop_loss_rth'] = order_leg.outside_rth
+                # 括号订单(止盈和止损)
+                if len(leg_types) == 2:
+                    params['attach_type'] = 'BRACKETS'
 
         return params
 
