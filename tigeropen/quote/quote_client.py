@@ -13,6 +13,7 @@ from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionT
 from tigeropen.common.exceptions import ApiException
 from tigeropen.fundamental.request.model import FinancialDailyParams, FinancialReportParams, CorporateActionParams
 from tigeropen.fundamental.response.corporate_dividend_response import CorporateDividendResponse
+from tigeropen.fundamental.response.corporate_earnings_calendar_response import EarningsCalendarResponse
 from tigeropen.fundamental.response.corporate_split_response import CorporateSplitResponse
 from tigeropen.fundamental.response.financial_report_response import FinancialReportResponse
 from tigeropen.fundamental.response.financial_daily_response import FinancialDailyResponse
@@ -310,7 +311,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_trade_ticks(self, symbols, begin_index=0, end_index=30, limit=30, lang=None):
+    def get_trade_ticks(self, symbols, begin_index=None, end_index=None, limit=None, lang=None):
         """
         获取逐笔成交
         :param symbols: 股票代号列表
@@ -864,6 +865,30 @@ class QuoteClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.corporate_dividend
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_corporate_earnings_calendar(self, market, begin_date, end_date):
+        """
+        获取公司财报日历
+        :param market:
+        :param begin_date: 起始时间
+        :param end_date: 截止时间
+        :return:
+        """
+        params = CorporateActionParams()
+        params.action_type = CorporateActionType.EARNINGS_CALENDAR.value
+        params.market = market.value
+        params.begin_date = begin_date
+        params.end_date = end_date
+
+        request = OpenApiRequest(CORPORATE_ACTION, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = EarningsCalendarResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.earnings_calendar
             else:
                 raise ApiException(response.code, response.message)
 
