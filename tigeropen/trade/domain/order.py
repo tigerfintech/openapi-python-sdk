@@ -14,37 +14,38 @@ class Order(object):
     __slots__ = ["account", "id", "order_id", "parent_id", "order_time", "reason", "trade_time", "contract", "action",
                  "quantity", "filled", "_remaining", "avg_fill_price", "commission", "realized_pnl", "_status",
                  "trail_stop_price", "limit_price", "aux_price", "trailing_percent", "percent_offset", "action",
-                 "order_type", "time_in_force", "outside_rth"]
+                 "order_type", "time_in_force", "outside_rth", "order_legs"]
 
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
                  outside_rth=None, filled=0, avg_fill_price=0, commission=None, realized_pnl=None,
-                 id=None, order_id=None, parent_id=None, order_time=None, trade_time=None):
+                 id=None, order_id=None, parent_id=None, order_time=None, trade_time=None, order_legs=None):
         """
         - account: 订单所属的账户
         - id: 全局订单 id
         - order_id: 账户自增订单号
-        - parent_id: 母订单id，目前只用于 TigerTrade App端的附加订单中
+        - parent_id: 主订单id, 目前只用于 TigerTrade App端的附加订单中
         - order_time: 下单时间
-        - reason: 下单失败时，会返回失败原因的描述
+        - reason: 下单失败时, 会返回失败原因的描述
         - trade_time: 最新成交时间
-        - action: 交易方向， 'BUY' / 'SELL'
+        - action: 交易方向, 'BUY' / 'SELL'
         - quantity: 下单数量
         - filled: 成交数量
         - avg_fill_price: 包含佣金的平均成交价
-        - commission: 包含佣金、印花税、证监会费等系列费用
+        - commission: 包含佣金, 印花税, 证监会费等系列费用
         - realized_pnl: 实现盈亏
         - trail_stop_price: 跟踪止损单--触发止损单的价格
         - limit_price: 限价单价格
-        - aux_price: 在止损单中，表示出发止损单的价格， 在移动止损单中， 表示跟踪的价差
-        - trailing_percent:  跟踪止损单-百分比，取值范围为0-100
+        - aux_price: 在止损单中, 表示出发止损单的价格, 在移动止损单中, 表示跟踪的价差
+        - trailing_percent:  跟踪止损单-百分比, 取值范围为0-100
         - percent_offset: None,
-        - order_type: 订单类型, 'MKT'市价单/'LMT'限价单/'STP'止损单/'STP_LMT'止损限价单/'TRAIL'跟踪止损单
-        - time_in_force: 有效期,'DAY'日内有效/'GTC'撤销前有效
-        - outside_rth: 是否支持盘前盘后交易，美股专属。
+        - order_type: 订单类型, 'MKT' 市价单 / 'LMT' 限价单 / 'STP' 止损单 / 'STP_LMT' 止损限价单 / 'TRAIL' 跟踪止损单
+        - time_in_force: 有效期,'DAY' 日内有效 / 'GTC' 撤销前有效
+        - outside_rth: 是否允许盘前盘后交易(outside of regular trading hours 美股专属). True 允许, False 不允许
         - contract: 合约对象
-        - status: Order_Status 的枚举， 表示订单状态
+        - status: Order_Status 的枚举, 表示订单状态
         - remaining: 未成交的数量
+        - order_legs: 附加订单列表
         """
 
         self.id = id
@@ -71,6 +72,7 @@ class Order(object):
         self.percent_offset = percent_offset
         self.order_time = order_time
         self.trade_time = trade_time
+        self.order_legs = order_legs
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
@@ -115,3 +117,27 @@ class Order(object):
         Unicode representation for this object.
         """
         return text_type(repr(self))
+
+
+class OrderLeg(object):
+    """
+    附加订单
+    """
+
+    def __init__(self, leg_type, price, time_in_force='DAY', outside_rth=None):
+        """
+        :param leg_type: 附加订单类型(仅限价单支持). PROFIT 止盈单类型, LOSS 止损单类型
+        :param price: 附加订单价格
+        :param time_in_force: 附加订单有效期. 'DAY'（当日有效）和'GTC'（取消前有效).
+        :param outside_rth: 附加订单是否允许盘前盘后交易(美股专属). True 允许, False 不允许.
+        """
+        self.leg_type = leg_type
+        self.price = price
+        self.time_in_force = time_in_force
+        self.outside_rth = outside_rth
+
+    def to_dict(self):
+        return self.__dict__
+
+    def __repr__(self):
+        return "OrderLeg(%s)" % self.to_dict()
