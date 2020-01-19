@@ -132,3 +132,4 @@ class CorporateActionType(Enum):
     """
     SPLIT = 'split'  # 拆合股
     DIVIDEND = 'dividend'  # 分红
+    EARNINGS_CALENDAR = 'earning'  # 财报日历
