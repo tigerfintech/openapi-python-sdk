@@ -104,6 +104,10 @@ def get_fundamental():
                                                                end_date='2019-01-01')
     print(corporate_dividend)
 
+    # 财报日历
+    earnings_calendar = openapi_client.get_corporate_earnings_calendar(Market.US, '2020-01-01', '2020-02-01')
+    print(earnings_calendar)
+
 
 if __name__ == '__main__':
     with pd.option_context('display.max_rows', None, 'display.max_columns', None):
