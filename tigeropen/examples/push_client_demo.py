@@ -90,6 +90,24 @@ def on_position_changed(account, items):
     print(account, items)
 
 
+def subscribe_callback(destination, content):
+    """
+    订阅成功与否的回调
+    :param destination: 订阅的类型. 有 quote, trade/asset, trade/position, trade/order
+    :param content: 回调信息. 如成功 {'code': 0, 'message': 'success'}; 若失败则 code 不为0, message 为错误详情
+    """
+    print('subscribe:{}, callback content:{}'.format(destination, content))
+
+
+def unsubscribe_callback(destination, content):
+    """
+    退订成功与否的回调
+    :param destination: 取消订阅的类型. 有 quote, trade/asset, trade/position, trade/order
+    :param content: 回调信息.
+    """
+    print('subscribe:{}, callback content:{}'.format(destination, content))
+
+
 # def connect_callback():
 #     """连接建立回调"""
 #     print('connected')
@@ -126,9 +144,14 @@ if __name__ == '__main__':
     # 持仓变动回调
     # push_client.position_changed = on_position_changed
 
+    # 订阅成功与否的回调
+    push_client.subscribe_callback = subscribe_callback
+    # 退订成功与否的回调
+    push_client.unsubscribe_callback = unsubscribe_callback
+
     # 建立推送连接
     push_client.connect(client_config.tiger_id, client_config.private_key)
-    # 断线重连
+    # 断线重连回调
     # push_client.disconnect_callback = disconnect_callback
 
     # 订阅行情
