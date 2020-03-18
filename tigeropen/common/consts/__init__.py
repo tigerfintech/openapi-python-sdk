@@ -133,3 +133,14 @@ class CorporateActionType(Enum):
     SPLIT = 'split'  # 拆合股
     DIVIDEND = 'dividend'  # 分红
     EARNINGS_CALENDAR = 'earning'  # 财报日历
+
+
+@unique
+class IndustryLevel(Enum):
+    """
+    行业级别. 级别从1级到4级依次为: GSECTOR, GGROUP, GIND, GSUBIND
+    """
+    GSECTOR = 'GSECTOR'
+    GGROUP = 'GGROUP'
+    GIND = 'GIND'
+    GSUBIND = 'GSUBIND'
