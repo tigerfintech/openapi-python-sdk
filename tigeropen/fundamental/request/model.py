@@ -207,3 +207,59 @@ class CorporateActionParams(object):
 
         return params
 
+
+class IndustryParams(object):
+    def __init__(self):
+        self._industry_level = None
+        self._industry_id = None
+        self._market = None
+        self._symbol = None
+
+    @property
+    def industry_level(self):
+        return self._industry_level
+
+    @industry_level.setter
+    def industry_level(self, value):
+        self._industry_level = value
+
+    @property
+    def industry_id(self):
+        return self._industry_id
+
+    @industry_id.setter
+    def industry_id(self, value):
+        self._industry_id = value
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
+
+    def to_openapi_dict(self):
+        params = dict()
+
+        if self.industry_level:
+            params['industry_level'] = self.industry_level
+
+        if self.industry_id:
+            params['industry_id'] = self.industry_id
+
+        if self.market:
+            params['market'] = self.market
+
+        if self.symbol:
+            params['symbol'] = self.symbol
+
+        return params
