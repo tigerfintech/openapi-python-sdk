@@ -26,7 +26,7 @@ class MarketStatusResponse(TigerResponse):
 
         if self.data and isinstance(self.data, list):
             for item in self.data:
-                market, status, open_time = None, None, None
+                market, status, open_time, trading_status = None, None, None, None
                 for key, value in item.items():
                     if value is None:
                         continue
@@ -38,6 +38,9 @@ class MarketStatusResponse(TigerResponse):
                         if value.endswith(' EDT') or value.endswith(' EST'):
                             value = value[0:len(value) - 4]
                         open_time = dateparser.parse(value)
+                    elif key == 'status':
+                        trading_status = get_string(value)
+
                 if open_time and market:
                     if market == 'US':
                         open_time = eastern.localize(open_time)
@@ -45,5 +48,5 @@ class MarketStatusResponse(TigerResponse):
                         open_time = hongkong.localize(open_time)
                     elif market == 'CN':
                         open_time = china.localize(open_time)
-                market_status = MarketStatus(market, status, open_time)
+                market_status = MarketStatus(market, status, open_time, trading_status)
                 self.markets.append(market_status)
