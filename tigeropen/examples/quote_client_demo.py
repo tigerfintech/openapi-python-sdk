@@ -110,13 +110,13 @@ def get_fundamental():
 
     # 行业数据
     # 获取行业列表
-    industries = quote_client.get_industry_list(IndustryLevel.GGROUP)
+    industries = openapi_client.get_industry_list(IndustryLevel.GGROUP)
     print(industries)
     # 获取某行业下公司列表
-    industry_stocks = quote_client.get_industry_stocks(50101020)
+    industry_stocks = openapi_client.get_industry_stocks(50101020)
     print(industry_stocks)
     # 获取某股票的行业
-    stock_industry = quote_client.get_stock_industry('AAPL', Market.US)
+    stock_industry = openapi_client.get_stock_industry('AAPL', Market.US)
     print(stock_industry)
 
 
