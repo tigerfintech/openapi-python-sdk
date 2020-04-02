@@ -7,7 +7,6 @@ Created on 2018/9/20
 import logging
 import traceback
 
-from tigeropen.common.consts import Currency, SecurityType
 from tigeropen.trade.domain.order import OrderStatus
 from tigeropen.trade.request.model import AccountsParams
 from tigeropen.common.response import TigerResponse
@@ -15,6 +14,7 @@ from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.trade_client import TradeClient
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.examples.client_config import get_client_config
+# from tigeropen.common.consts import Currency, SecurityType
 # from tigeropen.common.util.contract_utils import stock_contract, option_contract_by_symbol, future_contract, \
 #     war_contract_by_symbol, iopt_contract_by_symbol
 from tigeropen.common.util.order_utils import limit_order, limit_order_with_legs, order_leg
