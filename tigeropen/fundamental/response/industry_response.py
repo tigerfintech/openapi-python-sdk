@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import pandas as pd
-import six
-from tigeropen.common.consts import Market
 from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.response import TigerResponse
 
