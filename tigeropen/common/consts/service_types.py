@@ -65,3 +65,9 @@ FUTURE_TRADING_DATE = "future_trading_date"
 FINANCIAL_DAILY = 'financial_daily'
 FINANCIAL_REPORT = 'financial_report'
 CORPORATE_ACTION = 'corporate_action'
+
+# 行业数据
+INDUSTRY_LIST = 'industry_list'
+INDUSTRY_STOCKS = 'industry_stocks'
+STOCK_INDUSTRY = 'stock_industry'
+

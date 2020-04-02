@@ -14,6 +14,7 @@ from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.trade_client import TradeClient
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.examples.client_config import get_client_config
+# from tigeropen.common.consts import Currency, SecurityType
 # from tigeropen.common.util.contract_utils import stock_contract, option_contract_by_symbol, future_contract, \
 #     war_contract_by_symbol, iopt_contract_by_symbol
 from tigeropen.common.util.order_utils import limit_order, limit_order_with_legs, order_leg
@@ -68,15 +69,22 @@ def trade_apis():
     account = client_config.account
     openapi_client = TradeClient(client_config, logger=logger)
 
-    # stock
+    # 通过请求获取合约
     contract = openapi_client.get_contracts('AAPL')[0]
-    # 或者本地构造合约对象
-    # contract = stock_contract(symbol='AAPL', currency='USD')
+    # contract = openapi_client.get_contract('AAPL', SecurityType.STK, currency=Currency.USD)
 
-    # option
+    # 本地构造合约
+    # stock 股票
+    # contract = stock_contract(symbol='AAPL', currency='USD')
+    # option 期权
     # contract = option_contract(identifier='AAPL  190118P00160000')
-    # future
+    # contract = option_contract_by_symbol('AAPL', '20200110', strike=280.0, put_call='PUT', currency='USD')
+    # future 期货
     # contract = future_contract('CHF', 'USD', '20190617', multiplier=125000, exchange='GLOBEX')
+    # war 港股窝轮
+    # contract = war_contract_by_symbol('02318', '20200326', 107.08, 'CALL', local_symbol='12616', currency='HKD')
+    # iopt 港股牛熊证
+    # contract = iopt_contract_by_symbol('02318', '20200420', 87.4, 'CALL', local_symbol='63379', currency='HKD')
 
     order = openapi_client.create_order(account, contract, 'BUY', 'LMT', 100, limit_price=5.0)
     # 或者本地构造订单对象
