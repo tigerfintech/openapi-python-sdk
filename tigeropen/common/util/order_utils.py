@@ -4,7 +4,7 @@ Created on 2018/11/1
 
 @author: gaoan
 """
-from tigeropen.trade.domain.order import Order, OrderLeg
+from tigeropen.trade.domain.order import Order, OrderLeg, AlgoParams
 from tigeropen.common.consts import OrderStatus
 
 
@@ -99,6 +99,36 @@ def limit_order_with_legs(account, contract, action, quantity, limit_price, orde
     if order_legs and len(order_legs) > 2:
         raise Exception('2 order legs at most')
     return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, order_legs=order_legs)
+
+
+def algo_order_params(start_time=None, end_time=None, no_take_liq=None, allow_past_end_time=None, participation_rate=None):
+    """
+    算法订单参数
+    :param start_time: 生效开始时间(时间戳 TWAP和VWAP专用)
+    :param end_time: 生效结束时间(时间戳 TWAP和VWAP专用)
+    :param no_take_liq: 是否尽可能减少交易次数(VWAP订单专用)
+    :param allow_past_end_time: 是否允许生效时间结束后继续完成成交(TWAP和VWAP专用)
+    :param participation_rate: 参与率(VWAP专用,0.01-0.5)
+    :return:
+    """
+    return AlgoParams(start_time=start_time, end_time=end_time, no_take_liq=no_take_liq,
+                      allow_past_end_time=allow_past_end_time, participation_rate=participation_rate)
+
+
+def algo_order(account, contract, action, quantity, strategy, algo_params=None, limit_price=None):
+    """
+    算法订单
+    :param account:
+    :param contract:
+    :param action:
+    :param quantity:
+    :param strategy: 交易量加权平均价格（VWAP）/时间加权平均价格(TWAP)
+    :param algo_params: tigeropen.trade.domain.order.AlgoParams
+    :param limit_price:
+    :return:
+    """
+    return Order(account, contract, action, order_type=strategy, quantity=quantity, algo_params=algo_params,
+                 limit_price=limit_price, outside_rth=False)
 
 
 def get_order_status(value):

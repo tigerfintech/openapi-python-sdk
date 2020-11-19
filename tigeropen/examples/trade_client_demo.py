@@ -15,9 +15,10 @@ from tigeropen.trade.trade_client import TradeClient
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.examples.client_config import get_client_config
 # from tigeropen.common.consts import Currency, SecurityType
-# from tigeropen.common.util.contract_utils import stock_contract, option_contract_by_symbol, future_contract, \
-#     war_contract_by_symbol, iopt_contract_by_symbol
-from tigeropen.common.util.order_utils import limit_order, limit_order_with_legs, order_leg
+from tigeropen.common.util.contract_utils import stock_contract, option_contract_by_symbol, future_contract, \
+     war_contract_by_symbol, iopt_contract_by_symbol
+from tigeropen.common.util.order_utils import limit_order, limit_order_with_legs, order_leg, algo_order_params, \
+    algo_order
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s',
@@ -120,6 +121,17 @@ def trade_apis():
     # 查询主订单所关联的附加订单
     order_legs = openapi_client.get_open_orders(account, parent_id=main_order.order_id)
     print(order_legs)
+
+
+def algo_order_demo():
+    account = client_config.account
+    openapi_client = TradeClient(client_config, logger=logger)
+    contract = stock_contract(symbol='AAPL', currency='USD')
+    params = algo_order_params(start_time='2020-11-19 23:00:00', end_time='2020-11-19 23:50:00', no_take_liq=True,
+                               allow_past_end_time=True, participation_rate=0.1)
+    order = algo_order(account, contract, 'BUY', 1000, 'VWAP', algo_params=params, limit_price=100.0)
+    openapi_client.place_order(order)
+    print(order)
 
 
 if __name__ == '__main__':
