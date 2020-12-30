@@ -65,11 +65,9 @@ STOCK_NOTICE_COLUMNS = [
 ]
 
 COLUMNS = ['symbol', 'market', 'exchange', 'sec_type', 'name', 'shortable', 'latest_price', 'pre_close',
-           'adj_pre_close',
-           'trading_status', 'market_status', 'timestamp', 'latest_time',
+           'adj_pre_close', 'trading_status', 'market_status', 'timestamp', 'latest_time',
            'open', 'high', 'low', 'volume', 'amount', 'ask_price', 'ask_size', 'bid_price', 'bid_size', 'change',
-           'amplitude',
-           'halted', 'delay', 'float_shares', 'shares', 'eps', 'etf', 'listing_date', 'adr_rate'
+           'amplitude', 'halted', 'delay', 'float_shares', 'shares', 'eps', 'etf', 'listing_date', 'adr_rate'
            ] + HOUR_TRADING_COLUMNS + NEXT_MARKET_STATUS_COLUMNS + STOCK_SPLIT_COLUMNS + STOCK_RIGHT_COLUMNS \
           + SYMBOL_CHANGE_COLUMNS + STOCK_NOTICE_COLUMNS
 
