@@ -39,6 +39,9 @@ def get_quote():
     print(ticks)
     short_interest = openapi_client.get_short_interest(['GOOG', 'AAPL', '00700'])
     print(short_interest)
+    # 股票详情
+    stock_details = openapi_client.get_stock_details(['AAPL', '03690'])
+    print(stock_details)
 
 
 def get_option_quote():
