@@ -35,6 +35,7 @@ from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
+from tigeropen.quote.response.stock_details_response import StockDetailsResponse
 from tigeropen.quote.response.stock_short_interest_response import ShortInterestResponse
 from tigeropen.quote.response.stock_trade_meta_response import TradeMetaResponse
 from tigeropen.quote.response.symbol_names_response import SymbolNamesResponse
@@ -51,7 +52,7 @@ from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
     FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
     FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE, FINANCIAL_DAILY, FINANCIAL_REPORT, CORPORATE_ACTION, \
-    INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY
+    INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod
 from tigeropen.common.util.contract_utils import extract_option_info
 from tigeropen.common.util.common_utils import eastern
@@ -204,7 +205,7 @@ class QuoteClient(TigerOpenClient):
         """
         获取股票实时行情
         :param symbols: 股票代号列表
-        :param lang: 语言支持: zh_CN,zh_TW,en_US
+        :param lang: 语言支持: tigeropen.common.consts.Language:  zh_CN,zh_TW,en_US
         :return: pandas.DataFrame.  各 column 含义如下：
             symbol: 证券代码
             ask_price: 卖一价
@@ -240,6 +241,58 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
+        return None
+
+    def get_stock_details(self, symbols, lang=None):
+        """
+        获取股票详情
+        :param symbols: 股票代号列表
+        :param lang: 语言支持: zh_CN,zh_TW,en_US
+        :return: pandas.DataFrame.  各 column 含义如下：
+            symbol: 代码
+            market: 市场
+            sec_type: 证券类型
+            exchange: 交易所
+            name: 名称
+            shortable: 做空信息
+            ask_price: 卖一价
+            ask_size: 卖一量
+            bid_price: 买一价
+            bid_size: 买一量
+            pre_close: 前收价
+            latest_price: 最新价
+            adj_pre_close: 复权后前收价
+            latest_time: 最新成交时间
+            volume: 成交量
+            open: 开盘价
+            high: 最高价
+            low: 最低价
+            change: 涨跌额
+            amount: 成交额
+            amplitude: 振幅
+            market_status: 市场状态 （未开盘，交易中，休市等）
+            trading_status:   0: 非交易状态 1: 盘前交易（盘前竞价） 2: 交易中 3: 盘后交易（收市竞价）
+            float_shares: 流通股本
+            shares: 总股本
+            eps: 每股收益
+            adr_rate: ADR的比例数据，非ADR的股票为None
+            etf: 非0表示该股票是ETF,1表示不带杠杆的etf,2表示2倍杠杆etf,3表示3倍etf杠杆
+            listing_date: 上市日期时间戳（该市场当地时间零点），该key可能不存在
+            更多字段见 tigeropen.quote.response.stock_details_response.StockDetailsResponse
+        """
+        params = MultipleQuoteParams()
+        params.symbols = symbols
+        params.lang = lang.value if lang else self._lang.value
+
+        request = OpenApiRequest(STOCK_DETAIL, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = StockDetailsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.details
+            else:
+                raise ApiException(response.code, response.message)
         return None
 
     def get_timeline(self, symbols, include_hour_trading=False, begin_time=-1, lang=None):
