@@ -109,7 +109,8 @@ class StockDetailsResponse(TigerResponse):
         response = super(StockDetailsResponse, self).parse_response_content(response_content)
         if 'is_success' in response:
             self._is_success = response['is_success']
-
+        if not self.data:
+            return
         detail_data = []
         data_json = json.loads(self.data)
         item_values = {}
