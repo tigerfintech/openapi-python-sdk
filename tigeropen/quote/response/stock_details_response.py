@@ -113,8 +113,8 @@ class StockDetailsResponse(TigerResponse):
             return
         detail_data = []
         data_json = json.loads(self.data)
-        item_values = {}
         for item in data_json.get('items', {}):
+            item_values = dict()
             for key, value in item.items():
                 if value is None:
                     continue
