@@ -47,7 +47,7 @@ ORDER_KEYS_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTyp
                        'latestTime': 'trade_time', 'contractId': 'contract_id', 'trailStopPrice': 'trail_stop_price',
                        'trailingPercent': 'trailing_percent', 'percentOffset': 'percent_offset', 'action': 'action',
                        'status': 'status', 'currency': 'currency', 'remaining': 'remaining', 'id': 'id',
-                       'segment': 'segment', 'identifier': 'identifier'}
+                       'segment': 'segment', 'identifier': 'identifier', 'replaceStatus': 'replace_status'}
 
 if sys.platform == 'linux' or sys.platform == 'linux2':
     KEEPALIVE = True
