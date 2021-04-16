@@ -36,6 +36,7 @@ class TigerOpenClient(object):
             "Connection": "Keep-Alive",
             "User-Agent": 'openapi-python-sdk-' + OPEN_API_SDK_VERSION
         }
+        self.__device_id = self.__get_device_id()
 
     """
     内部方法，从params中抽取公共参数
@@ -49,9 +50,21 @@ class TigerOpenClient(object):
         common_params[P_CHARSET] = self.__config.charset
         common_params[P_VERSION] = params[P_VERSION]
         common_params[P_SIGN_TYPE] = self.__config.sign_type
+        common_params[P_DEVICE_ID] = self.__device_id
         if has_value(params, P_NOTIFY_URL):
             common_params[P_NOTIFY_URL] = params[P_NOTIFY_URL]
         return common_params
+
+    @staticmethod
+    def __get_device_id():
+        """
+        获取mac地址作为device_id
+        :return:
+        """
+        try:
+            return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
+        except:
+            return None
 
     """
     内部方法，从params中移除公共参数
