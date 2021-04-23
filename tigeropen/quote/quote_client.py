@@ -76,7 +76,7 @@ class QuoteClient(TigerOpenClient):
             response = super(QuoteClient, self).execute(request)
             return response
         except Exception as e:
-            if THREAD_LOCAL.logger:
+            if hasattr(THREAD_LOCAL, 'logger') and THREAD_LOCAL.logger:
                 THREAD_LOCAL.logger.error(e, exc_info=True)
             raise e
 

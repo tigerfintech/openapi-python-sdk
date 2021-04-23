@@ -7,7 +7,6 @@ Created on 2018/9/20
 from __future__ import unicode_literals
 import datetime
 import uuid
-import sys
 
 from tigeropen.common.consts import *
 from tigeropen.common.consts.params import *
@@ -17,8 +16,15 @@ from tigeropen.common.util.web_utils import *
 from tigeropen.common.exceptions import *
 
 if not PYTHON_VERSION_3:
+    import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
+
+try:
+    from getmac import get_mac_address
+except ImportError:
+    def get_mac_address():
+        return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
 
 
 class TigerOpenClient(object):
@@ -62,7 +68,7 @@ class TigerOpenClient(object):
         :return:
         """
         try:
-            return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
+            return get_mac_address()
         except:
             return None
 
