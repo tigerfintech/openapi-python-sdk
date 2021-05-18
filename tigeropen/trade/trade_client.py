@@ -279,9 +279,10 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_open_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                        end_time=None):
+                        end_time=None, parent_id=None):
         """
         获取待成交订单列表. 参数同 get_orders
+        :param parent_id: 主订单 order_id
         """
         params = OrdersParams()
         params.account = account if account else self._account
@@ -291,6 +292,7 @@ class TradeClient(TigerOpenClient):
         params.symbol = symbol
         params.start_date = start_time
         params.end_date = end_time
+        params.parent_id = parent_id
         request = OpenApiRequest(ACTIVE_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -377,7 +379,7 @@ class TradeClient(TigerOpenClient):
 
     def create_order(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
-                     outside_rth=None):
+                     outside_rth=None, order_legs=None, algo_params=None):
         """
         创建订单对象.
         :param account:
@@ -392,7 +394,8 @@ class TradeClient(TigerOpenClient):
         :param percent_offset:
         :param time_in_force: 订单有效期， 'DAY'（当日有效）和'GTC'（取消前有效)
         :param outside_rth: 是否允许盘前盘后交易(美股专属)
-        :return:
+        :param order_legs: 附加订单
+        :param algo_params: 算法订单参数
         """
         params = AccountsParams()
         params.account = account if account else self._account
@@ -406,7 +409,8 @@ class TradeClient(TigerOpenClient):
                 order = Order(account, contract, action, order_type, quantity, limit_price=limit_price,
                               aux_price=aux_price, trail_stop_price=trail_stop_price,
                               trailing_percent=trailing_percent, percent_offset=percent_offset,
-                              time_in_force=time_in_force, outside_rth=outside_rth, order_id=order_id)
+                              time_in_force=time_in_force, outside_rth=outside_rth, order_id=order_id,
+                              order_legs=order_legs, algo_params=algo_params)
                 return order
             else:
                 raise ApiException(response.code, response.message)
@@ -476,6 +480,9 @@ class TradeClient(TigerOpenClient):
         params.percent_offset = order.percent_offset
         params.time_in_force = order.time_in_force
         params.outside_rth = order.outside_rth
+        params.order_legs = order.order_legs
+        params.algo_params = order.algo_params
+
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -483,7 +490,11 @@ class TradeClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 order.id = response.id
-                return response.order_id == order.order_id if order.order_id else True
+                if order.order_id:
+                    return response.order_id == order.order_id
+                else:
+                    order.order_id = response.order_id
+                    return True
             else:
                 raise ApiException(response.code, response.message)
 

@@ -7,7 +7,7 @@ Created on 2018/10/31
 import logging
 import pandas as pd
 from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, Valuation, \
-    Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability
+    Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, IndustryLevel
 
 from tigeropen.quote.quote_client import QuoteClient
 
@@ -42,6 +42,9 @@ def get_quote():
     # 获取深度行情
     order_book = openapi_client.get_order_book(['02828'])
     print(order_book)
+    # 股票详情
+    stock_details = openapi_client.get_stock_details(['AAPL', '03690'])
+    print(stock_details)
 
 
 def get_option_quote():
@@ -106,6 +109,21 @@ def get_fundamental():
                                                                begin_date='2018-01-01',
                                                                end_date='2019-01-01')
     print(corporate_dividend)
+
+    # 财报日历
+    earnings_calendar = openapi_client.get_corporate_earnings_calendar(Market.US, '2020-01-01', '2020-02-01')
+    print(earnings_calendar)
+
+    # 行业数据
+    # 获取行业列表
+    industries = openapi_client.get_industry_list(IndustryLevel.GGROUP)
+    print(industries)
+    # 获取某行业下公司列表
+    industry_stocks = openapi_client.get_industry_stocks(50101020)
+    print(industry_stocks)
+    # 获取某股票的行业
+    stock_industry = openapi_client.get_stock_industry('AAPL', Market.US)
+    print(stock_industry)
 
 
 if __name__ == '__main__':

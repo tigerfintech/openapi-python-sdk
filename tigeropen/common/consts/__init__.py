@@ -31,6 +31,7 @@ class Market(Enum):
     US = 'US'  # 美股
     HK = 'HK'  # 港股
     CN = 'CN'  # A股
+    SG = 'SG'  # 新加坡
 
 
 @unique
@@ -62,6 +63,7 @@ class Currency(Enum):
     USD = 'USD'  # 美元
     HKD = 'HKD'  # 港币
     CNH = 'CNH'  # 离岸人民币
+    SGD = 'SGD'  # 新加坡币
 
 
 @unique
@@ -132,3 +134,15 @@ class CorporateActionType(Enum):
     """
     SPLIT = 'split'  # 拆合股
     DIVIDEND = 'dividend'  # 分红
+    EARNINGS_CALENDAR = 'earning'  # 财报日历
+
+
+@unique
+class IndustryLevel(Enum):
+    """
+    行业级别. 级别从1级到4级依次为: GSECTOR, GGROUP, GIND, GSUBIND
+    """
+    GSECTOR = 'GSECTOR'
+    GGROUP = 'GGROUP'
+    GIND = 'GIND'
+    GSUBIND = 'GSUBIND'

@@ -68,7 +68,7 @@ def do_post(url, query_string=None, headers=None, params=None, timeout=15, chars
     response = connection.getresponse()
     result = response.read()
 
-    if response.status is not 200:
+    if response.status != 200:
         if PYTHON_VERSION_3 and charset:
             result = result.decode(charset)
         raise ResponseException('[' + THREAD_LOCAL.uuid + ']invalid http status ' + str(response.status) +
