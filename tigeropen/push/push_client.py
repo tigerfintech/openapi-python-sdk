@@ -47,7 +47,7 @@ ORDER_KEYS_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTyp
                        'latestTime': 'trade_time', 'contractId': 'contract_id', 'trailStopPrice': 'trail_stop_price',
                        'trailingPercent': 'trailing_percent', 'percentOffset': 'percent_offset', 'action': 'action',
                        'status': 'status', 'currency': 'currency', 'remaining': 'remaining', 'id': 'id',
-                       'segment': 'segment', 'identifier': 'identifier'}
+                       'segment': 'segment', 'identifier': 'identifier', 'replaceStatus': 'replace_status'}
 
 if sys.platform == 'linux' or sys.platform == 'linux2':
     KEEPALIVE = True
@@ -77,7 +77,6 @@ class PushClient(stomp.ConnectionListener):
         self._asset_counter = 0
         self._position_counter = 0
         self._order_counter = 0
-        # self.subscriptions = {}  # subscription callbacks indexed by subscriber's ID
 
         self.subscribed_symbols = None
         self.quote_changed = None
@@ -86,6 +85,8 @@ class PushClient(stomp.ConnectionListener):
         self.order_changed = None
         self.connect_callback = None
         self.disconnect_callback = None
+        self.subscribe_callback = None
+        self.unsubscribe_callback = None
         self.error_callback = None
         self._connection_timeout = connection_timeout
         self._auto_reconnect = auto_reconnect
@@ -226,11 +227,21 @@ class PushClient(stomp.ConnectionListener):
                                 items.append((ORDER_KEYS_MAPPINGS.get(key), value))
                         if items:
                             self.order_changed(account, items)
+            elif response_type == str(ResponseType.GET_SUBSCRIBE_END.value):
+                if self.subscribe_callback:
+                    self.subscribe_callback(headers.get('destination'), json.loads(body))
+            elif response_type == str(ResponseType.GET_CANCEL_SUBSCRIBE_END.value):
+                if self.unsubscribe_callback:
+                    self.unsubscribe_callback(headers.get('destination'), json.loads(body))
+            elif response_type == str(ResponseType.ERROR_END.value):
+                if self.error_callback:
+                    self.error_callback(body)
         except Exception as e:
             logging.error(e, exc_info=True)
 
     def on_error(self, headers, body):
-        pass
+        if self.error_callback:
+            self.error_callback(body)
 
     @staticmethod
     def _get_subscribe_id(counter):

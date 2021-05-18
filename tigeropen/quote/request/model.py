@@ -227,6 +227,8 @@ class MultipleQuoteParams(MarketParams):
         self._begin_time = None
         self._end_time = None
         self._limit = None
+        self._begin_index = None
+        self._end_index = None
 
     @property
     def symbols(self):
@@ -292,6 +294,22 @@ class MultipleQuoteParams(MarketParams):
     def limit(self, value):
         self._limit = value
 
+    @property
+    def begin_index(self):
+        return self._begin_index
+
+    @begin_index.setter
+    def begin_index(self, value):
+        self._begin_index = value
+
+    @property
+    def end_index(self):
+        return self._end_index
+
+    @end_index.setter
+    def end_index(self, value):
+        self._end_index = value
+
     def to_openapi_dict(self):
         params = super(MultipleQuoteParams, self).to_openapi_dict()
 
@@ -318,6 +336,12 @@ class MultipleQuoteParams(MarketParams):
 
         if self.limit:
             params['limit'] = self.limit
+
+        if self.begin_index:
+            params['begin_index'] = self.begin_index
+
+        if self.end_index:
+            params['end_index'] = self.end_index
 
         return params
 

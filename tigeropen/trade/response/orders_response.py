@@ -10,7 +10,7 @@ from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.trade.domain.contract import Contract
-from tigeropen.trade.domain.order import Order
+from tigeropen.trade.domain.order import Order, AlgoParams
 from tigeropen.trade.response import CONTRACT_FIELDS
 
 ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderType': 'order_type',
@@ -22,7 +22,7 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'timeInForce': 'time_in_force', 'openTime': 'order_time', 'latestTime': 'trade_time',
                         'contractId': 'contract_id',
                         'trailStopPrice': 'trail_stop_price', 'trailingPercent': 'trailing_percent',
-                        'percentOffset': 'percent_offset', 'identifier': 'identifier'}
+                        'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params'}
 
 
 class OrdersResponse(TigerResponse):
@@ -97,12 +97,13 @@ class OrdersResponse(TigerResponse):
         order_id = order_fields.get('order_id')
         parent_id = order_fields.get('parent_id')
         status = get_order_status(order_fields.get('status'))
+        algo_params = AlgoParams.from_tags(order_fields.get('algo_params'))
 
         order = Order(account, contract, action, order_type, quantity, limit_price=limit_price, aux_price=aux_price,
                       trail_stop_price=trail_stop_price, trailing_percent=trailing_percent,
                       percent_offset=percent_offset, time_in_force=time_in_force, outside_rth=outside_rth,
                       filled=filled, avg_fill_price=avg_fill_price, commission=commission,
-                      realized_pnl=realized_pnl, id=id, order_id=order_id, parent_id=parent_id)
+                      realized_pnl=realized_pnl, id=id, order_id=order_id, parent_id=parent_id, algo_params=algo_params)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:

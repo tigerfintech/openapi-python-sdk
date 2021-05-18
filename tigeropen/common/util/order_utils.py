@@ -4,7 +4,7 @@ Created on 2018/11/1
 
 @author: gaoan
 """
-from tigeropen.trade.domain.order import Order
+from tigeropen.trade.domain.order import Order, OrderLeg, AlgoParams
 from tigeropen.common.consts import OrderStatus
 
 
@@ -72,6 +72,63 @@ def trail_order(account, contract, action, quantity, trailing_percent=None, aux_
     :return:
     """
     return Order(account, contract, action, 'TRAIL', quantity, trailing_percent=trailing_percent, aux_price=aux_price)
+
+
+def order_leg(leg_type, price, time_in_force='DAY', outside_rth=None):
+    """
+    附加订单
+    :param leg_type: 附加订单类型. PROFIT 止盈单类型,  LOSS 止损单类型
+    :param price: 附加订单价格.
+    :param time_in_force: 附加订单有效期. 'DAY'（当日有效）和'GTC'（取消前有效 Good-Til-Canceled).
+    :param outside_rth: 附加订单是否允许盘前盘后交易(美股专属). True 允许, False 不允许.
+    """
+    return OrderLeg(leg_type=leg_type, price=price, time_in_force=time_in_force, outside_rth=outside_rth)
+
+
+def limit_order_with_legs(account, contract, action, quantity, limit_price, order_legs=None):
+    """
+    限价单 + 附加订单(仅环球账户支持)
+    :param account:
+    :param contract:
+    :param action: BUY/SELL
+    :param quantity:
+    :param limit_price: 限价单价格
+    :param order_legs: 附加订单列表
+    :return:
+    """
+    if order_legs and len(order_legs) > 2:
+        raise Exception('2 order legs at most')
+    return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, order_legs=order_legs)
+
+
+def algo_order_params(start_time=None, end_time=None, no_take_liq=None, allow_past_end_time=None, participation_rate=None):
+    """
+    算法订单参数
+    :param start_time: 生效开始时间(时间戳 TWAP和VWAP专用)
+    :param end_time: 生效结束时间(时间戳 TWAP和VWAP专用)
+    :param no_take_liq: 是否尽可能减少交易次数(VWAP订单专用)
+    :param allow_past_end_time: 是否允许生效时间结束后继续完成成交(TWAP和VWAP专用)
+    :param participation_rate: 参与率(VWAP专用,0.01-0.5)
+    :return:
+    """
+    return AlgoParams(start_time=start_time, end_time=end_time, no_take_liq=no_take_liq,
+                      allow_past_end_time=allow_past_end_time, participation_rate=participation_rate)
+
+
+def algo_order(account, contract, action, quantity, strategy, algo_params=None, limit_price=None):
+    """
+    算法订单
+    :param account:
+    :param contract:
+    :param action:
+    :param quantity:
+    :param strategy: 交易量加权平均价格（VWAP）/时间加权平均价格(TWAP)
+    :param algo_params: tigeropen.trade.domain.order.AlgoParams
+    :param limit_price:
+    :return:
+    """
+    return Order(account, contract, action, order_type=strategy, quantity=quantity, algo_params=algo_params,
+                 limit_price=limit_price, outside_rth=False)
 
 
 def get_order_status(value):

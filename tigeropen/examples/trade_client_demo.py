@@ -14,8 +14,11 @@ from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.trade_client import TradeClient
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.examples.client_config import get_client_config
-# from tigeropen.common.util.contract_utils import stock_contract, option_contract, future_contract
-# from tigeropen.common.util.order_utils import limit_order
+# from tigeropen.common.consts import Currency, SecurityType
+from tigeropen.common.util.contract_utils import stock_contract, option_contract_by_symbol, future_contract, \
+     war_contract_by_symbol, iopt_contract_by_symbol
+from tigeropen.common.util.order_utils import limit_order, limit_order_with_legs, order_leg, algo_order_params, \
+    algo_order
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s',
@@ -67,15 +70,22 @@ def trade_apis():
     account = client_config.account
     openapi_client = TradeClient(client_config, logger=logger)
 
-    # stock
+    # 通过请求获取合约
     contract = openapi_client.get_contracts('AAPL')[0]
-    # 或者本地构造合约对象
-    # contract = stock_contract(symbol='AAPL', currency='USD')
+    # contract = openapi_client.get_contract('AAPL', SecurityType.STK, currency=Currency.USD)
 
-    # option
+    # 本地构造合约
+    # stock 股票
+    # contract = stock_contract(symbol='AAPL', currency='USD')
+    # option 期权
     # contract = option_contract(identifier='AAPL  190118P00160000')
-    # future
+    # contract = option_contract_by_symbol('AAPL', '20200110', strike=280.0, put_call='PUT', currency='USD')
+    # future 期货
     # contract = future_contract('CHF', 'USD', '20190617', multiplier=125000, exchange='GLOBEX')
+    # war 港股窝轮
+    # contract = war_contract_by_symbol('02318', '20200326', 107.08, 'CALL', local_symbol='12616', currency='HKD')
+    # iopt 港股牛熊证
+    # contract = iopt_contract_by_symbol('02318', '20200420', 87.4, 'CALL', local_symbol='63379', currency='HKD')
 
     order = openapi_client.create_order(account, contract, 'BUY', 'LMT', 100, limit_price=5.0)
     # 或者本地构造订单对象
@@ -95,6 +105,33 @@ def trade_apis():
     # 预览订单 (下单前后保证金要求, 佣金等预览)
     result = openapi_client.preview_order(order)
     print(result)
+
+    # 限价单 + 附加订单 (仅主订单为限价单时支持附加订单)
+    stop_loss_order_leg = order_leg('LOSS', 8.0, time_in_force='GTC')  # 附加止损
+    profit_taker_order_leg = order_leg('PROFIT', 12.0, time_in_force='GTC')  # 附加止盈
+
+    main_order = openapi_client.create_order(account, contract, 'BUY', 'LMT', quantity=100, limit_price=10.0,
+                                             order_legs=[stop_loss_order_leg, profit_taker_order_leg])
+    # 本地构造限价单 + 附加订单
+    # main_order = limit_order_with_legs(account, contract, 'BUY', 100, limit_price=10.0,
+    # order_legs=[stop_loss_order_leg])
+
+    openapi_client.place_order(main_order)
+    print(main_order)
+    # 查询主订单所关联的附加订单
+    order_legs = openapi_client.get_open_orders(account, parent_id=main_order.order_id)
+    print(order_legs)
+
+
+def algo_order_demo():
+    account = client_config.account
+    openapi_client = TradeClient(client_config, logger=logger)
+    contract = stock_contract(symbol='AAPL', currency='USD')
+    params = algo_order_params(start_time='2020-11-19 23:00:00', end_time='2020-11-19 23:50:00', no_take_liq=True,
+                               allow_past_end_time=True, participation_rate=0.1)
+    order = algo_order(account, contract, 'BUY', 1000, 'VWAP', algo_params=params, limit_price=100.0)
+    openapi_client.place_order(order)
+    print(order)
 
 
 if __name__ == '__main__':
