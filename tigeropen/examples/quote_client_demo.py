@@ -24,8 +24,8 @@ openapi_client = QuoteClient(client_config, logger=logger)
 
 def get_quote():
     # 抢占行情权限
-    is_grab_quote_success = openapi_client.grab_quote_permission()
-    print(is_grab_quote_success)
+    quote_permissions = openapi_client.grab_quote_permission()
+    print(quote_permissions)
 
     market_status_list = openapi_client.get_market_status(Market.US)
     print(market_status_list)
