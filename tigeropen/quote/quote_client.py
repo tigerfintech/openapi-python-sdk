@@ -432,10 +432,11 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_order_book(self, symbols):
+    def get_order_book(self, symbols, market):
         """
         获取深度行情
         :param symbols:
+        :param market: tigeropen.common.consts.Market
         :return:
         数据结构:
             若返回单个 symbol:
@@ -469,6 +470,7 @@ class QuoteClient(TigerOpenClient):
         """
         params = OrderBookParams()
         params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.market = market.value
 
         request = OpenApiRequest(ORDER_BOOK, biz_model=params)
         response_content = self.__fetch_data(request)
