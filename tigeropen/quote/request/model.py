@@ -677,6 +677,7 @@ class FutureQuoteParams(MarketParams):
 class OrderBookParams(object):
     def __init__(self):
         self._symbols = None
+        self._market = None
 
     @property
     def symbols(self):
@@ -686,8 +687,18 @@ class OrderBookParams(object):
     def symbols(self, value):
         self._symbols = value
 
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
     def to_openapi_dict(self):
         params = dict()
         if self.symbols:
             params['symbols'] = self.symbols
+        if self.market:
+            params['market'] = self.market
         return params
