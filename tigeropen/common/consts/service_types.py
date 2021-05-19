@@ -43,6 +43,7 @@ QUOTE_REAL_TIME = "quote_real_time"
 QUOTE_SHORTABLE_STOCKS = "quote_shortable_stocks"
 QUOTE_STOCK_TRADE = "quote_stock_trade"
 ORDER_BOOK = "ask_bid"  # level2 深度行情
+GRAB_QUOTE_PERMISSION = "grab_quote_permission"  # 抢占行情
 
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"

@@ -23,6 +23,10 @@ openapi_client = QuoteClient(client_config, logger=logger)
 
 
 def get_quote():
+    # 抢占行情权限
+    is_grab_quote_success = openapi_client.grab_quote_permission()
+    print(is_grab_quote_success)
+
     market_status_list = openapi_client.get_market_status(Market.US)
     print(market_status_list)
     briefs = openapi_client.get_briefs(symbols=['AAPL', '00700', '600519'], include_ask_bid=True, right=QuoteRight.BR)
