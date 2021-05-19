@@ -1085,7 +1085,11 @@ class QuoteClient(TigerOpenClient):
     def grab_quote_permission(self):
         """
         抢占行情权限
-        :return: 是否抢占成功, bool 类型
+        :return: 权限列表
+        示例: [{'name': 'usQuoteBasic', 'expireAt': 1621931026000},
+              {'name': 'usStockQuoteLv2Totalview', 'expireAt': 1621931026000},
+              {'name': 'usOptionQuote', 'expireAt': 1621931026000},
+              {'name': 'hkStockQuoteLv2', 'expireAt': 1621931026000}]
         """
         request = OpenApiRequest(GRAB_QUOTE_PERMISSION)
         response_content = self.__fetch_data(request)
@@ -1093,7 +1097,7 @@ class QuoteClient(TigerOpenClient):
             response = QuoteGrabPermissionResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.is_master
+                return response.permissions
             else:
                 raise ApiException(response.code, response.message)
         return False
