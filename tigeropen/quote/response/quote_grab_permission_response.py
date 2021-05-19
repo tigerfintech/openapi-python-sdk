@@ -9,7 +9,7 @@ from tigeropen.common.response import TigerResponse
 class QuoteGrabPermissionResponse(TigerResponse):
     def __init__(self):
         super(QuoteGrabPermissionResponse, self).__init__()
-        self.is_master = False
+        self.permissions = None
         self._is_success = None
 
     def parse_response_content(self, response_content):
@@ -18,5 +18,4 @@ class QuoteGrabPermissionResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            data_json = json.loads(self.data)
-            self.is_master = data_json.get('is_master')
+            self.permissions = json.loads(self.data)
