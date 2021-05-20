@@ -44,7 +44,7 @@ def get_quote():
     short_interest = openapi_client.get_short_interest(['GOOG', 'AAPL', '00700'])
     print(short_interest)
     # 获取深度行情
-    order_book = openapi_client.get_order_book(['02828'], Market.HK)
+    order_book = openapi_client.get_depth_quote(['02828'], Market.HK)
     print(order_book)
     # 股票详情
     stock_details = openapi_client.get_stock_details(['AAPL', '03690'])
