@@ -19,7 +19,7 @@ from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
     FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
     FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE, FINANCIAL_DAILY, FINANCIAL_REPORT, CORPORATE_ACTION, \
-    ORDER_BOOK, INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL
+    QUOTE_DEPTH, INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import eastern
 from tigeropen.common.util.contract_utils import extract_option_info
@@ -35,7 +35,7 @@ from tigeropen.fundamental.response.industry_response import IndustryListRespons
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams, OrderBookParams
+    SingleOptionQuoteParams, QuoteDepthParams
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
@@ -51,7 +51,7 @@ from tigeropen.quote.response.option_quote_ticks_response import OptionTradeTick
 from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
 from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
 from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
-from tigeropen.quote.response.quote_order_book_response import OrderBookResponse
+from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
@@ -435,7 +435,7 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_order_book(self, symbols, market):
+    def get_depth_quote(self, symbols, market):
         """
         获取深度行情
         :param symbols:
@@ -466,19 +466,19 @@ class QuoteClient(TigerOpenClient):
                          (106, 33400, 4), (105.9, 29600, 3), (105.8, 9600, 2), (105.7, 15200, 2), (105.6, 0, 0)]}
                 }
 
-        asks 和 bids 列表项数据含义为:
+        asks 和 bids 列表项数据含义为 (委托价格，委托数量，委托订单数) :
             [(ask_price1, ask_volume1, order_count), (ask_price2, ask_volume2, order_count), ...]
             [(bid_price1, bid_volume2, order_count), (bid_price2, bid_volume2, order_count), ...]
 
         """
-        params = OrderBookParams()
+        params = QuoteDepthParams()
         params.symbols = symbols if isinstance(symbols, list) else [symbols]
         params.market = market.value
 
-        request = OpenApiRequest(ORDER_BOOK, biz_model=params)
+        request = OpenApiRequest(QUOTE_DEPTH, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
-            response = OrderBookResponse()
+            response = DepthQuoteResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.order_book

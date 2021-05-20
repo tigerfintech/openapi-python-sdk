@@ -3,14 +3,14 @@ from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.string_utils import get_string
 
 
-class OrderBookResponse(TigerResponse):
+class DepthQuoteResponse(TigerResponse):
     def __init__(self):
-        super(OrderBookResponse, self).__init__()
+        super(DepthQuoteResponse, self).__init__()
         self.order_book = dict()
         self._is_success = None
 
     def parse_response_content(self, response_content):
-        response = super(OrderBookResponse, self).parse_response_content(response_content)
+        response = super(DepthQuoteResponse, self).parse_response_content(response_content)
         if 'is_success' in response:
             self._is_success = response['is_success']
 

@@ -674,7 +674,7 @@ class FutureQuoteParams(MarketParams):
         return params
 
 
-class OrderBookParams(object):
+class QuoteDepthParams(object):
     def __init__(self):
         self._symbols = None
         self._market = None
