@@ -6,6 +6,7 @@ Created on 2018/10/30
 """
 import time
 # from tigeropen.common.consts import QuoteKeyType
+from tigeropen.common.consts import ExchangeQuote
 from tigeropen.push.push_client import PushClient
 from tigeropen.examples.client_config import get_client_config
 
@@ -158,6 +159,10 @@ if __name__ == '__main__':
     push_client.subscribe_quote(['AAPL', 'GOOG'])
     # 可以指定关注的行情key的类型, QuoteKeyType.TRADE 为成交数据, QuoteKeyType.QUOTE 为盘口数据
     # push_client.subscribe_quote(['MSFT', 'AMD'], quote_key_type=QuoteKeyType.TRADE)
+
+    # 订阅深度行情
+    push_client.subscribe_depth_quote(['AMD', 'BABA'], exchange_quote=ExchangeQuote.TOTAL_VIEW)
+
     # 订阅资产变动
     push_client.subscribe_asset()
     # 订阅订单变动
