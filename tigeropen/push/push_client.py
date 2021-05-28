@@ -321,7 +321,7 @@ class PushClient(stomp.ConnectionListener):
         :param symbols: symbol列表
         :return:
         """
-        return self._handle_quote_subscribe(destination=QUOTE_DEPTH, subscription='AskBid', symbols=symbols)
+        return self._handle_quote_subscribe(destination=QUOTE_DEPTH, subscription='QuoteDepth', symbols=symbols)
 
     def subscribe_option(self, symbols):
         """
