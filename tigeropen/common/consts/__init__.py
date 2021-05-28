@@ -105,12 +105,6 @@ class BarPeriod(Enum):
     SIX_HOURS = '6hour'  # 6小时
 
 
-@unique
-class ExchangeQuote(Enum):
-    ARCA = 'ARCA'
-    TOTAL_VIEW = 'TOTAL_VIEW'
-
-
 class OrderStatus(Enum):
     PENDING_NEW = 'PendingNew'
     NEW = 'Initial'  # 订单初始状态

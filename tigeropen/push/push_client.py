@@ -19,7 +19,7 @@ from tigeropen.common.util.signature_utils import sign_with_rsa
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
-from tigeropen.common.consts import OrderStatus, ExchangeQuote
+from tigeropen.common.consts import OrderStatus
 
 HOUR_TRADING_QUOTE_KEYS_MAPPINGS = {'hourTradingLatestPrice': 'latest_price', 'hourTradingPreClose': 'pre_close',
                                     'hourTradingLatestTime': 'latest_time', 'hourTradingVolume': 'volume',
@@ -315,16 +315,13 @@ class PushClient(stomp.ConnectionListener):
         return self._handle_quote_subscribe(destination=QUOTE, subscription='Quote', symbols=symbols,
                                             extra_headers=extra_headers)
 
-    def subscribe_depth_quote(self, symbols, exchange_quote=ExchangeQuote.TOTAL_VIEW):
+    def subscribe_depth_quote(self, symbols):
         """
         订阅深度行情
         :param symbols: symbol列表
-        :param exchange_quote: tigeropen.common.consts.ExchangeQuote 交易所行情枚举类型
         :return:
         """
-        extra_headers = {'exchange': exchange_quote.value}
-        return self._handle_quote_subscribe(destination=QUOTE_DEPTH, subscription='AskBid', symbols=symbols,
-                                            extra_headers=extra_headers)
+        return self._handle_quote_subscribe(destination=QUOTE_DEPTH, subscription='AskBid', symbols=symbols)
 
     def subscribe_option(self, symbols):
         """
