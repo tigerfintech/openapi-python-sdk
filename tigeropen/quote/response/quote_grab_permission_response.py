@@ -17,5 +17,4 @@ class QuoteGrabPermissionResponse(TigerResponse):
         if 'is_success' in response:
             self._is_success = response['is_success']
 
-        if self.data:
-            self.permissions = json.loads(self.data)
+        self.permissions = self.data
