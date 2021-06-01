@@ -35,7 +35,7 @@ from tigeropen.fundamental.response.industry_response import IndustryListRespons
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams, QuoteDepthParams
+    SingleOptionQuoteParams, DepthQuoteParams
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
@@ -471,7 +471,7 @@ class QuoteClient(TigerOpenClient):
             [(bid_price1, bid_volume2, order_count), (bid_price2, bid_volume2, order_count), ...]
 
         """
-        params = QuoteDepthParams()
+        params = DepthQuoteParams()
         params.symbols = symbols if isinstance(symbols, list) else [symbols]
         params.market = market.value
 
