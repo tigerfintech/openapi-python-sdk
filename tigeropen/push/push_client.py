@@ -6,10 +6,15 @@ Created on 2018/10/30
 """
 import sys
 import json
+from collections import defaultdict
+
 import stomp
 import six
 import logging
 from stomp.exception import ConnectFailedException
+
+from tigeropen.common.consts.push_destinations import QUOTE, QUOTE_DEPTH, QUOTE_FUTURE, QUOTE_OPTION, TRADE_ASSET, \
+    TRADE_ORDER, TRADE_POSITION
 from tigeropen.common.util.signature_utils import sign_with_rsa
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.consts.push_types import RequestType, ResponseType
@@ -73,10 +78,7 @@ class PushClient(stomp.ConnectionListener):
         self._private_key = None
         self._sign = None
         self._stomp_connection = None
-        self._quote_counter = 0
-        self._asset_counter = 0
-        self._position_counter = 0
-        self._order_counter = 0
+        self._destination_counter_map = defaultdict(lambda: 0)
 
         self.subscribed_symbols = None
         self.quote_changed = None
@@ -243,98 +245,53 @@ class PushClient(stomp.ConnectionListener):
         if self.error_callback:
             self.error_callback(body)
 
-    @staticmethod
-    def _get_subscribe_id(counter):
-        return 'sub-' + str(counter)
+    def _update_subscribe_id(self, destination):
+        self._destination_counter_map[destination] += 1
+
+    def _get_subscribe_id(self, destination):
+        return 'sub-' + str(self._destination_counter_map[destination])
 
     def subscribe_asset(self, account=None):
         """
         订阅账户资产更新
         :return:
         """
-        self._asset_counter += 1
-        sub_id = self._get_subscribe_id(self._asset_counter)
-        headers = dict()
-        headers['destination'] = 'trade/asset'
-        headers['subscription'] = 'Asset'
-        headers['id'] = sub_id
-        if account:
-            headers['account'] = account
-
-        self._stomp_connection.subscribe('trade/asset', id=sub_id, headers=headers)
-        return sub_id
+        return self._handle_trade_subscribe(TRADE_ASSET, 'Asset', account)
 
     def unsubscribe_asset(self, id=None):
         """
         退订账户资产更新
         :return:
         """
-        headers = dict()
-        headers['destination'] = 'trade/asset'
-        headers['subscription'] = 'Asset'
-        sub_id = id if id else self._get_subscribe_id(self._asset_counter)
-        headers['id'] = sub_id
-        self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
+        self._handle_trade_unsubscribe(TRADE_ASSET, 'Asset', sub_id=id)
 
     def subscribe_position(self, account=None):
         """
         订阅账户持仓更新
         :return:
         """
-        self._position_counter += 1
-        sub_id = self._get_subscribe_id(self._position_counter)
-        headers = dict()
-        headers['destination'] = 'trade/position'
-        headers['subscription'] = 'Position'
-        headers['id'] = sub_id
-        if account:
-            headers['account'] = account
-
-        self._stomp_connection.subscribe('trade/position', id=sub_id, headers=headers)
-        return sub_id
+        return self._handle_trade_subscribe(TRADE_POSITION, 'Position', account)
 
     def unsubscribe_position(self, id=None):
         """
         退订账户持仓更新
         :return:
         """
-        headers = dict()
-        headers['destination'] = 'trade/position'
-        headers['subscription'] = 'Position'
-        sub_id = id if id else self._get_subscribe_id(self._position_counter)
-        headers['id'] = sub_id
-
-        self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
+        self._handle_trade_unsubscribe(TRADE_POSITION, 'Position', sub_id=id)
 
     def subscribe_order(self, account=None):
         """
         订阅账户订单更新
         :return:
         """
-        self._order_counter += 1
-        sub_id = self._get_subscribe_id(self._order_counter)
-        headers = dict()
-        headers['destination'] = 'trade/order'
-        headers['subscription'] = 'OrderStatus'
-        headers['id'] = sub_id
-        if account:
-            headers['account'] = account
-
-        self._stomp_connection.subscribe('trade/order', id=sub_id, headers=headers)
-        return sub_id
+        return self._handle_trade_subscribe(TRADE_ORDER, 'OrderStatus', account)
 
     def unsubscribe_order(self, id=None):
         """
         退订账户订单更新
         :return:
         """
-        headers = dict()
-        headers['destination'] = 'trade/order'
-        headers['subscription'] = 'OrderStatus'
-        sub_id = id if id else self._get_subscribe_id(self._order_counter)
-        headers['id'] = sub_id
-
-        self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
+        self._handle_trade_unsubscribe(TRADE_ORDER, 'OrderStatus', sub_id=id)
 
     def subscribe_quote(self, symbols, quote_key_type=QuoteKeyType.TRADE, focus_keys=None):
         """
@@ -344,14 +301,7 @@ class PushClient(stomp.ConnectionListener):
         :param focus_keys: 行情 key
         :return:
         """
-        self._quote_counter += 1
-        sub_id = self._get_subscribe_id(self._quote_counter)
-        headers = dict()
-        headers['destination'] = 'quote'
-        headers['subscription'] = 'Quote'
-        headers['id'] = sub_id
-        if symbols:
-            headers['symbols'] = ','.join(symbols)
+        extra_headers = dict()
         if focus_keys:
             keys = list()
             for key in focus_keys:
@@ -359,11 +309,35 @@ class PushClient(stomp.ConnectionListener):
                     keys.append(key)
                 else:
                     keys.append(key.value)
-            headers['keys'] = ','.join(keys)
+            extra_headers['keys'] = ','.join(keys)
         elif quote_key_type and quote_key_type.value:
-            headers['keys'] = quote_key_type.value
-        self._stomp_connection.subscribe('quote', id=sub_id, headers=headers)
-        return sub_id
+            extra_headers['keys'] = quote_key_type.value
+        return self._handle_quote_subscribe(destination=QUOTE, subscription='Quote', symbols=symbols,
+                                            extra_headers=extra_headers)
+
+    def subscribe_depth_quote(self, symbols):
+        """
+        订阅深度行情
+        :param symbols: symbol列表
+        :return:
+        """
+        return self._handle_quote_subscribe(destination=QUOTE_DEPTH, subscription='QuoteDepth', symbols=symbols)
+
+    def subscribe_option(self, symbols):
+        """
+        订阅期权行情
+        :param symbols: symbol列表
+        :return:
+        """
+        return self._handle_quote_subscribe(destination=QUOTE_OPTION, subscription='Option', symbols=symbols)
+
+    def subscribe_future(self, symbols):
+        """
+        订阅期货行情
+        :param symbols: symbol列表
+        :return:
+        """
+        return self._handle_quote_subscribe(destination=QUOTE_FUTURE, subscription='Future', symbols=symbols)
 
     def query_subscribed_quote(self):
         """
@@ -371,21 +345,68 @@ class PushClient(stomp.ConnectionListener):
         :return:
         """
         headers = dict()
-        headers['destination'] = 'quote'
+        headers['destination'] = QUOTE
         headers['req-type'] = RequestType.REQ_SUB_SYMBOLS.value
-        self._stomp_connection.send('quote', "{}", headers=headers)
+        self._stomp_connection.send(QUOTE, "{}", headers=headers)
 
     def unsubscribe_quote(self, symbols=None, id=None):
         """
         退订行情更新
         :return:
         """
-        headers = dict()
-        headers['destination'] = 'quote'
-        headers['subscription'] = 'Quote'
-        sub_id = id if id else self._get_subscribe_id(self._quote_counter)
-        headers['id'] = sub_id
-        if symbols:
-            headers['symbols'] = ','.join(symbols)
+        self._handle_quote_unsubscribe(destination=QUOTE, subscription='Quote', sub_id=id, symbols=symbols)
 
-        self._stomp_connection.unsubscribe(id=sub_id, headers=headers)
+    def unsubscribe_depth_quote(self, symbols=None, id=None):
+        """
+        退订深度行情更新
+        :return:
+        """
+        self._handle_quote_unsubscribe(destination=QUOTE_DEPTH, subscription='AskBid', sub_id=id, symbols=symbols)
+
+    def _handle_trade_subscribe(self, destination, subscription, account=None, extra_headers=None):
+        if extra_headers is None:
+            extra_headers = dict()
+        if account is not None:
+            extra_headers['account'] = account
+        return self._handle_subscribe(destination=destination, subscription=subscription, extra_headers=extra_headers)
+
+    def _handle_quote_subscribe(self, destination, subscription, symbols=None, extra_headers=None):
+        if extra_headers is None:
+            extra_headers = dict()
+        if symbols is not None:
+            extra_headers['symbols'] = ','.join(symbols)
+        return self._handle_subscribe(destination=destination, subscription=subscription, extra_headers=extra_headers)
+
+    def _handle_trade_unsubscribe(self, destination, subscription, sub_id=None):
+        self._handle_unsubscribe(destination=destination, subscription=subscription, sub_id=sub_id)
+
+    def _handle_quote_unsubscribe(self, destination, subscription, sub_id=None, symbols=None):
+        extra_headers = dict()
+        if symbols is not None:
+            extra_headers['symbols'] = ','.join(symbols)
+        self._handle_unsubscribe(destination=destination, subscription=subscription, sub_id=sub_id,
+                                 extra_headers=extra_headers)
+
+    def _handle_subscribe(self, destination, subscription, extra_headers=None):
+        headers = dict()
+        headers['destination'] = destination
+        headers['subscription'] = subscription
+        self._update_subscribe_id(destination)
+        sub_id = self._get_subscribe_id(destination)
+        headers['id'] = sub_id
+
+        if extra_headers is not None:
+            headers.update(extra_headers)
+        self._stomp_connection.subscribe(destination, id=sub_id, headers=headers)
+        return sub_id
+
+    def _handle_unsubscribe(self, destination, subscription, sub_id=None, extra_headers=None):
+        headers = dict()
+        headers['destination'] = destination
+        headers['subscription'] = subscription
+        id_ = sub_id if sub_id is not None else self._get_subscribe_id(destination)
+        headers['id'] = id_
+        if extra_headers:
+            headers.update(extra_headers)
+
+        self._stomp_connection.unsubscribe(id=id_, headers=headers)
