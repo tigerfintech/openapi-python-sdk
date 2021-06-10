@@ -13,12 +13,13 @@ import six
 
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
+from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
     FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
     FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE, FINANCIAL_DAILY, FINANCIAL_REPORT, CORPORATE_ACTION, \
-    INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL, GRAB_QUOTE_PERMISSION
+    QUOTE_DEPTH, INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import eastern
 from tigeropen.common.util.contract_utils import extract_option_info
@@ -34,7 +35,7 @@ from tigeropen.fundamental.response.industry_response import IndustryListRespons
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams
+    SingleOptionQuoteParams, DepthQuoteParams
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
@@ -50,6 +51,7 @@ from tigeropen.quote.response.option_quote_ticks_response import OptionTradeTick
 from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
 from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
 from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
+from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
@@ -432,6 +434,56 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
         return None
+
+    def get_depth_quote(self, symbols, market):
+        """
+        获取深度行情
+        :param symbols:
+        :param market: tigeropen.common.consts.Market
+        :return:
+        数据结构:
+            若返回单个 symbol:
+            {'symbol': '02833',
+             'asks': [(27.4, 300, 2), (27.45, 500, 1), (27.5, 4400, 1), (27.55, 0, 0), (27.6, 5700, 3), (27.65, 0, 0),
+                      (27.7, 500, 1), (27.75, 0, 0), (27.8, 0, 0), (27.85, 0, 0)],
+             'bids': [(27, 4000, 3), (26.95, 200, 1), (26.9, 0, 0), (26.85, 400, 1), (26.8, 0, 0), (26.75, 0, 0),
+                      (26.7, 0, 0), (26.65, 0, 0), (26.6, 0, 0), (26.55, 0, 0)]
+            }
+
+            若返回多个 symbol:
+            {'02833':
+                {'symbol': '02833',
+                 'asks': [(27.35, 200, 1), (27.4, 2100, 2), (27.45, 500, 1), (27.5, 4400, 1), (27.55, 0, 0),
+                         (27.6, 5700, 3), (27.65, 0, 0), (27.7, 500, 1), (27.75, 0, 0), (27.8, 0, 0)],
+                 'bids': [(27.05, 100, 1), (27, 5000, 4), (26.95, 200, 1), (26.9, 0, 0), (26.85, 400, 1), (26.8, 0, 0),
+                        (26.75, 0, 0), (26.7, 0, 0), (26.65, 0, 0), (26.6, 0, 0)]
+                },
+            '02828':
+                {'symbol': '02828',
+                 'asks': [(106.6, 6800, 7), (106.7, 110200, 10), (106.8, 64400, 8), (106.9, 80600, 8), (107, 9440, 16),
+                        (107.1, 31800, 5), (107.2, 11800, 4), (107.3, 9800, 2), (107.4, 9400, 1), (107.5, 21000, 9)],
+                 'bids': [(106.5, 62800, 17), (106.4, 68200, 9), (106.3, 78400, 6), (106.2, 52400, 4), (106.1, 3060, 4),
+                         (106, 33400, 4), (105.9, 29600, 3), (105.8, 9600, 2), (105.7, 15200, 2), (105.6, 0, 0)]}
+                }
+
+        asks 和 bids 列表项数据含义为 (委托价格，委托数量，委托订单数) :
+            [(ask_price1, ask_volume1, order_count), (ask_price2, ask_volume2, order_count), ...]
+            [(bid_price1, bid_volume2, order_count), (bid_price2, bid_volume2, order_count), ...]
+
+        """
+        params = DepthQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.market = market.value
+
+        request = OpenApiRequest(QUOTE_DEPTH, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = DepthQuoteResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.order_book
+            else:
+                raise ApiException(response.code, response.message)
 
     def get_option_expirations(self, symbols):
         """

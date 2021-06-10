@@ -672,3 +672,33 @@ class FutureQuoteParams(MarketParams):
             params['limit'] = self.limit
 
         return params
+
+
+class DepthQuoteParams(object):
+    def __init__(self):
+        self._symbols = None
+        self._market = None
+
+    @property
+    def symbols(self):
+        return self._symbols
+
+    @symbols.setter
+    def symbols(self, value):
+        self._symbols = value
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
+    def to_openapi_dict(self):
+        params = dict()
+        if self.symbols:
+            params['symbols'] = self.symbols
+        if self.market:
+            params['market'] = self.market
+        return params
