@@ -46,6 +46,8 @@ class TigerOpenClientConfig(object):
         self._private_key = ''
         # 请求签名类型，推荐RSA2
         self._sign_type = SIGN_TYPE
+        # 用户id
+        self._user_id = ''
 
         # 老虎证券开放平台网关地址
         self._server_url = SERVER_URL
@@ -162,10 +164,18 @@ class TigerOpenClientConfig(object):
     def timeout(self, value):
         self._timeout = value
 
+    @property
+    def user_id(self):
+        return self._user_id
+
+    @user_id.setter
+    def user_id(self, value):
+        self._user_id = value
+
 
 def get_client_config(private_key_path, tiger_id, account, standard_account=None, paper_account=None,
                       sandbox_debug=False, sign_type=None, timeout=None, language=None, charset=None,
-                      server_url=None, socket_host_port=None):
+                      server_url=None, socket_host_port=None, user_id=None):
     """
     生成客户端配置
     :param private_key_path: 私钥文件路径, 如 '/Users/tiger/.ssh/rsa_private_key.pem'
@@ -180,6 +190,7 @@ def get_client_config(private_key_path, tiger_id, account, standard_account=None
     :param charset: 字符集编码
     :param server_url: 网关地址
     :param socket_host_port: 推送长连接的域名端口, 值为协议, 域名, 端口构成的三元组
+    :param user_id: 用户id
     :return:
     """
     config = TigerOpenClientConfig(sandbox_debug=sandbox_debug)
@@ -202,5 +213,7 @@ def get_client_config(private_key_path, tiger_id, account, standard_account=None
         config.server_url = server_url
     if socket_host_port:
         config.socket_host_port = socket_host_port
+    if user_id:
+        config.user_id = user_id
     return config
 
