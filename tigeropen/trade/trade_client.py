@@ -463,7 +463,7 @@ class TradeClient(TigerOpenClient):
         params.percent_offset = order.percent_offset
         params.time_in_force = order.time_in_force
         params.outside_rth = order.outside_rth
-        params.user_id = order.user_id
+        params.user_id = order.user_id if order.user_id else self._user_id
         request = OpenApiRequest(PREVIEW_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -496,7 +496,7 @@ class TradeClient(TigerOpenClient):
         params.outside_rth = order.outside_rth
         params.order_legs = order.order_legs
         params.algo_params = order.algo_params
-        params.user_id = order.user_id
+        params.user_id = order.user_id if order.user_id else self._user_id
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -546,7 +546,7 @@ class TradeClient(TigerOpenClient):
         params.percent_offset = percent_offset if percent_offset is not None else order.percent_offset
         params.time_in_force = time_in_force if time_in_force is not None else order.time_in_force
         params.outside_rth = outside_rth if outside_rth is not None else order.outside_rth
-        params.user_id = order.user_id
+        params.user_id = order.user_id if order.user_id else self._user_id
 
         request = OpenApiRequest(MODIFY_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
