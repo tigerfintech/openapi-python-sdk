@@ -4,58 +4,63 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import re
 import enum
+import logging
+import re
+
 import delorean
 import six
 
+from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
+from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION
+from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
+    TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
+    OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
+    FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
+    FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE, FINANCIAL_DAILY, FINANCIAL_REPORT, CORPORATE_ACTION, \
+    QUOTE_DEPTH, INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL
 from tigeropen.common.exceptions import ApiException
+from tigeropen.common.util.common_utils import eastern
+from tigeropen.common.util.contract_utils import extract_option_info
 from tigeropen.fundamental.request.model import FinancialDailyParams, FinancialReportParams, CorporateActionParams, \
     IndustryParams
 from tigeropen.fundamental.response.corporate_dividend_response import CorporateDividendResponse
 from tigeropen.fundamental.response.corporate_earnings_calendar_response import EarningsCalendarResponse
 from tigeropen.fundamental.response.corporate_split_response import CorporateSplitResponse
-from tigeropen.fundamental.response.financial_report_response import FinancialReportResponse
 from tigeropen.fundamental.response.financial_daily_response import FinancialDailyResponse
+from tigeropen.fundamental.response.financial_report_response import FinancialReportResponse
 from tigeropen.fundamental.response.industry_response import IndustryListResponse, IndustryStocksResponse, \
     StockIndustryResponse
+from tigeropen.quote.request import OpenApiRequest
+from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
+    FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
+    SingleOptionQuoteParams, DepthQuoteParams
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
-from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
+from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
 from tigeropen.quote.response.future_quote_bar_response import FutureQuoteBarResponse
 from tigeropen.quote.response.future_quote_ticks_response import FutureTradeTickResponse
 from tigeropen.quote.response.future_trading_times_response import FutureTradingTimesResponse
+from tigeropen.quote.response.market_status_response import MarketStatusResponse
 from tigeropen.quote.response.option_briefs_response import OptionBriefsResponse
 from tigeropen.quote.response.option_chains_response import OptionChainsResponse
 from tigeropen.quote.response.option_expirations_response import OptionExpirationsResponse
 from tigeropen.quote.response.option_quote_bar_response import OptionQuoteBarResponse
 from tigeropen.quote.response.option_quote_ticks_response import OptionTradeTickResponse
 from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
-from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
+from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
+from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
+from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
+from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
+from tigeropen.quote.response.stock_details_response import StockDetailsResponse
 from tigeropen.quote.response.stock_short_interest_response import ShortInterestResponse
 from tigeropen.quote.response.stock_trade_meta_response import TradeMetaResponse
 from tigeropen.quote.response.symbol_names_response import SymbolNamesResponse
 from tigeropen.quote.response.symbols_response import SymbolsResponse
 from tigeropen.tiger_open_client import TigerOpenClient
-from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
-    FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams
-from tigeropen.quote.request import OpenApiRequest
-from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
-from tigeropen.quote.response.market_status_response import MarketStatusResponse
-from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
-    TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
-    OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
-    FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
-    FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE, FINANCIAL_DAILY, FINANCIAL_REPORT, CORPORATE_ACTION, \
-    INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY
-from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod
-from tigeropen.common.util.contract_utils import extract_option_info
-from tigeropen.common.util.common_utils import eastern
-import logging
 
 
 class QuoteClient(TigerOpenClient):
@@ -73,7 +78,7 @@ class QuoteClient(TigerOpenClient):
             response = super(QuoteClient, self).execute(request)
             return response
         except Exception as e:
-            if THREAD_LOCAL.logger:
+            if hasattr(THREAD_LOCAL, 'logger') and THREAD_LOCAL.logger:
                 THREAD_LOCAL.logger.error(e, exc_info=True)
             raise e
 
@@ -204,7 +209,7 @@ class QuoteClient(TigerOpenClient):
         """
         获取股票实时行情
         :param symbols: 股票代号列表
-        :param lang: 语言支持: zh_CN,zh_TW,en_US
+        :param lang: 语言支持: tigeropen.common.consts.Language:  zh_CN,zh_TW,en_US
         :return: pandas.DataFrame.  各 column 含义如下：
             symbol: 证券代码
             ask_price: 卖一价
@@ -240,6 +245,58 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
+        return None
+
+    def get_stock_details(self, symbols, lang=None):
+        """
+        获取股票详情
+        :param symbols: 股票代号列表
+        :param lang: 语言支持: zh_CN,zh_TW,en_US
+        :return: pandas.DataFrame.  各 column 含义如下：
+            symbol: 代码
+            market: 市场
+            sec_type: 证券类型
+            exchange: 交易所
+            name: 名称
+            shortable: 做空信息
+            ask_price: 卖一价
+            ask_size: 卖一量
+            bid_price: 买一价
+            bid_size: 买一量
+            pre_close: 前收价
+            latest_price: 最新价
+            adj_pre_close: 复权后前收价
+            latest_time: 最新成交时间
+            volume: 成交量
+            open: 开盘价
+            high: 最高价
+            low: 最低价
+            change: 涨跌额
+            amount: 成交额
+            amplitude: 振幅
+            market_status: 市场状态 （未开盘，交易中，休市等）
+            trading_status:   0: 非交易状态 1: 盘前交易（盘前竞价） 2: 交易中 3: 盘后交易（收市竞价）
+            float_shares: 流通股本
+            shares: 总股本
+            eps: 每股收益
+            adr_rate: ADR的比例数据，非ADR的股票为None
+            etf: 非0表示该股票是ETF,1表示不带杠杆的etf,2表示2倍杠杆etf,3表示3倍etf杠杆
+            listing_date: 上市日期时间戳（该市场当地时间零点），该key可能不存在
+            更多字段见 tigeropen.quote.response.stock_details_response.StockDetailsResponse
+        """
+        params = MultipleQuoteParams()
+        params.symbols = symbols
+        params.lang = lang.value if lang else self._lang.value
+
+        request = OpenApiRequest(STOCK_DETAIL, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = StockDetailsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.details
+            else:
+                raise ApiException(response.code, response.message)
         return None
 
     def get_timeline(self, symbols, include_hour_trading=False, begin_time=-1, lang=None):
@@ -377,6 +434,56 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
         return None
+
+    def get_depth_quote(self, symbols, market):
+        """
+        获取深度行情
+        :param symbols:
+        :param market: tigeropen.common.consts.Market
+        :return:
+        数据结构:
+            若返回单个 symbol:
+            {'symbol': '02833',
+             'asks': [(27.4, 300, 2), (27.45, 500, 1), (27.5, 4400, 1), (27.55, 0, 0), (27.6, 5700, 3), (27.65, 0, 0),
+                      (27.7, 500, 1), (27.75, 0, 0), (27.8, 0, 0), (27.85, 0, 0)],
+             'bids': [(27, 4000, 3), (26.95, 200, 1), (26.9, 0, 0), (26.85, 400, 1), (26.8, 0, 0), (26.75, 0, 0),
+                      (26.7, 0, 0), (26.65, 0, 0), (26.6, 0, 0), (26.55, 0, 0)]
+            }
+
+            若返回多个 symbol:
+            {'02833':
+                {'symbol': '02833',
+                 'asks': [(27.35, 200, 1), (27.4, 2100, 2), (27.45, 500, 1), (27.5, 4400, 1), (27.55, 0, 0),
+                         (27.6, 5700, 3), (27.65, 0, 0), (27.7, 500, 1), (27.75, 0, 0), (27.8, 0, 0)],
+                 'bids': [(27.05, 100, 1), (27, 5000, 4), (26.95, 200, 1), (26.9, 0, 0), (26.85, 400, 1), (26.8, 0, 0),
+                        (26.75, 0, 0), (26.7, 0, 0), (26.65, 0, 0), (26.6, 0, 0)]
+                },
+            '02828':
+                {'symbol': '02828',
+                 'asks': [(106.6, 6800, 7), (106.7, 110200, 10), (106.8, 64400, 8), (106.9, 80600, 8), (107, 9440, 16),
+                        (107.1, 31800, 5), (107.2, 11800, 4), (107.3, 9800, 2), (107.4, 9400, 1), (107.5, 21000, 9)],
+                 'bids': [(106.5, 62800, 17), (106.4, 68200, 9), (106.3, 78400, 6), (106.2, 52400, 4), (106.1, 3060, 4),
+                         (106, 33400, 4), (105.9, 29600, 3), (105.8, 9600, 2), (105.7, 15200, 2), (105.6, 0, 0)]}
+                }
+
+        asks 和 bids 列表项数据含义为 (委托价格，委托数量，委托订单数) :
+            [(ask_price1, ask_volume1, order_count), (ask_price2, ask_volume2, order_count), ...]
+            [(bid_price1, bid_volume2, order_count), (bid_price2, bid_volume2, order_count), ...]
+
+        """
+        params = DepthQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.market = market.value
+
+        request = OpenApiRequest(QUOTE_DEPTH, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = DepthQuoteResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.order_book
+            else:
+                raise ApiException(response.code, response.message)
 
     def get_option_expirations(self, symbols):
         """
@@ -1026,3 +1133,23 @@ class QuoteClient(TigerOpenClient):
                 return response.stock_industry
             else:
                 raise ApiException(response.code, response.message)
+
+    def grab_quote_permission(self):
+        """
+        抢占行情权限
+        :return: 权限列表
+        示例: [{'name': 'usQuoteBasic', 'expireAt': 1621931026000},
+              {'name': 'usStockQuoteLv2Totalview', 'expireAt': 1621931026000},
+              {'name': 'usOptionQuote', 'expireAt': 1621931026000},
+              {'name': 'hkStockQuoteLv2', 'expireAt': 1621931026000}]
+        """
+        request = OpenApiRequest(GRAB_QUOTE_PERMISSION)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = QuoteGrabPermissionResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.permissions
+            else:
+                raise ApiException(response.code, response.message)
+        return False
