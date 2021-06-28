@@ -503,6 +503,7 @@ class PlaceModifyOrderParams(object):
         self.time_in_force = None
         self.outside_rth = None
         self.order_legs = None
+        self.algo_params = None
 
     def to_openapi_dict(self):
         params = dict()
@@ -582,6 +583,8 @@ class PlaceModifyOrderParams(object):
                 if len(leg_types) == 2:
                     params['attach_type'] = 'BRACKETS'
 
+            if self.algo_params:
+                params['algo_params'] = [{'tag': item[0], 'value': item[1]} for item in self.algo_params.to_dict().items()]
         return params
 
 
