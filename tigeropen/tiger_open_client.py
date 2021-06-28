@@ -7,7 +7,6 @@ Created on 2018/9/20
 from __future__ import unicode_literals
 import datetime
 import uuid
-import sys
 
 from tigeropen.common.consts import *
 from tigeropen.common.consts.params import *
@@ -17,8 +16,15 @@ from tigeropen.common.util.web_utils import *
 from tigeropen.common.exceptions import *
 
 if not PYTHON_VERSION_3:
+    import sys
     reload(sys)
     sys.setdefaultencoding('utf-8')
+
+try:
+    from getmac import get_mac_address
+except ImportError:
+    def get_mac_address():
+        return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
 
 
 class TigerOpenClient(object):
@@ -36,6 +42,7 @@ class TigerOpenClient(object):
             "Connection": "Keep-Alive",
             "User-Agent": 'openapi-python-sdk-' + OPEN_API_SDK_VERSION
         }
+        self.__device_id = self.__get_device_id()
 
     """
     内部方法，从params中抽取公共参数
@@ -49,9 +56,21 @@ class TigerOpenClient(object):
         common_params[P_CHARSET] = self.__config.charset
         common_params[P_VERSION] = params[P_VERSION]
         common_params[P_SIGN_TYPE] = self.__config.sign_type
+        common_params[P_DEVICE_ID] = self.__device_id
         if has_value(params, P_NOTIFY_URL):
             common_params[P_NOTIFY_URL] = params[P_NOTIFY_URL]
         return common_params
+
+    @staticmethod
+    def __get_device_id():
+        """
+        获取mac地址作为device_id
+        :return:
+        """
+        try:
+            return get_mac_address()
+        except:
+            return None
 
     """
     内部方法，从params中移除公共参数
