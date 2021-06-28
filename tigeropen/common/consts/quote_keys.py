@@ -17,6 +17,8 @@ class QuoteChangeKey(Enum):
     bid_price = 'bidPrice'
     bid_size = 'bidSize'
     minute = 'mi'
+    bid_depth = 'bidDepth'
+    ask_depth = 'askDepth'
 
 
 @unique
