@@ -379,7 +379,7 @@ class TradeClient(TigerOpenClient):
 
     def create_order(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
-                     outside_rth=None, order_legs=None):
+                     outside_rth=None, order_legs=None, algo_params=None):
         """
         创建订单对象.
         :param account:
@@ -395,6 +395,7 @@ class TradeClient(TigerOpenClient):
         :param time_in_force: 订单有效期， 'DAY'（当日有效）和'GTC'（取消前有效)
         :param outside_rth: 是否允许盘前盘后交易(美股专属)
         :param order_legs: 附加订单
+        :param algo_params: 算法订单参数
         """
         params = AccountsParams()
         params.account = account if account else self._account
@@ -409,7 +410,7 @@ class TradeClient(TigerOpenClient):
                               aux_price=aux_price, trail_stop_price=trail_stop_price,
                               trailing_percent=trailing_percent, percent_offset=percent_offset,
                               time_in_force=time_in_force, outside_rth=outside_rth, order_id=order_id,
-                              order_legs=order_legs)
+                              order_legs=order_legs, algo_params=algo_params)
                 return order
             else:
                 raise ApiException(response.code, response.message)
@@ -480,6 +481,7 @@ class TradeClient(TigerOpenClient):
         params.time_in_force = order.time_in_force
         params.outside_rth = order.outside_rth
         params.order_legs = order.order_legs
+        params.algo_params = order.algo_params
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)

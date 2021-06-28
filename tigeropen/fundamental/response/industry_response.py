@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.response import TigerResponse
 

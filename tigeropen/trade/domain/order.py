@@ -8,18 +8,20 @@ from six import text_type
 from tigeropen.common.consts import OrderStatus
 
 ORDER_FIELDS_TO_IGNORE = {'type', '_status', 'contract', '_remaining'}
-
+ALGO_PARAMS_TAG_MAP = {'noTakeLiq': 'no_take_liq', 'startTime': 'start_time', 'endTime': 'end_time',
+                       'participationRate': 'participation_rate', 'allowPastEndTime': 'allow_past_end_time'}
 
 class Order(object):
     __slots__ = ["account", "id", "order_id", "parent_id", "order_time", "reason", "trade_time", "contract", "action",
                  "quantity", "filled", "_remaining", "avg_fill_price", "commission", "realized_pnl", "_status",
                  "trail_stop_price", "limit_price", "aux_price", "trailing_percent", "percent_offset", "action",
-                 "order_type", "time_in_force", "outside_rth", "order_legs"]
+                 "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params"]
 
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
                  outside_rth=None, filled=0, avg_fill_price=0, commission=None, realized_pnl=None,
-                 id=None, order_id=None, parent_id=None, order_time=None, trade_time=None, order_legs=None):
+                 id=None, order_id=None, parent_id=None, order_time=None, trade_time=None, order_legs=None,
+                 algo_params=None):
         """
         - account: 订单所属的账户
         - id: 全局订单 id
@@ -46,6 +48,7 @@ class Order(object):
         - status: Order_Status 的枚举, 表示订单状态
         - remaining: 未成交的数量
         - order_legs: 附加订单列表
+        - algo_params: 算法订单参数
         """
 
         self.id = id
@@ -73,6 +76,7 @@ class Order(object):
         self.order_time = order_time
         self.trade_time = trade_time
         self.order_legs = order_legs
+        self.algo_params = algo_params
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
@@ -141,3 +145,44 @@ class OrderLeg(object):
 
     def __repr__(self):
         return "OrderLeg(%s)" % self.to_dict()
+
+
+class AlgoParams(object):
+    """
+    算法订单参数
+    """
+    def __init__(self, start_time=None, end_time=None, no_take_liq=None, allow_past_end_time=None,
+                 participation_rate=None):
+        """
+        :param start_time: 生效开始时间(时间戳 TWAP和VWAP专用)
+        :param end_time: 生效结束时间(时间戳 TWAP和VWAP专用)
+        :param no_take_liq: 是否尽可能减少交易次数(VWAP订单专用)
+        :param allow_past_end_time: 是否允许生效时间结束后继续完成成交(TWAP和VWAP专用)
+        :param participation_rate: 参与率(VWAP专用,0.01-0.5)
+        """
+        self.start_time = start_time
+        self.end_time = end_time
+        self.no_take_liq = no_take_liq
+        self.allow_past_end_time = allow_past_end_time
+        self.participation_rate = participation_rate
+
+    def to_dict(self):
+        return self.__dict__
+
+    @staticmethod
+    def from_tags(tag_values):
+        """
+        :param tag_values:
+        :return: AlgoParams 对象
+        """
+        algo_params = AlgoParams()
+        if tag_values:
+            for item in tag_values:
+                tag = item.get('tag')
+                value = item.get('value')
+                setattr(algo_params, ALGO_PARAMS_TAG_MAP.get(tag), value)
+            return algo_params
+        return None
+
+    def __repr__(self):
+        return "AlgoParams(%s)" % self.to_dict()
