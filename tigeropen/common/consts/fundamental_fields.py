@@ -590,3 +590,4 @@ class Profitability(Enum):
     levered_free_cash_flow_margin = "levered_free_cash_flow_margin"
     unlevered_free_cash_flow_margin = "unlevered_free_cash_flow_margin"
     normalized_net_income_margin = "normalized_net_income_margin"
+
