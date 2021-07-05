@@ -9,7 +9,7 @@ Created on 2018/10/31
 class AccountsParams(object):
     def __init__(self):
         self._account = None
-        self._user_id = None
+        self._secret_key = None
 
     @property
     def account(self):
@@ -20,26 +20,26 @@ class AccountsParams(object):
         self._account = value
 
     @property
-    def user_id(self):
-        return self._user_id
+    def secret_key(self):
+        return self._secret_key
 
-    @user_id.setter
-    def user_id(self, value):
-        self._user_id = value
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
 
     def to_openapi_dict(self):
         params = dict()
         if self.account:
             params['account'] = self.account
-        if self.user_id:
-            params['user_id'] = self.user_id
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
         return params
 
 
 class AssetParams(object):
     def __init__(self):
         self._account = None
-        self._user_id = None
+        self._secret_key = None
         self._segment = False
         self._market_value = False
         self._sub_accounts = None
@@ -53,12 +53,12 @@ class AssetParams(object):
         self._account = value
 
     @property
-    def user_id(self):
-        return self._user_id
+    def secret_key(self):
+        return self._secret_key
 
-    @user_id.setter
-    def user_id(self, value):
-        self._user_id = value
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
 
     @property
     def segment(self):
@@ -89,8 +89,8 @@ class AssetParams(object):
         if self.account:
             params['account'] = self.account
 
-        if self.user_id:
-            params['user_id'] = self.user_id
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
 
         if self.segment:
             params['segment'] = self.segment
@@ -107,7 +107,7 @@ class AssetParams(object):
 class PositionParams(object):
     def __init__(self):
         self._account = None
-        self._user_id = None
+        self._secret_key = None
         self._symbol = None
         self._sec_type = None
         self._currency = None
@@ -123,12 +123,12 @@ class PositionParams(object):
         self._account = value
 
     @property
-    def user_id(self):
-        return self._user_id
+    def secret_key(self):
+        return self._secret_key
 
-    @user_id.setter
-    def user_id(self, value):
-        self._user_id = value
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
 
     @property
     def symbol(self):
@@ -175,8 +175,8 @@ class PositionParams(object):
         if self.account:
             params['account'] = self.account
 
-        if self.user_id:
-            params['user_id'] = self.user_id
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
 
         if self.symbol:
             params['symbol'] = self.symbol
@@ -199,7 +199,7 @@ class PositionParams(object):
 class ContractParams(object):
     def __init__(self):
         self._account = None
-        self._user_id = None
+        self._secret_key = None
         self._symbol = None
         self._symbols = None
         self._sec_type = None
@@ -218,12 +218,12 @@ class ContractParams(object):
         self._account = value
 
     @property
-    def user_id(self):
-        return self._user_id
+    def secret_key(self):
+        return self._secret_key
 
-    @user_id.setter
-    def user_id(self, value):
-        self._user_id = value
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
 
     @property
     def symbol(self):
@@ -294,8 +294,8 @@ class ContractParams(object):
         if self.account:
             params['account'] = self.account
 
-        if self.user_id:
-            params['user_id'] = self.user_id
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
 
         if self.symbol:
             params['symbol'] = self.symbol
@@ -327,7 +327,7 @@ class ContractParams(object):
 class OrderParams(object):
     def __init__(self):
         self._account = None  # 账户
-        self._user_id = None
+        self._secret_key = None
         self._id = None  # 订单号(全局)
         self._order_id = None  # 订单号(账户维度)
         self._is_brief = None
@@ -342,12 +342,12 @@ class OrderParams(object):
         self._account = value
 
     @property
-    def user_id(self):
-        return self._user_id
+    def secret_key(self):
+        return self._secret_key
 
-    @user_id.setter
-    def user_id(self, value):
-        self._user_id = value
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
 
     @property
     def order_id(self):
@@ -386,8 +386,8 @@ class OrderParams(object):
         if self.account:
             params['account'] = self.account
 
-        if self.user_id:
-            params['user_id'] = self.user_id
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
 
         if self.order_id:
             params['order_id'] = self.order_id
@@ -407,7 +407,7 @@ class OrderParams(object):
 class OrdersParams(object):
     def __init__(self):
         self._account = None  # 账户
-        self._user_id = None
+        self._secret_key = None
         self._market = None  # 市场
         self._sec_type = None  # 合约类型
         self._symbol = None  # 合约代码
@@ -428,12 +428,12 @@ class OrdersParams(object):
         self._account = value
 
     @property
-    def user_id(self):
-        return self._user_id
+    def secret_key(self):
+        return self._secret_key
 
-    @user_id.setter
-    def user_id(self, value):
-        self._user_id = value
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
 
     @property
     def market(self):
@@ -520,8 +520,8 @@ class OrdersParams(object):
         if self.account:
             params['account'] = self.account
 
-        if self.user_id:
-            params['user_id'] = self.user_id
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
 
         if self.market:
             params['market'] = self.market
@@ -559,7 +559,7 @@ class OrdersParams(object):
 class PlaceModifyOrderParams(object):
     def __init__(self):
         self.account = None
-        self.user_id = None
+        self.secret_key = None
         self.id = None
         self.order_id = None
         self.contract = None
@@ -601,8 +601,8 @@ class PlaceModifyOrderParams(object):
 
             if self.account:
                 params['account'] = self.account
-            if self.user_id:
-                params['user_id'] = self.user_id
+            if self.secret_key:
+                params['secret_key'] = self.secret_key
 
             if self.order_id:
                 params['order_id'] = self.order_id
@@ -664,7 +664,7 @@ class PlaceModifyOrderParams(object):
 class CancelOrderParams(object):
     def __init__(self):
         self._account = None
-        self._user_id = None
+        self._secret_key = None
         self._id = None
         self._order_id = None
 
@@ -677,12 +677,12 @@ class CancelOrderParams(object):
         self._account = value
 
     @property
-    def user_id(self):
-        return self._user_id
+    def secret_key(self):
+        return self._secret_key
 
-    @user_id.setter
-    def user_id(self, value):
-        self._user_id = value
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
 
     @property
     def order_id(self):
@@ -705,8 +705,8 @@ class CancelOrderParams(object):
         if self.account:
             params['account'] = self.account
 
-        if self.user_id:
-            params['user_id'] = self.user_id
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
 
         if self.order_id:
             params['order_id'] = self.order_id

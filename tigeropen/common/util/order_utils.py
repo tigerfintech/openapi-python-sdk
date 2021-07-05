@@ -8,7 +8,7 @@ from tigeropen.trade.domain.order import Order, OrderLeg, AlgoParams
 from tigeropen.common.consts import OrderStatus
 
 
-def market_order(account, contract, action, quantity, user_id=None):
+def market_order(account, contract, action, quantity, secret_key=None):
     """
     市价单
     :param account:
@@ -17,10 +17,10 @@ def market_order(account, contract, action, quantity, user_id=None):
     :param quantity:
     :return:
     """
-    return Order(account, contract, action, 'MKT', quantity, user_id=user_id)
+    return Order(account, contract, action, 'MKT', quantity, secret_key=secret_key)
 
 
-def limit_order(account, contract, action, quantity, limit_price, user_id=None):
+def limit_order(account, contract, action, quantity, limit_price, secret_key=None):
     """
     限价单
     :param account:
@@ -30,10 +30,10 @@ def limit_order(account, contract, action, quantity, limit_price, user_id=None):
     :param limit_price: 限价的价格
     :return:
     """
-    return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, user_id=user_id)
+    return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, secret_key=secret_key)
 
 
-def stop_order(account, contract, action, quantity, aux_price, user_id=None):
+def stop_order(account, contract, action, quantity, aux_price, secret_key=None):
     """
     止损单
     :param account:
@@ -43,10 +43,10 @@ def stop_order(account, contract, action, quantity, aux_price, user_id=None):
     :param aux_price: 触发止损单的价格
     :return:
     """
-    return Order(account, contract, action, 'STP', quantity, aux_price=aux_price, user_id=user_id)
+    return Order(account, contract, action, 'STP', quantity, aux_price=aux_price, secret_key=secret_key)
 
 
-def stop_limit_order(account, contract, action, quantity, limit_price, aux_price, user_id=None):
+def stop_limit_order(account, contract, action, quantity, limit_price, aux_price, secret_key=None):
     """
     限价止损单
     :param account:
@@ -58,10 +58,10 @@ def stop_limit_order(account, contract, action, quantity, limit_price, aux_price
     :return:
     """
     return Order(account, contract, action, 'STP_LMT', quantity, limit_price=limit_price, aux_price=aux_price,
-                 user_id=user_id)
+                 secret_key=secret_key)
 
 
-def trail_order(account, contract, action, quantity, trailing_percent=None, aux_price=None, user_id=None):
+def trail_order(account, contract, action, quantity, trailing_percent=None, aux_price=None, secret_key=None):
     """
     移动止损单
     :param account:
@@ -73,7 +73,7 @@ def trail_order(account, contract, action, quantity, trailing_percent=None, aux_
     :return:
     """
     return Order(account, contract, action, 'TRAIL', quantity, trailing_percent=trailing_percent, aux_price=aux_price,
-                 user_id=user_id)
+                 secret_key=secret_key)
 
 
 def order_leg(leg_type, price, time_in_force='DAY', outside_rth=None):
@@ -87,7 +87,7 @@ def order_leg(leg_type, price, time_in_force='DAY', outside_rth=None):
     return OrderLeg(leg_type=leg_type, price=price, time_in_force=time_in_force, outside_rth=outside_rth)
 
 
-def limit_order_with_legs(account, contract, action, quantity, limit_price, order_legs=None, user_id=None):
+def limit_order_with_legs(account, contract, action, quantity, limit_price, order_legs=None, secret_key=None):
     """
     限价单 + 附加订单(仅环球账户支持)
     :param account:
@@ -101,7 +101,7 @@ def limit_order_with_legs(account, contract, action, quantity, limit_price, orde
     if order_legs and len(order_legs) > 2:
         raise Exception('2 order legs at most')
     return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, order_legs=order_legs,
-                 user_id=user_id)
+                 secret_key=secret_key)
 
 
 def algo_order_params(start_time=None, end_time=None, no_take_liq=None, allow_past_end_time=None, participation_rate=None):
@@ -118,7 +118,7 @@ def algo_order_params(start_time=None, end_time=None, no_take_liq=None, allow_pa
                       allow_past_end_time=allow_past_end_time, participation_rate=participation_rate)
 
 
-def algo_order(account, contract, action, quantity, strategy, algo_params=None, limit_price=None, user_id=None):
+def algo_order(account, contract, action, quantity, strategy, algo_params=None, limit_price=None, secret_key=None):
     """
     算法订单
     :param account:
@@ -131,7 +131,7 @@ def algo_order(account, contract, action, quantity, strategy, algo_params=None, 
     :return:
     """
     return Order(account, contract, action, order_type=strategy, quantity=quantity, algo_params=algo_params,
-                 limit_price=limit_price, outside_rth=False, user_id=user_id)
+                 limit_price=limit_price, outside_rth=False, secret_key=secret_key)
 
 
 def get_order_status(value):
