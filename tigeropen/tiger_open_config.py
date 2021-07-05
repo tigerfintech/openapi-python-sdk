@@ -46,7 +46,7 @@ class TigerOpenClientConfig(object):
         self._private_key = ''
         # 请求签名类型，推荐RSA2
         self._sign_type = SIGN_TYPE
-        # 机构密钥
+        # 机构交易员专有密钥
         self._secret_key = ''
 
         # 老虎证券开放平台网关地址
