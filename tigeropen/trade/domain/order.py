@@ -50,7 +50,7 @@ class Order(object):
         - remaining: 未成交的数量
         - order_legs: 附加订单列表
         - algo_params: 算法订单参数
-        - secret_key: 机构密钥
+        - secret_key: 机构交易员专有密钥
         """
 
         self.id = id

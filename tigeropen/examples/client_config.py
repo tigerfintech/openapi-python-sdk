@@ -22,6 +22,6 @@ def get_client_config():
     # standard_account 属性和 paper_account 属性只是为多账户时取用方便, 一般可忽略
     client_config.standard_account = None
     client_config.paper_account = None
-    client_config.secret_key = None  # 机构密钥(机构用户需要填写, 个人开发者无需填写)
+    client_config.secret_key = None  # 机构交易员专有密钥 (机构用户需要填写, 个人开发者无需填写)
     client_config.language = Language.en_US
     return client_config

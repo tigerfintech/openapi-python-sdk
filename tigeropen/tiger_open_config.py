@@ -190,7 +190,7 @@ def get_client_config(private_key_path, tiger_id, account, standard_account=None
     :param charset: 字符集编码
     :param server_url: 网关地址
     :param socket_host_port: 推送长连接的域名端口, 值为协议, 域名, 端口构成的三元组
-    :param secret_key: 机构密钥(个人开发者无需指定)
+    :param secret_key: 机构交易员专有密钥 (个人开发者无需指定)
     :return:
     """
     config = TigerOpenClientConfig(sandbox_debug=sandbox_debug)
