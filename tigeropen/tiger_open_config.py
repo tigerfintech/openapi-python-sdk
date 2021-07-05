@@ -36,9 +36,9 @@ class TigerOpenClientConfig(object):
     def __init__(self, sandbox_debug=False):
         # 开发者应用id
         self._tiger_id = ''
-        # 授权账户(环球账户，推荐)
+        # 授权账户
         self._account = ''
-        # 标准账户
+        # 综合账户
         self._standard_account = ''
         # 模拟账户
         self._paper_account = ''
@@ -46,6 +46,8 @@ class TigerOpenClientConfig(object):
         self._private_key = ''
         # 请求签名类型，推荐RSA2
         self._sign_type = SIGN_TYPE
+        # 机构交易员专有密钥
+        self._secret_key = ''
 
         # 老虎证券开放平台网关地址
         self._server_url = SERVER_URL
@@ -162,17 +164,25 @@ class TigerOpenClientConfig(object):
     def timeout(self, value):
         self._timeout = value
 
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
 
 def get_client_config(private_key_path, tiger_id, account, standard_account=None, paper_account=None,
                       sandbox_debug=False, sign_type=None, timeout=None, language=None, charset=None,
-                      server_url=None, socket_host_port=None):
+                      server_url=None, socket_host_port=None, secret_key=None):
     """
     生成客户端配置
     :param private_key_path: 私钥文件路径, 如 '/Users/tiger/.ssh/rsa_private_key.pem'
     :param tiger_id: 开发者应用 id
-    :param account: 授权账户 (必填. 作为发送请求时的默认账户)
-    :param standard_account:
-    :param paper_account:
+    :param account: 授权账户 (必填. 作为发送请求时的默认账户. 不论是环球账户, 综合账户或是模拟账户, 都使用此参数)
+    :param standard_account: 多账户时可将综合账户填在此处, 一般可忽略
+    :param paper_account: 多账户时可将模拟账户填在此处, 一般可忽略
     :param sandbox_debug: 是否请求 sandbox 环境
     :param sign_type: 签名类型
     :param timeout: 请求超时时间, 单位秒
@@ -180,6 +190,7 @@ def get_client_config(private_key_path, tiger_id, account, standard_account=None
     :param charset: 字符集编码
     :param server_url: 网关地址
     :param socket_host_port: 推送长连接的域名端口, 值为协议, 域名, 端口构成的三元组
+    :param secret_key: 机构交易员专有密钥 (个人开发者无需指定)
     :return:
     """
     config = TigerOpenClientConfig(sandbox_debug=sandbox_debug)
@@ -202,5 +213,7 @@ def get_client_config(private_key_path, tiger_id, account, standard_account=None
         config.server_url = server_url
     if socket_host_port:
         config.socket_host_port = socket_host_port
+    if secret_key:
+        config.secret_key = secret_key
     return config
 
