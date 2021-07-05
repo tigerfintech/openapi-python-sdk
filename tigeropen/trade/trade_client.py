@@ -153,7 +153,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_positions(self, account=None, sec_type=SecurityType.STK, currency=Currency.ALL, market=Market.ALL,
-                      symbol=None, sub_accounts=None, secret_key=None):
+                      symbol=None, sub_accounts=None):
         """
         获取持仓数据
         :param account:
@@ -174,7 +174,7 @@ class TradeClient(TigerOpenClient):
         """
         params = PositionParams()
         params.account = account if account else self._account
-        params.secret_key = secret_key if secret_key else self._secret_key
+        params.secret_key = self._secret_key
         if sec_type:
             params.sec_type = sec_type.value
         params.sub_accounts = sub_accounts
@@ -196,7 +196,7 @@ class TradeClient(TigerOpenClient):
 
         return None
 
-    def get_assets(self, account=None, sub_accounts=None, segment=False, market_value=False, secret_key=None):
+    def get_assets(self, account=None, sub_accounts=None, segment=False, market_value=False):
         """
         获取账户资产信息
         :param account:
@@ -229,7 +229,7 @@ class TradeClient(TigerOpenClient):
         """
         params = AssetParams()
         params.account = account if account else self._account
-        params.secret_key = secret_key if secret_key else self._secret_key
+        params.secret_key = self._secret_key
         params.sub_accounts = sub_accounts
         params.segment = segment
         params.market_value = market_value
@@ -247,7 +247,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None, end_time=None,
-                   limit=100, is_brief=False, states=None, secret_key=None):
+                   limit=100, is_brief=False, states=None):
         """
         获取订单列表
         :param account:
@@ -264,7 +264,7 @@ class TradeClient(TigerOpenClient):
         """
         params = OrdersParams()
         params.account = account if account else self._account
-        params.secret_key = secret_key if secret_key else self._secret_key
+        params.secret_key = self._secret_key
         if sec_type:
             params.sec_type = sec_type.value
         params.market = market.value
@@ -286,14 +286,14 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_open_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                        end_time=None, parent_id=None, secret_key=None):
+                        end_time=None, parent_id=None):
         """
         获取待成交订单列表. 参数同 get_orders
         :param parent_id: 主订单 order_id
         """
         params = OrdersParams()
         params.account = account if account else self._account
-        params.secret_key = secret_key if secret_key else self._secret_key
+        params.secret_key = self._secret_key
         if sec_type:
             params.sec_type = sec_type.value
         params.market = market.value
@@ -313,13 +313,13 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_cancelled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                             end_time=None, secret_key=None):
+                             end_time=None):
         """
         获取已撤销订单列表. 参数同 get_orders
         """
         params = OrdersParams()
         params.account = account if account else self._account
-        params.secret_key = secret_key if secret_key else self._secret_key
+        params.secret_key = self._secret_key
         if sec_type:
             params.sec_type = sec_type.value
         params.market = market.value
@@ -338,13 +338,13 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_filled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                          end_time=None, secret_key=None):
+                          end_time=None):
         """
         获取已成交订单列表. 参数同 get_orders
         """
         params = OrdersParams()
         params.account = account if account else self._account
-        params.secret_key = secret_key if secret_key else self._secret_key
+        params.secret_key = self._secret_key
         if sec_type:
             params.sec_type = sec_type.value
         params.market = market.value
@@ -362,7 +362,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_order(self, account=None, id=None, order_id=None, is_brief=False, secret_key=None):
+    def get_order(self, account=None, id=None, order_id=None, is_brief=False):
         """
         获取指定订单
         :param account:
@@ -373,7 +373,7 @@ class TradeClient(TigerOpenClient):
         """
         params = OrderParams()
         params.account = account if account else self._account
-        params.secret_key = secret_key if secret_key else self._secret_key
+        params.secret_key = self._secret_key
         params.id = id
         params.order_id = order_id
         params.is_brief = is_brief
@@ -390,7 +390,7 @@ class TradeClient(TigerOpenClient):
 
     def create_order(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
-                     outside_rth=None, order_legs=None, algo_params=None, secret_key=None):
+                     outside_rth=None, order_legs=None, algo_params=None):
         """
         创建订单对象.
         :param account:
@@ -407,11 +407,10 @@ class TradeClient(TigerOpenClient):
         :param outside_rth: 是否允许盘前盘后交易(美股专属)
         :param order_legs: 附加订单
         :param algo_params: 算法订单参数
-        :param secret_key: 机构密钥
         """
         params = AccountsParams()
         params.account = account if account else self._account
-        params.secret_key = secret_key if secret_key else self._secret_key
+        params.secret_key = self._secret_key
         request = OpenApiRequest(ORDER_NO, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -560,7 +559,7 @@ class TradeClient(TigerOpenClient):
 
         return False
 
-    def cancel_order(self, account=None, id=None, order_id=None, secret_key=None):
+    def cancel_order(self, account=None, id=None, order_id=None):
         """
         取消订单
         :param account:
@@ -570,7 +569,7 @@ class TradeClient(TigerOpenClient):
         """
         params = CancelOrderParams()
         params.account = account if account else self._account
-        params.secret_key = secret_key if secret_key else self._secret_key
+        params.secret_key = self._secret_key
         params.order_id = order_id
         params.id = id
         request = OpenApiRequest(CANCEL_ORDER, biz_model=params)
