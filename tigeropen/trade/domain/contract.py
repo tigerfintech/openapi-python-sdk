@@ -27,6 +27,7 @@ class Contract(object):
         self.strike = strike
         # 看跌/看涨
         self.put_call = put_call
+        self.right = self.put_call
         # 合约乘数
         self.multiplier = multiplier
         # 合约名称
