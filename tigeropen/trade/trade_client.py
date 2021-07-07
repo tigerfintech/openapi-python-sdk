@@ -68,9 +68,9 @@ class TradeClient(TigerOpenClient):
         """
         批量获取合约
         :param symbol:
-        :param sec_type:
-        :param currency:
-        :param exchange:
+        :param sec_type: 合约类型 tigeropen.common.consts.SecurityType
+        :param currency: 币种 tigeropen.common.consts.Currency
+        :param exchange: 交易所
         :return: 合约对象列表, 每个列表项的对象信息同 get_contract 返回
         """
         params = ContractParams()
@@ -96,16 +96,16 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_contract(self, symbol, sec_type=SecurityType.STK, currency=None, exchange=None, expiry=None, strike=None,
-                     right=None):
+                     put_call=None):
         """
         获取合约
         :param symbol:
-        :param sec_type:
-        :param currency:
-        :param exchange:
-        :param expiry:
-        :param strike:
-        :param right:
+        :param sec_type: 合约类型 tigeropen.common.consts.SecurityType
+        :param currency: 币种 tigeropen.common.consts.Currency
+        :param exchange: 交易所
+        :param expiry: 合约到期日(期货/期权) yyyyMMdd
+        :param strike: 行权价(期权)
+        :param put_call: CALL/PUT
         :return: Contract 对象. 有如下属性:
             symbol: 合约 symbol
             identifier: 合约唯一标识
@@ -136,8 +136,8 @@ class TradeClient(TigerOpenClient):
             params.expiry = expiry
         if strike:
             params.strike = strike
-        if right:
-            params.right = right
+        if put_call:
+            params.right = put_call
         params.exchange = exchange
 
         request = OpenApiRequest(CONTRACT, biz_model=params)
