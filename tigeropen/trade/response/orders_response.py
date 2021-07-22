@@ -5,9 +5,8 @@ Created on 2018/10/31
 @author: gaoan
 """
 import json
-import six
+
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.trade.domain.contract import Contract
 from tigeropen.trade.domain.order import Order, AlgoParams
@@ -55,8 +54,6 @@ class OrdersResponse(TigerResponse):
         for key, value in item.items():
             if value is None:
                 continue
-            if isinstance(value, six.string_types):
-                value = get_string(value)
             tag = ORDER_FIELD_MAPPINGS[key] if key in ORDER_FIELD_MAPPINGS else key
             if tag in CONTRACT_FIELDS:
                 contract_fields[tag] = value

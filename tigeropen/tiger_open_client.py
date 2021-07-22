@@ -4,21 +4,17 @@ Created on 2018/9/20
 
 @author: gaoan
 """
-from __future__ import unicode_literals
 import datetime
+import json
 import uuid
 
-from tigeropen.common.consts import *
-from tigeropen.common.consts.params import *
+from tigeropen.common.consts import OPEN_API_SDK_VERSION, THREAD_LOCAL
+from tigeropen.common.consts.params import P_TIMESTAMP, P_TIGER_ID, P_METHOD, P_CHARSET, P_VERSION, P_SIGN_TYPE, \
+    P_DEVICE_ID, P_NOTIFY_URL, COMMON_PARAM_KEYS, P_SIGN
+from tigeropen.common.exceptions import ResponseException, RequestException
 from tigeropen.common.util.common_utils import has_value
-from tigeropen.common.util.signature_utils import *
-from tigeropen.common.util.web_utils import *
-from tigeropen.common.exceptions import *
-
-if not PYTHON_VERSION_3:
-    import sys
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
+from tigeropen.common.util.signature_utils import get_sign_content, sign_with_rsa, verify_with_rsa
+from tigeropen.common.util.web_utils import do_post
 
 try:
     from getmac import get_mac_address
@@ -111,8 +107,7 @@ class TigerOpenClient(object):
     """
 
     def __parse_response(self, response_str, timestamp=None):
-        if PYTHON_VERSION_3:
-            response_str = response_str.decode(self.__config.charset)
+        response_str = response_str.decode(self.__config.charset)
         if THREAD_LOCAL.logger:
             THREAD_LOCAL.logger.info('[' + THREAD_LOCAL.uuid + ']response:' + response_str)
 

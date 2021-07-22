@@ -13,7 +13,6 @@ import sys
 
 import rsa
 
-from tigeropen.common.consts import PYTHON_VERSION_3
 from tigeropen.common.util.string_utils import add_start_end
 
 
@@ -58,8 +57,7 @@ def fill_public_key_marker(public_key):
 
 
 def sign_with_rsa(private_key, sign_content, charset):
-    if PYTHON_VERSION_3:
-        sign_content = sign_content.encode(charset)
+    sign_content = sign_content.encode(charset)
     try:
         private_key = rsa.PrivateKey.load_pkcs1(fill_private_key_marker(private_key), format='PEM')
     except binascii.Error:
@@ -68,9 +66,7 @@ def sign_with_rsa(private_key, sign_content, charset):
 
     signature = rsa.sign(sign_content, private_key, 'SHA-1')
 
-    sign = base64.b64encode(signature)
-    if PYTHON_VERSION_3:
-        sign = str(sign, encoding=charset)
+    sign = str(base64.b64encode(signature), encoding=charset)
     return sign
 
 

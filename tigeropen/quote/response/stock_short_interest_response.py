@@ -4,10 +4,9 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import six
 
 import pandas as pd
-from tigeropen.common.util.string_utils import get_string
+
 from tigeropen.common.response import TigerResponse
 
 COLUMNS = ['symbol', 'settlement_date', 'short_interest', 'avg_daily_volume', 'days_to_cover', 'percent_of_float']
@@ -37,8 +36,6 @@ class ShortInterestResponse(TigerResponse):
                     for key, value in item.items():
                         if value is None:
                             continue
-                        if isinstance(value, six.string_types):
-                            value = get_string(value)
                         tag = SHORT_INTEREST_FIELD_MAPPINGS[key] if key in SHORT_INTEREST_FIELD_MAPPINGS else key
                         item_values[tag] = value
                     short_interest_items.append([item_values.get(tag) for tag in COLUMNS])
