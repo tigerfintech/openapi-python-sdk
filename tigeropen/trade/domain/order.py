@@ -4,12 +4,12 @@ Created on 2018/9/20
 
 @author: gaoan
 """
-from six import text_type
 from tigeropen.common.consts import OrderStatus
 
 ORDER_FIELDS_TO_IGNORE = {'type', '_status', 'contract', '_remaining'}
 ALGO_PARAMS_TAG_MAP = {'noTakeLiq': 'no_take_liq', 'startTime': 'start_time', 'endTime': 'end_time',
                        'participationRate': 'participation_rate', 'allowPastEndTime': 'allow_past_end_time'}
+
 
 class Order(object):
     __slots__ = ["account", "id", "order_id", "parent_id", "order_time", "reason", "trade_time", "contract", "action",
@@ -115,12 +115,6 @@ class Order(object):
         String representation for this object.
         """
         return "Order(%s)" % self.to_dict().__repr__()
-
-    def __unicode__(self):
-        """
-        Unicode representation for this object.
-        """
-        return text_type(repr(self))
 
 
 class OrderLeg(object):

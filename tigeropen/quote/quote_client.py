@@ -9,7 +9,6 @@ import logging
 import re
 
 import delorean
-import six
 
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
@@ -50,8 +49,8 @@ from tigeropen.quote.response.option_quote_bar_response import OptionQuoteBarRes
 from tigeropen.quote.response.option_quote_ticks_response import OptionTradeTickResponse
 from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
 from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
-from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
 from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
+from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
@@ -533,7 +532,7 @@ class QuoteClient(TigerOpenClient):
         params = MultipleContractParams()
         param = SingleContractParams()
         param.symbol = symbol
-        if isinstance(expiry, six.string_types) and re.match('[0-9]{4}\-[0-9]{2}\-[0-9]{2}', expiry):
+        if isinstance(expiry, str) and re.match('[0-9]{4}-[0-9]{2}-[0-9]{2}', expiry):
             param.expiry = int(delorean.parse(expiry, timezone=eastern, dayfirst=False).datetime.timestamp() * 1000)
         else:
             param.expiry = expiry

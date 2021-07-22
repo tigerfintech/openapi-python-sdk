@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-import six
 
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.string_utils import get_string
 
 COLUMNS = ['symbol', 'field', 'date', 'value']
 
@@ -25,8 +23,6 @@ class FinancialDailyResponse(TigerResponse):
             for item in self.data:
                 item_values = dict()
                 for key, value in item.items():
-                    if isinstance(value, six.string_types):
-                        value = get_string(value)
                     item_values[key] = value
                 items.append(item_values)
             self.financial_daily = pd.DataFrame(items, columns=COLUMNS)
