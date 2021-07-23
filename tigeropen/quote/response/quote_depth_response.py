@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.string_utils import get_string
 
 
 class DepthQuoteResponse(TigerResponse):
@@ -17,13 +16,13 @@ class DepthQuoteResponse(TigerResponse):
         if self.data and isinstance(self.data, list):
             if len(self.data) == 1:
                 item = self.data[0]
-                symbol = get_string(item.get('symbol'))
+                symbol = item.get('symbol')
                 asks = [(v['price'], v['volume'], v['count']) for v in item.get('asks', [])]
                 bids = [(v['price'], v['volume'], v['count']) for v in item.get('bids', [])]
                 self.order_book = {'symbol': symbol, 'asks': asks, 'bids': bids}
             else:
                 for item in self.data:
-                    symbol = get_string(item.get('symbol'))
+                    symbol = item.get('symbol')
                     asks = [(v['price'], v['volume'], v['count']) for v in item.get('asks', [])]
                     bids = [(v['price'], v['volume'], v['count']) for v in item.get('bids', [])]
                     self.order_book[symbol] = {'symbol': symbol, 'asks': asks, 'bids': bids}

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.response import TigerResponse
 
 
@@ -17,8 +16,8 @@ class IndustryListResponse(TigerResponse):
         if self.data:
             for ind in self.data:
                 industry = dict(industry_level=ind.get('industryLevel'), id=ind.get('id'),
-                                name_cn=get_string(ind.get('nameCN')),
-                                name_en=get_string(ind.get('nameEN')))
+                                name_cn=ind.get('nameCN'),
+                                name_en=ind.get('nameEN'))
                 self.industry_list.append(industry)
 
 
@@ -38,8 +37,8 @@ class IndustryStocksResponse(TigerResponse):
                 industries = item.get('industryDetailDTOList', [])
                 for ind in industries:
                     industry_list.append(dict(industry_level=ind.get('industryLevel'), id=ind.get('id'),
-                                              name_cn=get_string(ind.get('nameCN')),
-                                              name_en=get_string(ind.get('nameEN'))))
+                                              name_cn=ind.get('nameCN'),
+                                              name_en=ind.get('nameEN')))
                 company = dict(symbol=item.get('symbol'), company_name=item.get('companyName'),
                                market=item.get('market'), industry_list=industry_list)
                 self.industry_stocks.append(company)
@@ -58,6 +57,6 @@ class StockIndustryResponse(TigerResponse):
         if self.data:
             for item in self.data:
                 industry = dict(industry_level=item.get('industryLevel'), id=item.get('id'),
-                                name_cn=get_string(item.get('nameCN')),
-                                name_en=get_string(item.get('nameEN')))
+                                name_cn=item.get('nameCN'),
+                                name_en=item.get('nameEN'))
                 self.stock_industry.append(industry)
