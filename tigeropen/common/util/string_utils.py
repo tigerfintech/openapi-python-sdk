@@ -21,6 +21,3 @@ def camel_to_underline(hunp_str):
     return sub
 
 
-def get_string(value):
-    return value
-
