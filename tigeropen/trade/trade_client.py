@@ -35,10 +35,12 @@ class TradeClient(TigerOpenClient):
             self._standard_account = client_config.standard_account
             self._paper_account = client_config.paper_account
             self._lang = client_config.language
+            self._secret_key = client_config.secret_key
         else:
             self._account = None
             self._standard_account = None
             self._paper_account = None
+            self._secret_key = None
 
     def get_managed_accounts(self, account=None):
         """
@@ -66,13 +68,14 @@ class TradeClient(TigerOpenClient):
         """
         批量获取合约
         :param symbol:
-        :param sec_type:
-        :param currency:
-        :param exchange:
+        :param sec_type: 合约类型 tigeropen.common.consts.SecurityType
+        :param currency: 币种 tigeropen.common.consts.Currency
+        :param exchange: 交易所
         :return: 合约对象列表, 每个列表项的对象信息同 get_contract 返回
         """
         params = ContractParams()
         params.account = self._account
+        params.secret_key = self._secret_key
         params.symbols = symbol if isinstance(symbol, list) else [symbol]
         if sec_type:
             params.sec_type = sec_type.value
@@ -93,16 +96,16 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_contract(self, symbol, sec_type=SecurityType.STK, currency=None, exchange=None, expiry=None, strike=None,
-                     right=None):
+                     put_call=None):
         """
         获取合约
         :param symbol:
-        :param sec_type:
-        :param currency:
-        :param exchange:
-        :param expiry:
-        :param strike:
-        :param right:
+        :param sec_type: 合约类型 tigeropen.common.consts.SecurityType
+        :param currency: 币种 tigeropen.common.consts.Currency
+        :param exchange: 交易所
+        :param expiry: 合约到期日(期货/期权) yyyyMMdd
+        :param strike: 行权价(期权)
+        :param put_call: CALL/PUT
         :return: Contract 对象. 有如下属性:
             symbol: 合约 symbol
             identifier: 合约唯一标识
@@ -123,6 +126,7 @@ class TradeClient(TigerOpenClient):
         """
         params = ContractParams()
         params.account = self._account
+        params.secret_key = self._secret_key
         params.symbol = symbol
         if sec_type:
             params.sec_type = sec_type.value
@@ -132,8 +136,8 @@ class TradeClient(TigerOpenClient):
             params.expiry = expiry
         if strike:
             params.strike = strike
-        if right:
-            params.right = right
+        if put_call:
+            params.right = put_call
         params.exchange = exchange
 
         request = OpenApiRequest(CONTRACT, biz_model=params)
@@ -170,6 +174,7 @@ class TradeClient(TigerOpenClient):
         """
         params = PositionParams()
         params.account = account if account else self._account
+        params.secret_key = self._secret_key
         if sec_type:
             params.sec_type = sec_type.value
         params.sub_accounts = sub_accounts
@@ -224,6 +229,7 @@ class TradeClient(TigerOpenClient):
         """
         params = AssetParams()
         params.account = account if account else self._account
+        params.secret_key = self._secret_key
         params.sub_accounts = sub_accounts
         params.segment = segment
         params.market_value = market_value
@@ -258,6 +264,7 @@ class TradeClient(TigerOpenClient):
         """
         params = OrdersParams()
         params.account = account if account else self._account
+        params.secret_key = self._secret_key
         if sec_type:
             params.sec_type = sec_type.value
         params.market = market.value
@@ -271,7 +278,7 @@ class TradeClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = OrdersResponse()
-            response.parse_response_content(response_content)
+            response.parse_response_content(response_content, secret_key=params.secret_key)
             if response.is_success():
                 return response.orders
             else:
@@ -286,6 +293,7 @@ class TradeClient(TigerOpenClient):
         """
         params = OrdersParams()
         params.account = account if account else self._account
+        params.secret_key = self._secret_key
         if sec_type:
             params.sec_type = sec_type.value
         params.market = market.value
@@ -297,7 +305,7 @@ class TradeClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = OrdersResponse()
-            response.parse_response_content(response_content)
+            response.parse_response_content(response_content, secret_key=params.secret_key)
             if response.is_success():
                 return response.orders
             else:
@@ -311,6 +319,7 @@ class TradeClient(TigerOpenClient):
         """
         params = OrdersParams()
         params.account = account if account else self._account
+        params.secret_key = self._secret_key
         if sec_type:
             params.sec_type = sec_type.value
         params.market = market.value
@@ -321,7 +330,7 @@ class TradeClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = OrdersResponse()
-            response.parse_response_content(response_content)
+            response.parse_response_content(response_content, secret_key=params.secret_key)
             if response.is_success():
                 return response.orders
             else:
@@ -335,6 +344,7 @@ class TradeClient(TigerOpenClient):
         """
         params = OrdersParams()
         params.account = account if account else self._account
+        params.secret_key = self._secret_key
         if sec_type:
             params.sec_type = sec_type.value
         params.market = market.value
@@ -345,7 +355,7 @@ class TradeClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = OrdersResponse()
-            response.parse_response_content(response_content)
+            response.parse_response_content(response_content, secret_key=params.secret_key)
             if response.is_success():
                 return response.orders
             else:
@@ -363,6 +373,7 @@ class TradeClient(TigerOpenClient):
         """
         params = OrderParams()
         params.account = account if account else self._account
+        params.secret_key = self._secret_key
         params.id = id
         params.order_id = order_id
         params.is_brief = is_brief
@@ -370,7 +381,7 @@ class TradeClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = OrdersResponse()
-            response.parse_response_content(response_content)
+            response.parse_response_content(response_content, secret_key=params.secret_key)
             if response.is_success():
                 return response.orders[0] if len(response.orders) == 1 else None
             else:
@@ -399,6 +410,7 @@ class TradeClient(TigerOpenClient):
         """
         params = AccountsParams()
         params.account = account if account else self._account
+        params.secret_key = self._secret_key
         request = OpenApiRequest(ORDER_NO, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -410,7 +422,7 @@ class TradeClient(TigerOpenClient):
                               aux_price=aux_price, trail_stop_price=trail_stop_price,
                               trailing_percent=trailing_percent, percent_offset=percent_offset,
                               time_in_force=time_in_force, outside_rth=outside_rth, order_id=order_id,
-                              order_legs=order_legs, algo_params=algo_params)
+                              order_legs=order_legs, algo_params=algo_params, secret_key=params.secret_key)
                 return order
             else:
                 raise ApiException(response.code, response.message)
@@ -450,6 +462,7 @@ class TradeClient(TigerOpenClient):
         params.percent_offset = order.percent_offset
         params.time_in_force = order.time_in_force
         params.outside_rth = order.outside_rth
+        params.secret_key = order.secret_key if order.secret_key else self._secret_key
         request = OpenApiRequest(PREVIEW_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -482,6 +495,7 @@ class TradeClient(TigerOpenClient):
         params.outside_rth = order.outside_rth
         params.order_legs = order.order_legs
         params.algo_params = order.algo_params
+        params.secret_key = order.secret_key if order.secret_key else self._secret_key
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -531,6 +545,8 @@ class TradeClient(TigerOpenClient):
         params.percent_offset = percent_offset if percent_offset is not None else order.percent_offset
         params.time_in_force = time_in_force if time_in_force is not None else order.time_in_force
         params.outside_rth = outside_rth if outside_rth is not None else order.outside_rth
+        params.secret_key = order.secret_key if order.secret_key else self._secret_key
+
         request = OpenApiRequest(MODIFY_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -553,6 +569,7 @@ class TradeClient(TigerOpenClient):
         """
         params = CancelOrderParams()
         params.account = account if account else self._account
+        params.secret_key = self._secret_key
         params.order_id = order_id
         params.id = id
         request = OpenApiRequest(CANCEL_ORDER, biz_model=params)
