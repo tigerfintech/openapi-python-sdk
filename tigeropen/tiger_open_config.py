@@ -32,7 +32,7 @@ SANDBOX_TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbm21i11hgAENG
                            'HfRo75RpUUuWACyeqQkZckgR0McxuW9xRMIa2cXZOoL1E4SL4lXKGhKoWbwIDAQAB'
 
 
-class TigerOpenClientConfig(object):
+class TigerOpenClientConfig:
     def __init__(self, sandbox_debug=False):
         # 开发者应用id
         self._tiger_id = ''
