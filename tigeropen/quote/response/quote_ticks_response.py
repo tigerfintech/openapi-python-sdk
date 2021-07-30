@@ -4,10 +4,9 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import six
 import pandas as pd
+
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.string_utils import get_string
 
 COLUMNS = ['symbol', 'index', 'time', 'price', 'volume', 'direction']
 
@@ -36,8 +35,6 @@ class TradeTickResponse(TigerResponse):
                         for key, value in item.items():
                             if value is None:
                                 continue
-                            if isinstance(value, six.string_types):
-                                value = get_string(value)
 
                             if key == 'type':
                                 item_values['direction'] = value

@@ -9,7 +9,7 @@ from .setting import MARKET
 COLUMNS = ['symbol', 'time', 'open', 'high', 'low', 'close', 'volume']
 
 
-class BarManager(object):
+class BarManager:
     def __init__(self):
         self.curr_bar = None
         self.data_bar = pd.DataFrame(columns=COLUMNS)
@@ -18,7 +18,7 @@ class BarManager(object):
         self.last_timestamp = None
 
 
-class BarUtil(object):
+class BarUtil:
     def __init__(self):
         self.bar_manager = {}
         self.timezone = pytz.timezone(MARKET.TIMEZONE)

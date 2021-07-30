@@ -4,10 +4,9 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import six
 
 import pandas as pd
-from tigeropen.common.util.string_utils import get_string
+
 from tigeropen.common.response import TigerResponse
 
 COLUMNS = ['symbol', 'time', 'price', 'avg_price', 'pre_close', 'volume', 'trading_session']
@@ -63,8 +62,6 @@ class QuoteTimelineResponse(TigerResponse):
         for key, value in item.items():
             if value is None:
                 continue
-            if isinstance(value, six.string_types):
-                value = get_string(value)
             tag = TIMELINE_FIELD_MAPPINGS[key] if key in TIMELINE_FIELD_MAPPINGS else key
             item_values[tag] = value
 

@@ -4,10 +4,9 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import six
 import pandas as pd
+
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.string_utils import get_string
 
 COLUMNS = ['identifier', 'ask_price', 'ask_size', 'bid_price', 'bid_size', 'pre_close', 'latest_price', 'latest_size',
            'latest_time', 'volume', 'open_interest', 'open', 'high', 'low', 'limit_up', 'limit_down']
@@ -35,8 +34,6 @@ class FutureBriefsResponse(TigerResponse):
                 for key, value in item.items():
                     if value is None:
                         continue
-                    if isinstance(value, six.string_types):
-                        value = get_string(value)
                     tag = BRIEF_FIELD_MAPPINGS[key] if key in BRIEF_FIELD_MAPPINGS else key
                     item_values[tag] = value
                 brief_data.append([item_values.get(tag) for tag in COLUMNS])
@@ -45,8 +42,6 @@ class FutureBriefsResponse(TigerResponse):
             for key, value in self.data.items():
                 if value is None:
                     continue
-                if isinstance(value, six.string_types):
-                    value = get_string(value)
                 tag = BRIEF_FIELD_MAPPINGS[key] if key in BRIEF_FIELD_MAPPINGS else key
                 item_values[tag] = value
             brief_data.append([item_values.get(tag) for tag in COLUMNS])

@@ -6,8 +6,6 @@ Created on 2018/9/20
 """
 import re
 
-from tigeropen.common.consts import PYTHON_VERSION_3
-
 
 def add_start_end(key, start_marker, end_marker):
     if key.find(start_marker) < 0:
@@ -23,8 +21,3 @@ def camel_to_underline(hunp_str):
     return sub
 
 
-def get_string(value):
-    if PYTHON_VERSION_3:
-        return value
-    else:
-        return value.encode('utf-8')

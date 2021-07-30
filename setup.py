@@ -5,6 +5,7 @@ Created on 2018/9/16
 @author: gaoan
 """
 from os import path
+
 from setuptools import find_packages, setup
 
 with open(path.join(path.abspath(path.dirname(__file__)), 'requirements.txt')) as f:
@@ -12,7 +13,7 @@ with open(path.join(path.abspath(path.dirname(__file__)), 'requirements.txt')) a
 
 setup(
     name='tigeropen',
-    version='1.4.1',
+    version='2.0.0',
     description='TigerBrokers Open API',
     packages=find_packages(exclude=[]),
     author='TigerBrokers',
@@ -26,10 +27,11 @@ setup(
         'Programming Language :: Python',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: Unix',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
 )

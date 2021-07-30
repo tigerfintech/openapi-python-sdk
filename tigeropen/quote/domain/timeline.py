@@ -6,7 +6,7 @@ Created on 2018/10/31
 """
 
 
-class Timeline(object):
+class Timeline:
     def __init__(self):
         self.latest_time = None
         self.price = None
