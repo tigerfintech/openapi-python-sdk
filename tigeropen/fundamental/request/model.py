@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-class FinancialDailyParams(object):
+class FinancialDailyParams:
     def __init__(self):
         self._symbols = None
         self._market = None
@@ -82,7 +82,7 @@ class FinancialDailyParams(object):
         return params
 
 
-class FinancialReportParams(object):
+class FinancialReportParams:
     def __init__(self):
         self._symbols = None
         self._market = None
@@ -139,7 +139,7 @@ class FinancialReportParams(object):
         return params
 
 
-class CorporateActionParams(object):
+class CorporateActionParams:
     def __init__(self):
         self._symbols = None
         self._market = None
@@ -208,7 +208,7 @@ class CorporateActionParams(object):
         return params
 
 
-class IndustryParams(object):
+class IndustryParams:
     def __init__(self):
         self._industry_level = None
         self._industry_id = None

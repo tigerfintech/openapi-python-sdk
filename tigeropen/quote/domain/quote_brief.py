@@ -6,7 +6,7 @@ Created on 2018/10/31
 """
 
 
-class HourTrading(object):
+class HourTrading:
     def __init__(self):
         self.trading_session = None  # 盘前/盘后
         self.latest_price = None  # 最新价
@@ -26,7 +26,7 @@ class HourTrading(object):
         return "HourTrading(%s)" % self.__dict__
 
 
-class QuoteBrief(object):
+class QuoteBrief:
     def __init__(self):
         # contract info
         self.symbol = None  # 股票代号

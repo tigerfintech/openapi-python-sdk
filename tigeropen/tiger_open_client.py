@@ -23,7 +23,7 @@ except ImportError:
         return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
 
 
-class TigerOpenClient(object):
+class TigerOpenClient:
     """
     client_config：客户端配置，包含tiger_id、应用私钥、老虎公钥等
     logger：日志对象，客户端执行信息会通过此日志对象输出
