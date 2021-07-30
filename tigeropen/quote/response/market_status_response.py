@@ -7,10 +7,9 @@ Created on 2018/10/31
 
 import dateutil.parser as dateparser
 
-from tigeropen.common.util.string_utils import get_string
+from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.common_utils import eastern, china, hongkong
 from tigeropen.quote.domain.market_status import MarketStatus
-from tigeropen.common.response import TigerResponse
 
 
 class MarketStatusResponse(TigerResponse):
@@ -31,15 +30,15 @@ class MarketStatusResponse(TigerResponse):
                     if value is None:
                         continue
                     if key == 'market':
-                        market = get_string(value)
+                        market = value
                     elif key == 'marketStatus':
-                        status = get_string(value)
+                        status = value
                     elif key == 'openTime':
                         if value.endswith(' EDT') or value.endswith(' EST'):
                             value = value[0:len(value) - 4]
                         open_time = dateparser.parse(value)
                     elif key == 'status':
-                        trading_status = get_string(value)
+                        trading_status = value
 
                 if open_time and market:
                     if market == 'US':

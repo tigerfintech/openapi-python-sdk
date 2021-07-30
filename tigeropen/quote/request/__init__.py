@@ -10,7 +10,7 @@ from tigeropen.common.consts.params import *
 from tigeropen.common.consts import OPEN_API_SDK_VERSION
 
 
-class OpenApiRequest(object):
+class OpenApiRequest:
     def __init__(self, method, biz_model=None):
         self._method = method
         self._biz_model = biz_model

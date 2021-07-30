@@ -6,9 +6,8 @@ Created on 2018/10/31
 """
 import json
 
-import six
 import pandas as pd
-from tigeropen.common.util.string_utils import get_string
+
 from tigeropen.common.response import TigerResponse
 
 # 盘前盘后
@@ -118,8 +117,6 @@ class StockDetailsResponse(TigerResponse):
             for key, value in item.items():
                 if value is None:
                     continue
-                if isinstance(value, six.string_types):
-                    value = get_string(value)
                 tag = self._key_to_tag(key)
                 if tag in SUB_FIELDS:
                     for sub_k, sub_v in value.items():

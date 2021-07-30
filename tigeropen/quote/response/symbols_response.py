@@ -6,7 +6,6 @@ Created on 2018/10/31
 """
 
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.string_utils import get_string
 
 
 class SymbolsResponse(TigerResponse):
@@ -21,4 +20,4 @@ class SymbolsResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data and isinstance(self.data, list):
-            self.symbols = [get_string(symbol) for symbol in self.data if symbol]
+            self.symbols = [symbol for symbol in self.data if symbol]
