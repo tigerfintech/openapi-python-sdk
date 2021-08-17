@@ -4,10 +4,9 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import six
 import pandas as pd
+
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.string_utils import get_string
 
 COLUMNS = ['identifier', 'symbol', 'expiry', 'strike', 'put_call', 'multiplier', 'ask_price', 'ask_size', 'bid_price',
            'bid_size', 'pre_close', 'latest_price', 'volume', 'open_interest']
@@ -40,8 +39,6 @@ class OptionChainsResponse(TigerResponse):
                             for key, value in call_put_item.items():
                                 if value is None:
                                     continue
-                                if isinstance(value, six.string_types):
-                                    value = get_string(value)
                                 if key == 'right':
                                     value = value.upper()
                                 tag = CHAIN_FIELD_MAPPINGS[key] if key in CHAIN_FIELD_MAPPINGS else key

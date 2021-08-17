@@ -6,7 +6,7 @@ Created on 2018/9/20
 """
 
 
-class MarketParams(object):
+class MarketParams:
     def __init__(self):
         self._market = None  # 市场
         self._sec_type = None  # 交易品种
@@ -346,7 +346,7 @@ class MultipleQuoteParams(MarketParams):
         return params
 
 
-class SingleContractParams(object):
+class SingleContractParams:
     def __init__(self):
         self._symbol = None
         self._put_call = None  # for option
@@ -461,7 +461,7 @@ class SingleOptionQuoteParams(SingleContractParams):
         return params
 
 
-class MultipleContractParams(object):
+class MultipleContractParams:
     def __init__(self):
         super(MultipleContractParams, self).__init__()
         self._contracts = None  # list of SingleQuoteParams
@@ -484,7 +484,7 @@ class MultipleContractParams(object):
         return params
 
 
-class FutureExchangeParams(object):
+class FutureExchangeParams:
     def __init__(self):
         self._exchange_code = None  # 交易所
         self._lang = None  # 语言
@@ -516,7 +516,7 @@ class FutureExchangeParams(object):
         return params
 
 
-class FutureTypeParams(object):
+class FutureTypeParams:
     def __init__(self):
         self._type = None  # 期货品种
         self._lang = None  # 语言
@@ -548,7 +548,7 @@ class FutureTypeParams(object):
         return params
 
 
-class FutureTradingTimeParams(object):
+class FutureTradingTimeParams:
     def __init__(self):
         self._contract_code = None
         self._trading_date = None
@@ -674,7 +674,7 @@ class FutureQuoteParams(MarketParams):
         return params
 
 
-class DepthQuoteParams(object):
+class DepthQuoteParams:
     def __init__(self):
         self._symbols = None
         self._market = None
