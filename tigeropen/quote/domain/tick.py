@@ -6,7 +6,7 @@ Created on 2018/10/31
 """
 
 
-class TradeTick(object):
+class TradeTick:
     def __init__(self):
         self.index = None
         self.timestamp = None

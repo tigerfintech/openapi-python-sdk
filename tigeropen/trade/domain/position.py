@@ -6,7 +6,7 @@ Created on 2018/9/20
 """
 
 
-class Position(object):
+class Position:
     def __init__(self, account, contract, quantity=0, average_cost=None, market_price=None, market_value=None,
                  realized_pnl=None, unrealized_pnl=None):
         """

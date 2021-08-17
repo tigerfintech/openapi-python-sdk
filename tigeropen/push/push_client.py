@@ -4,22 +4,21 @@ Created on 2018/10/30
 
 @author: gaoan
 """
-import sys
 import json
+import logging
+import sys
 from collections import defaultdict
 
 import stomp
-import six
-import logging
 from stomp.exception import ConnectFailedException
 
+from tigeropen.common.consts import OrderStatus
 from tigeropen.common.consts.push_destinations import QUOTE, QUOTE_DEPTH, QUOTE_FUTURE, QUOTE_OPTION, TRADE_ASSET, \
     TRADE_ORDER, TRADE_POSITION
-from tigeropen.common.util.signature_utils import sign_with_rsa
-from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
-from tigeropen.common.consts import OrderStatus
+from tigeropen.common.util.order_utils import get_order_status
+from tigeropen.common.util.signature_utils import sign_with_rsa
 
 HOUR_TRADING_QUOTE_KEYS_MAPPINGS = {'hourTradingLatestPrice': 'latest_price', 'hourTradingPreClose': 'pre_close',
                                     'hourTradingLatestTime': 'latest_time', 'hourTradingVolume': 'volume',
@@ -166,8 +165,7 @@ class PushClient(stomp.ConnectionListener):
                         # 期货行情推送的价格都乘了 10 的 offset 次方变成了整数, 需要除回去变为正常单位的价格
                         if offset:
                             for key, value in data.items():
-                                if (key == 'latestTime' or key == 'hourTradingLatestTime') and \
-                                        isinstance(value, six.string_types):
+                                if key == 'latestTime' or key == 'hourTradingLatestTime':
                                     continue
                                 if key in QUOTE_KEYS_MAPPINGS:
                                     key = QUOTE_KEYS_MAPPINGS.get(key)
@@ -183,8 +181,7 @@ class PushClient(stomp.ConnectionListener):
                                     items.append((key, value))
                         else:
                             for key, value in data.items():
-                                if (key == 'latestTime' or key == 'hourTradingLatestTime') and \
-                                        isinstance(value, six.string_types):
+                                if key == 'latestTime' or key == 'hourTradingLatestTime':
                                     continue
                                 if key in QUOTE_KEYS_MAPPINGS:
                                     key = QUOTE_KEYS_MAPPINGS.get(key)
@@ -305,7 +302,7 @@ class PushClient(stomp.ConnectionListener):
         if focus_keys:
             keys = list()
             for key in focus_keys:
-                if isinstance(key, six.string_types):
+                if isinstance(key, str):
                     keys.append(key)
                 else:
                     keys.append(key.value)

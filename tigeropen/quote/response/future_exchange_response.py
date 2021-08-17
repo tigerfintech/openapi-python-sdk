@@ -6,7 +6,6 @@ Created on 2018/10/31
 """
 import pandas as pd
 
-from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.response import TigerResponse
 
 
@@ -29,10 +28,10 @@ class FutureExchangeResponse(TigerResponse):
                     if value is None:
                         continue
                     if key == 'code':
-                        code = get_string(value)
+                        code = value
                     elif key == 'name':
-                        name = get_string(value)
+                        name = value
                     elif key == 'zoneId':
-                        zone = get_string(value)
+                        zone = value
                 items.append([code, name, zone])
             self.exchanges = pd.DataFrame(items, columns=['code', 'name', 'zone'])
