@@ -6,11 +6,10 @@ Created on 2018/10/31
 """
 
 import json
-import six
+
 from tigeropen.common.consts import TradingSession
-from tigeropen.common.util.string_utils import get_string
-from tigeropen.quote.domain.quote_brief import QuoteBrief, HourTrading
 from tigeropen.common.response import TigerResponse
+from tigeropen.quote.domain.quote_brief import QuoteBrief, HourTrading
 
 BRIEF_FIELD_MAPPINGS = {'latestPrice': 'latest_price', 'preClose': 'prev_close', 'secType': 'sec_type',
                         'timestamp': 'latest_time', 'askPrice': 'ask_price', 'askSize': 'ask_size',
@@ -36,13 +35,9 @@ class QuoteBriefResponse(TigerResponse):
                     for key, value in item.items():
                         if value is None:
                             continue
-                        if isinstance(value, six.string_types):
-                            value = get_string(value)
                         if key == 'hourTrading':
                             hour_trading = HourTrading()
                             for sub_key, sub_value in value.items():
-                                if isinstance(sub_value, six.string_types):
-                                    sub_value = get_string(sub_value)
                                 if sub_key == 'tag':
                                     if sub_value == '盘前':
                                         hour_trading.trading_session = TradingSession.PreMarket

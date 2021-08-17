@@ -6,7 +6,7 @@ Created on 2018/10/31
 """
 
 
-class AccountProfile(object):
+class AccountProfile:
     def __init__(self, account, capability, status):
         self.account = account
         self.capability = capability

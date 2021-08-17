@@ -6,7 +6,7 @@ Created on 2018/10/31
 """
 
 
-class Bar(object):
+class Bar:
     def __init__(self):
         self.time = None
         self.open = None

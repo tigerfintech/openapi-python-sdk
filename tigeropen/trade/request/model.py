@@ -6,7 +6,7 @@ Created on 2018/10/31
 """
 
 
-class AccountsParams(object):
+class AccountsParams:
     def __init__(self):
         self._account = None
         self._secret_key = None
@@ -36,7 +36,7 @@ class AccountsParams(object):
         return params
 
 
-class AssetParams(object):
+class AssetParams:
     def __init__(self):
         self._account = None
         self._secret_key = None
@@ -104,7 +104,7 @@ class AssetParams(object):
         return params
 
 
-class PositionParams(object):
+class PositionParams:
     def __init__(self):
         self._account = None
         self._secret_key = None
@@ -196,7 +196,7 @@ class PositionParams(object):
         return params
 
 
-class ContractParams(object):
+class ContractParams:
     def __init__(self):
         self._account = None
         self._secret_key = None
@@ -324,7 +324,7 @@ class ContractParams(object):
         return params
 
 
-class OrderParams(object):
+class OrderParams:
     def __init__(self):
         self._account = None  # 账户
         self._secret_key = None
@@ -404,7 +404,7 @@ class OrderParams(object):
         return params
 
 
-class OrdersParams(object):
+class OrdersParams:
     def __init__(self):
         self._account = None  # 账户
         self._secret_key = None
@@ -556,7 +556,7 @@ class OrdersParams(object):
         return params
 
 
-class PlaceModifyOrderParams(object):
+class PlaceModifyOrderParams:
     def __init__(self):
         self.account = None
         self.secret_key = None
@@ -661,7 +661,7 @@ class PlaceModifyOrderParams(object):
         return params
 
 
-class CancelOrderParams(object):
+class CancelOrderParams:
     def __init__(self):
         self._account = None
         self._secret_key = None
