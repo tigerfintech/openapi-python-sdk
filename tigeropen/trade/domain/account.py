@@ -8,7 +8,7 @@ import logging
 from collections import defaultdict
 
 
-class Account(object):
+class Account:
     """
     The account object tracks information about the trading account. The
     values are updated as the algorithm runs and its keys remain unchanged.
@@ -71,7 +71,7 @@ class Account(object):
         return "Account({0})".format(self.__dict__)
 
 
-class SecuritySegment(object):
+class SecuritySegment:
     """
     - accrued_cash: 当前月份的累积应付利息，按照日频更新。
     - accrued_dividend: 累计分红. 指的是所有已执行但仍未支付的分红累加值
@@ -111,7 +111,7 @@ class SecuritySegment(object):
         return "SecuritySegment({0})".format(self.__dict__)
 
 
-class CommoditySegment(object):
+class CommoditySegment:
     """
     - accrued_cash: 当前月份的累积应付利息，按照日频更新。
     - accrued_dividend:累计分红. 指的是所有已执行但仍未支付的分红累加值
@@ -140,7 +140,7 @@ class CommoditySegment(object):
         return "CommoditySegment({0})".format(self.__dict__)
 
 
-class MarketValue(object):
+class MarketValue:
     """
     - currency: 货币单位
     - net_liquidation: 总资产(净清算价值)
@@ -173,7 +173,7 @@ class MarketValue(object):
         return "MarketValue({0})".format(self.__dict__)
 
 
-class PortfolioAccount(object):
+class PortfolioAccount:
     def __init__(self, account):
         self._account = account
         self._summary = Account()

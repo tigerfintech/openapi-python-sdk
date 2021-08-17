@@ -5,9 +5,8 @@ Created on 2018/10/31
 @author: gaoan
 """
 import json
-import six
+
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.trade.domain.contract import Contract
 from tigeropen.trade.domain.order import Order, AlgoParams
@@ -31,7 +30,7 @@ class OrdersResponse(TigerResponse):
         self.orders = []
         self._is_success = None
 
-    def parse_response_content(self, response_content):
+    def parse_response_content(self, response_content, secret_key=None):
         response = super(OrdersResponse, self).parse_response_content(response_content)
         if 'is_success' in response:
             self._is_success = response['is_success']
@@ -40,23 +39,21 @@ class OrdersResponse(TigerResponse):
             data_json = json.loads(self.data)
             if 'items' in data_json:
                 for item in data_json['items']:
-                    order = OrdersResponse.parse_order(item)
+                    order = OrdersResponse.parse_order(item, secret_key)
                     if order:
                         self.orders.append(order)
             elif 'symbol' in data_json:
-                order = OrdersResponse.parse_order(data_json)
+                order = OrdersResponse.parse_order(data_json, secret_key)
                 if order:
                     self.orders.append(order)
 
     @staticmethod
-    def parse_order(item):
+    def parse_order(item, secret_key=None):
         contract_fields = {}
         order_fields = {}
         for key, value in item.items():
             if value is None:
                 continue
-            if isinstance(value, six.string_types):
-                value = get_string(value)
             tag = ORDER_FIELD_MAPPINGS[key] if key in ORDER_FIELD_MAPPINGS else key
             if tag in CONTRACT_FIELDS:
                 contract_fields[tag] = value
@@ -110,7 +107,8 @@ class OrdersResponse(TigerResponse):
             order.trade_time = order_fields.get('trade_time')
         if 'reason' in order_fields:
             order.reason = order_fields.get('reason')
-
+        if secret_key is not None:
+            order.secret_key = secret_key
         order.status = status
 
         return order

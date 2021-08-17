@@ -5,9 +5,8 @@ Created on 2018/10/31
 @author: gaoan
 """
 
-import six
 import pandas as pd
-from tigeropen.common.util.string_utils import get_string
+
 from tigeropen.common.response import TigerResponse
 
 COLUMNS = ['symbol', 'ask_price', 'ask_size', 'bid_price', 'bid_size', 'pre_close', 'latest_price', 'latest_time',
@@ -34,8 +33,6 @@ class StockBriefsResponse(TigerResponse):
                 for key, value in item.items():
                     if value is None:
                         continue
-                    if isinstance(value, six.string_types):
-                        value = get_string(value)
                     tag = BRIEF_FIELD_MAPPINGS[key] if key in BRIEF_FIELD_MAPPINGS else key
                     item_values[tag] = value
 

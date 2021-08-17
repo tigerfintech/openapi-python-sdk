@@ -5,12 +5,12 @@ Created on 2018/10/31
 @author: gaoan
 """
 import json
-import six
+
 import pandas as pd
+
 from tigeropen.common.consts import TradingSession
-from tigeropen.common.util.string_utils import get_string
-from tigeropen.quote.domain.quote_brief import HourTrading
 from tigeropen.common.response import TigerResponse
+from tigeropen.quote.domain.quote_brief import HourTrading
 
 COLUMNS = ['time', 'price', 'avg_price', 'pre_close', 'volume']
 TIMELINE_FIELD_MAPPINGS = {'avgPrice': 'avg_price'}
@@ -42,8 +42,6 @@ class QuoteHourTradingTimelineResponse(TigerResponse):
                 for key, value in detail.items():
                     if value is None:
                         continue
-                    if isinstance(value, six.string_types):
-                        value = get_string(value)
                     if key == 'tag':
                         if value == '盘前':
                             hour_trading.trading_session = TradingSession.PreMarket
@@ -61,8 +59,6 @@ class QuoteHourTradingTimelineResponse(TigerResponse):
                     for key, value in item.items():
                         if value is None:
                             continue
-                        if isinstance(value, six.string_types):
-                            value = get_string(value)
                         tag = TIMELINE_FIELD_MAPPINGS[key] if key in TIMELINE_FIELD_MAPPINGS else key
                         item_values[tag] = value
                     timeline_items.append([item_values.get(tag) for tag in COLUMNS])

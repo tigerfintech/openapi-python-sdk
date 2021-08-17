@@ -6,7 +6,7 @@ Created on 2018/10/31
 """
 
 
-class MarketStatus(object):
+class MarketStatus:
     def __init__(self, market, status, open_time, trading_status):
         self.market = market
         self.status = status
