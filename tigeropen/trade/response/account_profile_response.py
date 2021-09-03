@@ -5,8 +5,8 @@ Created on 2018/10/31
 @author: gaoan
 """
 import json
+
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.string_utils import get_string
 from tigeropen.trade.domain.profile import AccountProfile
 
 
@@ -30,10 +30,10 @@ class ProfilesResponse(TigerResponse):
                         if value is None:
                             continue
                         if key == 'account':
-                            account = get_string(value)
+                            account = value
                         elif key == 'capability':
-                            capability = get_string(value)
+                            capability = value
                         elif key == 'status':
-                            status = get_string(value)
+                            status = value
                     profile = AccountProfile(account, capability, status)
                     self.profiles.append(profile)

@@ -4,10 +4,8 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import six
 import pandas as pd
 
-from tigeropen.common.util.string_utils import get_string
 from tigeropen.common.response import TigerResponse
 
 COLUMNS = ['identifier', 'time', 'latest_time', 'open', 'high', 'low', 'close', 'settlement', 'volume', 'open_interest']
@@ -35,8 +33,6 @@ class FutureQuoteBarResponse(TigerResponse):
                         for key, value in item.items():
                             if value is None:
                                 continue
-                            if isinstance(value, six.string_types):
-                                value = get_string(value)
                             tag = BAR_FIELD_MAPPINGS[key] if key in BAR_FIELD_MAPPINGS else key
                             item_values[tag] = value
                         bar_items.append([item_values.get(tag) for tag in COLUMNS])

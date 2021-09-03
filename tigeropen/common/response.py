@@ -6,7 +6,7 @@ Created on 2018/9/20
 """
 
 
-class TigerResponse(object):
+class TigerResponse:
     def __init__(self):
         self.code = None
         self.message = None
