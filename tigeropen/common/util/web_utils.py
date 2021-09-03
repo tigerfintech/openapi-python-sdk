@@ -5,7 +5,8 @@ Created on 2018/9/20
 @author: gaoan
 """
 import json
-from tigeropen.common.consts import PYTHON_VERSION_3, THREAD_LOCAL
+
+from tigeropen.common.consts import THREAD_LOCAL
 from tigeropen.common.exceptions import RequestException, ResponseException
 
 try:
@@ -28,10 +29,7 @@ def url_encode(params, charset):
         value = v
         if not isinstance(value, str):
             value = json.dumps(value, ensure_ascii=False)
-        if PYTHON_VERSION_3:
-            value = quote_plus(value, encoding=charset)
-        else:
-            value = quote_plus(value)
+        value = quote_plus(value, encoding=charset)
         query_string += ("&" + k + "=" + value)
     query_string = query_string[1:]
     return query_string
@@ -69,7 +67,7 @@ def do_post(url, query_string=None, headers=None, params=None, timeout=15, chars
     result = response.read()
 
     if response.status != 200:
-        if PYTHON_VERSION_3 and charset:
+        if charset:
             result = result.decode(charset)
         raise ResponseException('[' + THREAD_LOCAL.uuid + ']invalid http status ' + str(response.status) +
                                 ',detail body:' + result)

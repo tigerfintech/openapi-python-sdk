@@ -4,13 +4,11 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import six
 import pandas as pd
 
-from tigeropen.common.util.contract_utils import get_option_identifier
-from tigeropen.common.util.string_utils import get_string
-from tigeropen.common.util.common_utils import eastern
 from tigeropen.common.response import TigerResponse
+from tigeropen.common.util.common_utils import eastern
+from tigeropen.common.util.contract_utils import get_option_identifier
 
 COLUMNS = ['identifier', 'symbol', 'expiry', 'put_call', 'strike', 'time', 'price', 'volume']
 
@@ -45,10 +43,6 @@ class OptionTradeTickResponse(TigerResponse):
                         for key, value in item.items():
                             if value is None:
                                 continue
-                            if isinstance(value, six.string_types):
-                                value = get_string(value)
-                            # if 'time' == key:
-                            #     value = pd.Timestamp(value, unit='ms', tzinfo=eastern)
                             item_values[key] = value
                         tick_items.append([item_values.get(tag) for tag in COLUMNS])
 
