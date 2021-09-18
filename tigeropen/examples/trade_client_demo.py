@@ -91,15 +91,14 @@ def trade_apis():
     # 或者本地构造订单对象
     # order = limit_order(account=account, contract=contract, action='BUY', quantity=100, limit_price=5.0)
     openapi_client.place_order(order)
-    order_id = order.order_id  # you can operate order via id too
 
-    new_order = openapi_client.get_order(order_id=order.order_id)
+    new_order = openapi_client.get_order(id=order.id)
     assert order.order_id == new_order.order_id
     openapi_client.modify_order(new_order, quantity=150)
-    new_order = openapi_client.get_order(order_id=order_id)
+    new_order = openapi_client.get_order(id=order.id)
     assert new_order.quantity == 150
-    openapi_client.cancel_order(order_id=order_id)
-    new_order = openapi_client.get_order(order_id=order_id)
+    openapi_client.cancel_order(id=order.id)
+    new_order = openapi_client.get_order(id=order.id)
     assert new_order.status == OrderStatus.CANCELLED or new_order.status == OrderStatus.PENDING_CANCEL
 
     # 预览订单 (下单前后保证金要求, 佣金等预览)
