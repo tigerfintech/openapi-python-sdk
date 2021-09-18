@@ -8,6 +8,6 @@ Created on 2018/10/31
 CONTRACT_FIELDS = set(['symbol', 'market', 'multiplier', 'sec_type', 'currency', 'local_symbol', 'origin_symbol',
                        'expiry', 'strike', 'right', 'contract_id', 'exchange', 'name', 'short_margin', 'short_fee_rate',
                        'shortable', 'long_initial_margin', 'long_maintenance_margin', 'contract_month', 'identifier',
-                       'primary_exchange', 'min_tick', 'trading_class', 'status', 'continuous', 'trade',
+                       'primary_exchange', 'min_tick', 'trading_class', 'continuous', 'trade',
                        'last_trading_date', 'first_notice_date', 'last_bidding_close_time'])
 
