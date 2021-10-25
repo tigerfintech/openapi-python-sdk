@@ -5,15 +5,16 @@ Created on 2018/9/16
 @author: gaoan
 """
 from os import path
-
 from setuptools import find_packages, setup
+from tigeropen import __VERSION__
+
 
 with open(path.join(path.abspath(path.dirname(__file__)), 'requirements.txt')) as f:
     install_requires = f.read()
 
 setup(
     name='tigeropen',
-    version='2.0.1',
+    version=__VERSION__,
     description='TigerBrokers Open API',
     packages=find_packages(exclude=[]),
     author='TigerBrokers',
