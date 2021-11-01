@@ -12,7 +12,9 @@ from collections import defaultdict
 import stomp
 from stomp.exception import ConnectFailedException
 
+from tigeropen import __VERSION__
 from tigeropen.common.consts import OrderStatus
+from tigeropen.common.consts.params import P_SDK_VERSION, P_SDK_VERSION_PREFIX
 from tigeropen.common.consts.push_destinations import QUOTE, QUOTE_DEPTH, QUOTE_FUTURE, QUOTE_OPTION, TRADE_ASSET, \
     TRADE_ORDER, TRADE_POSITION
 from tigeropen.common.consts.push_types import RequestType, ResponseType
@@ -107,7 +109,7 @@ class PushClient(stomp.ConnectionListener):
         self._stomp_connection.set_listener('push', self)
         self._stomp_connection.start()
         try:
-            self._stomp_connection.connect(self._tiger_id, self._sign, wait=True)
+            self._stomp_connection.connect(self._tiger_id, self._sign, wait=True, headers=self._generate_headers())
         except ConnectFailedException as e:
             raise e
 
@@ -241,6 +243,8 @@ class PushClient(stomp.ConnectionListener):
     def on_error(self, headers, body):
         if self.error_callback:
             self.error_callback(body)
+        else:
+            logging.error(body)
 
     def _update_subscribe_id(self, destination):
         self._destination_counter_map[destination] += 1
@@ -341,7 +345,7 @@ class PushClient(stomp.ConnectionListener):
         查询已订阅行情的合约
         :return:
         """
-        headers = dict()
+        headers = self._generate_headers()
         headers['destination'] = QUOTE
         headers['req-type'] = RequestType.REQ_SUB_SYMBOLS.value
         self._stomp_connection.send(QUOTE, "{}", headers=headers)
@@ -358,7 +362,7 @@ class PushClient(stomp.ConnectionListener):
         退订深度行情更新
         :return:
         """
-        self._handle_quote_unsubscribe(destination=QUOTE_DEPTH, subscription='AskBid', sub_id=id, symbols=symbols)
+        self._handle_quote_unsubscribe(destination=QUOTE_DEPTH, subscription='QuoteDepth', sub_id=id, symbols=symbols)
 
     def _handle_trade_subscribe(self, destination, subscription, account=None, extra_headers=None):
         if extra_headers is None:
@@ -385,25 +389,28 @@ class PushClient(stomp.ConnectionListener):
                                  extra_headers=extra_headers)
 
     def _handle_subscribe(self, destination, subscription, extra_headers=None):
-        headers = dict()
+        headers = self._generate_headers(extra_headers)
         headers['destination'] = destination
         headers['subscription'] = subscription
         self._update_subscribe_id(destination)
         sub_id = self._get_subscribe_id(destination)
         headers['id'] = sub_id
 
-        if extra_headers is not None:
-            headers.update(extra_headers)
         self._stomp_connection.subscribe(destination, id=sub_id, headers=headers)
         return sub_id
 
     def _handle_unsubscribe(self, destination, subscription, sub_id=None, extra_headers=None):
-        headers = dict()
+        headers = self._generate_headers(extra_headers)
         headers['destination'] = destination
         headers['subscription'] = subscription
         id_ = sub_id if sub_id is not None else self._get_subscribe_id(destination)
         headers['id'] = id_
-        if extra_headers:
-            headers.update(extra_headers)
 
         self._stomp_connection.unsubscribe(id=id_, headers=headers)
+
+    def _generate_headers(self, extra_headers=None):
+        headers = {P_SDK_VERSION: P_SDK_VERSION_PREFIX + __VERSION__}
+        if extra_headers is not None:
+            headers.update(extra_headers)
+        return headers
+

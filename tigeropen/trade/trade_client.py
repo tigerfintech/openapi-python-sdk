@@ -31,14 +31,10 @@ class TradeClient(TigerOpenClient):
         super(TradeClient, self).__init__(client_config, logger=logger)
         if client_config:
             self._account = client_config.account
-            self._standard_account = client_config.standard_account
-            self._paper_account = client_config.paper_account
             self._lang = client_config.language
             self._secret_key = client_config.secret_key
         else:
             self._account = None
-            self._standard_account = None
-            self._paper_account = None
             self._secret_key = None
 
     def get_managed_accounts(self, account=None):
