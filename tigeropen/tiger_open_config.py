@@ -38,10 +38,6 @@ class TigerOpenClientConfig:
         self._tiger_id = ''
         # 授权账户
         self._account = ''
-        # 综合账户
-        self._standard_account = ''
-        # 模拟账户
-        self._paper_account = ''
         # 开发者应用私钥
         self._private_key = ''
         # 请求签名类型，推荐RSA2
@@ -83,22 +79,6 @@ class TigerOpenClientConfig:
     @account.setter
     def account(self, value):
         self._account = value
-
-    @property
-    def standard_account(self):
-        return self._standard_account
-
-    @standard_account.setter
-    def standard_account(self, value):
-        self._standard_account = value
-
-    @property
-    def paper_account(self):
-        return self._paper_account
-
-    @paper_account.setter
-    def paper_account(self, value):
-        self._paper_account = value
     
     @property
     def sign_type(self):
@@ -173,16 +153,13 @@ class TigerOpenClientConfig:
         self._secret_key = value
 
 
-def get_client_config(private_key_path, tiger_id, account, standard_account=None, paper_account=None,
-                      sandbox_debug=False, sign_type=None, timeout=None, language=None, charset=None,
-                      server_url=None, socket_host_port=None, secret_key=None):
+def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, sign_type=None, timeout=None,
+                      language=None, charset=None, server_url=None, socket_host_port=None, secret_key=None):
     """
     生成客户端配置
     :param private_key_path: 私钥文件路径, 如 '/Users/tiger/.ssh/rsa_private_key.pem'
     :param tiger_id: 开发者应用 id
     :param account: 授权账户 (必填. 作为发送请求时的默认账户. 不论是环球账户, 综合账户或是模拟账户, 都使用此参数)
-    :param standard_account: 多账户时可将综合账户填在此处, 一般可忽略
-    :param paper_account: 多账户时可将模拟账户填在此处, 一般可忽略
     :param sandbox_debug: 是否请求 sandbox 环境
     :param sign_type: 签名类型
     :param timeout: 请求超时时间, 单位秒
@@ -197,10 +174,6 @@ def get_client_config(private_key_path, tiger_id, account, standard_account=None
     config.private_key = read_private_key(private_key_path)
     config.tiger_id = tiger_id
     config.account = account
-    if standard_account:
-        config.standard_account = standard_account
-    if paper_account:
-        config.paper_account = paper_account
     if sign_type:
         config.sign_type = sign_type
     if timeout:
