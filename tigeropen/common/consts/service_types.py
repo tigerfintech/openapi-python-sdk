@@ -40,6 +40,7 @@ TIMELINE = "timeline"
 KLINE = "kline"
 TRADE_TICK = "trade_tick"
 QUOTE_REAL_TIME = "quote_real_time"
+QUOTE_DELAY = "quote_delay"
 QUOTE_SHORTABLE_STOCKS = "quote_shortable_stocks"
 QUOTE_STOCK_TRADE = "quote_stock_trade"
 QUOTE_DEPTH = "quote_depth"  # level2 深度行情
