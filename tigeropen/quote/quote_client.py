@@ -12,7 +12,7 @@ import delorean
 
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
-from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION
+from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -49,6 +49,7 @@ from tigeropen.quote.response.option_quote_bar_response import OptionQuoteBarRes
 from tigeropen.quote.response.option_quote_ticks_response import OptionTradeTickResponse
 from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
 from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
+from tigeropen.quote.response.quote_delay_briefs_response import DelayBriefsResponse
 from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
 from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
@@ -238,6 +239,36 @@ class QuoteClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = StockBriefsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.briefs
+            else:
+                raise ApiException(response.code, response.message)
+
+        return None
+
+    def get_delay_briefs(self, symbols, lang=None):
+        """
+        获取股票延迟行情
+        :param symbols: 标的代号列表
+        :param lang: 语言支持: tigeropen.common.consts.Language:  zh_CN,zh_TW,en_US
+        :return: pandas.DataFrame.  各 column 含义如下：
+            symbol: 证券代码
+            pre_close: 前收价
+            time: 时间
+            volume: 成交量
+            open: 开盘价
+            high: 最高价
+            low: 最低价
+        """
+        params = MultipleQuoteParams()
+        params.symbols = symbols
+        params.lang = lang.value if lang else self._lang.value
+
+        request = OpenApiRequest(QUOTE_DELAY, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = DelayBriefsResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.briefs
