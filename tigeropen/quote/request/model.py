@@ -4,10 +4,12 @@ Created on 2018/9/20
 
 @author: gaoan
 """
+from tigeropen.common.model import BaseParams
 
 
-class MarketParams:
+class MarketParams(BaseParams):
     def __init__(self):
+        super(MarketParams, self).__init__()
         self._market = None  # 市场
         self._sec_type = None  # 交易品种
         self._lang = None  # 语言
@@ -346,8 +348,9 @@ class MultipleQuoteParams(MarketParams):
         return params
 
 
-class SingleContractParams:
+class SingleContractParams(BaseParams):
     def __init__(self):
+        super(SingleContractParams, self).__init__()
         self._symbol = None
         self._put_call = None  # for option
         self._expiry = None  # for option and future
@@ -461,7 +464,7 @@ class SingleOptionQuoteParams(SingleContractParams):
         return params
 
 
-class MultipleContractParams:
+class MultipleContractParams(BaseParams):
     def __init__(self):
         super(MultipleContractParams, self).__init__()
         self._contracts = None  # list of SingleQuoteParams
@@ -484,8 +487,9 @@ class MultipleContractParams:
         return params
 
 
-class FutureExchangeParams:
+class FutureExchangeParams(BaseParams):
     def __init__(self):
+        super(FutureExchangeParams, self).__init__()
         self._exchange_code = None  # 交易所
         self._lang = None  # 语言
 
@@ -516,7 +520,7 @@ class FutureExchangeParams:
         return params
 
 
-class FutureTypeParams:
+class FutureTypeParams(BaseParams):
     def __init__(self):
         self._type = None  # 期货品种
         self._lang = None  # 语言
@@ -548,8 +552,9 @@ class FutureTypeParams:
         return params
 
 
-class FutureTradingTimeParams:
+class FutureTradingTimeParams(BaseParams):
     def __init__(self):
+        super(FutureTradingTimeParams, self).__init__()
         self._contract_code = None
         self._trading_date = None
 
@@ -674,8 +679,9 @@ class FutureQuoteParams(MarketParams):
         return params
 
 
-class DepthQuoteParams:
+class DepthQuoteParams(BaseParams):
     def __init__(self):
+        super(DepthQuoteParams, self).__init__()
         self._symbols = None
         self._market = None
 
