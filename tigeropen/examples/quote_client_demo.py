@@ -8,6 +8,7 @@ import logging
 import pandas as pd
 from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, Valuation, \
     Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, IndustryLevel
+from tigeropen.quote.domain.filter import OptionFilter
 
 from tigeropen.quote.quote_client import QuoteClient
 
@@ -65,6 +66,19 @@ def get_option_quote():
     print(bars)
     ticks = openapi_client.get_option_trade_ticks(['AAPL  190104P00134000'])
     print(ticks)
+
+    # option chain filter
+    option_filter = OptionFilter(implied_volatility_min=0.5, implied_volatility_max=0.9, delta_min=0, delta_max=1,
+                                 open_interest_min=100, gamma_min=0.005, theta_max=-0.05, in_the_money=True)
+    chains = openapi_client.get_option_chain('AAPL', '2023-01-20', option_filter=option_filter)
+    print(chains)
+    # or
+    chains = openapi_client.get_option_chain('AAPL', '2023-01-20', implied_volatility_min=0.5, open_interest_min=200,
+                                             vega_min=0.1, rho_max=0.9)
+    # convert expiry date to US/Eastern
+    chains['expiry_date'] = pd.to_datetime(chains['expiry'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+    print(chains)
+
 
 
 def get_future_quote():

@@ -708,3 +708,36 @@ class DepthQuoteParams(BaseParams):
         if self.market:
             params['market'] = self.market
         return params
+
+
+class OptionChainParams(BaseParams):
+    def __init__(self):
+        super(OptionChainParams, self).__init__()
+        self._contracts = None
+        self._option_filter = None
+
+    @property
+    def contracts(self):
+        return self._contracts
+
+    @contracts.setter
+    def contracts(self, value):
+        self._contracts = value
+
+    @property
+    def option_filter(self):
+        return self._option_filter
+
+    @option_filter.setter
+    def option_filter(self, value):
+        self._option_filter = value
+
+    def to_openapi_dict(self):
+        params = {'option_basic': list(), 'option_filter': dict()}
+
+        if self.contracts:
+            for contract in self.contracts:
+                params['option_basic'].append(contract.to_openapi_dict())
+        if self.option_filter:
+            params['option_filter'] = self.option_filter.to_dict()
+        return params
