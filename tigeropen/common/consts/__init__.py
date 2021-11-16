@@ -12,6 +12,7 @@ from .fundamental_fields import Valuation, Income, Balance, CashFlow, BalanceShe
 from .quote_keys import QuoteChangeKey, QuoteKeyType
 
 OPEN_API_SERVICE_VERSION = "2.0"
+OPEN_API_SERVICE_VERSION_V3 = "3.0"
 
 THREAD_LOCAL = threading.local()
 
