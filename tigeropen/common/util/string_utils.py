@@ -6,6 +6,8 @@ Created on 2018/9/20
 """
 import re
 
+CAMEL_PATTERN = re.compile(r'([a-z]|\d)([A-Z])')
+
 
 def add_start_end(key, start_marker, end_marker):
     if key.find(start_marker) < 0:
@@ -16,8 +18,4 @@ def add_start_end(key, start_marker, end_marker):
 
 
 def camel_to_underline(hunp_str):
-    p = re.compile(r'([a-z]|\d)([A-Z])')
-    sub = re.sub(p, r'\1_\2', hunp_str).lower()
-    return sub
-
-
+    return re.sub(CAMEL_PATTERN, r'\1_\2', hunp_str).lower()
