@@ -248,19 +248,21 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_delay_briefs(self, symbols, lang=None):
+    def get_stock_delay_briefs(self, symbols, lang=None):
         """
-        获取股票延迟行情
-        :param symbols: 标的代号列表
-        :param lang: 语言支持: tigeropen.common.consts.Language:  zh_CN,zh_TW,en_US
-        :return: pandas.DataFrame.  各 column 含义如下：
-            symbol: 证券代码
-            pre_close: 前收价
-            time: 时间
-            volume: 成交量
-            open: 开盘价
-            high: 最高价
-            low: 最低价
+        query delay quote
+        :param symbols: stock symbol list, like ['AAPL', 'GOOG']
+        :param lang: language: tigeropen.common.consts.Language:  zh_CN,zh_TW,en_US
+        :return: pandas.DataFrame. the columns are as follows：
+            symbol:
+            pre_close:
+            time: last quote change time
+            volume:
+            open:
+            high:
+            low:
+            close:
+            halted: stock status(0: normal 3: suspended  4: delist 7: ipo 8: changed)
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
