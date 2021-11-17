@@ -4,10 +4,12 @@ Created on 2018/10/31
 
 @author: gaoan
 """
+from tigeropen.common.model import BaseParams
 
 
-class AccountsParams:
+class AccountsParams(BaseParams):
     def __init__(self):
+        super(AccountsParams, self).__init__()
         self._account = None
         self._secret_key = None
 
@@ -36,8 +38,9 @@ class AccountsParams:
         return params
 
 
-class AssetParams:
+class AssetParams(BaseParams):
     def __init__(self):
+        super(AssetParams, self).__init__()
         self._account = None
         self._secret_key = None
         self._segment = False
@@ -104,8 +107,9 @@ class AssetParams:
         return params
 
 
-class PositionParams:
+class PositionParams(BaseParams):
     def __init__(self):
+        super(PositionParams, self).__init__()
         self._account = None
         self._secret_key = None
         self._symbol = None
@@ -196,8 +200,9 @@ class PositionParams:
         return params
 
 
-class ContractParams:
+class ContractParams(BaseParams):
     def __init__(self):
+        super(ContractParams, self).__init__()
         self._account = None
         self._secret_key = None
         self._symbol = None
@@ -324,8 +329,9 @@ class ContractParams:
         return params
 
 
-class OrderParams:
+class OrderParams(BaseParams):
     def __init__(self):
+        super(OrderParams, self).__init__()
         self._account = None  # 账户
         self._secret_key = None
         self._id = None  # 订单号(全局)
@@ -404,8 +410,9 @@ class OrderParams:
         return params
 
 
-class OrdersParams:
+class OrdersParams(BaseParams):
     def __init__(self):
+        super(OrdersParams, self).__init__()
         self._account = None  # 账户
         self._secret_key = None
         self._market = None  # 市场
@@ -556,8 +563,9 @@ class OrdersParams:
         return params
 
 
-class PlaceModifyOrderParams:
+class PlaceModifyOrderParams(BaseParams):
     def __init__(self):
+        super(PlaceModifyOrderParams, self).__init__()
         self.account = None
         self.secret_key = None
         self.id = None
@@ -661,8 +669,9 @@ class PlaceModifyOrderParams:
         return params
 
 
-class CancelOrderParams:
+class CancelOrderParams(BaseParams):
     def __init__(self):
+        super(CancelOrderParams, self).__init__()
         self._account = None
         self._secret_key = None
         self._id = None
