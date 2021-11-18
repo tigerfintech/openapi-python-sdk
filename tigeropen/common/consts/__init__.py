@@ -140,3 +140,10 @@ class IndustryLevel(Enum):
     GGROUP = 'GGROUP'
     GIND = 'GIND'
     GSUBIND = 'GSUBIND'
+
+
+@unique
+class SortDirection(Enum):
+    ASC = 'ASC'
+    DESC = 'DESC'
+

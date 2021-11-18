@@ -741,3 +741,59 @@ class OptionChainParams(BaseParams):
         if self.option_filter:
             params['option_filter'] = self.option_filter.to_dict()
         return params
+
+
+class StockScreenerParams(BaseParams):
+    def __init__(self):
+        super(StockScreenerParams, self).__init__()
+        self._market = None
+        self._stock_filters = None
+        self._page = None
+        self._limit = None
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
+    @property
+    def stock_filters(self):
+        return self._stock_filters
+
+    @stock_filters.setter
+    def stock_filters(self, value):
+        self._stock_filters = value
+
+    @property
+    def page(self):
+        return self._page
+
+    @page.setter
+    def page(self, value):
+        self._page = value
+
+    @property
+    def limit(self):
+        return self._limit
+
+    @limit.setter
+    def limit(self, value):
+        self._limit = value
+
+    def to_openapi_dict(self):
+        params = dict()
+        if self.market:
+            params['market'] = self.market
+        if self.stock_filters:
+            params['filters'] = list()
+            for item in self.stock_filters:
+                if item.enable:
+                    params['filters'].append(item.to_dict())
+        if self.page:
+            params['page'] = self.page
+        if self.limit:
+            params['limit'] = self.limit
+        return params

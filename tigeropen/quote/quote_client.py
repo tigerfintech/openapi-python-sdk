@@ -12,7 +12,7 @@ import delorean
 
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
-from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION
+from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, STOCK_SCREENER
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -35,7 +35,7 @@ from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams
+    SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, StockScreenerParams
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
@@ -54,6 +54,7 @@ from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
 from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
+from tigeropen.quote.response.screened_stocks_response import ScreenedStocksResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
 from tigeropen.quote.response.stock_details_response import StockDetailsResponse
 from tigeropen.quote.response.stock_short_interest_response import ShortInterestResponse
@@ -1136,6 +1137,31 @@ class QuoteClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.stock_industry
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_screened_stocks(self, market=Market.US, stock_filters=None, page=None, limit=None):
+        """
+        screen stocks
+        :param market: tigeropen.common.consts.Market
+        :param stock_filters: tigeropen.quote.domain.filter.StockFilter or list of StockFilter
+        :param page: page begin number
+        :param limit: page size limit
+        :return:
+        """
+        params = StockScreenerParams()
+        params.market = market.value
+        if stock_filters is not None:
+            params.stock_filters = stock_filters if isinstance(stock_filters, list) else [stock_filters]
+        params.page = page
+        params.limit = limit
+        request = OpenApiRequest(STOCK_SCREENER, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = ScreenedStocksResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.stocks
             else:
                 raise ApiException(response.code, response.message)
 

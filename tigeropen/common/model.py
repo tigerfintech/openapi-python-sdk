@@ -2,6 +2,8 @@
 # 
 # @Date    : 2021/11/12
 # @Author  : sukai
+from enum import Enum
+
 
 class BaseParams:
     def __init__(self):
@@ -14,3 +16,7 @@ class BaseParams:
     @version.setter
     def version(self, value):
         self._version = value
+
+
+class Field(Enum):
+    pass
