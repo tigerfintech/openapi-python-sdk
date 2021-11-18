@@ -2,6 +2,8 @@
 # 
 # @Date    : 2021/11/15
 # @Author  : sukai
+from tigeropen.common.consts import SortDirection
+from tigeropen.common.model import Field
 
 GREEKS = ['delta', 'gamma', 'theta', 'vega', 'rho']
 
@@ -56,3 +58,29 @@ class OptionFilter:
 
     def _min_max(self, k):
         return {'min': getattr(self, k + '_min'), 'max': getattr(self, k + '_max')}
+
+
+class StockFilter:
+    def __init__(self, field, min_value=None, max_value=None, sort=None, enable=True):
+        """
+        stock filter
+        :param field: filter field. subclass of tigeropen.common.consts.Field, or field name string
+        :param min_value:
+        :param max_value:
+        :param sort: tigeropen.common.consts.SortDirection. ASC or DESC
+        :param enable:
+        """
+        self.field = field
+        self.min_value = min_value
+        self.max_value = max_value
+        self.sort = sort
+        self.enable = enable
+
+    def to_dict(self):
+        return {'field': self.field.name if isinstance(self.field, Field) else self.field,
+                'min_value': self.min_value,
+                'max_value': self.max_value,
+                'sort_direction': self.sort.value if isinstance(self.sort, SortDirection) else self.sort,
+                }
+
+

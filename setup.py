@@ -16,6 +16,8 @@ setup(
     name='tigeropen',
     version=__VERSION__,
     description='TigerBrokers Open API',
+    long_description = file: README.md
+    long_description_content_type = text/markdown
     packages=find_packages(exclude=[]),
     author='TigerBrokers',
     author_email='openapi@tigerbrokers.com',
