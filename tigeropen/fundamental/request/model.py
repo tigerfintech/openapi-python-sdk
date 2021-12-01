@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+from tigeropen.common.model import BaseParams
 
 
-class FinancialDailyParams:
+class FinancialDailyParams(BaseParams):
     def __init__(self):
+        super(FinancialDailyParams, self).__init__()
         self._symbols = None
         self._market = None
         self._period_type = None
@@ -82,8 +84,9 @@ class FinancialDailyParams:
         return params
 
 
-class FinancialReportParams:
+class FinancialReportParams(BaseParams):
     def __init__(self):
+        super(FinancialReportParams, self).__init__()
         self._symbols = None
         self._market = None
         self._fields = None
@@ -139,8 +142,9 @@ class FinancialReportParams:
         return params
 
 
-class CorporateActionParams:
+class CorporateActionParams(BaseParams):
     def __init__(self):
+        super(CorporateActionParams, self).__init__()
         self._symbols = None
         self._market = None
         self._action_type = None
@@ -208,8 +212,9 @@ class CorporateActionParams:
         return params
 
 
-class IndustryParams:
+class IndustryParams(BaseParams):
     def __init__(self):
+        super(IndustryParams, self).__init__()
         self._industry_level = None
         self._industry_id = None
         self._market = None

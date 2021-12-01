@@ -8,7 +8,8 @@ import datetime
 import json
 import uuid
 
-from tigeropen.common.consts import OPEN_API_SDK_VERSION, THREAD_LOCAL
+from tigeropen import __VERSION__
+from tigeropen.common.consts import OPEN_API_SERVICE_VERSION, THREAD_LOCAL
 from tigeropen.common.consts.params import P_TIMESTAMP, P_TIGER_ID, P_METHOD, P_CHARSET, P_VERSION, P_SIGN_TYPE, \
     P_DEVICE_ID, P_NOTIFY_URL, COMMON_PARAM_KEYS, P_SIGN
 from tigeropen.common.exceptions import ResponseException, RequestException
@@ -36,7 +37,7 @@ class TigerOpenClient:
             'Content-type': 'application/json;charset=' + self.__config.charset,
             "Cache-Control": "no-cache",
             "Connection": "Keep-Alive",
-            "User-Agent": 'openapi-python-sdk-' + OPEN_API_SDK_VERSION
+            "User-Agent": 'openapi-python-sdk-' + __VERSION__
         }
         self.__device_id = self.__get_device_id()
 
@@ -50,7 +51,7 @@ class TigerOpenClient:
         common_params[P_TIGER_ID] = self.__config.tiger_id
         common_params[P_METHOD] = params[P_METHOD]
         common_params[P_CHARSET] = self.__config.charset
-        common_params[P_VERSION] = params[P_VERSION]
+        common_params[P_VERSION] = params[P_VERSION] if params.get(P_VERSION) is not None else OPEN_API_SERVICE_VERSION
         common_params[P_SIGN_TYPE] = self.__config.sign_type
         common_params[P_DEVICE_ID] = self.__device_id
         if has_value(params, P_NOTIFY_URL):
