@@ -7,7 +7,7 @@ Created on 2018/9/20
 
 import json
 from tigeropen.common.consts.params import *
-from tigeropen.common.consts import OPEN_API_SDK_VERSION
+from tigeropen.common.consts import OPEN_API_SERVICE_VERSION
 
 
 class OpenApiRequest:
@@ -26,7 +26,7 @@ class OpenApiRequest:
     def get_params(self):
         params = dict()
         params[P_METHOD] = self._method
-        params[P_VERSION] = OPEN_API_SDK_VERSION
+        params[P_VERSION] = getattr(self.biz_model, P_VERSION, None)
 
         if self.biz_model:
             params[P_BIZ_CONTENT] = json.dumps(obj=self.biz_model.to_openapi_dict(), ensure_ascii=False, sort_keys=True,

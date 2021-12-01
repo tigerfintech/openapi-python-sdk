@@ -10,9 +10,9 @@ import re
 
 import delorean
 
-from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod
+from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
-from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION
+from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -31,10 +31,11 @@ from tigeropen.fundamental.response.financial_daily_response import FinancialDai
 from tigeropen.fundamental.response.financial_report_response import FinancialReportResponse
 from tigeropen.fundamental.response.industry_response import IndustryListResponse, IndustryStocksResponse, \
     StockIndustryResponse
+from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams, DepthQuoteParams
+    SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
@@ -49,6 +50,7 @@ from tigeropen.quote.response.option_quote_bar_response import OptionQuoteBarRes
 from tigeropen.quote.response.option_quote_ticks_response import OptionTradeTickResponse
 from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
 from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
+from tigeropen.quote.response.quote_delay_briefs_response import DelayBriefsResponse
 from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
 from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
@@ -238,6 +240,38 @@ class QuoteClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = StockBriefsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.briefs
+            else:
+                raise ApiException(response.code, response.message)
+
+        return None
+
+    def get_stock_delay_briefs(self, symbols, lang=None):
+        """
+        query delay quote
+        :param symbols: stock symbol list, like ['AAPL', 'GOOG']
+        :param lang: language: tigeropen.common.consts.Language:  zh_CN,zh_TW,en_US
+        :return: pandas.DataFrame. the columns are as follows：
+            symbol:
+            pre_close:
+            time: last quote change time
+            volume:
+            open:
+            high:
+            low:
+            close:
+            halted: stock status(0: normal 3: suspended  4: delist 7: ipo 8: changed)
+        """
+        params = MultipleQuoteParams()
+        params.symbols = symbols
+        params.lang = lang.value if lang else self._lang.value
+
+        request = OpenApiRequest(QUOTE_DELAY, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = DelayBriefsResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.briefs
@@ -508,28 +542,31 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_option_chain(self, symbol, expiry):
+    def get_option_chain(self, symbol, expiry, option_filter=None, **kwargs):
         """
-        获取美股期权链
-        :param symbol: 股票代码
-        :param expiry: 过期日 ( 类似 '2021-06-18' 或者 1560484800000 )
-        :return: pandas.DataFrame，各 column 含义如下：
-            identifier: 期权代码
-            symbol: 期权对应的正股代码
-            expiry: 期权到期日，毫秒级别的时间戳
-            strike: 行权价
-            put_call: 期权的方向
-            multiplier: 乘数
-            ask_price: 卖价
-            ask_size: 卖量
-            bid_price: 买价
-            bid_size: 买量
-            pre_close: 前收价
-            latest_price: 最新价
-            volume: 成交量
-            open_interest: 未平仓数量
+        query option chain with filter
+        :param symbol: underlying stock symbol
+        :param expiry: expiration date ( like '2021-06-18' or 1560484800000 )
+        :param option_filter: option filter conditions, tigeropen.quote.domain.filter.OptionFilter
+        :param kwargs: optional. specify option_filter parameters directly without option_filer,
+                        like: open_interest_min=100, delta_min=0.1
+        :return: pandas.DataFrame，the columns are as follows：
+            identifier: option identifier
+            symbol: underlying stock symbol
+            expiry: option expiration date. timestamp in millisecond, like 1560484800000
+            strike: strike price
+            put_call: option direction. 'CALL' or 'PUT'
+            multiplier: option multiplier
+            ask_price:
+            ask_size:
+            bid_price:
+            bid_size:
+            pre_close:
+            latest_price:
+            volume:
+            open_interest:
         """
-        params = MultipleContractParams()
+        params = OptionChainParams()
         param = SingleContractParams()
         param.symbol = symbol
         if isinstance(expiry, str) and re.match('[0-9]{4}-[0-9]{2}-[0-9]{2}', expiry):
@@ -537,6 +574,8 @@ class QuoteClient(TigerOpenClient):
         else:
             param.expiry = expiry
         params.contracts = [param]
+        params.option_filter = option_filter if option_filter else OptionFilter(**kwargs)
+        params.version = OPEN_API_SERVICE_VERSION_V3
         request = OpenApiRequest(OPTION_CHAIN, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:

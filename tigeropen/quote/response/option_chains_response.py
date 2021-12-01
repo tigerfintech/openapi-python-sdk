@@ -7,12 +7,9 @@ Created on 2018/10/31
 import pandas as pd
 
 from tigeropen.common.response import TigerResponse
+from tigeropen.common.util import string_utils
 
-COLUMNS = ['identifier', 'symbol', 'expiry', 'strike', 'put_call', 'multiplier', 'ask_price', 'ask_size', 'bid_price',
-           'bid_size', 'pre_close', 'latest_price', 'volume', 'open_interest']
-CHAIN_FIELD_MAPPINGS = {'askPrice': 'ask_price', 'askSize': 'ask_size', 'bidPrice': 'bid_price', 'bidSize': 'bid_size',
-                        'latestPrice': 'latest_price', 'openInterest': 'open_interest', 'preClose': 'pre_close',
-                        'right': 'put_call'}
+CHAIN_FIELD_MAPPINGS = {'right': 'put_call'}
 
 
 class OptionChainsResponse(TigerResponse):
@@ -25,7 +22,6 @@ class OptionChainsResponse(TigerResponse):
         response = super(OptionChainsResponse, self).parse_response_content(response_content)
         if 'is_success' in response:
             self._is_success = response['is_success']
-
         if self.data and isinstance(self.data, list):
             chain_data = []
             for item in self.data:
@@ -41,8 +37,6 @@ class OptionChainsResponse(TigerResponse):
                                     continue
                                 if key == 'right':
                                     value = value.upper()
-                                tag = CHAIN_FIELD_MAPPINGS[key] if key in CHAIN_FIELD_MAPPINGS else key
-                                item_values[tag] = value
-                            chain_data.append([item_values.get(tag) for tag in COLUMNS])
-
-            self.chain = pd.DataFrame(chain_data, columns=COLUMNS)
+                                item_values[CHAIN_FIELD_MAPPINGS.get(key, string_utils.camel_to_underline(key))] = value
+                            chain_data.append(item_values)
+            self.chain = pd.DataFrame(chain_data)
