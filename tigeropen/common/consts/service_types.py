@@ -16,6 +16,7 @@ MODIFY_ORDER = "modify_order"
 """
 ACCOUNTS = "accounts"
 ASSETS = "assets"
+PRIME_ASSETS = "prime_assets"
 POSITIONS = "positions"
 ORDERS = "orders"
 ACTIVE_ORDERS = "active_orders"  # 待成交订单

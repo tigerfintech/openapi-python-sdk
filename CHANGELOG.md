@@ -1,3 +1,7 @@
+## 2.0.4 
+### New
+- 综合/模拟账户查询资产接口 TradeClient.get_prime_assets
+
 ## 2.0.3 (2021-12-01)
 ### New
 - 期权链查询接口支持过滤 QuoteClient.get_option_chain 
