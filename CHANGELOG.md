@@ -1,4 +1,4 @@
-## 2.0.4 
+## 2.0.4 (2021-12-08)
 ### New
 - 综合/模拟账户查询资产接口 TradeClient.get_prime_assets
 
