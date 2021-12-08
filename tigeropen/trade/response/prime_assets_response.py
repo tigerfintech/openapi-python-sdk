@@ -20,7 +20,7 @@ class PrimeAssetsResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            assets = PortfolioAccount(self.data['accountId'])
+            assets = PortfolioAccount(self.data.get('accountId'), self.data.get('updateTimestamp'))
 
             for segment_data in self.data.get('segments', list()):
                 segment = Segment()

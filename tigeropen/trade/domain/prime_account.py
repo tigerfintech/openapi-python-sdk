@@ -9,8 +9,13 @@ class PortfolioAccount:
     """
     prime/paper account assets
     """
-    def __init__(self, account):
+    def __init__(self, account, timestamp=None):
+        """
+        :param account:
+        :param timestamp: asset update timestamp in milliseconds.
+        """
         self.account = account
+        self.timestamp = timestamp
         self._segments = dict()
 
     @property
@@ -28,7 +33,7 @@ class PortfolioAccount:
             return self._segments.get(segment.category)
 
     def __repr__(self):
-        d = {'account': self.account, 'segments': self.segments}
+        d = {'account': self.account, 'timestamp': self.timestamp, 'segments': self.segments}
         return MODEL_REPR.format(self.__class__.__name__, d)
 
 
