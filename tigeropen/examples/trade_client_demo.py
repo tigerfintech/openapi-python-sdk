@@ -64,6 +64,8 @@ def get_account_apis():
     openapi_client.get_positions()
     # 获取资产
     openapi_client.get_assets()
+    # 综合/模拟账户获取资产
+    openapi_client.get_prime_assets()
 
 
 def trade_apis():
