@@ -19,3 +19,10 @@ def add_start_end(key, start_marker, end_marker):
 
 def camel_to_underline(hunp_str):
     return re.sub(CAMEL_PATTERN, r'\1_\2', hunp_str).lower()
+
+
+def camel_to_underline_obj(d):
+    if isinstance(d, list):
+        return [camel_to_underline_obj(i) if isinstance(i, (dict, list)) else i for i in d]
+    return {camel_to_underline(k): camel_to_underline_obj(v) if isinstance(v, (dict, list)) else v
+            for k, v in d.items()}
