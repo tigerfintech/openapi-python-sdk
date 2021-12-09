@@ -788,10 +788,10 @@ class StockScreenerParams(BaseParams):
         if self.market:
             params['market'] = self.market
         if self.stock_filters:
-            params['filters'] = list()
+            params['stock_filters'] = list()
             for item in self.stock_filters:
                 if item.enable:
-                    params['filters'].append(item.to_dict())
+                    params['stock_filters'].append(item.to_dict())
         if self.page:
             params['page'] = self.page
         if self.limit:

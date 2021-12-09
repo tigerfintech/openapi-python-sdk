@@ -4,6 +4,7 @@
 # @Author  : sukai
 from tigeropen.common.consts import SortDirection
 from tigeropen.common.model import Field
+from tigeropen.common.util.string_utils import camel_to_underline
 
 GREEKS = ['delta', 'gamma', 'theta', 'vega', 'rho']
 
@@ -61,23 +62,24 @@ class OptionFilter:
 
 
 class StockFilter:
-    def __init__(self, field, min_value=None, max_value=None, sort=None, enable=True):
+    def __init__(self, field, min_value=None, max_value=None, sort_direction=None, enable=True):
         """
         stock filter
         :param field: filter field. subclass of tigeropen.common.consts.Field, or field name string
         :param min_value:
         :param max_value:
-        :param sort: tigeropen.common.consts.SortDirection. ASC or DESC
+        :param sort_direction: tigeropen.common.consts.SortDirection. ASC or DESC
         :param enable:
         """
         self.field = field
         self.min_value = min_value
         self.max_value = max_value
-        self.sort = sort
+        self.sort = sort_direction
         self.enable = enable
 
     def to_dict(self):
-        return {'field': self.field.name if isinstance(self.field, Field) else self.field,
+
+        return {'field': camel_to_underline(self.field.name if isinstance(self.field, Field) else self.field),
                 'min_value': self.min_value,
                 'max_value': self.max_value,
                 'sort_direction': self.sort.value if isinstance(self.sort, SortDirection) else self.sort,
