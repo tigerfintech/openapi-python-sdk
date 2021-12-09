@@ -51,6 +51,10 @@ def get_quote():
     stock_details = openapi_client.get_stock_details(['AAPL', '03690'])
     print(stock_details)
 
+    # 获取延迟行情
+    delay_brief = openapi_client.get_stock_delay_briefs(['AAPL', 'GOOG'])
+    print(delay_brief)
+
 
 def get_option_quote():
     symbol = 'AAPL'

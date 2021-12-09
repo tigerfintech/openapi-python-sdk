@@ -8,7 +8,8 @@ import logging
 
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
-    CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER
+    CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
+    PRIME_ASSETS
 from tigeropen.common.exceptions import ApiException
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.tiger_open_client import TigerOpenClient
@@ -22,6 +23,7 @@ from tigeropen.trade.response.order_id_response import OrderIdResponse
 from tigeropen.trade.response.order_preview_response import PreviewOrderResponse
 from tigeropen.trade.response.orders_response import OrdersResponse
 from tigeropen.trade.response.positions_response import PositionsResponse
+from tigeropen.trade.response.prime_assets_response import PrimeAssetsResponse
 
 
 class TradeClient(TigerOpenClient):
@@ -239,6 +241,27 @@ class TradeClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
+        return None
+
+    def get_prime_assets(self, account=None):
+        """
+        get prime account assets
+        :param account:
+        :return: tigeropen.trade.domain.prime_account.PortfolioAccount
+        """
+        params = AssetParams()
+        params.account = account if account else self._account
+        params.secret_key = self._secret_key
+
+        request = OpenApiRequest(PRIME_ASSETS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = PrimeAssetsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.assets
+            else:
+                raise ApiException(response.code, response.message)
         return None
 
     def get_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None, end_time=None,

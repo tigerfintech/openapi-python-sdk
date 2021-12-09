@@ -17,3 +17,4 @@ class ScreenedStocksResponse(TigerResponse):
             self._is_success = response['is_success']
         if self.data and isinstance(self.data, list):
             stocks = []
+            self.stocks = self.data  # todo
