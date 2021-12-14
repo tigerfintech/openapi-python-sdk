@@ -28,6 +28,6 @@ def camel_to_underline_obj(d):
             for k, v in d.items()}
 
 
-def camel_to_underline(camel_str):
-    parts = camel_str.split('_')
+def underline_to_camel(underline_str):
+    parts = underline_str.split('_')
     return parts[0] + ''.join(x.title() for x in parts[1:])
