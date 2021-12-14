@@ -4,7 +4,7 @@
 # @Author  : sukai
 from tigeropen.common.consts import SortDirection
 from tigeropen.common.model import Field
-from tigeropen.common.util.string_utils import camel_to_underline
+from tigeropen.common.util.string_utils import underline_to_camel
 
 GREEKS = ['delta', 'gamma', 'theta', 'vega', 'rho']
 
@@ -79,7 +79,7 @@ class StockFilter:
 
     def to_dict(self):
 
-        return {'field': camel_to_underline(self.field.name if isinstance(self.field, Field) else self.field),
+        return {'field': underline_to_camel(self.field.name if isinstance(self.field, Field) else self.field),
                 'min_value': self.min_value,
                 'max_value': self.max_value,
                 'sort_direction': self.sort.value if isinstance(self.sort, SortDirection) else self.sort,
