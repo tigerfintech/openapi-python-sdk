@@ -5,6 +5,7 @@ Created on 2018/9/20
 @author: gaoan
 """
 from tigeropen.common.consts import SecurityType
+from tigeropen.common.util.common_utils import get_enum_value
 
 
 class Contract:
@@ -16,8 +17,8 @@ class Contract:
                  last_trading_date=None, first_notice_date=None, last_bidding_close_time=None):
         self.contract_id = contract_id
         self.symbol = symbol
-        self.currency = currency
-        self.sec_type = sec_type
+        self.currency = get_enum_value(currency)
+        self.sec_type = get_enum_value(sec_type)
         self.exchange = exchange
         self.origin_symbol = origin_symbol
         self.local_symbol = local_symbol
