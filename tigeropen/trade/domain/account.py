@@ -228,8 +228,8 @@ class PortfolioAccount:
     @property
     def market_values(self):
         """
-        按照市场区分的市值信息
-        :return: dict， 其中的 key: 'USD' 表示美国市场， 'HKD' 表示香港市场; value 是一个 MarketValue 对象
+        按照币种区分的市值信息
+        :return: dict， 其中的 key: 'USD' 表示美元， 'HKD' 表示港币; value 是一个 MarketValue 对象
         """
         return self._market_values
 

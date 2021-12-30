@@ -11,6 +11,7 @@ from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
     PRIME_ASSETS
 from tigeropen.common.exceptions import ApiException
+from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.domain.order import Order
@@ -74,10 +75,8 @@ class TradeClient(TigerOpenClient):
         params.account = self._account
         params.secret_key = self._secret_key
         params.symbols = symbol if isinstance(symbol, list) else [symbol]
-        if sec_type:
-            params.sec_type = sec_type.value
-        if currency:
-            params.currency = currency.value
+        params.sec_type = get_enum_value(sec_type)
+        params.currency = get_enum_value(currency)
         params.exchange = exchange
 
         request = OpenApiRequest(CONTRACTS, biz_model=params)
@@ -125,10 +124,8 @@ class TradeClient(TigerOpenClient):
         params.account = self._account
         params.secret_key = self._secret_key
         params.symbol = symbol
-        if sec_type:
-            params.sec_type = sec_type.value
-        if currency:
-            params.currency = currency.value
+        params.sec_type = get_enum_value(sec_type)
+        params.currency = get_enum_value(currency)
         if expiry:
             params.expiry = expiry
         if strike:
@@ -172,13 +169,10 @@ class TradeClient(TigerOpenClient):
         params = PositionParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        if sec_type:
-            params.sec_type = sec_type.value
+        params.sec_type = get_enum_value(sec_type)
         params.sub_accounts = sub_accounts
-        if currency:
-            params.currency = currency.value
-        if market:
-            params.market = market.value
+        params.currency = get_enum_value(currency)
+        params.market = get_enum_value(market)
         params.symbol = symbol
 
         request = OpenApiRequest(POSITIONS, biz_model=params)
@@ -283,15 +277,14 @@ class TradeClient(TigerOpenClient):
         params = OrdersParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        if sec_type:
-            params.sec_type = sec_type.value
-        params.market = market.value
+        params.sec_type = get_enum_value(sec_type)
+        params.market = get_enum_value(market)
         params.symbol = symbol
         params.start_date = start_time
         params.end_date = end_time
         params.limit = limit
         params.is_brief = is_brief
-        params.states = [state.value for state in states] if states else None
+        params.states = [get_enum_value(state) for state in states] if states else None
         request = OpenApiRequest(ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -312,9 +305,8 @@ class TradeClient(TigerOpenClient):
         params = OrdersParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        if sec_type:
-            params.sec_type = sec_type.value
-        params.market = market.value
+        params.sec_type = get_enum_value(sec_type)
+        params.market = get_enum_value(market)
         params.symbol = symbol
         params.start_date = start_time
         params.end_date = end_time
@@ -338,9 +330,8 @@ class TradeClient(TigerOpenClient):
         params = OrdersParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        if sec_type:
-            params.sec_type = sec_type.value
-        params.market = market.value
+        params.sec_type = get_enum_value(sec_type)
+        params.market = get_enum_value(market)
         params.symbol = symbol
         params.start_date = start_time
         params.end_date = end_time
@@ -363,9 +354,8 @@ class TradeClient(TigerOpenClient):
         params = OrdersParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        if sec_type:
-            params.sec_type = sec_type.value
-        params.market = market.value
+        params.sec_type = get_enum_value(sec_type)
+        params.market = get_enum_value(market)
         params.symbol = symbol
         params.start_date = start_time
         params.end_date = end_time
