@@ -4,7 +4,6 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import enum
 import logging
 import re
 
