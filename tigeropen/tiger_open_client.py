@@ -99,7 +99,7 @@ class TigerOpenClient:
 
         log_url = self.__config.server_url + '?' + sign_content + "&sign=" + sign
         if THREAD_LOCAL.logger:
-            THREAD_LOCAL.logger.info('[' + THREAD_LOCAL.uuid + ']request:' + log_url)
+            THREAD_LOCAL.logger.debug('[' + THREAD_LOCAL.uuid + ']request:' + log_url)
 
         return all_params
 
@@ -110,7 +110,7 @@ class TigerOpenClient:
     def __parse_response(self, response_str, timestamp=None):
         response_str = response_str.decode(self.__config.charset)
         if THREAD_LOCAL.logger:
-            THREAD_LOCAL.logger.info('[' + THREAD_LOCAL.uuid + ']response:' + response_str)
+            THREAD_LOCAL.logger.debug('[' + THREAD_LOCAL.uuid + ']response:' + response_str)
 
         response_content = json.loads(response_str)
 
