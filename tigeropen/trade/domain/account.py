@@ -79,7 +79,7 @@ class SecuritySegment:
     - cash: 现金
     - equity_with_loan: 含借贷值股权(含贷款价值资产)。计算方法： 现金价值 + 股票价值
     - excess_liquidity: 剩余流动性。计算方法: equity_with_loan - maintenance_margin_requirement
-    - gross_position_value: 证券总价值: 做多股票的价值+做空股票价值+做多期权价值+做空期权价值。以上各项取绝对值计算。
+    - gross_position_value: 证券总价值: 做多股票的价值+做空股票价值+做多期权价值+做空期权价值。
     - initial_margin_requirement: 初始保证金
     - leverage: gross_position_value / net_liquidation
     - maintenance_margin_requirement: 维持保证金

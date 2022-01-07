@@ -4,6 +4,7 @@
 # @Author  : sukai
 import json
 from tigeropen.common.response import TigerResponse
+from tigeropen.common.util import string_utils
 
 
 class QuoteGrabPermissionResponse(TigerResponse):
@@ -17,4 +18,4 @@ class QuoteGrabPermissionResponse(TigerResponse):
         if 'is_success' in response:
             self._is_success = response['is_success']
 
-        self.permissions = self.data
+        self.permissions = string_utils.camel_to_underline_obj(self.data)

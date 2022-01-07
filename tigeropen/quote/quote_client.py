@@ -11,7 +11,7 @@ import delorean
 
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
-from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY
+from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -1172,13 +1172,33 @@ class QuoteClient(TigerOpenClient):
     def grab_quote_permission(self):
         """
         抢占行情权限
-        :return: 权限列表
-        示例: [{'name': 'usQuoteBasic', 'expireAt': 1621931026000},
-              {'name': 'usStockQuoteLv2Totalview', 'expireAt': 1621931026000},
-              {'name': 'usOptionQuote', 'expireAt': 1621931026000},
-              {'name': 'hkStockQuoteLv2', 'expireAt': 1621931026000}]
+        :return: 权限列表。expire_at 为-1时表示长期有效
+        示例: [{'name': 'usQuoteBasic', 'expire_at': 1621931026000},
+              {'name': 'usStockQuoteLv2Totalview', 'expire_at': 1621931026000},
+              {'name': 'usOptionQuote', 'expire_at': 1621931026000},
+              {'name': 'hkStockQuoteLv2', 'expire_at': -1}]
         """
         request = OpenApiRequest(GRAB_QUOTE_PERMISSION)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = QuoteGrabPermissionResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.permissions
+            else:
+                raise ApiException(response.code, response.message)
+        return False
+
+    def get_quote_permission(self):
+        """
+        查询行情权限。query quote permissions
+        :return: 权限列表。expire_at 为-1时表示长期有效
+        示例: [{'name': 'usQuoteBasic', 'expire_at': 1621931026000},
+              {'name': 'usStockQuoteLv2Totalview', 'expire_at': 1621931026000},
+              {'name': 'usOptionQuote', 'expire_at': 1621931026000},
+              {'name': 'hkStockQuoteLv2', 'expire_at': -1}]
+        """
+        request = OpenApiRequest(GET_QUOTE_PERMISSION)
         response_content = self.__fetch_data(request)
         if response_content:
             response = QuoteGrabPermissionResponse()
