@@ -10,7 +10,6 @@ PREVIEW_ORDER = "preview_order"
 PLACE_ORDER = "place_order"
 CANCEL_ORDER = "cancel_order"
 MODIFY_ORDER = "modify_order"
-BATCH_PLACE_ORDER = "batch_place_order"
 
 """
 账户/资产

@@ -15,13 +15,14 @@ class Order:
     __slots__ = ["account", "id", "order_id", "parent_id", "order_time", "reason", "trade_time", "contract", "action",
                  "quantity", "filled", "_remaining", "avg_fill_price", "commission", "realized_pnl", "_status",
                  "trail_stop_price", "limit_price", "aux_price", "trailing_percent", "percent_offset", "action",
-                 "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params", "secret_key"]
+                 "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params", "secret_key", "liquidation",
+                 "algo_strategy", "discount"]
 
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
                  outside_rth=None, filled=0, avg_fill_price=0, commission=None, realized_pnl=None,
                  id=None, order_id=None, parent_id=None, order_time=None, trade_time=None, order_legs=None,
-                 algo_params=None, secret_key=None):
+                 algo_params=None, secret_key=None, **kwargs):
         """
         - account: 订单所属的账户
         - id: 全局订单 id
@@ -50,6 +51,9 @@ class Order:
         - order_legs: 附加订单列表
         - algo_params: 算法订单参数
         - secret_key: 机构交易员专有密钥
+        - liquidation
+        - algo_strategy
+        - discount
         """
 
         self.id = id
@@ -79,6 +83,9 @@ class Order:
         self.order_legs = order_legs
         self.algo_params = algo_params
         self.secret_key = secret_key
+        self.liquidation = kwargs.get('liquidation')
+        self.algo_strategy = kwargs.get('algo_strategy')
+        self.discount = kwargs.get('discount')
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}

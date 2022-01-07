@@ -1,3 +1,18 @@
+## 2.0.5 (2022-01-07)
+### New
+- 查询行情权限接口 QuoteClient.get_quote_permission
+- 订单综合账户成交记录接口 TradeClient.get_transactions
+- 增加一个完整的策略示例
+
+### Changed
+- 方法枚举参数优化，使用枚举参数的方法也可以直接使用该枚举对应值
+- TradeClient.place_order 去除返回数据中 Order.order_id 属性的校验
+- 将 SDK 内部的日志级别由 INFO 调整为 DEBUG, 防止默认情况下输出 SDK 的日志
+- 去除 pandas 固定版本号, 方便安装时灵活指定版本
+
+### Breaking
+- 行情权限抢占接口 QuoteClient.grab_quote_permission 返回的数据项中，'expireAt' 字段格式转换为 'expire_at'
+
 ## 2.0.4 (2021-12-08)
 ### New
 - 综合/模拟账户查询资产接口 TradeClient.get_prime_assets

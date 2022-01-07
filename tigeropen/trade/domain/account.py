@@ -122,6 +122,7 @@ class CommoditySegment:
     - initial_margin_requirement: 初始保证金
     - maintenance_margin_requirement: 维持保证金
     - net_liquidation: 总资产(净清算价值)。计算方法：现金价值 + 盯市盈亏
+    - gross_position_value: 持仓总价值
     - timestamp: 更新时间
     """
     def __init__(self):
@@ -134,6 +135,7 @@ class CommoditySegment:
         self.initial_margin_requirement = float('inf')
         self.maintenance_margin_requirement = float('inf')
         self.net_liquidation = float('inf')
+        self.gross_position_value = float('inf')
         self.timestamp = None
 
     def __repr__(self):
