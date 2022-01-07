@@ -80,8 +80,7 @@ class AssetsResponse(TigerResponse):
                 sub_tag = ACCOUNT_FIELD_MAPPINGS[segment_key]
             else:
                 sub_tag = camel_to_underline(segment_key)
-            if hasattr(segment, sub_tag):
-                setattr(segment, sub_tag, segment_value)
+            setattr(segment, sub_tag, segment_value)
 
     @staticmethod
     def _parse_market_value(market_value, sub_value):

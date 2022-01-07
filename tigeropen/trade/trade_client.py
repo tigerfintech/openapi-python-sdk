@@ -513,11 +513,9 @@ class TradeClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 order.id = response.id
-                if order.order_id:
-                    return response.order_id == order.order_id
-                else:
+                if order.order_id is None and response.order_id:
                     order.order_id = response.order_id
-                    return True
+                return True
             else:
                 raise ApiException(response.code, response.message)
 
