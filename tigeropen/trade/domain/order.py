@@ -182,3 +182,23 @@ class AlgoParams:
 
     def __repr__(self):
         return "AlgoParams(%s)" % self.to_dict()
+    
+
+class Transaction:
+    """
+    订单成交记录。Transactions of order.
+    """
+    def __init__(self, account=None, order_id=None, contract=None, id_=None, action=None,
+                 filled_quantity=None, filled_price=None, filled_amount=None, transacted_at=None):
+        self.account = account
+        self.order_id = order_id
+        self.contract = contract
+        self.id = id_
+        self.action = action
+        self.filled_quantity = filled_quantity
+        self.filled_price = filled_price
+        self.filled_amount = filled_amount
+        self.transacted_at = transacted_at
+
+    def __repr__(self):
+        return "Transaction({})".format(self.__dict__)

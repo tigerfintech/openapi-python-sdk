@@ -10,6 +10,7 @@ PREVIEW_ORDER = "preview_order"
 PLACE_ORDER = "place_order"
 CANCEL_ORDER = "cancel_order"
 MODIFY_ORDER = "modify_order"
+BATCH_PLACE_ORDER = "batch_place_order"
 
 """
 账户/资产
@@ -22,6 +23,7 @@ ORDERS = "orders"
 ACTIVE_ORDERS = "active_orders"  # 待成交订单
 INACTIVE_ORDERS = "inactive_orders"  # 已撤销订单
 FILLED_ORDERS = "filled_orders"  # 已成交订单
+ORDER_TRANSACTIONS = "order_transactions"  # 订单成交记录
 
 """
 合约
@@ -46,6 +48,7 @@ QUOTE_SHORTABLE_STOCKS = "quote_shortable_stocks"
 QUOTE_STOCK_TRADE = "quote_stock_trade"
 QUOTE_DEPTH = "quote_depth"  # level2 深度行情
 GRAB_QUOTE_PERMISSION = "grab_quote_permission"  # 抢占行情
+GET_QUOTE_PERMISSION = "get_quote_permission"
 
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"
