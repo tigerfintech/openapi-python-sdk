@@ -5,10 +5,11 @@ Created on 2018/9/20
 @author: gaoan
 """
 from tigeropen.common.consts import SecurityType
+from tigeropen.common.util.common_utils import get_enum_value
 
 
 class Contract:
-    def __init__(self, symbol, currency, contract_id=None, sec_type=None, exchange=None, origin_symbol=None,
+    def __init__(self, symbol=None, currency=None, contract_id=None, sec_type=None, exchange=None, origin_symbol=None,
                  local_symbol=None, expiry=None, strike=None, put_call=None, multiplier=None, name=None,
                  short_margin=None, short_fee_rate=None, shortable=None, long_initial_margin=None,
                  long_maintenance_margin=None, contract_month=None, identifier=None, primary_exchange=None,
@@ -16,8 +17,8 @@ class Contract:
                  last_trading_date=None, first_notice_date=None, last_bidding_close_time=None):
         self.contract_id = contract_id
         self.symbol = symbol
-        self.currency = currency
-        self.sec_type = sec_type
+        self.currency = get_enum_value(currency)
+        self.sec_type = get_enum_value(sec_type)
         self.exchange = exchange
         self.origin_symbol = origin_symbol
         self.local_symbol = local_symbol

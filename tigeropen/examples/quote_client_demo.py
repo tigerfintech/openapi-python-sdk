@@ -27,6 +27,9 @@ def get_quote():
     # 抢占行情权限
     quote_permissions = openapi_client.grab_quote_permission()
     print(quote_permissions)
+    # 查询行情权限
+    perms = openapi_client.get_quote_permission()
+    print(perms)
 
     market_status_list = openapi_client.get_market_status(Market.US)
     print(market_status_list)
