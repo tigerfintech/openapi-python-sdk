@@ -563,6 +563,147 @@ class OrdersParams(BaseParams):
         return params
 
 
+class TransactionsParams(BaseParams):
+    def __init__(self):
+        super(TransactionsParams, self).__init__()
+        self._account = None
+        self._secret_key = None
+        self._order_id = None
+        self._sec_type = None
+        self._symbol = None
+        self._expiry = None
+        self._strike = None
+        self._right = None
+        self._start_date = None
+        self._end_date = None
+        self._limit = None
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def order_id(self):
+        return self._order_id
+
+    @order_id.setter
+    def order_id(self, value):
+        self._order_id = value
+
+    @property
+    def sec_type(self):
+        return self._sec_type
+
+    @sec_type.setter
+    def sec_type(self, value):
+        self._sec_type = value
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
+
+    @property
+    def start_date(self):
+        return self._start_date
+
+    @start_date.setter
+    def start_date(self, value):
+        self._start_date = value
+
+    @property
+    def end_date(self):
+        return self._end_date
+
+    @end_date.setter
+    def end_date(self, value):
+        self._end_date = value
+
+    @property
+    def limit(self):
+        return self._limit
+
+    @limit.setter
+    def limit(self, value):
+        self._limit = value
+
+    @property
+    def expiry(self):
+        return self._expiry
+
+    @expiry.setter
+    def expiry(self, value):
+        self._expiry = value
+
+    @property
+    def strike(self):
+        return self._strike
+
+    @strike.setter
+    def strike(self, value):
+        self._strike = value
+
+    @property
+    def right(self):
+        return self._right
+
+    @right.setter
+    def right(self, value):
+        self._right = value
+
+    def to_openapi_dict(self):
+        params = dict()
+        if self.account:
+            params['account'] = self.account
+
+        if self.order_id:
+            params['order_id'] = self.order_id
+
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+
+        if self.symbol:
+            params['symbol'] = self.symbol
+
+        if self.sec_type:
+            params['sec_type'] = self.sec_type
+
+        if self.start_date:
+            params['start_date'] = self.start_date
+
+        if self.end_date:
+            params['end_date'] = self.end_date
+
+        if self.limit:
+            params['limit'] = self.limit
+
+        if self.expiry:
+            params['expiry'] = self.expiry
+
+        if self.strike:
+            params['strike'] = self.strike
+
+        if self.right:
+            params['right'] = self.right
+
+        return params
+
+
 class PlaceModifyOrderParams(BaseParams):
     def __init__(self):
         super(PlaceModifyOrderParams, self).__init__()
