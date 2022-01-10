@@ -22,6 +22,7 @@ from tigeropen.common.consts.push_subscriptions import SUBSCRIPTION_QUOTE, SUBSC
     SUBSCRIPTION_TRADE_ORDER
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
+from tigeropen.common.util.string_utils import camel_to_underline
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.util.signature_utils import sign_with_rsa
@@ -155,7 +156,7 @@ class PushClient(stomp.ConnectionListener):
                     symbol_focus_keys = data.get('symbolFocusKeys')
                     focus_keys = dict()
                     for sym, keys in symbol_focus_keys.items():
-                        keys = set(QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys)
+                        keys = set(QUOTE_KEYS_MAPPINGS.get(key, camel_to_underline(key)) for key in keys)
                         focus_keys[sym] = list(keys)
                     self.subscribed_symbols(symbols, focus_keys, limit, used)
             elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
@@ -165,7 +166,7 @@ class PushClient(stomp.ConnectionListener):
                     if 'hourTradingLatestPrice' in data:
                         hour_trading = True
                     if 'symbol' in data:
-                        symbol = data.get('symbol')
+                        symbol = data.pop('symbol', None)
                         offset = data.get('offset', 0)
                         items = []
                         # 期货行情推送的价格都乘了 10 的 offset 次方变成了整数, 需要除回去变为正常单位的价格
@@ -185,6 +186,8 @@ class PushClient(stomp.ConnectionListener):
                                             minute_item[m_key] = m_value
                                             value = minute_item
                                     items.append((key, value))
+                                else:
+                                    items.append((camel_to_underline(key), value))
                         else:
                             for key, value in data.items():
                                 if key == 'latestTime' or key == 'hourTradingLatestTime':
@@ -192,35 +195,41 @@ class PushClient(stomp.ConnectionListener):
                                 if key in QUOTE_KEYS_MAPPINGS:
                                     key = QUOTE_KEYS_MAPPINGS.get(key)
                                     items.append((key, value))
+                                else:
+                                    items.append((camel_to_underline(key), value))
                         if items:
                             self.quote_changed(symbol, items, hour_trading)
             elif response_type == str(ResponseType.SUBSCRIBE_ASSET.value):
                 if self.asset_changed:
                     data = json.loads(body)
                     if 'account' in data:
-                        account = data.get('account')
+                        account = data.pop('account', None)
                         items = []
                         for key, value in data.items():
                             if key in ASSET_KEYS_MAPPINGS:
                                 items.append((ASSET_KEYS_MAPPINGS.get(key), value))
+                            else:
+                                items.append((camel_to_underline(key), value))
                         if items:
                             self.asset_changed(account, items)
             elif response_type == str(ResponseType.SUBSCRIBE_POSITION.value):
                 if self.position_changed:
                     data = json.loads(body)
                     if 'account' in data:
-                        account = data.get('account')
+                        account = data.pop('account', None)
                         items = []
                         for key, value in data.items():
                             if key in POSITION_KEYS_MAPPINGS:
                                 items.append((POSITION_KEYS_MAPPINGS.get(key), value))
+                            else:
+                                items.append((camel_to_underline(key), value))
                         if items:
                             self.position_changed(account, items)
             elif response_type == str(ResponseType.SUBSCRIBE_ORDER_STATUS.value):
                 if self.order_changed:
                     data = json.loads(body)
                     if 'account' in data:
-                        account = data.get('account')
+                        account = data.pop('account', None)
                         items = []
                         for key, value in data.items():
                             if key in ORDER_KEYS_MAPPINGS:
@@ -230,6 +239,8 @@ class PushClient(stomp.ConnectionListener):
                                     if value == OrderStatus.HELD and data.get('filledQuantity'):
                                         value = OrderStatus.PARTIALLY_FILLED
                                 items.append((ORDER_KEYS_MAPPINGS.get(key), value))
+                            else:
+                                items.append((camel_to_underline(key), value))
                         if items:
                             self.order_changed(account, items)
             elif response_type == str(ResponseType.GET_SUBSCRIBE_END.value):
