@@ -19,7 +19,7 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'remark': 'reason',
                         'localSymbol': 'local_symbol', 'originSymbol': 'origin_symbol', 'outsideRth': 'outside_rth',
                         'timeInForce': 'time_in_force', 'openTime': 'order_time', 'latestTime': 'trade_time',
-                        'contractId': 'contract_id',
+                        'contractId': 'contract_id', 'algoStrategy': 'algo_strategy',
                         'trailStopPrice': 'trail_stop_price', 'trailingPercent': 'trailing_percent',
                         'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params'}
 
@@ -90,17 +90,21 @@ class OrdersResponse(TigerResponse):
         avg_fill_price = order_fields.get('avg_fill_price')
         commission = order_fields.get('commission')
         realized_pnl = order_fields.get('realized_pnl')
-        id = order_fields.get('id')
+        id_ = order_fields.get('id')
         order_id = order_fields.get('order_id')
         parent_id = order_fields.get('parent_id')
         status = get_order_status(order_fields.get('status'))
         algo_params = AlgoParams.from_tags(order_fields.get('algo_params'))
+        liquidation = order_fields.get('liquidation')
+        algo_strategy = order_fields.get('algo_strategy')
+        discount = order_fields.get('discount')
 
         order = Order(account, contract, action, order_type, quantity, limit_price=limit_price, aux_price=aux_price,
                       trail_stop_price=trail_stop_price, trailing_percent=trailing_percent,
                       percent_offset=percent_offset, time_in_force=time_in_force, outside_rth=outside_rth,
                       filled=filled, avg_fill_price=avg_fill_price, commission=commission,
-                      realized_pnl=realized_pnl, id=id, order_id=order_id, parent_id=parent_id, algo_params=algo_params)
+                      realized_pnl=realized_pnl, id=id_, order_id=order_id, parent_id=parent_id,
+                      algo_params=algo_params, liquidation=liquidation, algo_strategy=algo_strategy, discount=discount)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:
