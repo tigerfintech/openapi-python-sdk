@@ -7,10 +7,11 @@ Created on 2018/10/31
 
 
 class AccountProfile:
-    def __init__(self, account, capability, status):
+    def __init__(self, account, capability, status, account_type=None):
         self.account = account
         self.capability = capability
         self.status = status
+        self.account_type = account_type
 
     def __repr__(self):
         """

@@ -14,7 +14,7 @@ from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.trade_client import TradeClient
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.examples.client_config import get_client_config
-# from tigeropen.common.consts import Currency, SecurityType
+from tigeropen.common.consts import Currency, SecurityType
 from tigeropen.common.util.contract_utils import stock_contract, option_contract_by_symbol, future_contract, \
      war_contract_by_symbol, iopt_contract_by_symbol
 from tigeropen.common.util.order_utils import limit_order, limit_order_with_legs, order_leg, algo_order_params, \
@@ -60,6 +60,15 @@ def get_account_apis():
     # openapi_client.get_open_orders()
     # 获取已成交订单
     # openapi_client.get_filled_orders(start_time='2019-05-01', end_time='2019-05-21')
+
+    # 获取订单成交记录, 仅适用于综合账户
+    transactions = openapi_client.get_transactions(symbol='AAPL', sec_type=SecurityType.STK, start_time=1641398400000,
+                                                   end_time=1642398400000)
+    # transactions = openapi_client.get_transactions(symbol='CL2201', sec_type=SecurityType.FUT)
+    # transactions = openapi_client.get_transactions(order_id=24844739769009152)
+    # transactions = openapi_client.get_transactions(symbol='BABA', sec_type='OPT', strike=121, expiry='20220121',
+    #                put_call='CALL')
+
     # 获取持仓
     openapi_client.get_positions()
     # 获取资产
