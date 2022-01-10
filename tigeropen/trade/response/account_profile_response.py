@@ -7,6 +7,7 @@ Created on 2018/10/31
 import json
 
 from tigeropen.common.response import TigerResponse
+from tigeropen.common.util.string_utils import camel_to_underline_obj
 from tigeropen.trade.domain.profile import AccountProfile
 
 
@@ -25,15 +26,7 @@ class ProfilesResponse(TigerResponse):
             data_json = json.loads(self.data)
             if 'items' in data_json:
                 for item in data_json['items']:
-                    account, capability, status = None, None, None
-                    for key, value in item.items():
-                        if value is None:
-                            continue
-                        if key == 'account':
-                            account = value
-                        elif key == 'capability':
-                            capability = value
-                        elif key == 'status':
-                            status = value
-                    profile = AccountProfile(account, capability, status)
+                    data_dict = camel_to_underline_obj(item)
+                    profile = AccountProfile(account=data_dict.get('account'), capability=data_dict.get('capability'),
+                                             status=data_dict.get('status'), account_type=data_dict.get('account_type'))
                     self.profiles.append(profile)

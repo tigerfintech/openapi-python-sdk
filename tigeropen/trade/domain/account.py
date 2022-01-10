@@ -79,7 +79,7 @@ class SecuritySegment:
     - cash: 现金
     - equity_with_loan: 含借贷值股权(含贷款价值资产)。计算方法： 现金价值 + 股票价值
     - excess_liquidity: 剩余流动性。计算方法: equity_with_loan - maintenance_margin_requirement
-    - gross_position_value: 证券总价值: 做多股票的价值+做空股票价值+做多期权价值+做空期权价值。以上各项取绝对值计算。
+    - gross_position_value: 证券总价值: 做多股票的价值+做空股票价值+做多期权价值+做空期权价值。
     - initial_margin_requirement: 初始保证金
     - leverage: gross_position_value / net_liquidation
     - maintenance_margin_requirement: 维持保证金
@@ -122,6 +122,7 @@ class CommoditySegment:
     - initial_margin_requirement: 初始保证金
     - maintenance_margin_requirement: 维持保证金
     - net_liquidation: 总资产(净清算价值)。计算方法：现金价值 + 盯市盈亏
+    - gross_position_value: 持仓总价值
     - timestamp: 更新时间
     """
     def __init__(self):
@@ -134,6 +135,7 @@ class CommoditySegment:
         self.initial_margin_requirement = float('inf')
         self.maintenance_margin_requirement = float('inf')
         self.net_liquidation = float('inf')
+        self.gross_position_value = float('inf')
         self.timestamp = None
 
     def __repr__(self):
@@ -228,8 +230,8 @@ class PortfolioAccount:
     @property
     def market_values(self):
         """
-        按照市场区分的市值信息
-        :return: dict， 其中的 key: 'USD' 表示美国市场， 'HKD' 表示香港市场; value 是一个 MarketValue 对象
+        按照币种区分的市值信息
+        :return: dict， 其中的 key: 'USD' 表示美元， 'HKD' 表示港币; value 是一个 MarketValue 对象
         """
         return self._market_values
 
