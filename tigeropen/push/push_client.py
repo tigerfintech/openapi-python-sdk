@@ -17,8 +17,13 @@ from tigeropen.common.consts import OrderStatus
 from tigeropen.common.consts.params import P_SDK_VERSION, P_SDK_VERSION_PREFIX
 from tigeropen.common.consts.push_destinations import QUOTE, QUOTE_DEPTH, QUOTE_FUTURE, QUOTE_OPTION, TRADE_ASSET, \
     TRADE_ORDER, TRADE_POSITION
+from tigeropen.common.consts.push_subscriptions import SUBSCRIPTION_QUOTE, SUBSCRIPTION_QUOTE_DEPTH, \
+    SUBSCRIPTION_QUOTE_OPTION, SUBSCRIPTION_QUOTE_FUTURE, SUBSCRIPTION_TRADE_ASSET, SUBSCRIPTION_TRADE_POSITION, \
+    SUBSCRIPTION_TRADE_ORDER
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
+from tigeropen.common.util.string_utils import camel_to_underline
+from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.util.signature_utils import sign_with_rsa
 
@@ -151,7 +156,7 @@ class PushClient(stomp.ConnectionListener):
                     symbol_focus_keys = data.get('symbolFocusKeys')
                     focus_keys = dict()
                     for sym, keys in symbol_focus_keys.items():
-                        keys = set(QUOTE_KEYS_MAPPINGS.get(key, key) for key in keys)
+                        keys = set(QUOTE_KEYS_MAPPINGS.get(key, camel_to_underline(key)) for key in keys)
                         focus_keys[sym] = list(keys)
                     self.subscribed_symbols(symbols, focus_keys, limit, used)
             elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
@@ -161,7 +166,7 @@ class PushClient(stomp.ConnectionListener):
                     if 'hourTradingLatestPrice' in data:
                         hour_trading = True
                     if 'symbol' in data:
-                        symbol = data.get('symbol')
+                        symbol = data.pop('symbol', None)
                         offset = data.get('offset', 0)
                         items = []
                         # 期货行情推送的价格都乘了 10 的 offset 次方变成了整数, 需要除回去变为正常单位的价格
@@ -181,6 +186,8 @@ class PushClient(stomp.ConnectionListener):
                                             minute_item[m_key] = m_value
                                             value = minute_item
                                     items.append((key, value))
+                                else:
+                                    items.append((camel_to_underline(key), value))
                         else:
                             for key, value in data.items():
                                 if key == 'latestTime' or key == 'hourTradingLatestTime':
@@ -188,35 +195,41 @@ class PushClient(stomp.ConnectionListener):
                                 if key in QUOTE_KEYS_MAPPINGS:
                                     key = QUOTE_KEYS_MAPPINGS.get(key)
                                     items.append((key, value))
+                                else:
+                                    items.append((camel_to_underline(key), value))
                         if items:
                             self.quote_changed(symbol, items, hour_trading)
             elif response_type == str(ResponseType.SUBSCRIBE_ASSET.value):
                 if self.asset_changed:
                     data = json.loads(body)
                     if 'account' in data:
-                        account = data.get('account')
+                        account = data.pop('account', None)
                         items = []
                         for key, value in data.items():
                             if key in ASSET_KEYS_MAPPINGS:
                                 items.append((ASSET_KEYS_MAPPINGS.get(key), value))
+                            else:
+                                items.append((camel_to_underline(key), value))
                         if items:
                             self.asset_changed(account, items)
             elif response_type == str(ResponseType.SUBSCRIBE_POSITION.value):
                 if self.position_changed:
                     data = json.loads(body)
                     if 'account' in data:
-                        account = data.get('account')
+                        account = data.pop('account', None)
                         items = []
                         for key, value in data.items():
                             if key in POSITION_KEYS_MAPPINGS:
                                 items.append((POSITION_KEYS_MAPPINGS.get(key), value))
+                            else:
+                                items.append((camel_to_underline(key), value))
                         if items:
                             self.position_changed(account, items)
             elif response_type == str(ResponseType.SUBSCRIBE_ORDER_STATUS.value):
                 if self.order_changed:
                     data = json.loads(body)
                     if 'account' in data:
-                        account = data.get('account')
+                        account = data.pop('account', None)
                         items = []
                         for key, value in data.items():
                             if key in ORDER_KEYS_MAPPINGS:
@@ -226,6 +239,8 @@ class PushClient(stomp.ConnectionListener):
                                     if value == OrderStatus.HELD and data.get('filledQuantity'):
                                         value = OrderStatus.PARTIALLY_FILLED
                                 items.append((ORDER_KEYS_MAPPINGS.get(key), value))
+                            else:
+                                items.append((camel_to_underline(key), value))
                         if items:
                             self.order_changed(account, items)
             elif response_type == str(ResponseType.GET_SUBSCRIBE_END.value):
@@ -257,63 +272,63 @@ class PushClient(stomp.ConnectionListener):
         订阅账户资产更新
         :return:
         """
-        return self._handle_trade_subscribe(TRADE_ASSET, 'Asset', account)
+        return self._handle_trade_subscribe(TRADE_ASSET, SUBSCRIPTION_TRADE_ASSET, account)
 
     def unsubscribe_asset(self, id=None):
         """
         退订账户资产更新
         :return:
         """
-        self._handle_trade_unsubscribe(TRADE_ASSET, 'Asset', sub_id=id)
+        self._handle_trade_unsubscribe(TRADE_ASSET, SUBSCRIPTION_TRADE_ASSET, sub_id=id)
 
     def subscribe_position(self, account=None):
         """
         订阅账户持仓更新
         :return:
         """
-        return self._handle_trade_subscribe(TRADE_POSITION, 'Position', account)
+        return self._handle_trade_subscribe(TRADE_POSITION, SUBSCRIPTION_TRADE_POSITION, account)
 
     def unsubscribe_position(self, id=None):
         """
         退订账户持仓更新
         :return:
         """
-        self._handle_trade_unsubscribe(TRADE_POSITION, 'Position', sub_id=id)
+        self._handle_trade_unsubscribe(TRADE_POSITION, SUBSCRIPTION_TRADE_POSITION, sub_id=id)
 
     def subscribe_order(self, account=None):
         """
         订阅账户订单更新
         :return:
         """
-        return self._handle_trade_subscribe(TRADE_ORDER, 'OrderStatus', account)
+        return self._handle_trade_subscribe(TRADE_ORDER, SUBSCRIPTION_TRADE_ORDER, account)
 
     def unsubscribe_order(self, id=None):
         """
         退订账户订单更新
         :return:
         """
-        self._handle_trade_unsubscribe(TRADE_ORDER, 'OrderStatus', sub_id=id)
+        self._handle_trade_unsubscribe(TRADE_ORDER, SUBSCRIPTION_TRADE_ORDER, sub_id=id)
 
     def subscribe_quote(self, symbols, quote_key_type=QuoteKeyType.TRADE, focus_keys=None):
         """
         订阅行情更新
         :param symbols:
         :param quote_key_type: 行情类型, 值为 common.consts.quote_keys.QuoteKeyType 枚举类型
-        :param focus_keys: 行情 key
+        :param focus_keys: 行情 key, common.consts.quote_keys.QuoteChangeKey 枚举类型的列表
         :return:
         """
         extra_headers = dict()
         if focus_keys:
-            keys = list()
-            for key in focus_keys:
-                if isinstance(key, str):
-                    keys.append(key)
-                else:
-                    keys.append(key.value)
-            extra_headers['keys'] = ','.join(keys)
-        elif quote_key_type and quote_key_type.value:
-            extra_headers['keys'] = quote_key_type.value
-        return self._handle_quote_subscribe(destination=QUOTE, subscription='Quote', symbols=symbols,
+            if isinstance(focus_keys, list):
+                keys = list()
+                for key in focus_keys:
+                    keys.append(get_enum_value(key))
+                extra_headers['keys'] = ','.join(keys)
+            else:
+                extra_headers['keys'] = focus_keys
+        elif quote_key_type:
+            extra_headers['keys'] = get_enum_value(quote_key_type)
+        return self._handle_quote_subscribe(destination=QUOTE, subscription=SUBSCRIPTION_QUOTE, symbols=symbols,
                                             extra_headers=extra_headers)
 
     def subscribe_depth_quote(self, symbols):
@@ -322,7 +337,7 @@ class PushClient(stomp.ConnectionListener):
         :param symbols: symbol列表
         :return:
         """
-        return self._handle_quote_subscribe(destination=QUOTE_DEPTH, subscription='QuoteDepth', symbols=symbols)
+        return self._handle_quote_subscribe(destination=QUOTE_DEPTH, subscription=SUBSCRIPTION_QUOTE_DEPTH, symbols=symbols)
 
     def subscribe_option(self, symbols):
         """
@@ -330,7 +345,7 @@ class PushClient(stomp.ConnectionListener):
         :param symbols: symbol列表
         :return:
         """
-        return self._handle_quote_subscribe(destination=QUOTE_OPTION, subscription='Option', symbols=symbols)
+        return self._handle_quote_subscribe(destination=QUOTE_OPTION, subscription=SUBSCRIPTION_QUOTE_OPTION, symbols=symbols)
 
     def subscribe_future(self, symbols):
         """
@@ -338,7 +353,7 @@ class PushClient(stomp.ConnectionListener):
         :param symbols: symbol列表
         :return:
         """
-        return self._handle_quote_subscribe(destination=QUOTE_FUTURE, subscription='Future', symbols=symbols)
+        return self._handle_quote_subscribe(destination=QUOTE_FUTURE, subscription=SUBSCRIPTION_QUOTE_FUTURE, symbols=symbols)
 
     def query_subscribed_quote(self):
         """
@@ -355,14 +370,14 @@ class PushClient(stomp.ConnectionListener):
         退订行情更新
         :return:
         """
-        self._handle_quote_unsubscribe(destination=QUOTE, subscription='Quote', sub_id=id, symbols=symbols)
+        self._handle_quote_unsubscribe(destination=QUOTE, subscription=SUBSCRIPTION_QUOTE, sub_id=id, symbols=symbols)
 
     def unsubscribe_depth_quote(self, symbols=None, id=None):
         """
         退订深度行情更新
         :return:
         """
-        self._handle_quote_unsubscribe(destination=QUOTE_DEPTH, subscription='QuoteDepth', sub_id=id, symbols=symbols)
+        self._handle_quote_unsubscribe(destination=QUOTE_DEPTH, subscription=SUBSCRIPTION_QUOTE_DEPTH, sub_id=id, symbols=symbols)
 
     def _handle_trade_subscribe(self, destination, subscription, account=None, extra_headers=None):
         if extra_headers is None:
