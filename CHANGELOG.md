@@ -1,4 +1,4 @@
-## 2.0.5 (2022-01-07)
+## 2.0.5 (2022-01-10)
 ### New
 - 查询行情权限接口 QuoteClient.get_quote_permission
 - 订单综合账户成交记录接口 TradeClient.get_transactions
