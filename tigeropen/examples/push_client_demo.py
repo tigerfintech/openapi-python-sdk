@@ -120,25 +120,30 @@ def unsubscribe_callback(destination, content):
     print('subscribe:{}, callback content:{}'.format(destination, content))
 
 
-# def connect_callback():
-#     """连接建立回调"""
-#     print('connected')
-#
-#
-# def disconnect_callback():
-#     """连接断开回调. 此处利用回调进行重连"""
-#     for t in range(1, 200):
-#         try:
-#             print('disconnected, reconnecting')
-#             push_client.connect(client_config.tiger_id, client_config.private_key)
-#         except:
-#             print('connect failed, retry')
-#             time.sleep(t)
-#         else:
-#             print('reconnect success')
-#             return
-#     print('reconnect failed, please check your network')
-#
+def error_callback(content):
+    """错误回调"""
+    print(content)
+
+
+def connect_callback():
+    """连接建立回调"""
+    print('connected')
+
+
+def disconnect_callback():
+    """连接断开回调. 此处利用回调进行重连"""
+    for t in range(1, 200):
+        try:
+            print('disconnected, reconnecting')
+            push_client.connect(client_config.tiger_id, client_config.private_key)
+        except:
+            print('connect failed, retry')
+            time.sleep(t)
+        else:
+            print('reconnect success')
+            return
+    print('reconnect failed, please check your network')
+
 
 if __name__ == '__main__':
     client_config = get_client_config()
@@ -150,21 +155,24 @@ if __name__ == '__main__':
     # 已订阅 symbol 查询回调
     push_client.subscribed_symbols = on_query_subscribed_quote
     # 订单变动回调
-    # push_client.order_changed = on_order_changed
+    push_client.order_changed = on_order_changed
     # 资产变动回调
-    # push_client.asset_changed = on_asset_changed
+    push_client.asset_changed = on_asset_changed
     # 持仓变动回调
-    # push_client.position_changed = on_position_changed
+    push_client.position_changed = on_position_changed
 
     # 订阅成功与否的回调
     push_client.subscribe_callback = subscribe_callback
     # 退订成功与否的回调
     push_client.unsubscribe_callback = unsubscribe_callback
 
+    # 错误信息回调
+    push_client.error_callback = error_callback
+
     # 建立推送连接
     push_client.connect(client_config.tiger_id, client_config.private_key)
     # 断线重连回调
-    # push_client.disconnect_callback = disconnect_callback
+    push_client.disconnect_callback = disconnect_callback
 
     # 订阅行情
     push_client.subscribe_quote(['AAPL', 'GOOG'])

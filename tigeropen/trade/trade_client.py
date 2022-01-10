@@ -9,13 +9,14 @@ import logging
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
-    PRIME_ASSETS
+    PRIME_ASSETS, ORDER_TRANSACTIONS
 from tigeropen.common.exceptions import ApiException
+from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.quote.request import OpenApiRequest
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.domain.order import Order
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
-    OrderParams, PlaceModifyOrderParams, CancelOrderParams
+    OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams
 from tigeropen.trade.response.account_profile_response import ProfilesResponse
 from tigeropen.trade.response.assets_response import AssetsResponse
 from tigeropen.trade.response.contracts_response import ContractsResponse
@@ -24,6 +25,7 @@ from tigeropen.trade.response.order_preview_response import PreviewOrderResponse
 from tigeropen.trade.response.orders_response import OrdersResponse
 from tigeropen.trade.response.positions_response import PositionsResponse
 from tigeropen.trade.response.prime_assets_response import PrimeAssetsResponse
+from tigeropen.trade.response.transactions_response import TransactionsResponse
 
 
 class TradeClient(TigerOpenClient):
@@ -74,10 +76,8 @@ class TradeClient(TigerOpenClient):
         params.account = self._account
         params.secret_key = self._secret_key
         params.symbols = symbol if isinstance(symbol, list) else [symbol]
-        if sec_type:
-            params.sec_type = sec_type.value
-        if currency:
-            params.currency = currency.value
+        params.sec_type = get_enum_value(sec_type)
+        params.currency = get_enum_value(currency)
         params.exchange = exchange
 
         request = OpenApiRequest(CONTRACTS, biz_model=params)
@@ -125,10 +125,8 @@ class TradeClient(TigerOpenClient):
         params.account = self._account
         params.secret_key = self._secret_key
         params.symbol = symbol
-        if sec_type:
-            params.sec_type = sec_type.value
-        if currency:
-            params.currency = currency.value
+        params.sec_type = get_enum_value(sec_type)
+        params.currency = get_enum_value(currency)
         if expiry:
             params.expiry = expiry
         if strike:
@@ -172,13 +170,10 @@ class TradeClient(TigerOpenClient):
         params = PositionParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        if sec_type:
-            params.sec_type = sec_type.value
+        params.sec_type = get_enum_value(sec_type)
         params.sub_accounts = sub_accounts
-        if currency:
-            params.currency = currency.value
-        if market:
-            params.market = market.value
+        params.currency = get_enum_value(currency)
+        params.market = get_enum_value(market)
         params.symbol = symbol
 
         request = OpenApiRequest(POSITIONS, biz_model=params)
@@ -283,15 +278,14 @@ class TradeClient(TigerOpenClient):
         params = OrdersParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        if sec_type:
-            params.sec_type = sec_type.value
-        params.market = market.value
+        params.sec_type = get_enum_value(sec_type)
+        params.market = get_enum_value(market)
         params.symbol = symbol
         params.start_date = start_time
         params.end_date = end_time
         params.limit = limit
         params.is_brief = is_brief
-        params.states = [state.value for state in states] if states else None
+        params.states = [get_enum_value(state) for state in states] if states else None
         request = OpenApiRequest(ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -312,9 +306,8 @@ class TradeClient(TigerOpenClient):
         params = OrdersParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        if sec_type:
-            params.sec_type = sec_type.value
-        params.market = market.value
+        params.sec_type = get_enum_value(sec_type)
+        params.market = get_enum_value(market)
         params.symbol = symbol
         params.start_date = start_time
         params.end_date = end_time
@@ -338,9 +331,8 @@ class TradeClient(TigerOpenClient):
         params = OrdersParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        if sec_type:
-            params.sec_type = sec_type.value
-        params.market = market.value
+        params.sec_type = get_enum_value(sec_type)
+        params.market = get_enum_value(market)
         params.symbol = symbol
         params.start_date = start_time
         params.end_date = end_time
@@ -363,9 +355,8 @@ class TradeClient(TigerOpenClient):
         params = OrdersParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        if sec_type:
-            params.sec_type = sec_type.value
-        params.market = market.value
+        params.sec_type = get_enum_value(sec_type)
+        params.market = get_enum_value(market)
         params.symbol = symbol
         params.start_date = start_time
         params.end_date = end_time
@@ -522,11 +513,9 @@ class TradeClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 order.id = response.id
-                if order.order_id:
-                    return response.order_id == order.order_id
-                else:
+                if order.order_id is None and response.order_id:
                     order.order_id = response.order_id
-                    return True
+                return True
             else:
                 raise ApiException(response.code, response.message)
 
@@ -601,6 +590,45 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
         return False
+
+    def get_transactions(self, account=None, order_id=None, symbol=None, sec_type=None, start_time=None, end_time=None,
+                         limit=100, expiry=None, strike=None, put_call=None):
+        """
+        query order transactions, only prime accounts are supported.
+        :param account: account id. If not passed, the default account is used
+        :param order_id: order's id
+        :param symbol: symbol of contract, like 'AAPL', '00700', 'CL2201'
+        :param sec_type: security type. tigeropen.common.consts.SecurityType, like SecurityType.STK
+        :param start_time: timestamp in milliseconds, like 1641398400000
+        :param end_time: timestamp in milliseconds, like 1641398400000
+        :param limit: limit number of response
+        :param expiry: expiry date of Option. 'yyyyMMdd', like '220121'
+        :param strike: strike price of Option
+        :param put_call: Option right, PUT or CALL
+        :return:
+        """
+        params = TransactionsParams()
+        params.account = account if account else self._account
+        params.secret_key = self._secret_key
+        params.order_id = order_id
+        params.sec_type = get_enum_value(sec_type)
+        params.symbol = symbol
+        params.start_date = start_time
+        params.end_date = end_time
+        params.limit = limit
+        params.expiry = expiry
+        params.strike = strike
+        params.right = put_call
+        request = OpenApiRequest(ORDER_TRANSACTIONS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = TransactionsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.transactions
+            else:
+                raise ApiException(response.code, response.message)
+        return None
 
     def __fetch_data(self, request):
         try:
