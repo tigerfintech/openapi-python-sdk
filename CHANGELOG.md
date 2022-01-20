@@ -1,3 +1,13 @@
+## 2.0.6 (2022-01-24)
+### New 
+- Contract 合约对象新增字段。  
+  marginable：是否可融资  
+  close_only：是否只允许平仓   
+  shortable_count：做空池剩余  
+- Order 订单对象新增字段。
+  attr_desc：属性描述（如期权是否为被动行权）  
+  source：订单来源  
+
 ## 2.0.5 (2022-01-10)
 ### New
 - 查询行情权限接口 QuoteClient.get_quote_permission

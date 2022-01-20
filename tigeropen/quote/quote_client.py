@@ -31,7 +31,7 @@ from tigeropen.fundamental.response.financial_report_response import FinancialRe
 from tigeropen.fundamental.response.industry_response import IndustryListResponse, IndustryStocksResponse, \
     StockIndustryResponse
 from tigeropen.quote.domain.filter import OptionFilter
-from tigeropen.quote.request import OpenApiRequest
+from tigeropen.common.request import OpenApiRequest
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams
