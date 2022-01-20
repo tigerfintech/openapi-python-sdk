@@ -12,7 +12,7 @@ from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS
     PRIME_ASSETS, ORDER_TRANSACTIONS
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import get_enum_value
-from tigeropen.quote.request import OpenApiRequest
+from tigeropen.common.request import OpenApiRequest
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.domain.order import Order
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
