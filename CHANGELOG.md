@@ -8,6 +8,10 @@
   attr_desc：属性描述（如期权是否为被动行权）  
   source：订单来源  
 
+### Breaking
+- 将 `tigeropen.quote.request.OpenApiRequest` 移动到 `tigeropen.common.request.OpenApiRequest`
+
+
 ## 2.0.5 (2022-01-10)
 ### New
 - 查询行情权限接口 QuoteClient.get_quote_permission
