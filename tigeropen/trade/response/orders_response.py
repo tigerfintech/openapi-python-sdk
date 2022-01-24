@@ -98,13 +98,16 @@ class OrdersResponse(TigerResponse):
         liquidation = order_fields.get('liquidation')
         algo_strategy = order_fields.get('algo_strategy')
         discount = order_fields.get('discount')
+        attr_desc = order_fields.get('attr_desc')
+        source = order_fields.get('source')
 
         order = Order(account, contract, action, order_type, quantity, limit_price=limit_price, aux_price=aux_price,
                       trail_stop_price=trail_stop_price, trailing_percent=trailing_percent,
                       percent_offset=percent_offset, time_in_force=time_in_force, outside_rth=outside_rth,
                       filled=filled, avg_fill_price=avg_fill_price, commission=commission,
                       realized_pnl=realized_pnl, id=id_, order_id=order_id, parent_id=parent_id,
-                      algo_params=algo_params, liquidation=liquidation, algo_strategy=algo_strategy, discount=discount)
+                      algo_params=algo_params, liquidation=liquidation, algo_strategy=algo_strategy, discount=discount,
+                      attr_desc=attr_desc, source=source)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:
