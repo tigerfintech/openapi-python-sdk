@@ -16,7 +16,7 @@ class Order:
                  "quantity", "filled", "_remaining", "avg_fill_price", "commission", "realized_pnl", "_status",
                  "trail_stop_price", "limit_price", "aux_price", "trailing_percent", "percent_offset", "action",
                  "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params", "secret_key", "liquidation",
-                 "algo_strategy", "discount"]
+                 "algo_strategy", "discount", "attr_desc", "source"]
 
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
@@ -86,6 +86,8 @@ class Order:
         self.liquidation = kwargs.get('liquidation')
         self.algo_strategy = kwargs.get('algo_strategy')
         self.discount = kwargs.get('discount')
+        self.attr_desc = kwargs.get('attr_desc')
+        self.source = kwargs.get("source")
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
