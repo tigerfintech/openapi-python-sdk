@@ -9,16 +9,16 @@ import traceback
 
 from tigeropen.trade.domain.order import OrderStatus
 from tigeropen.trade.request.model import AccountsParams
-from tigeropen.common.response import TigerResponse
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.trade_client import TradeClient
-from tigeropen.quote.request import OpenApiRequest
-from tigeropen.examples.client_config import get_client_config
+from tigeropen.common.response import TigerResponse
+from tigeropen.common.request import OpenApiRequest
 from tigeropen.common.consts import Currency, SecurityType
 from tigeropen.common.util.contract_utils import stock_contract, option_contract_by_symbol, future_contract, \
      war_contract_by_symbol, iopt_contract_by_symbol
 from tigeropen.common.util.order_utils import limit_order, limit_order_with_legs, order_leg, algo_order_params, \
     algo_order
+from tigeropen.examples.client_config import get_client_config
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s',
@@ -26,29 +26,6 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger('TigerOpenApi')
 
 client_config = get_client_config()
-
-
-def get_account_info():
-    from tigeropen.common.consts.service_types import ACCOUNTS
-    openapi_client = TigerOpenClient(client_config)
-    account = AccountsParams()
-    account.account = client_config.account
-    request = OpenApiRequest(method=ACCOUNTS, biz_model=account)
-
-    response_content = None
-    try:
-        response_content = openapi_client.execute(request)
-    except Exception as e:
-        print(traceback.format_exc())
-    if not response_content:
-        print("failed to execute")
-    else:
-        response = TigerResponse()
-        response.parse_response_content(response_content)
-        if response.is_success():
-            print("get response data:" + response.data)
-        else:
-            print("%d,%s,%s" % (response.code, response.message, response.data))
 
 
 def get_account_apis():
@@ -144,7 +121,33 @@ def algo_order_demo():
     print(order)
 
 
+def get_account_info():
+    """
+    request by build OpenApiRequest. Not recommend.
+    :return:
+    """
+    from tigeropen.common.consts.service_types import ACCOUNTS
+    openapi_client = TigerOpenClient(client_config)
+    account = AccountsParams()
+    account.account = client_config.account
+    request = OpenApiRequest(method=ACCOUNTS, biz_model=account)
+
+    response_content = None
+    try:
+        response_content = openapi_client.execute(request)
+    except Exception as e:
+        print(traceback.format_exc())
+    if not response_content:
+        print("failed to execute")
+    else:
+        response = TigerResponse()
+        response.parse_response_content(response_content)
+        if response.is_success():
+            print("get response data:" + response.data)
+        else:
+            print("%d,%s,%s" % (response.code, response.message, response.data))
+
+
 if __name__ == '__main__':
-    get_account_info()
     get_account_apis()
     trade_apis()
