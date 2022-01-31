@@ -8,9 +8,9 @@ from tigeropen.common.consts import Language
 from tigeropen.common.util.signature_utils import read_private_key
 
 # 老虎证券开放平台网关地址
-SERVER_URL = 'https://openapi.itiger.com/gateway'
+SERVER_URL = 'https://openapi.skytigris.cn/gateway'
 # 老虎证券开放平台 socket 连接域名端口
-SOCKET_HOST_PORT = ('ssl', 'openapi.itiger.com', 8883)
+SOCKET_HOST_PORT = ('ssl', 'openapi.skytigris.cn', 8883)
 # 老虎证券开放平台公钥
 TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDNF3G8SoEcCZh2rshUbayDgLLrj6rKgzNMxDL2HS' \
                    'nKcB0+GPOsndqSv+a4IBu9+I3fyBp5hkyMMG2+AXugd9pMpy6VxJxlNjhX1MYbNTZJUT4nudki4uh+LM' \
@@ -25,8 +25,8 @@ LANGUAGE = Language.zh_CN
 TIMEOUT = 15
 
 # sandbox 环境配置
-SANDBOX_SERVER_URL = 'https://openapi-sandbox.itiger.com/gateway'
-SANDBOX_SOCKET_HOST_PORT = ('ssl', 'openapi-sandbox.itiger.com', 8885)
+SANDBOX_SERVER_URL = 'https://openapi-sandbox.skytigris.cn/gateway'
+SANDBOX_SOCKET_HOST_PORT = ('ssl', 'openapi-sandbox.skytigris.cn', 8885)
 SANDBOX_TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbm21i11hgAENGd3/f280PSe4g9YGkS3TEXBY' \
                            'MidihTvHHf+tJ0PYD0o3PruI0hl3qhEjHTAxb75T5YD3SGK4IBhHn/Rk6mhqlGgI+bBrBVYaXixm' \
                            'HfRo75RpUUuWACyeqQkZckgR0McxuW9xRMIa2cXZOoL1E4SL4lXKGhKoWbwIDAQAB'
