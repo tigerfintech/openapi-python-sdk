@@ -4,7 +4,7 @@
 
 老虎开放平台可以为个人开发者和机构客户提供接口服务，投资者可以充分的利用老虎的交易服务、行情服务、账户服务等实现自己的投资应用程序。
 
-- [官方在线文档](https://quant.itiger.com/openapi/py-docs/zh-cn/docs/intro/quickstart.html)
+- [官方在线文档](https://quant.itiger.com/openapi/zh/python/overview/introduction.html)
 
 -------------------
 
@@ -22,9 +22,9 @@ python setup.py install
 ### 使用须知
 
 - 接入前需要在[开放平台](https://quant.itiger.com/#openapi)登记开发者信息
-- 详情查看[接入说明](https://quant.itiger.com/openapi/py-docs/zh-cn/docs/intro/quickstart.html)
+- 详情查看[接入说明](https://quant.itiger.com/openapi/zh/python/overview/introduction.html)
 
-###### 注: 本SDK当前支持Python2, Python3
+###### 注: 本SDK当前支持 Python3.4 及以上版本
 
 ---
 
@@ -47,7 +47,6 @@ from tigeropen.trade.trade_client import TradeClient
 
 def get_client_config():
     """
-    https://www.itiger.com/openapi/info 开发者信息获取
     :return:
     """
     is_sandbox = False
