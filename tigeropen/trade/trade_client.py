@@ -505,6 +505,7 @@ class TradeClient(TigerOpenClient):
         params.order_legs = order.order_legs
         params.algo_params = order.algo_params
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
+        params.adjust_limit = order.adjust_limit
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -515,11 +516,9 @@ class TradeClient(TigerOpenClient):
                 order.id = response.id
                 if order.order_id is None and response.order_id:
                     order.order_id = response.order_id
-                return True
+                return response.id
             else:
                 raise ApiException(response.code, response.message)
-
-        return False
 
     def modify_order(self, order, quantity=None, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None,
@@ -560,11 +559,9 @@ class TradeClient(TigerOpenClient):
             response = OrderIdResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.order_id == order.order_id if order.order_id else response.id == order.id
+                return response.id
             else:
                 raise ApiException(response.code, response.message)
-
-        return False
 
     def cancel_order(self, account=None, id=None, order_id=None):
         """
@@ -585,11 +582,9 @@ class TradeClient(TigerOpenClient):
             response = OrderIdResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.order_id == order_id if order_id else response.id == id
+                return response.id
             else:
                 raise ApiException(response.code, response.message)
-
-        return False
 
     def get_transactions(self, account=None, order_id=None, symbol=None, sec_type=None, start_time=None, end_time=None,
                          limit=100, expiry=None, strike=None, put_call=None):
