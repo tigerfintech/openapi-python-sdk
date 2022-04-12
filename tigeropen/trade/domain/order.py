@@ -16,7 +16,7 @@ class Order:
                  "quantity", "filled", "_remaining", "avg_fill_price", "commission", "realized_pnl", "_status",
                  "trail_stop_price", "limit_price", "aux_price", "trailing_percent", "percent_offset", "action",
                  "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params", "secret_key", "liquidation",
-                 "algo_strategy", "discount", "attr_desc", "source"]
+                 "algo_strategy", "discount", "attr_desc", "source", 'adjust_limit']
 
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
@@ -39,7 +39,7 @@ class Order:
         - realized_pnl: 实现盈亏
         - trail_stop_price: 跟踪止损单--触发止损单的价格
         - limit_price: 限价单价格
-        - aux_price: 在止损单中, 表示出发止损单的价格, 在移动止损单中, 表示跟踪的价差
+        - aux_price: 在止损单中, 表示触发止损单的价格, 在移动止损单中, 表示跟踪的价差
         - trailing_percent:  跟踪止损单-百分比, 取值范围为0-100
         - percent_offset: None,
         - order_type: 订单类型, 'MKT' 市价单 / 'LMT' 限价单 / 'STP' 止损单 / 'STP_LMT' 止损限价单 / 'TRAIL' 跟踪止损单
@@ -54,6 +54,8 @@ class Order:
         - liquidation
         - algo_strategy
         - discount
+        - adjust_limit 价格微调幅度（默认为0表示不调整，正数为向上调整，负数向下调整），对传入价格自动调整到合法价位上.
+          例如：0.001 代表向上调整且幅度不超过 0.1%；-0.001 代表向下调整且幅度不超过 0.1%。默认 0 表示不调整
         """
 
         self.id = id
@@ -87,7 +89,8 @@ class Order:
         self.algo_strategy = kwargs.get('algo_strategy')
         self.discount = kwargs.get('discount')
         self.attr_desc = kwargs.get('attr_desc')
-        self.source = kwargs.get("source")
+        self.source = kwargs.get('source')
+        self.adjust_limit = kwargs.get('adjust_limit')
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
