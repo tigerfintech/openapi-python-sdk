@@ -399,7 +399,7 @@ class TradeClient(TigerOpenClient):
 
     def create_order(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
-                     outside_rth=None, order_legs=None, algo_params=None):
+                     outside_rth=None, order_legs=None, algo_params=None, **kwargs):
         """
         创建订单对象.
         :param account:
@@ -431,7 +431,7 @@ class TradeClient(TigerOpenClient):
                               aux_price=aux_price, trail_stop_price=trail_stop_price,
                               trailing_percent=trailing_percent, percent_offset=percent_offset,
                               time_in_force=time_in_force, outside_rth=outside_rth, order_id=order_id,
-                              order_legs=order_legs, algo_params=algo_params, secret_key=params.secret_key)
+                              order_legs=order_legs, algo_params=algo_params, secret_key=params.secret_key, **kwargs)
                 return order
             else:
                 raise ApiException(response.code, response.message)
@@ -523,7 +523,7 @@ class TradeClient(TigerOpenClient):
 
     def modify_order(self, order, quantity=None, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None,
-                     time_in_force=None, outside_rth=None):
+                     time_in_force=None, outside_rth=None, **kwargs):
         """
         修改订单
         :param order:
@@ -553,6 +553,7 @@ class TradeClient(TigerOpenClient):
         params.time_in_force = time_in_force if time_in_force is not None else order.time_in_force
         params.outside_rth = outside_rth if outside_rth is not None else order.outside_rth
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
+        params.adjust_limit = kwargs.get('adjust_limit', order.adjust_limit)
 
         request = OpenApiRequest(MODIFY_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)

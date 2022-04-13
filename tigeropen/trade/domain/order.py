@@ -15,8 +15,8 @@ class Order:
     __slots__ = ["account", "id", "order_id", "parent_id", "order_time", "reason", "trade_time", "contract", "action",
                  "quantity", "filled", "_remaining", "avg_fill_price", "commission", "realized_pnl", "_status",
                  "trail_stop_price", "limit_price", "aux_price", "trailing_percent", "percent_offset", "action",
-                 "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params", "secret_key", "liquidation",
-                 "algo_strategy", "discount", "attr_desc", "source", 'adjust_limit', 'sub_ids']
+                 "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params", "algo_strategy",
+                 "secret_key", "liquidation", "discount", "attr_desc", "source", 'adjust_limit', 'sub_ids']
 
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,

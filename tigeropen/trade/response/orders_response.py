@@ -21,8 +21,8 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'timeInForce': 'time_in_force', 'openTime': 'order_time', 'latestTime': 'trade_time',
                         'contractId': 'contract_id', 'algoStrategy': 'algo_strategy',
                         'trailStopPrice': 'trail_stop_price', 'trailingPercent': 'trailing_percent',
-                        'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params',
-                        'adjustLimit': 'adjust_limit'}
+                        'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params'
+                        }
 
 
 class OrdersResponse(TigerResponse):
@@ -101,7 +101,6 @@ class OrdersResponse(TigerResponse):
         discount = order_fields.get('discount')
         attr_desc = order_fields.get('attr_desc')
         source = order_fields.get('source')
-        adjust_limit = order_fields.get('adjust_limit')
 
         order = Order(account, contract, action, order_type, quantity, limit_price=limit_price, aux_price=aux_price,
                       trail_stop_price=trail_stop_price, trailing_percent=trailing_percent,
@@ -109,7 +108,7 @@ class OrdersResponse(TigerResponse):
                       filled=filled, avg_fill_price=avg_fill_price, commission=commission,
                       realized_pnl=realized_pnl, id=id_, order_id=order_id, parent_id=parent_id,
                       algo_params=algo_params, liquidation=liquidation, algo_strategy=algo_strategy, discount=discount,
-                      attr_desc=attr_desc, source=source, adjust_limit=adjust_limit)
+                      attr_desc=attr_desc, source=source)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:
