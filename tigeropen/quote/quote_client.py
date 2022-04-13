@@ -64,7 +64,9 @@ from tigeropen.tiger_open_client import TigerOpenClient
 
 
 class QuoteClient(TigerOpenClient):
-    def __init__(self, client_config, logger=None):
+    __is_grabbed = False
+
+    def __init__(self, client_config, logger=None, is_grab_permission=True):
         if not logger:
             logger = logging.getLogger('tiger_openapi')
         super(QuoteClient, self).__init__(client_config, logger=logger)
@@ -72,6 +74,10 @@ class QuoteClient(TigerOpenClient):
             self._lang = client_config.language
         else:
             self._lang = Language.zh_CN
+        if is_grab_permission and not QuoteClient.__is_grabbed:
+            perms = self.grab_quote_permission()
+            QuoteClient.__is_grabbed = True
+            logger.info('Grab quote permission. Permissions:' + str(perms))
 
     def __fetch_data(self, request):
         try:
