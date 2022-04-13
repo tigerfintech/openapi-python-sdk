@@ -41,6 +41,8 @@ def get_quote():
     print(metas)
     timelines = openapi_client.get_timeline(['AAPL'], include_hour_trading=True)
     print(timelines)
+    history_timelines = openapi_client.get_timeline_history(['AAPL'], date='2022-04-11')
+    print(history_timelines)
     bars = openapi_client.get_bars(['AAPL'])
     print(bars)
     ticks = openapi_client.get_trade_ticks(['00700'])
