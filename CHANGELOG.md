@@ -1,4 +1,4 @@
-## 2.0.8 (2022-04-18)
+## 2.0.9 (2022-04-18)
 ### New
 - 新增历史分时接口 `QuoteClient.get_timeline_history`
 - Order 对象新增字段
