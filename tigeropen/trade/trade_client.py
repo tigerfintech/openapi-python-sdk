@@ -399,7 +399,7 @@ class TradeClient(TigerOpenClient):
 
     def create_order(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
-                     outside_rth=None, order_legs=None, algo_params=None, **kwargs):
+                     outside_rth=None, order_legs=None, algo_params=None):
         """
         创建订单对象.
         :param account:
@@ -431,7 +431,7 @@ class TradeClient(TigerOpenClient):
                               aux_price=aux_price, trail_stop_price=trail_stop_price,
                               trailing_percent=trailing_percent, percent_offset=percent_offset,
                               time_in_force=time_in_force, outside_rth=outside_rth, order_id=order_id,
-                              order_legs=order_legs, algo_params=algo_params, secret_key=params.secret_key, **kwargs)
+                              order_legs=order_legs, algo_params=algo_params, secret_key=params.secret_key)
                 return order
             else:
                 raise ApiException(response.code, response.message)
@@ -505,7 +505,6 @@ class TradeClient(TigerOpenClient):
         params.order_legs = order.order_legs
         params.algo_params = order.algo_params
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
-        params.adjust_limit = order.adjust_limit
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -514,16 +513,17 @@ class TradeClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 order.id = response.id
-                order.sub_ids = response.sub_ids
                 if order.order_id is None and response.order_id:
                     order.order_id = response.order_id
-                return response.id
+                return True
             else:
                 raise ApiException(response.code, response.message)
 
+        return False
+
     def modify_order(self, order, quantity=None, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None,
-                     time_in_force=None, outside_rth=None, **kwargs):
+                     time_in_force=None, outside_rth=None):
         """
         修改订单
         :param order:
@@ -553,7 +553,6 @@ class TradeClient(TigerOpenClient):
         params.time_in_force = time_in_force if time_in_force is not None else order.time_in_force
         params.outside_rth = outside_rth if outside_rth is not None else order.outside_rth
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
-        params.adjust_limit = kwargs.get('adjust_limit', order.adjust_limit)
 
         request = OpenApiRequest(MODIFY_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -561,9 +560,11 @@ class TradeClient(TigerOpenClient):
             response = OrderIdResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.id
+                return response.order_id == order.order_id if order.order_id else response.id == order.id
             else:
                 raise ApiException(response.code, response.message)
+
+        return False
 
     def cancel_order(self, account=None, id=None, order_id=None):
         """
@@ -584,9 +585,11 @@ class TradeClient(TigerOpenClient):
             response = OrderIdResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.id
+                return response.order_id == order_id if order_id else response.id == id
             else:
                 raise ApiException(response.code, response.message)
+
+        return False
 
     def get_transactions(self, account=None, order_id=None, symbol=None, sec_type=None, start_time=None, end_time=None,
                          limit=100, expiry=None, strike=None, put_call=None):

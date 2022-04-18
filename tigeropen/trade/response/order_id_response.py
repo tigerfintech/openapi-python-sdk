@@ -13,7 +13,6 @@ class OrderIdResponse(TigerResponse):
         super(OrderIdResponse, self).__init__()
         self.order_id = None
         self.id = None
-        self.sub_ids = None
         self._is_success = None
     
     def parse_response_content(self, response_content):
@@ -33,6 +32,3 @@ class OrderIdResponse(TigerResponse):
 
             if 'id' in data_json:
                 self.id = data_json['id']
-
-            if 'subIds' in data_json:
-                self.sub_ids = data_json['subIds']
