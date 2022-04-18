@@ -1,3 +1,17 @@
+## 2.0.8 (2022-04-18)
+### New
+- 新增历史分时接口 `QuoteClient.get_timeline_history`
+- Order 对象新增字段
+  sub_ids: 附加订单子订单id列表(仅在下附加订单时此字段会有值)
+  adjust_limit: 限价单价格调整限制比例(作为下单参数使用, 查询时不返回)
+  
+### Breaking
+- 下单 `TradeClient.place_order`, 改单 `TradeClient.modify_order`, 撤单 `TradeClient.cancel_order` 三个接口返回值，由之前的
+  `True` 或 `False` 改为订单 id
+- 行情权限抢占，改为在 `QuoteClient` 初始化时默认自动抢占，提供参数 `is_grab_permission` 可配置为不自动抢占。若该参数设置为 `False`, 
+  则需用户自行调用 `QuoteClient.grab_quote_permission()` 进行行情权限抢占
+
+
 ## 2.0.7 (2022-01-31)
 ### Modify
 - 修改服务域名
