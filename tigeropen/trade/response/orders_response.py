@@ -21,7 +21,8 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'timeInForce': 'time_in_force', 'openTime': 'order_time', 'latestTime': 'trade_time',
                         'contractId': 'contract_id', 'algoStrategy': 'algo_strategy',
                         'trailStopPrice': 'trail_stop_price', 'trailingPercent': 'trailing_percent',
-                        'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params'}
+                        'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params'
+                        }
 
 
 class OrdersResponse(TigerResponse):
