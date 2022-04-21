@@ -11,7 +11,8 @@ import delorean
 
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
-from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION
+from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
+    HISTORY_TIMELINE
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -53,6 +54,7 @@ from tigeropen.quote.response.quote_delay_briefs_response import DelayBriefsResp
 from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
 from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
+from tigeropen.quote.response.quote_timeline_history_response import QuoteTimelineHistoryResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
 from tigeropen.quote.response.stock_details_response import StockDetailsResponse
@@ -64,7 +66,8 @@ from tigeropen.tiger_open_client import TigerOpenClient
 
 
 class QuoteClient(TigerOpenClient):
-    def __init__(self, client_config, logger=None):
+
+    def __init__(self, client_config, logger=None, is_grab_permission=True):
         if not logger:
             logger = logging.getLogger('tiger_openapi')
         super(QuoteClient, self).__init__(client_config, logger=logger)
@@ -72,6 +75,10 @@ class QuoteClient(TigerOpenClient):
             self._lang = client_config.language
         else:
             self._lang = Language.zh_CN
+        self.permissions = None
+        if is_grab_permission and self.permissions is None:
+            self.permissions = self.grab_quote_permission()
+            logger.info('Grab quote permission. Permissions:' + str(self.permissions))
 
     def __fetch_data(self, request):
         try:
@@ -358,6 +365,33 @@ class QuoteClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = QuoteTimelineResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.timelines
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_timeline_history(self, symbols, date, right=QuoteRight.BR):
+        """
+        get timeline history data
+        :param symbols: security symbol list. like ['AAPL', 'BABA']
+        :param date: date of timeline. yyyy-MM-dd format, like "2022-04-12"
+        :param right: quote right. QuoteRight.BR: before right，QuoteRight.NR: no right
+        :return: pandas.DataFrame, columns explanations：
+            symbol: security symbol
+            time: time in milliseconds
+            price: close price of current minute
+            avg_price: volume weighted average price up to now.
+        """
+        params = MultipleQuoteParams()
+        params.symbols = symbols
+        params.date = date
+        params.right = get_enum_value(right)
+
+        request = OpenApiRequest(HISTORY_TIMELINE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = QuoteTimelineHistoryResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.timelines
