@@ -3,10 +3,12 @@
 # @Date    : 2022/4/15
 # @Author  : sukai
 import argparse
-import sys
 from typing import List
 
-import QuantLib as ql
+try:
+    import QuantLib as ql
+except ImportError:
+    pass
 
 
 class FDDividendOptionHelper(ql.DividendVanillaOption):
@@ -112,7 +114,7 @@ class FDDividendOptionHelper(ql.DividendVanillaOption):
             if try_times == 0:
                 return 0
             elif 'root not bracketed' in str(e):
-                return self.implied_volatility(price, accuracy, max_evaluations, min_vol, max_vol * 2, try_times-1)
+                return self.implied_volatility(price, accuracy, max_evaluations, min_vol, max_vol * 2, try_times - 1)
             else:
                 raise e
 
