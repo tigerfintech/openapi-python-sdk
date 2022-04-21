@@ -231,6 +231,7 @@ class MultipleQuoteParams(MarketParams):
         self._limit = None
         self._begin_index = None
         self._end_index = None
+        self._date = None
 
     @property
     def symbols(self):
@@ -312,6 +313,14 @@ class MultipleQuoteParams(MarketParams):
     def end_index(self, value):
         self._end_index = value
 
+    @property
+    def date(self):
+        return self._date
+
+    @date.setter
+    def date(self, value):
+        self._date = value
+
     def to_openapi_dict(self):
         params = super(MultipleQuoteParams, self).to_openapi_dict()
 
@@ -344,6 +353,9 @@ class MultipleQuoteParams(MarketParams):
 
         if self.end_index:
             params['end_index'] = self.end_index
+
+        if self.date:
+            params['date'] = self.date
 
         return params
 
