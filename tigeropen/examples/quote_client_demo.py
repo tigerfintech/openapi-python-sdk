@@ -99,10 +99,13 @@ def get_future_quote():
     print(ticks)
     contracts = openapi_client.get_future_contracts('CME')
     print(contracts)
+    contract = openapi_client.get_future_contract('VIX2206')
+    print(contract)
     trading_times = openapi_client.get_future_trading_times('CN1901', trading_date=1545049282852)
     print(trading_times)
     briefs = openapi_client.get_future_brief(['ES1906', 'CN1901'])
     print(briefs)
+
 
 
 def get_fundamental():
