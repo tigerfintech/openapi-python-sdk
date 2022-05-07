@@ -53,16 +53,26 @@ def get_http_connection(url, query_string, timeout):
 
 
 def do_post(url, query_string=None, headers=None, params=None, timeout=15, charset=None):
+    return do_request('POST', url=url, query_string=query_string, headers=headers, params=params, timeout=timeout,
+                      charset=charset)
+
+
+def do_get(url, query_string=None, headers=None, params=None, timeout=15, charset=None):
+    return do_request('GET', url=url, query_string=query_string, headers=headers, params=params, timeout=timeout,
+                      charset=charset)
+
+
+def do_request(method, url, query_string=None, headers=None, params=None, timeout=15, charset=None):
     url, connection = get_http_connection(url, query_string, timeout)
 
     try:
         connection.connect()
     except Exception as e:
-        raise RequestException('[' + THREAD_LOCAL.uuid + ']post connect failed. ' + str(e))
+        raise RequestException('[' + THREAD_LOCAL.uuid + ']' + method + ' connect failed. ' + str(e))
     try:
-        connection.request("POST", url, body=json.dumps(params), headers=headers)
+        connection.request(method, url, body=json.dumps(params), headers=headers)
     except Exception as e:
-        raise RequestException('[' + THREAD_LOCAL.uuid + ']post request failed. ' + str(e))
+        raise RequestException('[' + THREAD_LOCAL.uuid + ']' + method + ' request failed. ' + str(e))
     response = connection.getresponse()
     result = response.read()
 

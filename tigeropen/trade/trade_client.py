@@ -9,7 +9,7 @@ import logging
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
-    PRIME_ASSETS, ORDER_TRANSACTIONS
+    PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.request import OpenApiRequest
@@ -142,6 +142,33 @@ class TradeClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.contracts[0] if len(response.contracts) == 1 else None
+            else:
+                raise ApiException(response.code, response.message)
+
+        return None
+
+    def get_derivative_contracts(self, symbol, sec_type, expiry, lang=None):
+        """
+
+        :param symbol:
+        :param sec_type: type of contract. tigeropen.common.consts.SecurityType. support: OPTION, WAR, IOPT
+        :param expiry: expiry date string, like '20220929'
+        :param lang:
+        :return: list of Contract
+        """
+        params = ContractParams()
+        params.symbols = symbol if isinstance(symbol, list) else [symbol]
+        params.sec_type = get_enum_value(sec_type)
+        params.expiry = expiry
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+
+        request = OpenApiRequest(QUOTE_CONTRACT, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = ContractsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.contracts
             else:
                 raise ApiException(response.code, response.message)
 

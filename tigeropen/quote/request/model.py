@@ -532,9 +532,10 @@ class FutureExchangeParams(BaseParams):
         return params
 
 
-class FutureTypeParams(BaseParams):
+class FutureContractParams(BaseParams):
     def __init__(self):
         self._type = None  # 期货品种
+        self._contract_code = None  # 期货代码
         self._lang = None  # 语言
 
     @property
@@ -544,6 +545,14 @@ class FutureTypeParams(BaseParams):
     @type.setter
     def type(self, value):
         self._type = value
+
+    @property
+    def contract_code(self):
+        return self._contract_code
+
+    @contract_code.setter
+    def contract_code(self, value):
+        self._contract_code = value
 
     @property
     def lang(self):
@@ -557,6 +566,9 @@ class FutureTypeParams(BaseParams):
         params = dict()
         if self.type:
             params['type'] = self.type
+
+        if self.contract_code:
+            params['contract_code'] = self.contract_code
 
         if self.lang:
             params['lang'] = self.lang
