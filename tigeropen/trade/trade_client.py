@@ -154,7 +154,7 @@ class TradeClient(TigerOpenClient):
         :param sec_type: type of contract. tigeropen.common.consts.SecurityType. support: OPTION, WAR, IOPT
         :param expiry: expiry date string, like '20220929'
         :param lang:
-        :return:
+        :return: list of Contract
         """
         params = ContractParams()
         params.symbols = symbol if isinstance(symbol, list) else [symbol]

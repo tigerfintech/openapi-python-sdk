@@ -851,7 +851,7 @@ class QuoteClient(TigerOpenClient):
         get future contract by contract_code
         :param contract_code: code of future contract, like VIX2206, CL2203
         :param lang:
-        :return:
+        :return: pandas.DataFrame
         """
         params = FutureContractParams()
         params.contract_code = contract_code
