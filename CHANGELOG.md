@@ -2,6 +2,9 @@
 ### New
 - 动态获取服务域名；更改默认域名
 - 新增期权计算工具(examples.option_helpers.helpers)
+- 新增根据期货代码获取期货合约接口 `QuoteClient.get_future_contract`
+- 新增根据正股查衍生合约接口 `TradeClient.get_derivative_contracts`
+
 
 ## 2.0.9 (2022-04-18)
 ### New
