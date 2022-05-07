@@ -1,3 +1,8 @@
+## 2.1.0 (2022-05-07)
+### New
+- 动态获取服务域名；更改默认域名
+- 新增期权计算工具(examples.option_helpers.helpers)
+
 ## 2.0.9 (2022-04-18)
 ### New
 - 新增历史分时接口 `QuoteClient.get_timeline_history`
