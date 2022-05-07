@@ -29,6 +29,7 @@ ORDER_TRANSACTIONS = "order_transactions"  # 订单成交记录
 """
 CONTRACT = "contract"
 CONTRACTS = "contracts"
+QUOTE_CONTRACT = "quote_contract"
 
 """
 行情

@@ -213,6 +213,7 @@ class ContractParams(BaseParams):
         self._expiry = None
         self._strike = None
         self._right = None
+        self._lang = None
 
     @property
     def account(self):
@@ -294,6 +295,14 @@ class ContractParams(BaseParams):
     def right(self, value):
         self._right = value
 
+    @property
+    def lang(self):
+        return self._lang
+
+    @lang.setter
+    def lang(self, value):
+        self._lang = value
+
     def to_openapi_dict(self):
         params = dict()
         if self.account:
@@ -325,6 +334,9 @@ class ContractParams(BaseParams):
 
         if self.right:
             params['right'] = self.right
+
+        if self.lang:
+            params['lang'] = self.lang
 
         return params
 
