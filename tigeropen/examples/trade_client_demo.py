@@ -28,6 +28,16 @@ logger = logging.getLogger('TigerOpenApi')
 client_config = get_client_config()
 
 
+def get_contract_apis():
+    openapi_client = TradeClient(client_config, logger=logger)
+    contract = openapi_client.get_contracts('AAPL')[0]
+    print(contract)
+    contract = openapi_client.get_contract('AAPL', SecurityType.STK, currency=Currency.USD)
+    print(contract)
+    # get derivative contracts of stock. include OPT, WAR, IOPT
+    contracts = openapi_client.get_derivative_contracts('00700', SecurityType.WAR, '20220929')
+    print(contracts)
+
 def get_account_apis():
     openapi_client = TradeClient(client_config, logger=logger)
     openapi_client.get_managed_accounts()
