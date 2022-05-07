@@ -12,7 +12,7 @@ import delorean
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
-    HISTORY_TIMELINE
+    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -34,7 +34,7 @@ from tigeropen.fundamental.response.industry_response import IndustryListRespons
     StockIndustryResponse
 from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
-    FutureQuoteParams, FutureExchangeParams, FutureTypeParams, FutureTradingTimeParams, SingleContractParams, \
+    FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
@@ -831,11 +831,33 @@ class QuoteClient(TigerOpenClient):
             trade: 是否可交易
             continuous: 是否为连续合约
         """
-        params = FutureTypeParams()
+        params = FutureContractParams()
         params.type = future_type
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
 
         request = OpenApiRequest(FUTURE_CURRENT_CONTRACT, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FutureContractResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.contracts
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_future_contract(self, contract_code, lang=None):
+        """
+        get future contract by contract_code
+        :param contract_code: code of future contract, like VIX2206, CL2203
+        :param lang:
+        :return: pandas.DataFrame
+        """
+        params = FutureContractParams()
+        params.contract_code = contract_code
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+
+        request = OpenApiRequest(FUTURE_CONTRACT_BY_CONTRACT_CODE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
             response = FutureContractResponse()
