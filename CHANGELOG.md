@@ -1,3 +1,11 @@
+## 2.1.1 (2022-05-25)
+### New
+- 新增批量分页获取k线接口
+  股票：`QuoteClient.get_bars_by_page`
+  期货：`QuoteClient.get_future_bars_by_page`
+- `QuoteClient.get_future_bars`, `QuoteClient.get_bars` 增加 `page_token` 参数，可用于分页请求定位下一页位置
+- `tigeropen.trade.domain.order.Order` 新增 `user_mark` 属性，用户下单时可传入一定长度的备注信息，该属性值在查询订单时会返回。(需用户提前向平台申请配置)
+
 ## 2.1.0 (2022-05-07)
 ### New
 - 动态获取服务域名；更改默认域名

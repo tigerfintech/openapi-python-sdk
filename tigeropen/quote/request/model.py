@@ -232,6 +232,7 @@ class MultipleQuoteParams(MarketParams):
         self._begin_index = None
         self._end_index = None
         self._date = None
+        self._page_token = None
 
     @property
     def symbols(self):
@@ -321,6 +322,14 @@ class MultipleQuoteParams(MarketParams):
     def date(self, value):
         self._date = value
 
+    @property
+    def page_token(self):
+        return self._page_token
+
+    @page_token.setter
+    def page_token(self, value):
+        self._page_token = value
+
     def to_openapi_dict(self):
         params = super(MultipleQuoteParams, self).to_openapi_dict()
 
@@ -356,6 +365,9 @@ class MultipleQuoteParams(MarketParams):
 
         if self.date:
             params['date'] = self.date
+
+        if self.page_token:
+            params['page_token'] = self.page_token
 
         return params
 
@@ -619,6 +631,7 @@ class FutureQuoteParams(MarketParams):
         self._limit = None
         self._begin_index = None
         self._end_index = None
+        self._page_token = None
 
     @property
     def contract_codes(self):
@@ -676,6 +689,14 @@ class FutureQuoteParams(MarketParams):
     def limit(self, value):
         self._limit = value
 
+    @property
+    def page_token(self):
+        return self._page_token
+
+    @page_token.setter
+    def page_token(self, value):
+        self._page_token = value
+
     def to_openapi_dict(self):
         params = super(FutureQuoteParams, self).to_openapi_dict()
 
@@ -699,6 +720,9 @@ class FutureQuoteParams(MarketParams):
 
         if self.limit:
             params['limit'] = self.limit
+
+        if self.page_token:
+            params['page_token'] = self.page_token
 
         return params
 

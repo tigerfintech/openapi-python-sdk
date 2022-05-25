@@ -533,6 +533,7 @@ class TradeClient(TigerOpenClient):
         params.algo_params = order.algo_params
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
         params.adjust_limit = order.adjust_limit
+        params.user_mark = order.user_mark
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)

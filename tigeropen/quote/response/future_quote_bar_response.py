@@ -8,7 +8,8 @@ import pandas as pd
 
 from tigeropen.common.response import TigerResponse
 
-COLUMNS = ['identifier', 'time', 'latest_time', 'open', 'high', 'low', 'close', 'settlement', 'volume', 'open_interest']
+COLUMNS = ['identifier', 'time', 'latest_time', 'open', 'high', 'low', 'close', 'settlement', 'volume',
+           'open_interest', 'next_page_token']
 BAR_FIELD_MAPPINGS = {'avgPrice': 'avg_price', 'openInterest': 'open_interest', 'lastTime': 'latest_time'}
 
 
@@ -27,9 +28,10 @@ class FutureQuoteBarResponse(TigerResponse):
             bar_items = []
             for symbol_item in self.data:
                 identifier = symbol_item.get('contractCode')
+                next_page_token = symbol_item.get('nextPageToken')
                 if 'items' in symbol_item:
                     for item in symbol_item['items']:
-                        item_values = {'identifier': identifier}
+                        item_values = {'identifier': identifier, 'next_page_token': next_page_token}
                         for key, value in item.items():
                             if value is None:
                                 continue
