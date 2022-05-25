@@ -268,6 +268,7 @@ if __name__ == '__main__':
     else:
         helper_class = FDAmericanDividendOptionHelper
 
+    ql.Settings.instance().evaluationDate = settlement_date
     helper = helper_class(option_type=ql_option_type,
                           underlying=args.underlying,
                           strike=args.strike,
