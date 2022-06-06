@@ -7,3 +7,4 @@ pyasn1==0.4.8
 rsa==4.8
 stomp.py==8.0.1
 getmac==0.8.3
+cryptography==37.0.2
