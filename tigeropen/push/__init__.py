@@ -8,7 +8,7 @@ import ssl
 import time
 
 
-def _patch_ssl(wait=0.006):
+def _patch_ssl(wait=0.01):
     def new_wrap_socket(self, sock, server_side=False,
                         do_handshake_on_connect=True,
                         suppress_ragged_eofs=True,
