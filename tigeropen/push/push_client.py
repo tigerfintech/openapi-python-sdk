@@ -7,6 +7,7 @@ Created on 2018/10/30
 import json
 import logging
 import sys
+import os
 from collections import defaultdict
 
 import stomp
@@ -22,6 +23,7 @@ from tigeropen.common.consts.push_subscriptions import SUBSCRIPTION_QUOTE, SUBSC
     SUBSCRIPTION_TRADE_ORDER
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
+from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.string_utils import camel_to_underline
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.util.order_utils import get_order_status
@@ -68,14 +70,12 @@ else:
 
 
 class PushClient(stomp.ConnectionListener):
-    def __init__(self, host, port, use_ssl=True, connection_timeout=120, auto_reconnect=True,
-                 heartbeats=(30 * 1000, 30 * 1000)):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=120, heartbeats=(30 * 1000, 30 * 1000)):
         """
         :param host:
         :param port:
         :param use_ssl:
-        param connection_timeout: unit: second. The timeout value should be greater the heartbeats interval
-        :param auto_reconnect:
+        :param connection_timeout: unit: second. The timeout value should be greater the heartbeats interval
         :param heartbeats: tuple of millisecond
         """
         self.host = host
@@ -98,7 +98,6 @@ class PushClient(stomp.ConnectionListener):
         self.unsubscribe_callback = None
         self.error_callback = None
         self._connection_timeout = connection_timeout
-        self._auto_reconnect = auto_reconnect
         self._heartbeats = heartbeats
         _patch_ssl()
 
@@ -133,13 +132,11 @@ class PushClient(stomp.ConnectionListener):
 
     def on_connected(self, frame):
         if self.connect_callback:
-            self.connect_callback()
+            self.connect_callback(frame)
 
     def on_disconnected(self):
         if self.disconnect_callback:
             self.disconnect_callback()
-        elif self._auto_reconnect:
-            self._connect()
 
     def on_message(self, frame):
         """
@@ -264,6 +261,12 @@ class PushClient(stomp.ConnectionListener):
             logging.error(e, exc_info=True)
 
     def on_error(self, frame):
+        body = json.loads(frame.body)
+        if body.get('code') == 4001:
+            logging.error(body)
+            self.disconnect_callback = None
+            raise ApiException(4001, body.get('message'))
+
         if self.error_callback:
             self.error_callback(frame)
         else:
