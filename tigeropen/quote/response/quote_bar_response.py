@@ -8,7 +8,7 @@ import pandas as pd
 
 from tigeropen.common.response import TigerResponse
 
-COLUMNS = ['symbol', 'time', 'open', 'high', 'low', 'close', 'volume']
+COLUMNS = ['symbol', 'time', 'open', 'high', 'low', 'close', 'volume', 'next_page_token']
 BAR_FIELD_MAPPINGS = {'avgPrice': 'avg_price'}
 
 
@@ -27,9 +27,10 @@ class QuoteBarResponse(TigerResponse):
             bar_items = []
             for symbol_item in self.data:
                 symbol = symbol_item.get('symbol')
+                next_page_token = symbol_item.get('nextPageToken')
                 if 'items' in symbol_item:
                     for item in symbol_item['items']:
-                        item_values = {'symbol': symbol}
+                        item_values = {'symbol': symbol, 'next_page_token': next_page_token}
                         for key, value in item.items():
                             if value is None:
                                 continue

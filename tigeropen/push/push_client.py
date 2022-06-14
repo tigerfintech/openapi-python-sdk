@@ -7,6 +7,7 @@ Created on 2018/10/30
 import json
 import logging
 import sys
+import os
 from collections import defaultdict
 
 import stomp
@@ -22,10 +23,12 @@ from tigeropen.common.consts.push_subscriptions import SUBSCRIPTION_QUOTE, SUBSC
     SUBSCRIPTION_TRADE_ORDER
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
+from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.string_utils import camel_to_underline
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.util.signature_utils import sign_with_rsa
+from tigeropen.push import _patch_ssl
 
 HOUR_TRADING_QUOTE_KEYS_MAPPINGS = {'hourTradingLatestPrice': 'latest_price', 'hourTradingPreClose': 'pre_close',
                                     'hourTradingLatestTime': 'latest_time', 'hourTradingVolume': 'volume',
@@ -67,14 +70,12 @@ else:
 
 
 class PushClient(stomp.ConnectionListener):
-    def __init__(self, host, port, use_ssl=True, connection_timeout=120, auto_reconnect=True,
-                 heartbeats=(30 * 1000, 30 * 1000)):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=120, heartbeats=(30 * 1000, 30 * 1000)):
         """
         :param host:
         :param port:
         :param use_ssl:
-        :param connection_timeout: second
-        :param auto_reconnect:
+        :param connection_timeout: unit: second. The timeout value should be greater the heartbeats interval
         :param heartbeats: tuple of millisecond
         """
         self.host = host
@@ -97,8 +98,8 @@ class PushClient(stomp.ConnectionListener):
         self.unsubscribe_callback = None
         self.error_callback = None
         self._connection_timeout = connection_timeout
-        self._auto_reconnect = auto_reconnect
         self._heartbeats = heartbeats
+        _patch_ssl()
 
     def _connect(self):
         try:
@@ -108,12 +109,13 @@ class PushClient(stomp.ConnectionListener):
         except:
             pass
 
-        self._stomp_connection = stomp.Connection12(host_and_ports=[(self.host, self.port), ], use_ssl=self.use_ssl,
+        self._stomp_connection = stomp.Connection12(host_and_ports=[(self.host, self.port)],
                                                     keepalive=KEEPALIVE, timeout=self._connection_timeout,
                                                     heartbeats=self._heartbeats)
         self._stomp_connection.set_listener('push', self)
-        self._stomp_connection.start()
         try:
+            if self.use_ssl:
+                self._stomp_connection.set_ssl([(self.host, self.port)])
             self._stomp_connection.connect(self._tiger_id, self._sign, wait=True, headers=self._generate_headers())
         except ConnectFailedException as e:
             raise e
@@ -128,23 +130,26 @@ class PushClient(stomp.ConnectionListener):
         if self._stomp_connection:
             self._stomp_connection.disconnect()
 
-    def on_connected(self, headers, body):
+    def on_connected(self, frame):
         if self.connect_callback:
-            self.connect_callback()
+            self.connect_callback(frame)
 
     def on_disconnected(self):
         if self.disconnect_callback:
             self.disconnect_callback()
-        elif self._auto_reconnect:
-            self._connect()
 
-    def on_message(self, headers, body):
+    def on_message(self, frame):
         """
         Called by the STOMP connection when a MESSAGE frame is received.
 
-        :param dict headers: a dictionary containing all headers sent by the server as key/value pairs.
-        :param body: the frame's payload - the message body.
+        :param Frame frame: the stomp frame. stomp.utils.Frame
+            A STOMP frame's attributes:
+                cmd: the protocol command
+                headers: a map of headers for the frame
+                body: the content of the frame.
         """
+        headers = frame.headers
+        body = frame.body
         try:
             response_type = headers.get('ret-type')
             if response_type == str(ResponseType.GET_SUB_SYMBOLS_END.value):
@@ -255,11 +260,17 @@ class PushClient(stomp.ConnectionListener):
         except Exception as e:
             logging.error(e, exc_info=True)
 
-    def on_error(self, headers, body):
-        if self.error_callback:
-            self.error_callback(body)
-        else:
+    def on_error(self, frame):
+        body = json.loads(frame.body)
+        if body.get('code') == 4001:
             logging.error(body)
+            self.disconnect_callback = None
+            raise ApiException(4001, body.get('message'))
+
+        if self.error_callback:
+            self.error_callback(frame)
+        else:
+            logging.error(frame.body)
 
     def _update_subscribe_id(self, destination):
         self._destination_counter_map[destination] += 1
