@@ -16,7 +16,7 @@ class Order:
                  "quantity", "filled", "_remaining", "avg_fill_price", "commission", "realized_pnl", "_status",
                  "trail_stop_price", "limit_price", "aux_price", "trailing_percent", "percent_offset", "action",
                  "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params", "algo_strategy",
-                 "secret_key", "liquidation", "discount", "attr_desc", "source", 'adjust_limit', 'sub_ids']
+                 "secret_key", "liquidation", "discount", "attr_desc", "source", 'adjust_limit', 'sub_ids', "user_mark"]
 
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
@@ -57,6 +57,7 @@ class Order:
         - adjust_limit 价格微调幅度（默认为0表示不调整，正数为向上调整，负数向下调整），对传入价格自动调整到合法价位上.
           例如：0.001 代表向上调整且幅度不超过 0.1%；-0.001 代表向下调整且幅度不超过 0.1%。默认 0 表示不调整
         - sub_ids id list of sub orders.
+        - user_mark: user's remark
         """
 
         self.id = id
@@ -93,6 +94,7 @@ class Order:
         self.source = kwargs.get('source')
         self.adjust_limit = kwargs.get('adjust_limit')
         self.sub_ids = kwargs.get('sub_ids')
+        self.user_mark = kwargs.get('user_mark')
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
