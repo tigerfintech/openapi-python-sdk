@@ -120,12 +120,12 @@ def unsubscribe_callback(destination, content):
     print('subscribe:{}, callback content:{}'.format(destination, content))
 
 
-def error_callback(content):
+def error_callback(frame):
     """错误回调"""
-    print(content)
+    print(frame)
 
 
-def connect_callback():
+def connect_callback(frame):
     """连接建立回调"""
     print('connected')
 

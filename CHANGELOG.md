@@ -1,8 +1,8 @@
-## 2.1.2 (2022-06-07)
+## 2.1.2 (2022-06-14)
 ### Modify
 - 升级 stomp.py 版本, 将之前的 4.1.24 升级到 8.0.1
 ### Breaking
-- PushClient 去除 `auto_reconnect` 参数，如需自动重连，可自定义 `disconnect_callback` 进行重连
+- PushClient 去除 `auto_reconnect` 参数，如需自定义重连方式，可自定义方法并绑定 `disconnect_callback` 进行重连
 - 处理连接被踢的情况，如果有多台设备使用相同 tiger_id 连接, 新连接会将较早的连接踢掉，较早连接会抛出异常，停止接收消息
 
 ## 2.1.1 (2022-05-25)
