@@ -5,9 +5,11 @@ Created on 2018/10/31
 @author: gaoan
 """
 import logging
+import time
+
 import pandas as pd
 from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, Valuation, \
-    Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, IndustryLevel
+    Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, IndustryLevel, BarPeriod
 from tigeropen.quote.domain.filter import OptionFilter
 
 from tigeropen.quote.quote_client import QuoteClient
@@ -61,6 +63,17 @@ def get_quote():
     print(delay_brief)
 
 
+def test_gat_bars_by_page():
+    bars = openapi_client.get_bars_by_page(['AAPL'], period=BarPeriod.DAY,
+                                           end_time='2022-05-01',
+                                           total=10,
+                                           page_size=4,
+                                           )
+    bars['cn_date'] = pd.to_datetime(bars['time'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('Asia/Shanghai')
+    bars['us_date'] = pd.to_datetime(bars['time'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+    print(bars)
+
+
 def get_option_quote():
     symbol = 'AAPL'
     expirations = openapi_client.get_option_expirations(symbols=[symbol])
@@ -85,9 +98,9 @@ def get_option_quote():
     chains = openapi_client.get_option_chain('AAPL', '2023-01-20', implied_volatility_min=0.5, open_interest_min=200,
                                              vega_min=0.1, rho_max=0.9)
     # convert expiry date to US/Eastern
-    chains['expiry_date'] = pd.to_datetime(chains['expiry'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+    chains['expiry_date'] = pd.to_datetime(chains['expiry'], unit='ms').dt.tz_localize('UTC').dt.tz_convert(
+        'US/Eastern')
     print(chains)
-
 
 
 def get_future_quote():
@@ -107,10 +120,19 @@ def get_future_quote():
     print(briefs)
 
 
+def test_get_future_bars_by_page():
+    bars = openapi_client.get_future_bars_by_page('CLmain',
+                                                  end_time=1648526400000,
+                                                  total=10,
+                                                  page_size=4)
+    bars['cn_date'] = pd.to_datetime(bars['time'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('Asia/Shanghai')
+    bars['us_date'] = pd.to_datetime(bars['time'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+    print(bars)
+
 
 def get_fundamental():
     """获取基础数据"""
-    
+
     # 日级财务数据
     financial_daily = openapi_client.get_financial_daily(symbols=['AAPL', 'MSFT'],
                                                          market=Market.US,
@@ -118,7 +140,7 @@ def get_fundamental():
                                                          begin_date='2019-01-01',
                                                          end_date='2019-01-10')
     print(financial_daily)
-    
+
     # 财报数据(季报或年报)
     financial_report = openapi_client.get_financial_report(symbols=['AAPL', 'GOOG'],
                                                            market=Market.US,

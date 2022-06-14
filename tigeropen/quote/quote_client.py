@@ -6,8 +6,10 @@ Created on 2018/10/31
 """
 import logging
 import re
+import time
 
 import delorean
+import pandas as pd
 
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
@@ -399,7 +401,7 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_bars(self, symbols, period=BarPeriod.DAY, begin_time=-1, end_time=-1, right=QuoteRight.BR, limit=251,
-                 lang=None):
+                 lang=None, page_token=None):
         """
         获取K线数据
         :param symbols: 股票代号列表
@@ -410,6 +412,7 @@ class QuoteClient(TigerOpenClient):
         :param right: 复权选项 ，QuoteRight.BR: 前复权，nQuoteRight.NR: 不复权
         :param limit: 数量限制
         :param lang: 语言支持: zh_CN,zh_TW,en_US
+        :param page_token: the token of next page. only supported when exactly one symbol
         :return: pandas.DataFrame 对象，各 column 的含义如下；
             time: 毫秒时间戳
             open: Bar 的开盘价
@@ -417,15 +420,17 @@ class QuoteClient(TigerOpenClient):
             high: Bar 的最高价
             low: Bar 的最低价
             volume: Bar 的成交量
+            next_page_token: token of next page
         """
         params = MultipleQuoteParams()
-        params.symbols = symbols
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
         params.period = get_enum_value(period)
         params.begin_time = begin_time
         params.end_time = end_time
         params.right = get_enum_value(right)
         params.limit = limit
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        params.page_token = page_token if len(params.symbols) == 1 else None
 
         request = OpenApiRequest(KLINE, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -436,6 +441,41 @@ class QuoteClient(TigerOpenClient):
                 return response.bars
             else:
                 raise ApiException(response.code, response.message)
+
+    def get_bars_by_page(self, symbol, period=BarPeriod.DAY, begin_time=-1, end_time=-1, total=10000, page_size=1000,
+                         right=QuoteRight.BR, time_interval=2, lang=None):
+        """
+        request bats by page
+        :param symbol: symbol of stock.
+        :param period:
+        :param begin_time:
+        :param end_time: time of the latest bar, excluded
+        :param total: Total bars number
+        :param page_size: Bars number of each request
+        :param right:
+        :param time_interval: Time interval between requests
+        :param lang:
+        :return:
+        """
+        if begin_time == -1 and end_time == -1:
+            raise ApiException(400, 'One of the begin_time or end_time must be specified')
+        if isinstance(symbol, list) and len(symbol) != 1:
+            raise ApiException(400, 'Paging queries support only one symbol at each request')
+        current = 0
+        next_page_token = None
+        result = list()
+        while current < total:
+            if current + page_size >= total:
+                page_size = total - current
+            current += page_size
+            bars = self.get_bars(symbols=symbol, period=period, begin_time=begin_time, end_time=end_time, right=right,
+                                 limit=page_size, lang=lang, page_token=next_page_token)
+            next_page_token = bars['next_page_token'].iloc[0]
+            result.append(bars)
+            if not next_page_token:
+                break
+            time.sleep(time_interval)
+        return pd.concat(result).sort_values('time').reset_index(drop=True)
 
     def get_trade_ticks(self, symbols, begin_index=None, end_index=None, limit=None, lang=None):
         """
@@ -896,15 +936,16 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_future_bars(self, identifiers, period=BarPeriod.DAY, begin_time=-1, end_time=-1, limit=1000):
+    def get_future_bars(self, identifiers, period=BarPeriod.DAY, begin_time=-1, end_time=-1, limit=1000,
+                        page_token=None):
         """
         获取期货K线数据
         :param identifiers: 期货代码列表
         :param period: day: 日K,week: 周K,month:月K ,year:年K,1min:1分钟,5min:5分钟,15min:15分钟,30min:30分钟,60min:60分钟
         :param begin_time: 开始时间. 若是时间戳需要精确到毫秒, 为13位整数;
-                                    或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
         :param end_time: 结束时间. 格式同 begin_time
         :param limit: 数量限制
+        :param page_token: the token of next page. only supported when there exactly one identifier
         :return: pandas.DataFrame, 各column 含义如下：
             identifier: 期货合约代码
             time: Bar对应的时间戳, 即Bar的结束时间。Bar的切割方式与交易所一致，以CN1901举例，T日的17:00至T+1日的16:30的数据会被合成一个日级Bar。
@@ -916,13 +957,15 @@ class QuoteClient(TigerOpenClient):
             settlement: 结算价，在未生成结算价时返回0
             volume: 成交量
             open_interest: 未平仓合约数量
+            next_page_token: token of next page
         """
         params = FutureQuoteParams()
-        params.contract_codes = identifiers
+        params.contract_codes = identifiers if isinstance(identifiers, list) else [identifiers]
         params.period = get_enum_value(period)
         params.begin_time = begin_time
         params.end_time = end_time
         params.limit = limit
+        params.page_token = page_token if len(params.contract_codes) == 1 else None
 
         request = OpenApiRequest(FUTURE_KLINE, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -933,6 +976,39 @@ class QuoteClient(TigerOpenClient):
                 return response.bars
             else:
                 raise ApiException(response.code, response.message)
+
+    def get_future_bars_by_page(self, identifier, period=BarPeriod.DAY, begin_time=-1, end_time=-1, total=10000,
+                                page_size=1000, time_interval=2):
+        """
+        request bats by page
+        :param identifier: identifier of future
+        :param period:
+        :param begin_time:
+        :param end_time: time of the latest bar, excluded
+        :param total: Total bars number
+        :param page_size: Bars number of each request
+        :param time_interval: Time interval between requests
+        :return:
+        """
+        if begin_time == -1 and end_time == -1:
+            raise ApiException(400, 'One of the begin_time or end_time must be specified')
+        if isinstance(identifier, list) and len(identifier) != 1:
+            raise ApiException(400, 'Paging queries support only one identifier at each request')
+        current = 0
+        next_page_token = None
+        result = list()
+        while current < total:
+            if current + page_size >= total:
+                page_size = total - current
+            current += page_size
+            bars = self.get_future_bars(identifiers=identifier, period=period, begin_time=begin_time, end_time=end_time,
+                                        limit=page_size, page_token=next_page_token)
+            next_page_token = bars['next_page_token'].iloc[0]
+            result.append(bars)
+            if not next_page_token:
+                break
+            time.sleep(time_interval)
+        return pd.concat(result).sort_values('time').reset_index(drop=True)
 
     def get_future_trade_ticks(self, identifiers, begin_index=0, end_index=30, limit=1000):
         """
