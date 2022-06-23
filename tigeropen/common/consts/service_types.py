@@ -50,6 +50,7 @@ QUOTE_STOCK_TRADE = "quote_stock_trade"
 QUOTE_DEPTH = "quote_depth"  # level2 深度行情
 GRAB_QUOTE_PERMISSION = "grab_quote_permission"  # 抢占行情
 GET_QUOTE_PERMISSION = "get_quote_permission"
+TRADING_CALENDAR = "trading_calendar"
 
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"

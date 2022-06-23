@@ -14,7 +14,7 @@ import pandas as pd
 from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
-    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE
+    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -37,7 +37,7 @@ from tigeropen.fundamental.response.industry_response import IndustryListRespons
 from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams
+    SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
@@ -64,6 +64,7 @@ from tigeropen.quote.response.stock_short_interest_response import ShortInterest
 from tigeropen.quote.response.stock_trade_meta_response import TradeMetaResponse
 from tigeropen.quote.response.symbol_names_response import SymbolNamesResponse
 from tigeropen.quote.response.symbols_response import SymbolsResponse
+from tigeropen.quote.response.trading_calendar_response import TradingCalendarResponse
 from tigeropen.tiger_open_client import TigerOpenClient
 
 
@@ -1337,6 +1338,29 @@ class QuoteClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.permissions
+            else:
+                raise ApiException(response.code, response.message)
+        return False
+
+    def get_trading_calendar(self, market, begin_date=None, end_date=None):
+        """
+        get trading calendar
+        :param market:  common.consts.Market, like Market.US
+        :param begin_date:
+        :param end_date:
+        :return:
+        """
+        params = TradingCalendarParams()
+        params.market = get_enum_value(market)
+        params.begin_date = begin_date
+        params.end_date = end_date
+        request = OpenApiRequest(TRADING_CALENDAR, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = TradingCalendarResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.calendar
             else:
                 raise ApiException(response.code, response.message)
         return False
