@@ -17,10 +17,10 @@ from tigeropen import __VERSION__
 from tigeropen.common.consts import OrderStatus
 from tigeropen.common.consts.params import P_SDK_VERSION, P_SDK_VERSION_PREFIX
 from tigeropen.common.consts.push_destinations import QUOTE, QUOTE_DEPTH, QUOTE_FUTURE, QUOTE_OPTION, TRADE_ASSET, \
-    TRADE_ORDER, TRADE_POSITION, QUOTE_TICK
+    TRADE_ORDER, TRADE_POSITION, TRADE_TICK
 from tigeropen.common.consts.push_subscriptions import SUBSCRIPTION_QUOTE, SUBSCRIPTION_QUOTE_DEPTH, \
     SUBSCRIPTION_QUOTE_OPTION, SUBSCRIPTION_QUOTE_FUTURE, SUBSCRIPTION_TRADE_ASSET, SUBSCRIPTION_TRADE_POSITION, \
-    SUBSCRIPTION_TRADE_ORDER, SUBSCRIPTION_QUOTE_TICK
+    SUBSCRIPTION_TRADE_ORDER, SUBSCRIPTION_TRADE_TICK
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
 from tigeropen.common.exceptions import ApiException
@@ -90,6 +90,7 @@ class PushClient(stomp.ConnectionListener):
         self._destination_counter_map = defaultdict(lambda: 0)
 
         self.subscribed_symbols = None
+        self.query_subscribed_callback = None
         self.quote_changed = None
         self.tick_changed = None
         self.asset_changed = None
@@ -102,6 +103,7 @@ class PushClient(stomp.ConnectionListener):
         self.error_callback = None
         self._connection_timeout = connection_timeout
         self._heartbeats = heartbeats
+        self.logger = logging.getLogger('tiger_openapi')
         _patch_ssl()
 
     def _connect(self):
@@ -156,17 +158,29 @@ class PushClient(stomp.ConnectionListener):
         try:
             response_type = headers.get('ret-type')
             if response_type == str(ResponseType.GET_SUB_SYMBOLS_END.value):
-                if self.subscribed_symbols:
+                if self.subscribed_symbols or self.query_subscribed_callback:
                     data = json.loads(body)
-                    limit = data.get('limit')
-                    symbols = data.get('subscribedSymbols')
-                    used = data.get('used')
-                    symbol_focus_keys = data.get('symbolFocusKeys')
+                    formatted_data = camel_to_underline_obj(data)
+
+                    limit = formatted_data.get('limit')
+                    subscribed_symbols = formatted_data.get('subscribed_symbols')
+                    used = formatted_data.get('used')
+                    symbol_focus_keys = formatted_data.get('symbol_focus_keys')
                     focus_keys = dict()
                     for sym, keys in symbol_focus_keys.items():
                         keys = set(QUOTE_KEYS_MAPPINGS.get(key, camel_to_underline(key)) for key in keys)
                         focus_keys[sym] = list(keys)
-                    self.subscribed_symbols(symbols, focus_keys, limit, used)
+                    formatted_data['symbol_focus_keys'] = focus_keys
+                    formatted_data['subscribed_quote_depth_symbols'] = formatted_data.pop('subscribed_ask_bid_symbols')
+                    formatted_data['quote_depth_limit'] = formatted_data.pop('ask_bid_limit')
+                    formatted_data['quote_depth_used'] = formatted_data.pop('ask_bid_used')
+                    if self.subscribed_symbols:
+                        self.logger.warning('PushClient.subscribed_symbols is deprecated, '
+                                            'use PushClient.query_subscribed_callback instead.')
+                        self.subscribed_symbols(subscribed_symbols, focus_keys, limit, used)
+                    if self.query_subscribed_callback:
+                        self.query_subscribed_callback(formatted_data)
+
             elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
                 if self.quote_changed:
                     data = json.loads(body)
@@ -266,19 +280,19 @@ class PushClient(stomp.ConnectionListener):
                 if self.error_callback:
                     self.error_callback(body)
         except Exception as e:
-            logging.error(e, exc_info=True)
+            self.logger.error(e, exc_info=True)
 
     def on_error(self, frame):
         body = json.loads(frame.body)
         if body.get('code') == 4001:
-            logging.error(body)
+            self.logger.error(body)
             self.disconnect_callback = None
             raise ApiException(4001, body.get('message'))
 
         if self.error_callback:
             self.error_callback(frame)
         else:
-            logging.error(frame.body)
+            self.logger.error(frame.body)
 
     def _update_subscribe_id(self, destination):
         self._destination_counter_map[destination] += 1
@@ -356,7 +370,7 @@ class PushClient(stomp.ConnectionListener):
         :param symbols: symbol列表
         :return:
         """
-        return self._handle_quote_subscribe(destination=QUOTE_TICK, subscription=SUBSCRIPTION_QUOTE_TICK,
+        return self._handle_quote_subscribe(destination=TRADE_TICK, subscription=SUBSCRIPTION_TRADE_TICK,
                                             symbols=symbols)
 
     def subscribe_depth_quote(self, symbols):
@@ -405,7 +419,7 @@ class PushClient(stomp.ConnectionListener):
         退订行情更新
         :return:
         """
-        self._handle_quote_unsubscribe(destination=QUOTE_TICK, subscription=SUBSCRIPTION_QUOTE_TICK, sub_id=id,
+        self._handle_quote_unsubscribe(destination=TRADE_TICK, subscription=SUBSCRIPTION_TRADE_TICK, sub_id=id,
                                        symbols=symbols)
 
     def unsubscribe_depth_quote(self, symbols=None, id=None):
