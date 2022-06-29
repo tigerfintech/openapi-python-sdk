@@ -505,8 +505,10 @@ class PushClient(stomp.ConnectionListener):
             cond_items = [('cond', get_trade_condition(item, cond_map)) for item in conds]
         else:
             cond_items = [('cond', None) for _ in range(len(time_items))]
+        sn = data.pop('sn')
+        sn_list = [('sn', sn + i) for i in range(len(time_items))]
         tick_data = zip_longest(tick_type_items, price_items, volumes, part_code_items,
-                                part_code_name_items, cond_items, time_items)
+                                part_code_name_items, cond_items, time_items, sn_list)
         items = []
         for item in tick_data:
             item_dict = dict(item)
