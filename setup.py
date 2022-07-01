@@ -16,7 +16,7 @@ setup(
     name='tigeropen',
     version=__VERSION__,
     description='TigerBrokers Open API',
-    packages=find_packages(exclude=[]),
+    packages=find_packages(exclude=["tests"]),
     author='TigerBrokers',
     author_email='openapi@tigerbrokers.com',
     license='Apache License v2',
