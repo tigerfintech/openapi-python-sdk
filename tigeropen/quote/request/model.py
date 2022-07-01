@@ -789,3 +789,48 @@ class OptionChainParams(BaseParams):
         if self.option_filter:
             params['option_filter'] = self.option_filter.to_dict()
         return params
+
+
+class TradingCalendarParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._market = None
+        self._begin_date = None
+        self._end_date = None
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
+    @property
+    def begin_date(self):
+        return self._begin_date
+
+    @begin_date.setter
+    def begin_date(self, value):
+        self._begin_date = value
+
+    @property
+    def end_date(self):
+        return self._end_date
+
+    @end_date.setter
+    def end_date(self, value):
+        self._end_date = value
+
+    def to_openapi_dict(self):
+        params = dict()
+        if self.market:
+            params['market'] = self.market
+
+        if self.begin_date:
+            params['begin_date'] = self.begin_date
+
+        if self.end_date:
+            params['end_date'] = self.end_date
+
+        return params
