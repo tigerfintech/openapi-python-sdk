@@ -1,3 +1,13 @@
+## 2.1.3 (2022-07-01)
+### New
+- 长连接新增逐笔订阅: `PushClient.subscribe_tick`, 退订 `PushClient.unsubscribe_tick`
+- 新增已订阅查询回调方法 `PushClient.query_subscribed_callback` 取代旧有的 `Pushclient.subscribed_symbols`
+- `QuoteClient.get_trade_ticks` 新增 `trade_session` 参数，可指定该参数查询盘前盘后数据
+
+### Modify
+- `Pushclient.subscribed_symbols` 标记为废弃
+
+
 ## 2.1.2 (2022-06-14)
 ### Modify
 - 升级 stomp.py 版本, 将之前的 4.1.24 升级到 8.0.1

@@ -6,12 +6,29 @@ Created on 2018/10/30
 """
 import time
 # from tigeropen.common.consts import QuoteKeyType
+import pandas as pd
+
 from tigeropen.push.push_client import PushClient
 from tigeropen.examples.client_config import get_client_config
 
 
+def query_subscribed_callback(data):
+    """
+    callback of PushClient.query_subscribed_quote
+    :param data:
+        example:
+        {'subscribed_symbols': ['QQQ'], 'limit': 1200, 'used': 1, 'symbol_focus_keys': {'qqq': ['open', 'prev_close', 'low', 'volume', 'latest_price', 'close', 'high']},
+         'subscribed_quote_depth_symbols': ['NVDA'], 'quote_depth_limit': 20, 'quote_depth_used': 1,
+         'subscribed_trade_tick_symbols': ['QQQ', 'AMD', '00700'], 'trade_tick_limit': 1200, 'trade_tick_used': 3
+         }
+    :return:
+    """
+    print(data)
+
+
 def on_query_subscribed_quote(symbols, focus_keys, limit, used):
     """
+    deprecated. Use query_subscribed_callback instead.
     查询已订阅symbol回调
     :param symbols: 订阅合约的列表
     :param focus_keys: 每个合约订阅的 key 列表
@@ -56,6 +73,28 @@ def on_quote_changed(symbol, items, hour_trading):
 
     """
     print(symbol, items, hour_trading)
+
+
+def on_tick_changed(symbol, items):
+    """
+
+    :param symbol:
+    :param items:
+      items example:
+        [{'tick_type': '*', 'price': 293.87, 'volume': 102, 'part_code': 'NSDQ',
+            'part_code_name': 'NASDAQ Stock Market, LLC (NASDAQ)', 'cond': 'US_FORM_T', 'time': 1656405615779,
+            'server_timestamp': 1656405573461, 'type': 'TradeTick', 'quote_level': 'usStockQuote', 'sn': 342,
+            'timestamp': 1656405617385},
+         {'tick_type': '*', 'price': 293.87, 'volume': 102, 'part_code': 'NSDQ',
+          'part_code_name': 'NASDAQ Stock Market, LLC (NASDAQ)', 'cond': 'US_FORM_T', 'time': 1656405616573,
+          'server_timestamp': 1656405573461,
+          'type': 'TradeTick', 'quote_level': 'usStockQuote', 'sn': 343, 'timestamp': 1656405617385}]
+    :return:
+    """
+    print(symbol, items)
+    # convert to DataFrame
+    # frame = pd.DataFrame(items)
+    # print(frame)
 
 
 def on_order_changed(account, items):
@@ -152,8 +191,12 @@ if __name__ == '__main__':
 
     # 行情变动回调
     push_client.quote_changed = on_quote_changed
+    # 逐笔数据回调
+    push_client.tick_changed = on_tick_changed
     # 已订阅 symbol 查询回调
-    push_client.subscribed_symbols = on_query_subscribed_quote
+    push_client.query_subscribed_callback = query_subscribed_callback
+    # 已订阅 symbol 查询回调(已废弃)
+    # push_client.subscribed_symbols = on_query_subscribed_quote
     # 订单变动回调
     push_client.order_changed = on_order_changed
     # 资产变动回调
@@ -181,6 +224,9 @@ if __name__ == '__main__':
 
     # 订阅深度行情
     push_client.subscribe_depth_quote(['AMD', 'BABA'])
+
+    # 订阅逐笔数据
+    push_client.subscribe_tick(['AMD', 'QQQ'])
 
     # 订阅资产变动
     push_client.subscribe_asset()

@@ -478,10 +478,11 @@ class QuoteClient(TigerOpenClient):
             time.sleep(time_interval)
         return pd.concat(result).sort_values('time').reset_index(drop=True)
 
-    def get_trade_ticks(self, symbols, begin_index=None, end_index=None, limit=None, lang=None):
+    def get_trade_ticks(self, symbols, trade_session=None, begin_index=None, end_index=None, limit=None, lang=None):
         """
         获取逐笔成交
         :param symbols: 股票代号列表
+        :param trade_session: tigeropen.common.consts.TradingSession, like TradingSession.PreMarket
         :param begin_index: 开始索引
         :param end_index: 结束索引
         :param limit: 数量限制
@@ -495,6 +496,7 @@ class QuoteClient(TigerOpenClient):
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
+        params.trade_session = get_enum_value(trade_session)
         params.begin_index = begin_index
         params.end_index = end_index
         params.limit = limit
