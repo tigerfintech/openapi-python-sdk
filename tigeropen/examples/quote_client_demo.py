@@ -62,6 +62,10 @@ def get_quote():
     delay_brief = openapi_client.get_stock_delay_briefs(['AAPL', 'GOOG'])
     print(delay_brief)
 
+    # 获取市场交易日历
+    calendar = openapi_client.get_trading_calendar(Market.US, begin_date='2022-07-01', end_date='2022-09-02')
+    print(calendar)
+
 
 def test_gat_bars_by_page():
     bars = openapi_client.get_bars_by_page(['AAPL'], period=BarPeriod.DAY,
