@@ -7,8 +7,8 @@ Created on 2018/10/30
 import json
 import logging
 import sys
-import os
 from collections import defaultdict
+from itertools import accumulate, zip_longest
 
 import stomp
 from stomp.exception import ConnectFailedException
@@ -17,17 +17,19 @@ from tigeropen import __VERSION__
 from tigeropen.common.consts import OrderStatus
 from tigeropen.common.consts.params import P_SDK_VERSION, P_SDK_VERSION_PREFIX
 from tigeropen.common.consts.push_destinations import QUOTE, QUOTE_DEPTH, QUOTE_FUTURE, QUOTE_OPTION, TRADE_ASSET, \
-    TRADE_ORDER, TRADE_POSITION
+    TRADE_ORDER, TRADE_POSITION, TRADE_TICK
 from tigeropen.common.consts.push_subscriptions import SUBSCRIPTION_QUOTE, SUBSCRIPTION_QUOTE_DEPTH, \
     SUBSCRIPTION_QUOTE_OPTION, SUBSCRIPTION_QUOTE_FUTURE, SUBSCRIPTION_TRADE_ASSET, SUBSCRIPTION_TRADE_POSITION, \
-    SUBSCRIPTION_TRADE_ORDER
+    SUBSCRIPTION_TRADE_ORDER, SUBSCRIPTION_TRADE_TICK
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
 from tigeropen.common.exceptions import ApiException
-from tigeropen.common.util.string_utils import camel_to_underline
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.util.signature_utils import sign_with_rsa
+from tigeropen.common.util.string_utils import camel_to_underline, camel_to_underline_obj
+from tigeropen.common.util.tick_util import get_part_code, get_part_code_name, get_trade_condition_map, \
+    get_trade_condition
 from tigeropen.push import _patch_ssl
 
 HOUR_TRADING_QUOTE_KEYS_MAPPINGS = {'hourTradingLatestPrice': 'latest_price', 'hourTradingPreClose': 'pre_close',
@@ -88,7 +90,9 @@ class PushClient(stomp.ConnectionListener):
         self._destination_counter_map = defaultdict(lambda: 0)
 
         self.subscribed_symbols = None
+        self.query_subscribed_callback = None
         self.quote_changed = None
+        self.tick_changed = None
         self.asset_changed = None
         self.position_changed = None
         self.order_changed = None
@@ -99,6 +103,7 @@ class PushClient(stomp.ConnectionListener):
         self.error_callback = None
         self._connection_timeout = connection_timeout
         self._heartbeats = heartbeats
+        self.logger = logging.getLogger('tiger_openapi')
         _patch_ssl()
 
     def _connect(self):
@@ -153,17 +158,29 @@ class PushClient(stomp.ConnectionListener):
         try:
             response_type = headers.get('ret-type')
             if response_type == str(ResponseType.GET_SUB_SYMBOLS_END.value):
-                if self.subscribed_symbols:
+                if self.subscribed_symbols or self.query_subscribed_callback:
                     data = json.loads(body)
-                    limit = data.get('limit')
-                    symbols = data.get('subscribedSymbols')
-                    used = data.get('used')
-                    symbol_focus_keys = data.get('symbolFocusKeys')
+                    formatted_data = camel_to_underline_obj(data)
+
+                    limit = formatted_data.get('limit')
+                    subscribed_symbols = formatted_data.get('subscribed_symbols')
+                    used = formatted_data.get('used')
+                    symbol_focus_keys = formatted_data.get('symbol_focus_keys')
                     focus_keys = dict()
                     for sym, keys in symbol_focus_keys.items():
                         keys = set(QUOTE_KEYS_MAPPINGS.get(key, camel_to_underline(key)) for key in keys)
                         focus_keys[sym] = list(keys)
-                    self.subscribed_symbols(symbols, focus_keys, limit, used)
+                    formatted_data['symbol_focus_keys'] = focus_keys
+                    formatted_data['subscribed_quote_depth_symbols'] = formatted_data.pop('subscribed_ask_bid_symbols')
+                    formatted_data['quote_depth_limit'] = formatted_data.pop('ask_bid_limit')
+                    formatted_data['quote_depth_used'] = formatted_data.pop('ask_bid_used')
+                    if self.subscribed_symbols:
+                        self.logger.warning('PushClient.subscribed_symbols is deprecated, '
+                                            'use PushClient.query_subscribed_callback instead.')
+                        self.subscribed_symbols(subscribed_symbols, focus_keys, limit, used)
+                    if self.query_subscribed_callback:
+                        self.query_subscribed_callback(formatted_data)
+
             elif response_type == str(ResponseType.GET_QUOTE_CHANGE_END.value):
                 if self.quote_changed:
                     data = json.loads(body)
@@ -204,6 +221,11 @@ class PushClient(stomp.ConnectionListener):
                                     items.append((camel_to_underline(key), value))
                         if items:
                             self.quote_changed(symbol, items, hour_trading)
+            elif response_type == str(ResponseType.GET_TRADING_TICK_END.value):
+                if self.tick_changed:
+                    symbol, items = self._convert_tick(body)
+                    self.tick_changed(symbol, items)
+
             elif response_type == str(ResponseType.SUBSCRIBE_ASSET.value):
                 if self.asset_changed:
                     data = json.loads(body)
@@ -258,19 +280,19 @@ class PushClient(stomp.ConnectionListener):
                 if self.error_callback:
                     self.error_callback(body)
         except Exception as e:
-            logging.error(e, exc_info=True)
+            self.logger.error(e, exc_info=True)
 
     def on_error(self, frame):
         body = json.loads(frame.body)
         if body.get('code') == 4001:
-            logging.error(body)
+            self.logger.error(body)
             self.disconnect_callback = None
             raise ApiException(4001, body.get('message'))
 
         if self.error_callback:
             self.error_callback(frame)
         else:
-            logging.error(frame.body)
+            self.logger.error(frame.body)
 
     def _update_subscribe_id(self, destination):
         self._destination_counter_map[destination] += 1
@@ -342,6 +364,15 @@ class PushClient(stomp.ConnectionListener):
         return self._handle_quote_subscribe(destination=QUOTE, subscription=SUBSCRIPTION_QUOTE, symbols=symbols,
                                             extra_headers=extra_headers)
 
+    def subscribe_tick(self, symbols):
+        """
+        subscribe trade tick
+        :param symbols: symbol列表
+        :return:
+        """
+        return self._handle_quote_subscribe(destination=TRADE_TICK, subscription=SUBSCRIPTION_TRADE_TICK,
+                                            symbols=symbols)
+
     def subscribe_depth_quote(self, symbols):
         """
         订阅深度行情
@@ -382,6 +413,14 @@ class PushClient(stomp.ConnectionListener):
         :return:
         """
         self._handle_quote_unsubscribe(destination=QUOTE, subscription=SUBSCRIPTION_QUOTE, sub_id=id, symbols=symbols)
+
+    def unsubscribe_tick(self, symbols=None, id=None):
+        """
+        退订行情更新
+        :return:
+        """
+        self._handle_quote_unsubscribe(destination=TRADE_TICK, subscription=SUBSCRIPTION_TRADE_TICK, sub_id=id,
+                                       symbols=symbols)
 
     def unsubscribe_depth_quote(self, symbols=None, id=None):
         """
@@ -439,4 +478,41 @@ class PushClient(stomp.ConnectionListener):
         if extra_headers is not None:
             headers.update(extra_headers)
         return headers
+
+    @staticmethod
+    def _convert_tick(tick):
+        data = json.loads(tick)
+        symbol = data.pop('symbol')
+        data = camel_to_underline_obj(data)
+        price_offset = 10 ** data.pop('price_offset')
+        price_base = data.pop('price_base')
+        # The latter time is equal to the sum of all previous values
+        price_items = [('price', (item + price_base) / price_offset) for item in data.pop('prices')]
+        time_items = [('time', item) for item in accumulate(data.pop('times'))]
+        volumes = [('volume', item) for item in data.pop('volumes')]
+        tick_type_items = [('tick_type', item) for item in data.pop('tick_type')]
+        part_codes = data.pop('part_code')
+        if part_codes:
+            part_code_items = [('part_code', get_part_code(item)) for item in part_codes]
+            part_code_name_items = [('part_code_name', get_part_code_name(item)) for item in part_codes]
+        else:
+            part_code_items = [('part_code', None) for _ in range(len(time_items))]
+            part_code_name_items = [('part_code_name', None) for _ in range(len(time_items))]
+
+        conds = data.pop('cond')
+        cond_map = get_trade_condition_map(data.get('quote_level'))
+        if conds:
+            cond_items = [('cond', get_trade_condition(item, cond_map)) for item in conds]
+        else:
+            cond_items = [('cond', None) for _ in range(len(time_items))]
+        sn = data.pop('sn')
+        sn_list = [('sn', sn + i) for i in range(len(time_items))]
+        tick_data = zip_longest(tick_type_items, price_items, volumes, part_code_items,
+                                part_code_name_items, cond_items, time_items, sn_list)
+        items = []
+        for item in tick_data:
+            item_dict = dict(item)
+            item_dict.update(data)
+            items.append(item_dict)
+        return symbol, items
 
