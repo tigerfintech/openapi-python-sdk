@@ -233,6 +233,7 @@ class MultipleQuoteParams(MarketParams):
         self._end_index = None
         self._date = None
         self._page_token = None
+        self._trade_session = None
 
     @property
     def symbols(self):
@@ -330,6 +331,14 @@ class MultipleQuoteParams(MarketParams):
     def page_token(self, value):
         self._page_token = value
 
+    @property
+    def trade_session(self):
+        return self._trade_session
+
+    @trade_session.setter
+    def trade_session(self, value):
+        self._trade_session = value
+
     def to_openapi_dict(self):
         params = super(MultipleQuoteParams, self).to_openapi_dict()
 
@@ -368,6 +377,9 @@ class MultipleQuoteParams(MarketParams):
 
         if self.page_token:
             params['page_token'] = self.page_token
+
+        if self.trade_session:
+            params['trade_session'] = self.trade_session
 
         return params
 
@@ -788,4 +800,49 @@ class OptionChainParams(BaseParams):
                 params['option_basic'].append(contract.to_openapi_dict())
         if self.option_filter:
             params['option_filter'] = self.option_filter.to_dict()
+        return params
+
+
+class TradingCalendarParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._market = None
+        self._begin_date = None
+        self._end_date = None
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
+    @property
+    def begin_date(self):
+        return self._begin_date
+
+    @begin_date.setter
+    def begin_date(self, value):
+        self._begin_date = value
+
+    @property
+    def end_date(self):
+        return self._end_date
+
+    @end_date.setter
+    def end_date(self, value):
+        self._end_date = value
+
+    def to_openapi_dict(self):
+        params = dict()
+        if self.market:
+            params['market'] = self.market
+
+        if self.begin_date:
+            params['begin_date'] = self.begin_date
+
+        if self.end_date:
+            params['end_date'] = self.end_date
+
         return params
