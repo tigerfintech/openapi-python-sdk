@@ -2,7 +2,6 @@
 # 
 # @Date    : 2021-04-16
 # @Author  : sukai
-import json
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util import string_utils
 
