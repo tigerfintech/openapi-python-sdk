@@ -21,7 +21,7 @@ class AnalyticsAssetResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            result = camel_to_underline_obj(json.loads(self.data))
+            result = camel_to_underline_obj(self.data)
             history = result.get('history')
             if history:
                 for item in history:
