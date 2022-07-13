@@ -140,3 +140,10 @@ class IndustryLevel(Enum):
     GGROUP = 'GGROUP'
     GIND = 'GIND'
     GSUBIND = 'GSUBIND'
+
+
+@unique
+class TickSizeType(Enum):
+    CLOSED = 'CLOSED'
+    OPEN_CLOSED = 'OPEN_CLOSED'
+    OPEN = 'OPEN'

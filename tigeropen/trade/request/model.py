@@ -117,6 +117,9 @@ class PositionParams(BaseParams):
         self._currency = None
         self._market = None
         self._sub_accounts = None
+        self._expiry = None
+        self._strike = None
+        self._right = None
 
     @property
     def account(self):
@@ -174,6 +177,30 @@ class PositionParams(BaseParams):
     def sub_accounts(self, value):
         self._sub_accounts = value
 
+    @property
+    def expiry(self):
+        return self._expiry
+
+    @expiry.setter
+    def expiry(self, value):
+        self._expiry = value
+
+    @property
+    def strike(self):
+        return self._strike
+
+    @strike.setter
+    def strike(self, value):
+        self._strike = value
+
+    @property
+    def right(self):
+        return self._right
+
+    @right.setter
+    def right(self, value):
+        self._right = value
+
     def to_openapi_dict(self):
         params = dict()
         if self.account:
@@ -196,6 +223,15 @@ class PositionParams(BaseParams):
 
         if self.sub_accounts:
             params['sub_accounts'] = self.sub_accounts
+
+        if self.expiry:
+            params['expiry'] = self.expiry
+
+        if self.strike:
+            params['strike'] = self.strike
+
+        if self.right:
+            params['right'] = self.right
 
         return params
 
