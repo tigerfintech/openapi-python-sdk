@@ -16,7 +16,8 @@ class Order:
                  "quantity", "filled", "_remaining", "avg_fill_price", "commission", "realized_pnl", "_status",
                  "trail_stop_price", "limit_price", "aux_price", "trailing_percent", "percent_offset", "action",
                  "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params", "algo_strategy",
-                 "secret_key", "liquidation", "discount", "attr_desc", "source", 'adjust_limit', 'sub_ids', "user_mark"]
+                 "secret_key", "liquidation", "discount", "attr_desc", "source", 'adjust_limit', 'sub_ids', "user_mark",
+                 "update_time"]
 
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
@@ -31,6 +32,7 @@ class Order:
         - order_time: 下单时间
         - reason: 下单失败时, 会返回失败原因的描述
         - trade_time: 最新成交时间
+        - update_time: order updated time
         - action: 交易方向, 'BUY' / 'SELL'
         - quantity: 下单数量
         - filled: 成交数量
@@ -84,6 +86,7 @@ class Order:
         self.percent_offset = percent_offset
         self.order_time = order_time
         self.trade_time = trade_time
+        self.order_time = kwargs.get('update_time')
         self.order_legs = order_legs
         self.algo_params = algo_params
         self.secret_key = secret_key
