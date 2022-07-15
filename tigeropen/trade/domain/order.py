@@ -86,7 +86,7 @@ class Order:
         self.percent_offset = percent_offset
         self.order_time = order_time
         self.trade_time = trade_time
-        self.order_time = kwargs.get('update_time')
+        self.update_time = kwargs.get('update_time')
         self.order_legs = order_legs
         self.algo_params = algo_params
         self.secret_key = secret_key
