@@ -140,3 +140,9 @@ class IndustryLevel(Enum):
     GGROUP = 'GGROUP'
     GIND = 'GIND'
     GSUBIND = 'GSUBIND'
+
+
+@unique
+class OrderSortBy(Enum):
+    LATEST_CREATED = 'LATEST_CREATED'
+    LATEST_STATUS_UPDATED = 'LATEST_STATUS_UPDATED'

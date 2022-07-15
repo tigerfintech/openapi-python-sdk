@@ -437,6 +437,7 @@ class OrdersParams(BaseParams):
         self._limit = None
         self._states = None
         self._parent_id = None
+        self._sort_by = None
 
     @property
     def account(self):
@@ -534,6 +535,14 @@ class OrdersParams(BaseParams):
     def parent_id(self, value):
         self._parent_id = value
 
+    @property
+    def sort_by(self):
+        return self._sort_by
+
+    @sort_by.setter
+    def sort_by(self, value):
+        self._sort_by = value
+
     def to_openapi_dict(self):
         params = dict()
         if self.account:
@@ -571,6 +580,9 @@ class OrdersParams(BaseParams):
 
         if self.parent_id:
             params['parent_id'] = self.parent_id
+
+        if self.sort_by:
+            params['sort_by'] = self.sort_by
 
         return params
 
