@@ -287,7 +287,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None, end_time=None,
-                   limit=100, is_brief=False, states=None):
+                   limit=100, is_brief=False, states=None, sort_by=None):
         """
         获取订单列表
         :param account:
@@ -300,6 +300,8 @@ class TradeClient(TigerOpenClient):
         :param limit: 每次获取订单的数量
         :param is_brief: 是否返回精简的订单数据
         :param states: 订单状态枚举对象列表, 可选, 若传递则按状态筛选
+        :param sort_by: Field used to sort and filter start_time and end_time，available value can be imported from
+            tigeropen.common.consts.OrderSortBY, like LATEST_CREATED or LATEST_STATUS_UPDATED
         :return: Order 对象构成的列表. Order 对象信息参见 tigeropen.trade.domain.order
         """
         params = OrdersParams()
@@ -313,6 +315,8 @@ class TradeClient(TigerOpenClient):
         params.limit = limit
         params.is_brief = is_brief
         params.states = [get_enum_value(state) for state in states] if states else None
+        params.sort_by = get_enum_value(sort_by)
+
         request = OpenApiRequest(ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -325,7 +329,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_open_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                        end_time=None, parent_id=None):
+                        end_time=None, parent_id=None, sort_by=None):
         """
         获取待成交订单列表. 参数同 get_orders
         :param parent_id: 主订单 order_id
@@ -339,6 +343,7 @@ class TradeClient(TigerOpenClient):
         params.start_date = start_time
         params.end_date = end_time
         params.parent_id = parent_id
+        params.sort_by = get_enum_value(sort_by)
         request = OpenApiRequest(ACTIVE_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -351,7 +356,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_cancelled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                             end_time=None):
+                             end_time=None, sort_by=None):
         """
         获取已撤销订单列表. 参数同 get_orders
         """
@@ -363,6 +368,7 @@ class TradeClient(TigerOpenClient):
         params.symbol = symbol
         params.start_date = start_time
         params.end_date = end_time
+        params.sort_by = get_enum_value(sort_by)
         request = OpenApiRequest(INACTIVE_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -375,7 +381,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_filled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                          end_time=None):
+                          end_time=None, sort_by=None):
         """
         获取已成交订单列表. 参数同 get_orders
         """
@@ -387,6 +393,7 @@ class TradeClient(TigerOpenClient):
         params.symbol = symbol
         params.start_date = start_time
         params.end_date = end_time
+        params.sort_by = get_enum_value(sort_by)
         request = OpenApiRequest(FILLED_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
