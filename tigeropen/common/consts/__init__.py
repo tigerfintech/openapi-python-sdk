@@ -149,6 +149,14 @@ class IndustryLevel(Enum):
 
 
 @unique
+class TickSizeType(Enum):
+    CLOSED = 'CLOSED'
+    OPEN_CLOSED = 'OPEN_CLOSED'
+    OPEN = 'OPEN'
+
+
+@unique
 class OrderSortBy(Enum):
     LATEST_CREATED = 'LATEST_CREATED'
     LATEST_STATUS_UPDATED = 'LATEST_STATUS_UPDATED'
+

@@ -7,6 +7,7 @@ Created on 2018/9/20
 import logging
 import traceback
 
+from tigeropen.common.util.price_util import PriceUtil
 from tigeropen.trade.domain.order import OrderStatus
 from tigeropen.trade.request.model import AccountsParams
 from tigeropen.tiger_open_client import TigerOpenClient
@@ -121,6 +122,13 @@ def trade_apis():
     # 查询主订单所关联的附加订单
     order_legs = openapi_client.get_open_orders(account, parent_id=main_order.order_id)
     print(order_legs)
+
+    # adjust price by contract tick sizes
+    contract = openapi_client.get_contract('UVXY')
+    price = 10.125
+    if not PriceUtil.match_tick_size(price, contract.tick_sizes):
+        price = PriceUtil.fix_price_by_tick_size(price, contract.tick_sizes)
+
 
 
 def algo_order_demo():

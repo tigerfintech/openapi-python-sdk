@@ -176,7 +176,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_positions(self, account=None, sec_type=SecurityType.STK, currency=Currency.ALL, market=Market.ALL,
-                      symbol=None, sub_accounts=None):
+                      symbol=None, sub_accounts=None, expiry=None, strike=None, put_call=None):
         """
         获取持仓数据
         :param account:
@@ -203,7 +203,12 @@ class TradeClient(TigerOpenClient):
         params.currency = get_enum_value(currency)
         params.market = get_enum_value(market)
         params.symbol = symbol
-
+        if expiry:
+            params.expiry = expiry
+        if strike:
+            params.strike = strike
+        if put_call:
+            params.right = put_call
         request = OpenApiRequest(POSITIONS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
