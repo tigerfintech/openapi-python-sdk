@@ -23,6 +23,7 @@ ACTIVE_ORDERS = "active_orders"  # 待成交订单
 INACTIVE_ORDERS = "inactive_orders"  # 已撤销订单
 FILLED_ORDERS = "filled_orders"  # 已成交订单
 ORDER_TRANSACTIONS = "order_transactions"  # 订单成交记录
+ANALYTICS_ASSET = "analytics_asset"
 
 """
 合约

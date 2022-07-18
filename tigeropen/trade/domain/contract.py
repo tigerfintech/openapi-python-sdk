@@ -15,7 +15,7 @@ class Contract:
                  long_maintenance_margin=None, contract_month=None, identifier=None, primary_exchange=None,
                  market=None, min_tick=None, trading_class=None, status=None, continuous=None, trade=None,
                  marginable=None, close_only=None,
-                 last_trading_date=None, first_notice_date=None, last_bidding_close_time=None):
+                 last_trading_date=None, first_notice_date=None, last_bidding_close_time=None, tick_sizes=None):
         self.contract_id = contract_id
         self.symbol = symbol
         self.currency = get_enum_value(currency)
@@ -54,6 +54,8 @@ class Contract:
         self.market = market
         # 最小报价单位
         self.min_tick = min_tick
+        # tick size info list
+        self.tick_sizes = tick_sizes
         # 合约的交易级别名称
         self.trading_class = trading_class
         # 状态
