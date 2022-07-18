@@ -7,7 +7,7 @@ Created on 2018/10/31
 import json
 
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.string_utils import camel_to_underline
+from tigeropen.common.util.string_utils import camel_to_underline, camel_to_underline_obj
 from tigeropen.trade.domain.contract import Contract
 
 CONTRACT_FIELD_MAPPINGS = {'conid': 'contract_id', 'right': 'put_call', 'tradeable': 'trade'}
@@ -31,6 +31,8 @@ class ContractsResponse(TigerResponse):
                     contract_fields = {}
                     for key, value in item.items():
                         tag = CONTRACT_FIELD_MAPPINGS[key] if key in CONTRACT_FIELD_MAPPINGS else camel_to_underline(key)
+                        if isinstance(value, (list, dict)):
+                            value = camel_to_underline_obj(value)
                         contract_fields[tag] = value
                     contract = Contract()
                     for k, v in contract_fields.items():
