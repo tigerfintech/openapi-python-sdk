@@ -1,3 +1,12 @@
+## 2.1.4 (2022-07-18)
+### New
+- 新增历史资产分析接口 `TradeClient.get_analytics_asset`
+- 新增合约价格校正工具函数 `tigeropen.common.util.price_util.PriceUtil`, 可根据请求到的合约tick size, 校正输入的下单价格
+- 订单对象新增属性: 更新时间: `update_time`
+- 查询订单列表接口 `TradeClieng.get_orders (get_open_orders/get_filled_orders)` 支持指定排序规则, 按照订单创建时间或订单状态更新时间排序
+- 查询持仓接口 `TradeClient.get_positions` 支持期权要素(expiry, strike, put_call)参数过滤
+
+
 ## 2.1.3 (2022-07-01)
 ### New
 - 长连接新增逐笔订阅: `PushClient.subscribe_tick`, 退订 `PushClient.unsubscribe_tick`
