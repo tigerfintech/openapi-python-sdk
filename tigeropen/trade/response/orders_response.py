@@ -22,7 +22,7 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'contractId': 'contract_id', 'algoStrategy': 'algo_strategy',
                         'trailStopPrice': 'trail_stop_price', 'trailingPercent': 'trailing_percent',
                         'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params',
-                        'userMark': 'user_mark'
+                        'userMark': 'user_mark', 'updateTime': 'update_time'
                         }
 
 
@@ -115,6 +115,8 @@ class OrdersResponse(TigerResponse):
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:
             order.trade_time = order_fields.get('trade_time')
+        if 'update_time' in order_fields:
+            order.update_time = order_fields.get('update_time')
         if 'reason' in order_fields:
             order.reason = order_fields.get('reason')
         if secret_key is not None:
