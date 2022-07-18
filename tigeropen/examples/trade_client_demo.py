@@ -64,6 +64,9 @@ def get_account_apis():
     # 综合/模拟账户获取资产
     openapi_client.get_prime_assets()
 
+    # get asset history
+    openapi_client.get_analytics_asset(start_date='2021-12-01', end_date='2021-12-07')
+
 
 def trade_apis():
     account = client_config.account

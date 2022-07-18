@@ -50,6 +50,12 @@ class SecurityType(Enum):
 
 
 @unique
+class SegmentType(Enum):
+    SEC = 'SEC'
+    FUT = 'FUT'
+
+
+@unique
 class Currency(Enum):
     """Enum for currency """
     
@@ -147,3 +153,10 @@ class TickSizeType(Enum):
     CLOSED = 'CLOSED'
     OPEN_CLOSED = 'OPEN_CLOSED'
     OPEN = 'OPEN'
+
+
+@unique
+class OrderSortBy(Enum):
+    LATEST_CREATED = 'LATEST_CREATED'
+    LATEST_STATUS_UPDATED = 'LATEST_STATUS_UPDATED'
+
