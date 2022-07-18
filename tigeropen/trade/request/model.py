@@ -895,3 +895,107 @@ class CancelOrderParams(BaseParams):
             params['id'] = self.id
 
         return params
+
+
+class AnalyticsAssetParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._account = None
+        self._sub_account = None
+        self._secret_key = None
+        self._seg_type = None
+        self._currency = None
+        self._sub_accounts = None
+        self._start_date = None
+        self._end_date = None
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def sub_account(self):
+        return self._sub_account
+
+    @sub_account.setter
+    def sub_account(self, value):
+        self._sub_account = value
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def seg_type(self):
+        return self._seg_type
+
+    @seg_type.setter
+    def seg_type(self, value):
+        self._seg_type = value
+
+    @property
+    def currency(self):
+        return self._currency
+
+    @currency.setter
+    def currency(self, value):
+        self._currency = value
+
+    @property
+    def sub_accounts(self):
+        return self._sub_accounts
+
+    @sub_accounts.setter
+    def sub_accounts(self, value):
+        self._sub_accounts = value
+
+    @property
+    def start_date(self):
+        return self._start_date
+
+    @start_date.setter
+    def start_date(self, value):
+        self._start_date = value
+
+    @property
+    def end_date(self):
+        return self._end_date
+
+    @end_date.setter
+    def end_date(self, value):
+        self._end_date = value
+
+    def to_openapi_dict(self):
+        params = dict()
+        if self.account:
+            params['account'] = self.account
+
+        if self.sub_account:
+            params['sub_account'] = self.sub_account
+
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+
+        if self.seg_type:
+            params['seg_type'] = self.seg_type
+
+        if self.currency:
+            params['currency'] = self.currency
+
+        if self.sub_accounts:
+            params['sub_accounts'] = self.sub_accounts
+
+        if self.start_date:
+            params['start_date'] = self.start_date
+
+        if self.end_date:
+            params['end_date'] = self.end_date
+        return params

@@ -9,15 +9,16 @@ import logging
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
-    PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT
+    PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.domain.order import Order
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
-    OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams
+    OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams
 from tigeropen.trade.response.account_profile_response import ProfilesResponse
+from tigeropen.trade.response.analytics_asset_response import AnalyticsAssetResponse
 from tigeropen.trade.response.assets_response import AssetsResponse
 from tigeropen.trade.response.contracts_response import ContractsResponse
 from tigeropen.trade.response.order_id_response import OrderIdResponse
@@ -658,6 +659,37 @@ class TradeClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.transactions
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_analytics_asset(self, account=None, start_date=None, end_date=None, seg_type=None, currency=None,
+                            sub_account=None):
+        """
+        get analytics of history asset
+        :param account:
+        :param start_date:
+        :param end_date:
+        :param seg_type: tigeropen.common.consts.SegmentType, like SegmentType.SEC
+        :param currency: tigeropen.common.consts.Currency, like Currency.USD
+        :param sub_account: sub account of institution account
+        :return:
+        """
+        params = AnalyticsAssetParams()
+        params.account = account if account else self._account
+        params.secret_key = self._secret_key
+        params.seg_type = get_enum_value(seg_type)
+        params.start_date = start_date
+        params.end_date = end_date
+        params.currency = get_enum_value(currency)
+        params.sub_account = sub_account
+        request = OpenApiRequest(ANALYTICS_ASSET, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = AnalyticsAssetResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
         return None

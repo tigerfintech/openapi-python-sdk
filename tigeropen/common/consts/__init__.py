@@ -50,6 +50,12 @@ class SecurityType(Enum):
 
 
 @unique
+class SegmentType(Enum):
+    SEC = 'SEC'
+    FUT = 'FUT'
+
+
+@unique
 class Currency(Enum):
     """Enum for currency """
     
