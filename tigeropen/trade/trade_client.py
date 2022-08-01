@@ -6,7 +6,7 @@ Created on 2018/9/20
 """
 import logging
 
-from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency
+from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency, Language
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
     PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET
@@ -14,6 +14,7 @@ from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.tiger_open_client import TigerOpenClient
+from tigeropen.tiger_open_config import LANGUAGE
 from tigeropen.trade.domain.order import Order
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
     OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams
@@ -40,6 +41,7 @@ class TradeClient(TigerOpenClient):
             self._secret_key = client_config.secret_key
         else:
             self._account = None
+            self._lang = LANGUAGE
             self._secret_key = None
 
     def get_managed_accounts(self, account=None):
@@ -53,6 +55,7 @@ class TradeClient(TigerOpenClient):
         """
         params = AccountsParams()
         params.account = account if account else self._account
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ACCOUNTS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -80,7 +83,7 @@ class TradeClient(TigerOpenClient):
         params.sec_type = get_enum_value(sec_type)
         params.currency = get_enum_value(currency)
         params.exchange = exchange
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(CONTRACTS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -128,6 +131,7 @@ class TradeClient(TigerOpenClient):
         params.symbol = symbol
         params.sec_type = get_enum_value(sec_type)
         params.currency = get_enum_value(currency)
+        params.lang = get_enum_value(self._lang)
         if expiry:
             params.expiry = expiry
         if strike:
@@ -209,6 +213,7 @@ class TradeClient(TigerOpenClient):
             params.strike = strike
         if put_call:
             params.right = put_call
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(POSITIONS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -258,7 +263,7 @@ class TradeClient(TigerOpenClient):
         params.sub_accounts = sub_accounts
         params.segment = segment
         params.market_value = market_value
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ASSETS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -280,6 +285,7 @@ class TradeClient(TigerOpenClient):
         params = AssetParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
+        params.lang = get_enum_value(self._lang)
 
         request = OpenApiRequest(PRIME_ASSETS, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -322,7 +328,7 @@ class TradeClient(TigerOpenClient):
         params.is_brief = is_brief
         params.states = [get_enum_value(state) for state in states] if states else None
         params.sort_by = get_enum_value(sort_by)
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -350,6 +356,7 @@ class TradeClient(TigerOpenClient):
         params.end_date = end_time
         params.parent_id = parent_id
         params.sort_by = get_enum_value(sort_by)
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ACTIVE_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -375,6 +382,7 @@ class TradeClient(TigerOpenClient):
         params.start_date = start_time
         params.end_date = end_time
         params.sort_by = get_enum_value(sort_by)
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(INACTIVE_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -400,6 +408,7 @@ class TradeClient(TigerOpenClient):
         params.start_date = start_time
         params.end_date = end_time
         params.sort_by = get_enum_value(sort_by)
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(FILLED_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -426,6 +435,7 @@ class TradeClient(TigerOpenClient):
         params.id = id
         params.order_id = order_id
         params.is_brief = is_brief
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -460,6 +470,7 @@ class TradeClient(TigerOpenClient):
         params = AccountsParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ORDER_NO, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -512,6 +523,7 @@ class TradeClient(TigerOpenClient):
         params.time_in_force = order.time_in_force
         params.outside_rth = order.outside_rth
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(PREVIEW_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -547,6 +559,7 @@ class TradeClient(TigerOpenClient):
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
         params.adjust_limit = order.adjust_limit
         params.user_mark = order.user_mark
+        params.lang = get_enum_value(self._lang)
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -595,7 +608,7 @@ class TradeClient(TigerOpenClient):
         params.outside_rth = outside_rth if outside_rth is not None else order.outside_rth
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
         params.adjust_limit = kwargs.get('adjust_limit', order.adjust_limit)
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(MODIFY_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -619,6 +632,7 @@ class TradeClient(TigerOpenClient):
         params.secret_key = self._secret_key
         params.order_id = order_id
         params.id = id
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(CANCEL_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -657,6 +671,7 @@ class TradeClient(TigerOpenClient):
         params.expiry = expiry
         params.strike = strike
         params.right = put_call
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ORDER_TRANSACTIONS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -688,6 +703,7 @@ class TradeClient(TigerOpenClient):
         params.end_date = end_date
         params.currency = get_enum_value(currency)
         params.sub_account = sub_account
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ANALYTICS_ASSET, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:

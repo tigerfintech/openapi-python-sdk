@@ -1,3 +1,8 @@
+## 2.1.5 (2022-08-01) 
+### Modify
+- 交易相关接口支持全局语言配置, 可通过 ClientConfig.language 改变默认语言
+
+
 ## 2.1.4 (2022-07-18)
 ### New
 - 新增历史资产分析接口 `TradeClient.get_analytics_asset`

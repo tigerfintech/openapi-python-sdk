@@ -12,7 +12,6 @@ class MarketParams(BaseParams):
         super(MarketParams, self).__init__()
         self._market = None  # 市场
         self._sec_type = None  # 交易品种
-        self._lang = None  # 语言
 
     @property
     def market(self):
@@ -30,24 +29,13 @@ class MarketParams(BaseParams):
     def sec_type(self, value):
         self._sec_type = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.market:
             params['market'] = self.market
 
         if self.sec_type:
             params['sec_type'] = self.sec_type
-
-        if self.lang:
-            params['lang'] = self.lang
 
         return params
 
@@ -425,7 +413,7 @@ class SingleContractParams(BaseParams):
         self._strike = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
 
         if self.symbol:
             params['symbol'] = self.symbol
@@ -527,7 +515,6 @@ class FutureExchangeParams(BaseParams):
     def __init__(self):
         super(FutureExchangeParams, self).__init__()
         self._exchange_code = None  # 交易所
-        self._lang = None  # 语言
 
     @property
     def exchange_code(self):
@@ -537,30 +524,19 @@ class FutureExchangeParams(BaseParams):
     def exchange_code(self, value):
         self._exchange_code = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.exchange_code:
             params['exchange_code'] = self.exchange_code
-
-        if self.lang:
-            params['lang'] = self.lang
 
         return params
 
 
 class FutureContractParams(BaseParams):
     def __init__(self):
+        super().__init__()
         self._type = None  # 期货品种
         self._contract_code = None  # 期货代码
-        self._lang = None  # 语言
 
     @property
     def type(self):
@@ -578,24 +554,13 @@ class FutureContractParams(BaseParams):
     def contract_code(self, value):
         self._contract_code = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.type:
             params['type'] = self.type
 
         if self.contract_code:
             params['contract_code'] = self.contract_code
-
-        if self.lang:
-            params['lang'] = self.lang
 
         return params
 
@@ -623,7 +588,7 @@ class FutureTradingTimeParams(BaseParams):
         self._trading_date = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.contract_code:
             params['contract_code'] = self.contract_code
 
@@ -762,7 +727,7 @@ class DepthQuoteParams(BaseParams):
         self._market = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.symbols:
             params['symbols'] = self.symbols
         if self.market:
@@ -793,7 +758,8 @@ class OptionChainParams(BaseParams):
         self._option_filter = value
 
     def to_openapi_dict(self):
-        params = {'option_basic': list(), 'option_filter': dict()}
+        params = super().to_openapi_dict()
+        params.update({'option_basic': list(), 'option_filter': dict()})
 
         if self.contracts:
             for contract in self.contracts:
@@ -835,7 +801,7 @@ class TradingCalendarParams(BaseParams):
         self._end_date = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.market:
             params['market'] = self.market
 
