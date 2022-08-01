@@ -12,7 +12,6 @@ class MarketParams(BaseParams):
         super(MarketParams, self).__init__()
         self._market = None  # 市场
         self._sec_type = None  # 交易品种
-        self._lang = None  # 语言
 
     @property
     def market(self):
@@ -30,14 +29,6 @@ class MarketParams(BaseParams):
     def sec_type(self, value):
         self._sec_type = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.market:
@@ -45,9 +36,6 @@ class MarketParams(BaseParams):
 
         if self.sec_type:
             params['sec_type'] = self.sec_type
-
-        if self.lang:
-            params['lang'] = self.lang
 
         return params
 
@@ -527,7 +515,6 @@ class FutureExchangeParams(BaseParams):
     def __init__(self):
         super(FutureExchangeParams, self).__init__()
         self._exchange_code = None  # 交易所
-        self._lang = None  # 语言
 
     @property
     def exchange_code(self):
@@ -537,21 +524,10 @@ class FutureExchangeParams(BaseParams):
     def exchange_code(self, value):
         self._exchange_code = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.exchange_code:
             params['exchange_code'] = self.exchange_code
-
-        if self.lang:
-            params['lang'] = self.lang
 
         return params
 
@@ -561,7 +537,6 @@ class FutureContractParams(BaseParams):
         super().__init__()
         self._type = None  # 期货品种
         self._contract_code = None  # 期货代码
-        self._lang = None  # 语言
 
     @property
     def type(self):
@@ -579,14 +554,6 @@ class FutureContractParams(BaseParams):
     def contract_code(self, value):
         self._contract_code = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.type:
@@ -594,9 +561,6 @@ class FutureContractParams(BaseParams):
 
         if self.contract_code:
             params['contract_code'] = self.contract_code
-
-        if self.lang:
-            params['lang'] = self.lang
 
         return params
 

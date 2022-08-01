@@ -702,7 +702,6 @@ class QuoteClient(TigerOpenClient):
             param.expiry = int(delorean.parse(expiry, timezone=eastern, dayfirst=False).datetime.timestamp() * 1000)
             param.put_call = put_call
             param.strike = strike
-            params.lang = get_enum_value(self._lang)
             contracts.append(param)
         params.contracts = contracts
         request = OpenApiRequest(OPTION_BRIEF, biz_model=params)
@@ -750,7 +749,6 @@ class QuoteClient(TigerOpenClient):
             param.period = BarPeriod.DAY.value
             param.begin_time = begin_time
             param.end_time = end_time
-            params.lang = get_enum_value(self._lang)
             contracts.append(param)
         params.contracts = contracts
         request = OpenApiRequest(OPTION_KLINE, biz_model=params)
@@ -787,7 +785,6 @@ class QuoteClient(TigerOpenClient):
             param.expiry = int(delorean.parse(expiry, timezone=eastern, dayfirst=False).datetime.timestamp() * 1000)
             param.put_call = put_call
             param.strike = strike
-            params.lang = get_enum_value(self._lang)
             contracts.append(param)
         params.contracts = contracts
         params.lang = get_enum_value(self._lang)

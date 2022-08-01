@@ -249,7 +249,6 @@ class ContractParams(BaseParams):
         self._expiry = None
         self._strike = None
         self._right = None
-        self._lang = None
 
     @property
     def account(self):
@@ -331,14 +330,6 @@ class ContractParams(BaseParams):
     def right(self, value):
         self._right = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -371,9 +362,6 @@ class ContractParams(BaseParams):
         if self.right:
             params['right'] = self.right
 
-        if self.lang:
-            params['lang'] = self.lang
-
         return params
 
 
@@ -385,7 +373,6 @@ class OrderParams(BaseParams):
         self._id = None  # 订单号(全局)
         self._order_id = None  # 订单号(账户维度)
         self._is_brief = None
-        self._lang = None  # 语言
 
     @property
     def account(self):
@@ -427,14 +414,6 @@ class OrderParams(BaseParams):
     def is_brief(self, value):
         self._is_brief = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -448,9 +427,6 @@ class OrderParams(BaseParams):
 
         if self.is_brief:
             params['is_brief'] = self.is_brief
-
-        if self.lang:
-            params['lang'] = self.lang
 
         if self.id:
             params['id'] = self.id
