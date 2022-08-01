@@ -61,7 +61,7 @@ class FinancialDailyParams(BaseParams):
         self._end_date = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
 
         if self.symbols:
             params['symbols'] = self.symbols
@@ -125,7 +125,7 @@ class FinancialReportParams(BaseParams):
         self._period_type = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
 
         if self.symbols:
             params['symbols'] = self.symbols
@@ -192,7 +192,7 @@ class CorporateActionParams(BaseParams):
         self._end_date = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
 
         if self.symbols:
             params['symbols'] = self.symbols
@@ -253,7 +253,7 @@ class IndustryParams(BaseParams):
         self._symbol = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
 
         if self.industry_level:
             params['industry_level'] = self.industry_level
