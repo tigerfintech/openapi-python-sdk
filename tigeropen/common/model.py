@@ -2,7 +2,6 @@
 # 
 # @Date    : 2021/11/12
 # @Author  : sukai
-from tigeropen.common.util.common_utils import get_enum_value
 
 
 class BaseParams:
