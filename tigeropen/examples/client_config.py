@@ -21,4 +21,5 @@ def get_client_config():
     client_config.account = 'your account'
     client_config.secret_key = None  # 机构交易员专有密钥 (机构用户需要填写, 个人开发者无需填写)
     client_config.language = Language.en_US
+    # client_config.timezone = 'US/Eastern' # 设置全局时区
     return client_config
