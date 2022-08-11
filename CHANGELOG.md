@@ -1,3 +1,8 @@
+## 2.1.6 (2022-08-11)
+### Modify
+- 支持全局时区配置， 可通过 ClientConfig.timezone 设置时区
+
+
 ## 2.1.5 (2022-08-01) 
 ### Modify
 - 交易相关接口支持全局语言配置, 可通过 ClientConfig.language 改变默认语言
