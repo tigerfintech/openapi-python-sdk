@@ -1137,7 +1137,6 @@ class QuoteClient(TigerOpenClient):
         params.action_type = CorporateActionType.DIVIDEND.value
         params.symbols = symbols
         params.market = get_enum_value(market)
-        params.begin_date = begin_date
         params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
         params.end_date = date_str_to_timestamp(end_date, self._timezone)
         params.lang = get_enum_value(self._lang)
