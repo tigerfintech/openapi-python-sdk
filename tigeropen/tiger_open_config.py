@@ -5,7 +5,7 @@ Created on 2018/9/20
 @author: gaoan
 """
 import json
-
+from pytz import timezone
 from tigeropen.common.consts import Language
 from tigeropen.common.util.signature_utils import read_private_key
 from tigeropen.common.util.web_utils import do_get
@@ -59,7 +59,8 @@ class TigerOpenClientConfig:
         self._charset = CHARSET
         # 语言
         self._language = LANGUAGE
-        # 以下为可选参数
+        # timezone
+        self._timezone = None
         # 请求读取超时，单位秒，默认15s
         self._timeout = TIMEOUT
         self._sandbox_debug = sandbox_debug
@@ -148,6 +149,16 @@ class TigerOpenClientConfig:
         self._language = value
 
     @property
+    def timezone(self):
+        return self._timezone
+
+    @timezone.setter
+    def timezone(self, value):
+        if isinstance(value, str):
+            value = timezone(value)
+        self._timezone = value
+
+    @property
     def timeout(self):
         return self._timeout
 
@@ -201,7 +212,7 @@ class TigerOpenClientConfig:
 
 def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, sign_type=None, timeout=None,
                       language=None, charset=None, server_url=None, socket_host_port=None, secret_key=None,
-                      enable_dynamic_domain=True):
+                      enable_dynamic_domain=True, timezone=None):
     """
     生成客户端配置
     :param private_key_path: 私钥文件路径, 如 '/Users/tiger/.ssh/rsa_private_key.pem'
@@ -216,6 +227,7 @@ def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, 
     :param socket_host_port: 推送长连接的域名端口, 值为协议, 域名, 端口构成的三元组
     :param secret_key: 机构交易员专有密钥 (个人开发者无需指定)
     :param enable_dynamic_domain: 是否初始化时拉取服务域名
+    :param timezone:
     :return:
     """
     config = TigerOpenClientConfig(sandbox_debug=sandbox_debug, enable_dynamic_domain=enable_dynamic_domain)
@@ -228,6 +240,8 @@ def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, 
         config.timeout = timeout
     if language:
         config.language = language
+    if timezone:
+        config.timezone = timezone
     if charset:
         config.charset = charset
     if server_url:

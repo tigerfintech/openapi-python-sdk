@@ -11,7 +11,7 @@ from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
     PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET
 from tigeropen.common.exceptions import ApiException
-from tigeropen.common.util.common_utils import get_enum_value
+from tigeropen.common.util.common_utils import get_enum_value, date_str_to_timestamp
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.tiger_open_config import LANGUAGE
@@ -39,10 +39,12 @@ class TradeClient(TigerOpenClient):
             self._account = client_config.account
             self._lang = client_config.language
             self._secret_key = client_config.secret_key
+            self._timezone = client_config.timezone
         else:
             self._account = None
             self._lang = LANGUAGE
             self._secret_key = None
+            self._timezone = None
 
     def get_managed_accounts(self, account=None):
         """
@@ -322,8 +324,8 @@ class TradeClient(TigerOpenClient):
         params.sec_type = get_enum_value(sec_type)
         params.market = get_enum_value(market)
         params.symbol = symbol
-        params.start_date = start_time
-        params.end_date = end_time
+        params.start_date = date_str_to_timestamp(start_time, self._timezone)
+        params.end_date = date_str_to_timestamp(end_time, self._timezone)
         params.limit = limit
         params.is_brief = is_brief
         params.states = [get_enum_value(state) for state in states] if states else None
@@ -352,8 +354,8 @@ class TradeClient(TigerOpenClient):
         params.sec_type = get_enum_value(sec_type)
         params.market = get_enum_value(market)
         params.symbol = symbol
-        params.start_date = start_time
-        params.end_date = end_time
+        params.start_date = date_str_to_timestamp(start_time, self._timezone)
+        params.end_date = date_str_to_timestamp(end_time, self._timezone)
         params.parent_id = parent_id
         params.sort_by = get_enum_value(sort_by)
         params.lang = get_enum_value(self._lang)
@@ -379,8 +381,8 @@ class TradeClient(TigerOpenClient):
         params.sec_type = get_enum_value(sec_type)
         params.market = get_enum_value(market)
         params.symbol = symbol
-        params.start_date = start_time
-        params.end_date = end_time
+        params.start_date = date_str_to_timestamp(start_time, self._timezone)
+        params.end_date = date_str_to_timestamp(end_time, self._timezone)
         params.sort_by = get_enum_value(sort_by)
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(INACTIVE_ORDERS, biz_model=params)
@@ -405,8 +407,8 @@ class TradeClient(TigerOpenClient):
         params.sec_type = get_enum_value(sec_type)
         params.market = get_enum_value(market)
         params.symbol = symbol
-        params.start_date = start_time
-        params.end_date = end_time
+        params.start_date = date_str_to_timestamp(start_time, self._timezone)
+        params.end_date = date_str_to_timestamp(end_time, self._timezone)
         params.sort_by = get_enum_value(sort_by)
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(FILLED_ORDERS, biz_model=params)
@@ -665,8 +667,8 @@ class TradeClient(TigerOpenClient):
         params.order_id = order_id
         params.sec_type = get_enum_value(sec_type)
         params.symbol = symbol
-        params.start_date = start_time
-        params.end_date = end_time
+        params.start_date = date_str_to_timestamp(start_time, self._timezone)
+        params.end_date = date_str_to_timestamp(end_time, self._timezone)
         params.limit = limit
         params.expiry = expiry
         params.strike = strike
@@ -688,8 +690,8 @@ class TradeClient(TigerOpenClient):
         """
         get analytics of history asset
         :param account:
-        :param start_date:
-        :param end_date:
+        :param start_date: date str. format yyyyMMdd, like '2021-12-01'
+        :param end_date: date_str.
         :param seg_type: tigeropen.common.consts.SegmentType, like SegmentType.SEC
         :param currency: tigeropen.common.consts.Currency, like Currency.USD
         :param sub_account: sub account of institution account
