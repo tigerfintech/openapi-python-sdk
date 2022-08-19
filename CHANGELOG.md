@@ -1,3 +1,11 @@
+## 2.1.7 (2022-08-19)
+### New
+- 新增获取期货某类型所有合约接口 `QuoteClient.get_all_future_contracts`
+- 附加订单支持追踪止损单
+
+### Breaking
+- 期货tick接口 `QuoteClient.get_future_trade_ticks`, 合约参数由接受列表改为只接受单个合约
+
 ## 2.1.6 (2022-08-11)
 ### Modify
 - 支持全局时区配置， 可通过 ClientConfig.timezone 设置时区
