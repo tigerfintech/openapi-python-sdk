@@ -601,6 +601,7 @@ class FutureTradingTimeParams(BaseParams):
 class FutureQuoteParams(MarketParams):
     def __init__(self):
         super(FutureQuoteParams, self).__init__()
+        self._contract_code = None
         self._contract_codes = None
         self._period = None
         self._begin_time = None
@@ -609,6 +610,14 @@ class FutureQuoteParams(MarketParams):
         self._begin_index = None
         self._end_index = None
         self._page_token = None
+
+    @property
+    def contract_code(self):
+        return self._contract_code
+
+    @contract_code.setter
+    def contract_code(self, value):
+        self._contract_code = value
 
     @property
     def contract_codes(self):
@@ -676,6 +685,9 @@ class FutureQuoteParams(MarketParams):
 
     def to_openapi_dict(self):
         params = super(FutureQuoteParams, self).to_openapi_dict()
+
+        if self.contract_code:
+            params['contract_code'] = self.contract_code
 
         if self.contract_codes:
             params['contract_codes'] = self.contract_codes

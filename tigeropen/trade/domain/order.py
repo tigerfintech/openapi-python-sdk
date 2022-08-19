@@ -143,17 +143,24 @@ class OrderLeg:
     附加订单
     """
 
-    def __init__(self, leg_type, price, time_in_force='DAY', outside_rth=None):
+    def __init__(self, leg_type, price, time_in_force='DAY', outside_rth=None, limit_price=None, trailing_percent=None,
+                 trailing_amount=None):
         """
-        :param leg_type: 附加订单类型(仅限价单支持). PROFIT 止盈单类型, LOSS 止损单类型
-        :param price: 附加订单价格
-        :param time_in_force: 附加订单有效期. 'DAY'（当日有效）和'GTC'（取消前有效).
+        :param leg_type: 附加订单类型(仅限价单支持). PROFIT 止盈单; LOSS 止损单
+        :param price: 附加订单触发价格
+        :param time_in_force: 附加订单有效期. 'DAY'（当日有效）和 'GTC'（取消前有效).
         :param outside_rth: 附加订单是否允许盘前盘后交易(美股专属). True 允许, False 不允许.
+        :param limit_price: attached stop loss order's limit price
+        :param trailing_percent: attached trailing stop loss order's trailing percent
+        :param trailing_amount: attached trailing stop loss order's trailing amount
         """
         self.leg_type = leg_type
         self.price = price
         self.time_in_force = time_in_force
         self.outside_rth = outside_rth
+        self.limit_price = limit_price
+        self.trailing_percent = trailing_percent
+        self.trailing_amount = trailing_amount
 
     def to_dict(self):
         return self.__dict__
