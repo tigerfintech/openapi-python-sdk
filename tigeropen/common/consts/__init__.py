@@ -160,3 +160,11 @@ class OrderSortBy(Enum):
     LATEST_CREATED = 'LATEST_CREATED'
     LATEST_STATUS_UPDATED = 'LATEST_STATUS_UPDATED'
 
+
+@unique
+class OrderType(Enum):
+    MKT = 'MKT'  # 市价单
+    LMT = 'LMT'  # 限价单
+    STP = 'STP'  # 止损单
+    STP_LMT = 'STP_LMT'  # 止损限价单
+    TRAIL = 'TRAIL'  # 跟踪止损单

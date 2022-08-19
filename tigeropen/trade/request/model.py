@@ -831,6 +831,13 @@ class PlaceModifyOrderParams(BaseParams):
                             params['stop_loss_tif'] = order_leg.time_in_force
                         if order_leg.outside_rth is not None:
                             params['stop_loss_rth'] = order_leg.outside_rth
+                        if order_leg.limit_price is not None:
+                            params['stop_loss_limit_price'] = order_leg.limit_price
+                        if order_leg.trailing_percent is not None:
+                            params['stop_loss_trailing_percent'] = order_leg.trailing_percent
+                        if order_leg.trailing_percent is not None:
+                            params['stop_loss_trailing_amount'] = order_leg.trailing_amount
+
                 # 括号订单(止盈和止损)
                 if len(leg_types) == 2:
                     params['attach_type'] = 'BRACKETS'
