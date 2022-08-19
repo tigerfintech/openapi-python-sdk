@@ -13,7 +13,7 @@ import pandas as pd
 from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
-    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR
+    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -72,8 +72,8 @@ class QuoteClient(TigerOpenClient):
 
     def __init__(self, client_config, logger=None, is_grab_permission=True):
         if not logger:
-            logger = logging.getLogger('tiger_openapi')
-        super(QuoteClient, self).__init__(client_config, logger=logger)
+            self.logger = logging.getLogger('tiger_openapi')
+        super(QuoteClient, self).__init__(client_config, logger=self.logger)
         self._lang = LANGUAGE
         self._timezone = eastern
         if client_config:
@@ -83,7 +83,7 @@ class QuoteClient(TigerOpenClient):
         self.permissions = None
         if is_grab_permission and self.permissions is None:
             self.permissions = self.grab_quote_permission()
-            logger.info('Grab quote permission. Permissions:' + str(self.permissions))
+            self.logger.info('Grab quote permission. Permissions:' + str(self.permissions))
 
     def __fetch_data(self, request):
         try:
@@ -890,6 +890,28 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
+    def get_all_future_contracts(self, future_type, lang=None):
+        """
+        Query all contracts of a given type
+        :param future_type: like CL, VIX
+        :param lang: language
+        :return: same as "get_current_future_contract"
+        """
+        params = FutureContractParams()
+        params.type = future_type
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+
+        request = OpenApiRequest(FUTURE_CONTRACTS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FutureContractResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.contracts
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
     def get_future_contract(self, contract_code, lang=None):
         """
         get future contract by contract_code
@@ -1014,10 +1036,10 @@ class QuoteClient(TigerOpenClient):
             time.sleep(time_interval)
         return pd.concat(result).sort_values('time').reset_index(drop=True)
 
-    def get_future_trade_ticks(self, identifiers, begin_index=0, end_index=30, limit=1000):
+    def get_future_trade_ticks(self, identifier, begin_index=0, end_index=30, limit=1000):
         """
         获取期货逐笔成交
-        :param identifiers: 期货代码列表
+        :param identifier: future identifier. Only supports one identifier
         :param begin_index: 开始索引
         :param end_index: 结束索引
         :param limit: 数量限制
@@ -1028,11 +1050,16 @@ class QuoteClient(TigerOpenClient):
             volume: 成交量
         """
         params = FutureQuoteParams()
-        params.contract_codes = identifiers
+        # Compatible with previous version (previous version 'identifiers' argument is a list)
+        params.contract_code = identifier
+        if isinstance(identifier, list):
+            self.logger.warning("the 'identifier' argument should be a string")
+            params.contract_code = identifier[0]
         params.begin_index = begin_index
         params.end_index = end_index
         params.limit = limit
         params.lang = get_enum_value(self._lang)
+        params.version = OPEN_API_SERVICE_VERSION_V3
         request = OpenApiRequest(FUTURE_TICK, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
