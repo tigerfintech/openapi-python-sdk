@@ -27,14 +27,17 @@ class ContractsResponse(TigerResponse):
         if self.data:
             data_json = self.data if isinstance(self.data, dict) else json.loads(self.data)
             if 'items' in data_json:
-                for item in data_json['items']:
-                    contract_fields = {}
-                    for key, value in item.items():
-                        tag = CONTRACT_FIELD_MAPPINGS[key] if key in CONTRACT_FIELD_MAPPINGS else camel_to_underline(key)
-                        if isinstance(value, (list, dict)):
-                            value = camel_to_underline_obj(value)
-                        contract_fields[tag] = value
-                    contract = Contract()
-                    for k, v in contract_fields.items():
-                        setattr(contract, k, v)
-                    self.contracts.append(contract)
+                items = data_json['items']
+            else:
+                items = [data_json]
+            for item in items:
+                contract_fields = {}
+                for key, value in item.items():
+                    tag = CONTRACT_FIELD_MAPPINGS[key] if key in CONTRACT_FIELD_MAPPINGS else camel_to_underline(key)
+                    if isinstance(value, (list, dict)):
+                        value = camel_to_underline_obj(value)
+                    contract_fields[tag] = value
+                contract = Contract()
+                for k, v in contract_fields.items():
+                    setattr(contract, k, v)
+                self.contracts.append(contract)
