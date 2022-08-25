@@ -117,7 +117,7 @@ class PushClient(stomp.ConnectionListener):
 
         self._stomp_connection = stomp.Connection12(host_and_ports=[(self.host, self.port)],
                                                     keepalive=KEEPALIVE, timeout=self._connection_timeout,
-                                                    heartbeats=self._heartbeats)
+                                                    heartbeats=self._heartbeats, reconnect_attempts_max=60)
         self._stomp_connection.set_listener('push', self)
         try:
             if self.use_ssl:
@@ -143,6 +143,8 @@ class PushClient(stomp.ConnectionListener):
     def on_disconnected(self):
         if self.disconnect_callback:
             self.disconnect_callback()
+        else:
+            self._connect()
 
     def on_message(self, frame):
         """
