@@ -1,3 +1,12 @@
+## 2.1.8 (2022-08-26)
+### Modify
+- `TradeClient.get_orders` 新增参数 `seg_type`， 可指定交易品种(证券SEC/期货FUT/全部ALL)  
+- `PushClient` 修改自动重连重试次数
+- `TradeClient.get_contract` 接口版本升级到V3
+### Fixed
+- 修复 `TradeClient.get_contract` 获取港股期权合约时返回空的问题
+
+
 ## 2.1.7 (2022-08-19)
 ### New
 - 新增获取期货某类型所有合约接口 `QuoteClient.get_all_future_contracts`

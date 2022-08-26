@@ -51,6 +51,7 @@ class SecurityType(Enum):
 
 @unique
 class SegmentType(Enum):
+    ALL = 'ALL'
     SEC = 'SEC'
     FUT = 'FUT'
 
