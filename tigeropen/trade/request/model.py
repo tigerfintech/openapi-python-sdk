@@ -441,6 +441,7 @@ class OrdersParams(BaseParams):
         self._secret_key = None
         self._market = None  # 市场
         self._sec_type = None  # 合约类型
+        self._seg_type = None  # segment type
         self._symbol = None  # 合约代码
         self._is_brief = None
         self._start_date = None
@@ -481,6 +482,14 @@ class OrdersParams(BaseParams):
     @sec_type.setter
     def sec_type(self, value):
         self._sec_type = value
+
+    @property
+    def seg_type(self):
+        return self._seg_type
+
+    @seg_type.setter
+    def seg_type(self, value):
+        self._seg_type = value
 
     @property
     def symbol(self):
@@ -559,6 +568,9 @@ class OrdersParams(BaseParams):
 
         if self.sec_type:
             params['sec_type'] = self.sec_type
+
+        if self.seg_type:
+            params['seg_type'] = self.seg_type
 
         if self.symbol:
             params['symbol'] = self.symbol
