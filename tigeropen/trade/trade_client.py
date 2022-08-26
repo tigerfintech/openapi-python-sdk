@@ -6,7 +6,7 @@ Created on 2018/9/20
 """
 import logging
 
-from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency, Language
+from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency, Language, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
     PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET
@@ -134,6 +134,7 @@ class TradeClient(TigerOpenClient):
         params.sec_type = get_enum_value(sec_type)
         params.currency = get_enum_value(currency)
         params.lang = get_enum_value(self._lang)
+        params.version = OPEN_API_SERVICE_VERSION_V3
         if expiry:
             params.expiry = expiry
         if strike:
@@ -301,7 +302,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None, end_time=None,
-                   limit=100, is_brief=False, states=None, sort_by=None):
+                   limit=100, is_brief=False, states=None, sort_by=None, seg_type=None):
         """
         获取订单列表
         :param account:
@@ -316,6 +317,7 @@ class TradeClient(TigerOpenClient):
         :param states: 订单状态枚举对象列表, 可选, 若传递则按状态筛选
         :param sort_by: Field used to sort and filter start_time and end_time，available value can be imported from
             tigeropen.common.consts.OrderSortBY, like LATEST_CREATED or LATEST_STATUS_UPDATED
+        :param seg_type: tigeropen.common.consts.SegmentType
         :return: Order 对象构成的列表. Order 对象信息参见 tigeropen.trade.domain.order
         """
         params = OrdersParams()
@@ -331,6 +333,7 @@ class TradeClient(TigerOpenClient):
         params.states = [get_enum_value(state) for state in states] if states else None
         params.sort_by = get_enum_value(sort_by)
         params.lang = get_enum_value(self._lang)
+        params.seg_type = get_enum_value(seg_type)
         request = OpenApiRequest(ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -343,7 +346,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_open_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                        end_time=None, parent_id=None, sort_by=None):
+                        end_time=None, parent_id=None, sort_by=None, seg_type=None):
         """
         获取待成交订单列表. 参数同 get_orders
         :param parent_id: 主订单 order_id
@@ -359,6 +362,7 @@ class TradeClient(TigerOpenClient):
         params.parent_id = parent_id
         params.sort_by = get_enum_value(sort_by)
         params.lang = get_enum_value(self._lang)
+        params.seg_type = get_enum_value(seg_type)
         request = OpenApiRequest(ACTIVE_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -371,7 +375,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_cancelled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                             end_time=None, sort_by=None):
+                             end_time=None, sort_by=None, seg_type=None):
         """
         获取已撤销订单列表. 参数同 get_orders
         """
@@ -385,6 +389,7 @@ class TradeClient(TigerOpenClient):
         params.end_date = date_str_to_timestamp(end_time, self._timezone)
         params.sort_by = get_enum_value(sort_by)
         params.lang = get_enum_value(self._lang)
+        params.seg_type = get_enum_value(seg_type)
         request = OpenApiRequest(INACTIVE_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -397,7 +402,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_filled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                          end_time=None, sort_by=None):
+                          end_time=None, sort_by=None, seg_type=None):
         """
         获取已成交订单列表. 参数同 get_orders
         """
@@ -411,6 +416,7 @@ class TradeClient(TigerOpenClient):
         params.end_date = date_str_to_timestamp(end_time, self._timezone)
         params.sort_by = get_enum_value(sort_by)
         params.lang = get_enum_value(self._lang)
+        params.seg_type = get_enum_value(seg_type)
         request = OpenApiRequest(FILLED_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
