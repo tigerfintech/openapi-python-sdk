@@ -1232,7 +1232,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_financial_report(self, symbols, market, fields, period_type):
+    def get_financial_report(self, symbols, market, fields, period_type, begin_date=None, end_date=None):
         """
         获取财报数据
         :param symbols:
@@ -1240,6 +1240,8 @@ class QuoteClient(TigerOpenClient):
         :param fields: 查询的字段列表. 可选的项为 common.consts 下的 Income, Balance, CashFlow, BalanceSheetRatio,
                         Growth, Leverage, Profitability 枚举类型. 如 Income.total_revenue
         :param period_type: 查询的周期类型. 可选的值为 common.consts.FinancialReportPeriodType 枚举类型
+        :param begin_date: specify range begin of period_end_date
+        :param end_date: specify range end of period_end_date
         :return: pandas.DataFrame, 各 column 的含义如下:
             symbol: 证券代码
             currency: 财报使用的币种
@@ -1254,6 +1256,8 @@ class QuoteClient(TigerOpenClient):
         params.fields = [get_enum_value(field) for field in fields]
         params.period_type = get_enum_value(period_type)
         params.lang = get_enum_value(self._lang)
+        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
+        params.end_date = date_str_to_timestamp(end_date, self._timezone)
         request = OpenApiRequest(FINANCIAL_REPORT, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
