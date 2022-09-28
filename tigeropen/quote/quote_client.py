@@ -480,7 +480,8 @@ class QuoteClient(TigerOpenClient):
             time.sleep(time_interval)
         return pd.concat(result).sort_values('time').reset_index(drop=True)
 
-    def get_trade_ticks(self, symbols, trade_session=None, begin_index=None, end_index=None, limit=None, lang=None):
+    def get_trade_ticks(self, symbols, trade_session=None, begin_index=None, end_index=None, limit=None, lang=None,
+                        **kwargs):
         """
         获取逐笔成交
         :param symbols: 股票代号列表
@@ -497,12 +498,16 @@ class QuoteClient(TigerOpenClient):
             direction: 价格变动方向，"-"表示向下变动， "+" 表示向上变动
         """
         params = MultipleQuoteParams()
-        params.symbols = symbols
+        params.symbols = [symbols] if isinstance(symbols, str) else symbols
+        # compatible with version 1.0
+        params.symbol = symbols if isinstance(symbols, str) else symbols[0]
         params.trade_session = get_enum_value(trade_session)
         params.begin_index = begin_index
         params.end_index = end_index
         params.limit = limit
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        if 'version' in kwargs:
+            params.version = kwargs.get('version')
 
         request = OpenApiRequest(TRADE_TICK, biz_model=params)
         response_content = self.__fetch_data(request)
