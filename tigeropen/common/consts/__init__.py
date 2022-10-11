@@ -169,3 +169,17 @@ class OrderType(Enum):
     STP = 'STP'  # 止损单
     STP_LMT = 'STP_LMT'  # 止损限价单
     TRAIL = 'TRAIL'  # 跟踪止损单
+
+
+@unique
+class License(Enum):
+    TBNZ = 'TBNZ'
+    TBSG = 'TBSG'
+
+
+@unique
+class ServiceType(Enum):
+    COMMON = 'COMMON'
+    TRADE = 'TRADE'
+    QUOTE = 'QUOTE'
+
