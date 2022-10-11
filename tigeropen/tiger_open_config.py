@@ -6,7 +6,9 @@ Created on 2018/9/20
 """
 import json
 from pytz import timezone
-from tigeropen.common.consts import Language
+from tigeropen.common.consts import Language, ServiceType
+from tigeropen.common.util.account_util import AccountUtil
+from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.util.signature_utils import read_private_key
 from tigeropen.common.util.web_utils import do_get
 
@@ -17,6 +19,7 @@ DOMAIN_GARDEN_ADDRESS = 'https://cg.play-analytics.com/'
 HTTPS_PROTOCAL = 'https://'
 SSL_PROTOCAL = 'ssl'
 GATEWAY_SUFFIX = '/gateway'
+DOMAIN_SEPARATOR = '-'
 
 # 老虎证券开放平台网关地址
 SERVER_URL = HTTPS_PROTOCAL + DEFAULT_DOMAIN + GATEWAY_SUFFIX
@@ -49,8 +52,12 @@ class TigerOpenClientConfig:
         self._tiger_id = ''
         # 授权账户
         self._account = ''
+        # is paper account
+        self._is_paper = False
         # 开发者应用私钥
         self._private_key = ''
+        # account license
+        self._license = None
         # 请求签名类型，推荐RSA2
         self._sign_type = SIGN_TYPE
         # 机构交易员专有密钥
@@ -64,17 +71,24 @@ class TigerOpenClientConfig:
         # 请求读取超时，单位秒，默认15s
         self._timeout = TIMEOUT
         self._sandbox_debug = sandbox_debug
+
         # 老虎证券开放平台公钥
         self._tiger_public_key = TIGER_PUBLIC_KEY
         # 老虎证券开放平台网关地址
         self._server_url = SERVER_URL
+        self._quote_server_url = SERVER_URL
         self._socket_host_port = SOCKET_HOST_PORT
         if sandbox_debug:
             self._tiger_public_key = SANDBOX_TIGER_PUBLIC_KEY
             self._server_url = SANDBOX_SERVER_URL
+            self._quote_server_url = SANDBOX_SERVER_URL
             self._socket_host_port = SANDBOX_SOCKET_HOST_PORT
+
+        self.domain_conf = dict()
+        self.enable_dynamic_domain = enable_dynamic_domain
         if enable_dynamic_domain:
-            self.refresh_domains()
+            self.domain_conf = self.query_domains()
+            self.refresh_server_info()
 
     @property
     def tiger_id(self):
@@ -85,12 +99,30 @@ class TigerOpenClientConfig:
         self._tiger_id = value
 
     @property
+    def is_paper(self):
+        return self._is_paper
+
+    @is_paper.setter
+    def is_paper(self, value):
+        self._is_paper = value
+
+    @property
     def account(self):
         return self._account
 
     @account.setter
     def account(self, value):
         self._account = value
+        if AccountUtil.is_paper_account(value):
+            self.is_paper = True
+
+    @property
+    def license(self):
+        return self._license
+
+    @license.setter
+    def license(self, value):
+        self._license = value
 
     @property
     def sign_type(self):
@@ -123,6 +155,14 @@ class TigerOpenClientConfig:
     @server_url.setter
     def server_url(self, value):
         self._server_url = value
+
+    @property
+    def quote_server_url(self):
+        return self._quote_server_url
+
+    @quote_server_url.setter
+    def quote_server_url(self, value):
+        self._quote_server_url = value
 
     @property
     def socket_host_port(self):
@@ -174,7 +214,19 @@ class TigerOpenClientConfig:
     def secret_key(self, value):
         self._secret_key = value
 
-    def refresh_domains(self):
+    def refresh_server_info(self):
+        if self.enable_dynamic_domain and self.domain_conf:
+            if self.license:
+                self.server_url = self._get_domain_by_type(ServiceType.TRADE, self.license, self.is_paper) \
+                    + GATEWAY_SUFFIX
+                self.quote_server_url = self._get_domain_by_type(ServiceType.QUOTE, self.license, self.is_paper) \
+                    + GATEWAY_SUFFIX
+
+            socket_port = self.domain_conf.get('socket_port')
+            self.socket_host_port = (SSL_PROTOCAL, self._get_domain_by_type(ServiceType.COMMON, self.license)
+                                     .rpartition(HTTPS_PROTOCAL)[-1], socket_port)
+
+    def query_domains(self):
         """
         domains data like:
         {
@@ -183,8 +235,15 @@ class TigerOpenClientConfig:
             "items": [
                 {
                     "openapi": {
-                        "socket_port": 9883,
-                        "COMMON": "https://openapi.tigerfintech.com"
+                        'socket_port': 9883,
+                        'port': 9887,
+                        'TBSG-QUOTE': 'https://openapi.tigerfintech.com/hkg-quote',
+                        'TBNZ-QUOTE': 'https://openapi.tigerfintech.com/hkg-quote',
+                        'TBSG-PAPER': 'https://openapi-sandbox.tigerfintech.com/hkg',
+                        'TBNZ-PAPER': 'https://openapi-sandbox.tigerfintech.com/hkg',
+                        'TBSG': 'https://openapi.tigerfintech.com/hkg',
+                        'TBNZ': 'https://openapi.tigerfintech.com/hkg'
+                        'COMMON': 'https://openapi.tigerfintech.com',
                     },
                     "openapi-sandbox": {
                         "socket_port": 9885,
@@ -193,7 +252,18 @@ class TigerOpenClientConfig:
                 }
             ]
         }
-        :return:
+        :return: dict
+        {
+            'socket_port': 9883,
+            'port': 9887,
+            'TBSG-QUOTE': 'https://openapi.tigerfintech.com/hkg-quote',
+            'TBNZ-QUOTE': 'https://openapi.tigerfintech.com/hkg-quote',
+            'TBSG-PAPER': 'https://openapi-sandbox.tigerfintech.com/hkg',
+            'TBNZ-PAPER': 'https://openapi-sandbox.tigerfintech.com/hkg',
+            'TBSG': 'https://openapi.tigerfintech.com/hkg',
+            'TBNZ': 'https://openapi.tigerfintech.com/hkg',
+            'COMMON': 'https://openapi.tigerfintech.com',
+        }
         """
         try:
             result = json.loads(do_get(DOMAIN_GARDEN_ADDRESS, headers=dict(), params=dict(), timeout=1).decode()) \
@@ -201,18 +271,38 @@ class TigerOpenClientConfig:
             if result:
                 for item in result:
                     conf = item.get('openapi-sandbox', dict()) if self._sandbox_debug else item.get('openapi', dict())
-                    host = conf.get('COMMON')
-                    socket_port = conf.get('socket_port')
-                    if host and socket_port:
-                        self._server_url = host + GATEWAY_SUFFIX
-                        self._socket_host_port = (SSL_PROTOCAL, host.rpartition(HTTPS_PROTOCAL)[-1], socket_port)
+                    if conf:
+                        return conf
         except:
             pass
+
+    def _get_domain_by_type(self, service_type, license, is_paper=False):
+        """
+
+        :param service_type: tigeropen.common.consts.ServiceType  COMMON/TRADE/QUOTE
+        :param license: tigeropen.common.consts.License or str
+        :param is_paper:
+        :return:
+        """
+        license_value = get_enum_value(license)
+        common_domain = self.domain_conf.get(ServiceType.COMMON.value)
+        if service_type != ServiceType.COMMON:
+            if service_type == ServiceType.QUOTE:
+                key = DOMAIN_SEPARATOR.join((license_value, ServiceType.QUOTE.value))
+                return self.domain_conf.get(key, common_domain)
+            if is_paper:
+                key = DOMAIN_SEPARATOR.join((license_value, 'PAPER'))
+                return self.domain_conf.get(key, common_domain)
+            else:
+                key = license_value
+                return self.domain_conf.get(key, common_domain)
+
+        return common_domain
 
 
 def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, sign_type=None, timeout=None,
                       language=None, charset=None, server_url=None, socket_host_port=None, secret_key=None,
-                      enable_dynamic_domain=True, timezone=None):
+                      enable_dynamic_domain=True, timezone=None, license=None):
     """
     生成客户端配置
     :param private_key_path: 私钥文件路径, 如 '/Users/tiger/.ssh/rsa_private_key.pem'
@@ -228,6 +318,7 @@ def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, 
     :param secret_key: 机构交易员专有密钥 (个人开发者无需指定)
     :param enable_dynamic_domain: 是否初始化时拉取服务域名
     :param timezone:
+    :param license: account license, like TBSG/TBNZ
     :return:
     """
     config = TigerOpenClientConfig(sandbox_debug=sandbox_debug, enable_dynamic_domain=enable_dynamic_domain)
@@ -250,4 +341,6 @@ def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, 
         config.socket_host_port = socket_host_port
     if secret_key:
         config.secret_key = secret_key
+    if license:
+        config.license = license
     return config

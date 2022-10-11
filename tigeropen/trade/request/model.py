@@ -46,6 +46,7 @@ class AssetParams(BaseParams):
         self._segment = False
         self._market_value = False
         self._sub_accounts = None
+        self._base_currency = None
 
     @property
     def account(self):
@@ -87,6 +88,14 @@ class AssetParams(BaseParams):
     def sub_accounts(self, value):
         self._sub_accounts = value
 
+    @property
+    def base_currency(self):
+        return self._base_currency
+
+    @base_currency.setter
+    def base_currency(self, value):
+        self._base_currency = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -103,6 +112,9 @@ class AssetParams(BaseParams):
 
         if self.sub_accounts:
             params['sub_accounts'] = self.sub_accounts
+
+        if self.base_currency:
+            params['base_currency'] = self.base_currency
 
         return params
 
