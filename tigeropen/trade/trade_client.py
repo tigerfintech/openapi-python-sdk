@@ -279,16 +279,18 @@ class TradeClient(TigerOpenClient):
 
         return None
 
-    def get_prime_assets(self, account=None):
+    def get_prime_assets(self, account=None, base_currency=None):
         """
         get prime account assets
         :param account:
+        :param base_currency: tigeropen.common.consts.Currency, like Currency.USD
         :return: tigeropen.trade.domain.prime_account.PortfolioAccount
         """
         params = AssetParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
         params.lang = get_enum_value(self._lang)
+        params.base_currency = get_enum_value(base_currency)
 
         request = OpenApiRequest(PRIME_ASSETS, biz_model=params)
         response_content = self.__fetch_data(request)

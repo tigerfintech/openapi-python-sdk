@@ -11,7 +11,8 @@ from tigeropen.common.util.common_utils import get_enum_value
 class Contract:
     def __init__(self, symbol=None, currency=None, contract_id=None, sec_type=None, exchange=None, origin_symbol=None,
                  local_symbol=None, expiry=None, strike=None, put_call=None, multiplier=None, name=None,
-                 short_margin=None, short_fee_rate=None, shortable=None, shortable_count=None, long_initial_margin=None,
+                 short_margin=None, short_initial_margin=None, short_maintenance_margin=None,
+                 short_fee_rate=None, shortable=None, shortable_count=None, long_initial_margin=None,
                  long_maintenance_margin=None, contract_month=None, identifier=None, primary_exchange=None,
                  market=None, min_tick=None, trading_class=None, status=None, continuous=None, trade=None,
                  marginable=None, close_only=None,
@@ -35,6 +36,8 @@ class Contract:
         self.name = name
         # 做空保证金比例
         self.short_margin = short_margin
+        self.short_initial_margin = short_initial_margin
+        self.short_maintenance_margin = short_maintenance_margin
         # 做空费率
         self.short_fee_rate = short_fee_rate
         # 做空池剩余
@@ -85,6 +88,9 @@ class Contract:
             return '%s/%s/%s/%s' % (identifier, self.sec_type, self.currency, self.exchange)
         else:
             return '%s/%s/%s' % (identifier, self.sec_type, self.currency)
+
+    def to_str(self):
+        return str(self.__dict__)
 
     def is_cn_stock(self):
         """

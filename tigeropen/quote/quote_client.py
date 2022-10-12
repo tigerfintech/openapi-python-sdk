@@ -76,7 +76,9 @@ class QuoteClient(TigerOpenClient):
         super(QuoteClient, self).__init__(client_config, logger=self.logger)
         self._lang = LANGUAGE
         self._timezone = eastern
+        self._url = None
         if client_config:
+            self._url = client_config.quote_server_url
             self._lang = client_config.language
             if client_config.timezone:
                 self._timezone = client_config.timezone
@@ -87,7 +89,7 @@ class QuoteClient(TigerOpenClient):
 
     def __fetch_data(self, request):
         try:
-            response = super(QuoteClient, self).execute(request)
+            response = super(QuoteClient, self).execute(request, url=self._url)
             return response
         except Exception as e:
             if hasattr(THREAD_LOCAL, 'logger') and THREAD_LOCAL.logger:
@@ -480,7 +482,8 @@ class QuoteClient(TigerOpenClient):
             time.sleep(time_interval)
         return pd.concat(result).sort_values('time').reset_index(drop=True)
 
-    def get_trade_ticks(self, symbols, trade_session=None, begin_index=None, end_index=None, limit=None, lang=None):
+    def get_trade_ticks(self, symbols, trade_session=None, begin_index=None, end_index=None, limit=None, lang=None,
+                        **kwargs):
         """
         获取逐笔成交
         :param symbols: 股票代号列表
@@ -497,12 +500,16 @@ class QuoteClient(TigerOpenClient):
             direction: 价格变动方向，"-"表示向下变动， "+" 表示向上变动
         """
         params = MultipleQuoteParams()
-        params.symbols = symbols
+        params.symbols = [symbols] if isinstance(symbols, str) else symbols
+        # compatible with version 1.0
+        params.symbol = symbols if isinstance(symbols, str) else symbols[0]
         params.trade_session = get_enum_value(trade_session)
         params.begin_index = begin_index
         params.end_index = end_index
         params.limit = limit
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        if 'version' in kwargs:
+            params.version = kwargs.get('version')
 
         request = OpenApiRequest(TRADE_TICK, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -1232,7 +1239,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_financial_report(self, symbols, market, fields, period_type):
+    def get_financial_report(self, symbols, market, fields, period_type, begin_date=None, end_date=None):
         """
         获取财报数据
         :param symbols:
@@ -1240,6 +1247,8 @@ class QuoteClient(TigerOpenClient):
         :param fields: 查询的字段列表. 可选的项为 common.consts 下的 Income, Balance, CashFlow, BalanceSheetRatio,
                         Growth, Leverage, Profitability 枚举类型. 如 Income.total_revenue
         :param period_type: 查询的周期类型. 可选的值为 common.consts.FinancialReportPeriodType 枚举类型
+        :param begin_date: specify range begin of period_end_date
+        :param end_date: specify range end of period_end_date
         :return: pandas.DataFrame, 各 column 的含义如下:
             symbol: 证券代码
             currency: 财报使用的币种
@@ -1254,6 +1263,8 @@ class QuoteClient(TigerOpenClient):
         params.fields = [get_enum_value(field) for field in fields]
         params.period_type = get_enum_value(period_type)
         params.lang = get_enum_value(self._lang)
+        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
+        params.end_date = date_str_to_timestamp(end_date, self._timezone)
         request = OpenApiRequest(FINANCIAL_REPORT, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
