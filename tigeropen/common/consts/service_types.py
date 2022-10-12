@@ -25,6 +25,8 @@ FILLED_ORDERS = "filled_orders"  # 已成交订单
 ORDER_TRANSACTIONS = "order_transactions"  # 订单成交记录
 ANALYTICS_ASSET = "analytics_asset"
 
+USER_LICENSE = "user_license"
+
 """
 合约
 """
@@ -64,6 +66,7 @@ OPTION_TRADE_TICK = "option_trade_tick"
 FUTURE_EXCHANGE = "future_exchange"
 FUTURE_CONTRACT_BY_CONTRACT_CODE = "future_contract_by_contract_code"
 FUTURE_CONTRACT_BY_EXCHANGE_CODE = "future_contract_by_exchange_code"
+FUTURE_CONTRACTS = "future_contracts"
 FUTURE_CONTINUOUS_CONTRACTS = "future_continuous_contracts"
 FUTURE_CURRENT_CONTRACT = "future_current_contract"
 FUTURE_KLINE = "future_kline"

@@ -8,13 +8,12 @@ import logging
 import re
 import time
 
-import delorean
 import pandas as pd
 
-from tigeropen.common.consts import Market, Language, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
+from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
-    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR
+    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -23,7 +22,7 @@ from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL
     QUOTE_DEPTH, INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.request import OpenApiRequest
-from tigeropen.common.util.common_utils import eastern, get_enum_value
+from tigeropen.common.util.common_utils import eastern, get_enum_value, date_str_to_timestamp
 from tigeropen.common.util.contract_utils import extract_option_info
 from tigeropen.fundamental.request.model import FinancialDailyParams, FinancialReportParams, CorporateActionParams, \
     IndustryParams
@@ -66,26 +65,31 @@ from tigeropen.quote.response.symbol_names_response import SymbolNamesResponse
 from tigeropen.quote.response.symbols_response import SymbolsResponse
 from tigeropen.quote.response.trading_calendar_response import TradingCalendarResponse
 from tigeropen.tiger_open_client import TigerOpenClient
+from tigeropen.tiger_open_config import LANGUAGE
 
 
 class QuoteClient(TigerOpenClient):
 
     def __init__(self, client_config, logger=None, is_grab_permission=True):
         if not logger:
-            logger = logging.getLogger('tiger_openapi')
-        super(QuoteClient, self).__init__(client_config, logger=logger)
+            self.logger = logging.getLogger('tiger_openapi')
+        super(QuoteClient, self).__init__(client_config, logger=self.logger)
+        self._lang = LANGUAGE
+        self._timezone = eastern
+        self._url = None
         if client_config:
+            self._url = client_config.quote_server_url
             self._lang = client_config.language
-        else:
-            self._lang = Language.zh_CN
+            if client_config.timezone:
+                self._timezone = client_config.timezone
         self.permissions = None
         if is_grab_permission and self.permissions is None:
             self.permissions = self.grab_quote_permission()
-            logger.info('Grab quote permission. Permissions:' + str(self.permissions))
+            self.logger.info('Grab quote permission. Permissions:' + str(self.permissions))
 
     def __fetch_data(self, request):
         try:
-            response = super(QuoteClient, self).execute(request)
+            response = super(QuoteClient, self).execute(request, url=self._url)
             return response
         except Exception as e:
             if hasattr(THREAD_LOCAL, 'logger') and THREAD_LOCAL.logger:
@@ -125,7 +129,7 @@ class QuoteClient(TigerOpenClient):
         """
         params = MarketParams()
         params.market = get_enum_value(market)
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ALL_SYMBOLS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -173,7 +177,7 @@ class QuoteClient(TigerOpenClient):
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(QUOTE_STOCK_TRADE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -390,7 +394,7 @@ class QuoteClient(TigerOpenClient):
         params.symbols = symbols
         params.date = date
         params.right = get_enum_value(right)
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(HISTORY_TIMELINE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -478,7 +482,8 @@ class QuoteClient(TigerOpenClient):
             time.sleep(time_interval)
         return pd.concat(result).sort_values('time').reset_index(drop=True)
 
-    def get_trade_ticks(self, symbols, trade_session=None, begin_index=None, end_index=None, limit=None, lang=None):
+    def get_trade_ticks(self, symbols, trade_session=None, begin_index=None, end_index=None, limit=None, lang=None,
+                        **kwargs):
         """
         获取逐笔成交
         :param symbols: 股票代号列表
@@ -495,12 +500,16 @@ class QuoteClient(TigerOpenClient):
             direction: 价格变动方向，"-"表示向下变动， "+" 表示向上变动
         """
         params = MultipleQuoteParams()
-        params.symbols = symbols
+        params.symbols = [symbols] if isinstance(symbols, str) else symbols
+        # compatible with version 1.0
+        params.symbol = symbols if isinstance(symbols, str) else symbols[0]
         params.trade_session = get_enum_value(trade_session)
         params.begin_index = begin_index
         params.end_index = end_index
         params.limit = limit
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        if 'version' in kwargs:
+            params.version = kwargs.get('version')
 
         request = OpenApiRequest(TRADE_TICK, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -582,7 +591,7 @@ class QuoteClient(TigerOpenClient):
         params = DepthQuoteParams()
         params.symbols = symbols if isinstance(symbols, list) else [symbols]
         params.market = get_enum_value(market)
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(QUOTE_DEPTH, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -604,7 +613,7 @@ class QuoteClient(TigerOpenClient):
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(OPTION_EXPIRATION, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -645,11 +654,12 @@ class QuoteClient(TigerOpenClient):
         param = SingleContractParams()
         param.symbol = symbol
         if isinstance(expiry, str) and re.match('[0-9]{4}-[0-9]{2}-[0-9]{2}', expiry):
-            param.expiry = int(delorean.parse(expiry, timezone=eastern, dayfirst=False).datetime.timestamp() * 1000)
+            param.expiry = date_str_to_timestamp(expiry, self._timezone)
         else:
             param.expiry = expiry
         params.contracts = [param]
         params.option_filter = option_filter if option_filter else OptionFilter(**kwargs)
+        params.lang = get_enum_value(self._lang)
         params.version = OPEN_API_SERVICE_VERSION_V3
         request = OpenApiRequest(OPTION_CHAIN, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -697,12 +707,11 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleContractParams()
             param.symbol = symbol
-            param.expiry = int(delorean.parse(expiry, timezone=eastern, dayfirst=False).datetime.timestamp() * 1000)
+            param.expiry = date_str_to_timestamp(expiry, self._timezone)
             param.put_call = put_call
             param.strike = strike
             contracts.append(param)
         params.contracts = contracts
-
         request = OpenApiRequest(OPTION_BRIEF, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -742,15 +751,14 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleOptionQuoteParams()
             param.symbol = symbol
-            param.expiry = int(delorean.parse(expiry, timezone=eastern, dayfirst=False).datetime.timestamp() * 1000)
+            param.expiry = date_str_to_timestamp(expiry, self._timezone)
             param.put_call = put_call
             param.strike = strike
             param.period = BarPeriod.DAY.value
-            param.begin_time = begin_time
-            param.end_time = end_time
+            param.begin_time = date_str_to_timestamp(begin_time, self._timezone)
+            param.end_time = date_str_to_timestamp(end_time, self._timezone)
             contracts.append(param)
         params.contracts = contracts
-
         request = OpenApiRequest(OPTION_KLINE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -782,12 +790,12 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleContractParams()
             param.symbol = symbol
-            param.expiry = int(delorean.parse(expiry, timezone=eastern, dayfirst=False).datetime.timestamp() * 1000)
+            param.expiry = date_str_to_timestamp(expiry, timezone=self._timezone)
             param.put_call = put_call
             param.strike = strike
             contracts.append(param)
         params.contracts = contracts
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(OPTION_TRADE_TICK, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -889,6 +897,28 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
+    def get_all_future_contracts(self, future_type, lang=None):
+        """
+        Query all contracts of a given type
+        :param future_type: like CL, VIX
+        :param lang: language
+        :return: same as "get_current_future_contract"
+        """
+        params = FutureContractParams()
+        params.type = future_type
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+
+        request = OpenApiRequest(FUTURE_CONTRACTS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FutureContractResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.contracts
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
     def get_future_contract(self, contract_code, lang=None):
         """
         get future contract by contract_code
@@ -927,7 +957,7 @@ class QuoteClient(TigerOpenClient):
         params = FutureTradingTimeParams()
         params.contract_code = identifier
         params.trading_date = trading_date
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(FUTURE_TRADING_DATE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -965,11 +995,11 @@ class QuoteClient(TigerOpenClient):
         params = FutureQuoteParams()
         params.contract_codes = identifiers if isinstance(identifiers, list) else [identifiers]
         params.period = get_enum_value(period)
-        params.begin_time = begin_time
+        params.begin_time = date_str_to_timestamp(begin_time, self._timezone)
         params.end_time = end_time
         params.limit = limit
         params.page_token = page_token if len(params.contract_codes) == 1 else None
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(FUTURE_KLINE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1013,10 +1043,10 @@ class QuoteClient(TigerOpenClient):
             time.sleep(time_interval)
         return pd.concat(result).sort_values('time').reset_index(drop=True)
 
-    def get_future_trade_ticks(self, identifiers, begin_index=0, end_index=30, limit=1000):
+    def get_future_trade_ticks(self, identifier, begin_index=0, end_index=30, limit=1000):
         """
         获取期货逐笔成交
-        :param identifiers: 期货代码列表
+        :param identifier: future identifier. Only supports one identifier
         :param begin_index: 开始索引
         :param end_index: 结束索引
         :param limit: 数量限制
@@ -1027,11 +1057,16 @@ class QuoteClient(TigerOpenClient):
             volume: 成交量
         """
         params = FutureQuoteParams()
-        params.contract_codes = identifiers
+        # Compatible with previous version (previous version 'identifiers' argument is a list)
+        params.contract_code = identifier
+        if isinstance(identifier, list):
+            self.logger.warning("the 'identifier' argument should be a string")
+            params.contract_code = identifier[0]
         params.begin_index = begin_index
         params.end_index = end_index
         params.limit = limit
-
+        params.lang = get_enum_value(self._lang)
+        params.version = OPEN_API_SERVICE_VERSION_V3
         request = OpenApiRequest(FUTURE_TICK, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1066,7 +1101,7 @@ class QuoteClient(TigerOpenClient):
         """
         params = FutureQuoteParams()
         params.contract_codes = identifiers
-
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(FUTURE_REAL_TIME_QUOTE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1099,9 +1134,9 @@ class QuoteClient(TigerOpenClient):
         params.action_type = CorporateActionType.SPLIT.value
         params.symbols = symbols
         params.market = get_enum_value(market)
-        params.begin_date = begin_date
-        params.end_date = end_date
-
+        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
+        params.end_date = date_str_to_timestamp(end_date, self._timezone)
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(CORPORATE_ACTION, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1136,9 +1171,9 @@ class QuoteClient(TigerOpenClient):
         params.action_type = CorporateActionType.DIVIDEND.value
         params.symbols = symbols
         params.market = get_enum_value(market)
-        params.begin_date = begin_date
-        params.end_date = end_date
-
+        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
+        params.end_date = date_str_to_timestamp(end_date, self._timezone)
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(CORPORATE_ACTION, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1160,9 +1195,9 @@ class QuoteClient(TigerOpenClient):
         params = CorporateActionParams()
         params.action_type = CorporateActionType.EARNINGS_CALENDAR.value
         params.market = get_enum_value(market)
-        params.begin_date = begin_date
-        params.end_date = end_date
-
+        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
+        params.end_date = date_str_to_timestamp(end_date, self._timezone)
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(CORPORATE_ACTION, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1191,9 +1226,9 @@ class QuoteClient(TigerOpenClient):
         params.symbols = symbols
         params.market = get_enum_value(market)
         params.fields = [get_enum_value(field) for field in fields]
-        params.begin_date = begin_date
-        params.end_date = end_date
-
+        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
+        params.end_date = date_str_to_timestamp(end_date, self._timezone)
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(FINANCIAL_DAILY, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1204,7 +1239,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_financial_report(self, symbols, market, fields, period_type):
+    def get_financial_report(self, symbols, market, fields, period_type, begin_date=None, end_date=None):
         """
         获取财报数据
         :param symbols:
@@ -1212,6 +1247,8 @@ class QuoteClient(TigerOpenClient):
         :param fields: 查询的字段列表. 可选的项为 common.consts 下的 Income, Balance, CashFlow, BalanceSheetRatio,
                         Growth, Leverage, Profitability 枚举类型. 如 Income.total_revenue
         :param period_type: 查询的周期类型. 可选的值为 common.consts.FinancialReportPeriodType 枚举类型
+        :param begin_date: specify range begin of period_end_date
+        :param end_date: specify range end of period_end_date
         :return: pandas.DataFrame, 各 column 的含义如下:
             symbol: 证券代码
             currency: 财报使用的币种
@@ -1225,7 +1262,9 @@ class QuoteClient(TigerOpenClient):
         params.market = get_enum_value(market)
         params.fields = [get_enum_value(field) for field in fields]
         params.period_type = get_enum_value(period_type)
-
+        params.lang = get_enum_value(self._lang)
+        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
+        params.end_date = date_str_to_timestamp(end_date, self._timezone)
         request = OpenApiRequest(FINANCIAL_REPORT, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1247,6 +1286,7 @@ class QuoteClient(TigerOpenClient):
         """
         params = IndustryParams()
         params.industry_level = get_enum_value(industry_level)
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(INDUSTRY_LIST, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1270,6 +1310,7 @@ class QuoteClient(TigerOpenClient):
         params = IndustryParams()
         params.market = get_enum_value(market)
         params.industry_id = industry
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(INDUSTRY_STOCKS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1294,6 +1335,7 @@ class QuoteClient(TigerOpenClient):
         params = IndustryParams()
         params.symbol = symbol
         params.market = get_enum_value(market)
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(STOCK_INDUSTRY, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1356,6 +1398,7 @@ class QuoteClient(TigerOpenClient):
         params.market = get_enum_value(market)
         params.begin_date = begin_date
         params.end_date = end_date
+        params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(TRADING_CALENDAR, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
