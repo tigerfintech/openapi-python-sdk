@@ -76,7 +76,9 @@ class QuoteClient(TigerOpenClient):
         super(QuoteClient, self).__init__(client_config, logger=self.logger)
         self._lang = LANGUAGE
         self._timezone = eastern
+        self._url = None
         if client_config:
+            self._url = client_config.quote_server_url
             self._lang = client_config.language
             if client_config.timezone:
                 self._timezone = client_config.timezone
@@ -87,7 +89,7 @@ class QuoteClient(TigerOpenClient):
 
     def __fetch_data(self, request):
         try:
-            response = super(QuoteClient, self).execute(request)
+            response = super(QuoteClient, self).execute(request, url=self._url)
             return response
         except Exception as e:
             if hasattr(THREAD_LOCAL, 'logger') and THREAD_LOCAL.logger:
