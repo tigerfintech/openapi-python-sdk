@@ -210,6 +210,7 @@ class MultipleQuoteParams(MarketParams):
     def __init__(self):
         super(MultipleQuoteParams, self).__init__()
         self._symbols = None
+        self._symbol = None
         self._include_hour_trading = None
         self._include_ask_bid = None
         self._right = None
@@ -230,6 +231,14 @@ class MultipleQuoteParams(MarketParams):
     @symbols.setter
     def symbols(self, value):
         self._symbols = value
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
 
     @property
     def include_hour_trading(self):
@@ -332,6 +341,9 @@ class MultipleQuoteParams(MarketParams):
 
         if self.symbols:
             params['symbols'] = self.symbols
+
+        if self.symbol:
+            params['symbol'] = self.symbol
 
         if self.include_hour_trading is not None:
             params['include_hour_trading'] = self.include_hour_trading
