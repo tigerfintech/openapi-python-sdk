@@ -30,7 +30,7 @@ class AccountsParams(BaseParams):
         self._secret_key = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
         if self.secret_key:
@@ -46,6 +46,7 @@ class AssetParams(BaseParams):
         self._segment = False
         self._market_value = False
         self._sub_accounts = None
+        self._base_currency = None
 
     @property
     def account(self):
@@ -87,8 +88,16 @@ class AssetParams(BaseParams):
     def sub_accounts(self, value):
         self._sub_accounts = value
 
+    @property
+    def base_currency(self):
+        return self._base_currency
+
+    @base_currency.setter
+    def base_currency(self, value):
+        self._base_currency = value
+
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -103,6 +112,9 @@ class AssetParams(BaseParams):
 
         if self.sub_accounts:
             params['sub_accounts'] = self.sub_accounts
+
+        if self.base_currency:
+            params['base_currency'] = self.base_currency
 
         return params
 
@@ -202,7 +214,7 @@ class PositionParams(BaseParams):
         self._right = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -249,7 +261,6 @@ class ContractParams(BaseParams):
         self._expiry = None
         self._strike = None
         self._right = None
-        self._lang = None
 
     @property
     def account(self):
@@ -331,16 +342,8 @@ class ContractParams(BaseParams):
     def right(self, value):
         self._right = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -371,9 +374,6 @@ class ContractParams(BaseParams):
         if self.right:
             params['right'] = self.right
 
-        if self.lang:
-            params['lang'] = self.lang
-
         return params
 
 
@@ -385,7 +385,6 @@ class OrderParams(BaseParams):
         self._id = None  # 订单号(全局)
         self._order_id = None  # 订单号(账户维度)
         self._is_brief = None
-        self._lang = None  # 语言
 
     @property
     def account(self):
@@ -427,16 +426,8 @@ class OrderParams(BaseParams):
     def is_brief(self, value):
         self._is_brief = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -448,9 +439,6 @@ class OrderParams(BaseParams):
 
         if self.is_brief:
             params['is_brief'] = self.is_brief
-
-        if self.lang:
-            params['lang'] = self.lang
 
         if self.id:
             params['id'] = self.id
@@ -465,9 +453,9 @@ class OrdersParams(BaseParams):
         self._secret_key = None
         self._market = None  # 市场
         self._sec_type = None  # 合约类型
+        self._seg_type = None  # segment type
         self._symbol = None  # 合约代码
         self._is_brief = None
-        self._lang = None  # 语言
         self._start_date = None
         self._end_date = None
         self._limit = None
@@ -506,6 +494,14 @@ class OrdersParams(BaseParams):
     @sec_type.setter
     def sec_type(self, value):
         self._sec_type = value
+
+    @property
+    def seg_type(self):
+        return self._seg_type
+
+    @seg_type.setter
+    def seg_type(self, value):
+        self._seg_type = value
 
     @property
     def symbol(self):
@@ -548,14 +544,6 @@ class OrdersParams(BaseParams):
         self._is_brief = value
 
     @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
-    @property
     def states(self):
         return self._states
 
@@ -580,7 +568,7 @@ class OrdersParams(BaseParams):
         self._sort_by = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -592,6 +580,9 @@ class OrdersParams(BaseParams):
 
         if self.sec_type:
             params['sec_type'] = self.sec_type
+
+        if self.seg_type:
+            params['seg_type'] = self.seg_type
 
         if self.symbol:
             params['symbol'] = self.symbol
@@ -607,9 +598,6 @@ class OrdersParams(BaseParams):
 
         if self.is_brief:
             params['is_brief'] = self.is_brief
-
-        if self.lang:
-            params['lang'] = self.lang
 
         if self.states:
             params['states'] = self.states
@@ -727,7 +715,7 @@ class TransactionsParams(BaseParams):
         self._right = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -788,7 +776,7 @@ class PlaceModifyOrderParams(BaseParams):
         self.user_mark = None
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
 
         if self.contract:
             if self.contract.symbol is not None:
@@ -867,6 +855,13 @@ class PlaceModifyOrderParams(BaseParams):
                             params['stop_loss_tif'] = order_leg.time_in_force
                         if order_leg.outside_rth is not None:
                             params['stop_loss_rth'] = order_leg.outside_rth
+                        if order_leg.limit_price is not None:
+                            params['stop_loss_limit_price'] = order_leg.limit_price
+                        if order_leg.trailing_percent is not None:
+                            params['stop_loss_trailing_percent'] = order_leg.trailing_percent
+                        if order_leg.trailing_percent is not None:
+                            params['stop_loss_trailing_amount'] = order_leg.trailing_amount
+
                 # 括号订单(止盈和止损)
                 if len(leg_types) == 2:
                     params['attach_type'] = 'BRACKETS'
@@ -917,7 +912,7 @@ class CancelOrderParams(BaseParams):
         self._id = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -1010,7 +1005,7 @@ class AnalyticsAssetParams(BaseParams):
         self._end_date = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
