@@ -1,3 +1,12 @@
+## 2.1.9 (2022-10-12)
+### New
+- 支持多牌照配置, 分牌照请求不同域名. 可通过 client_config.license 指定牌照
+### Modify
+- `Contract` 新增属性 `short_initial_margin`, `short_maintenance_margin`, 新增方法 `to_str()` 可打印全部属性
+- `QuoteClient.get_financial_report` 增加参数 `begin_date`, `end_date`
+- `QuoteClient.get_trade_ticks` 兼容 1.0 版本接口
+
+
 ## 2.1.8 (2022-08-26)
 ### Modify
 - `TradeClient.get_orders` 新增参数 `seg_type`， 可指定交易品种(证券SEC/期货FUT/全部ALL)  

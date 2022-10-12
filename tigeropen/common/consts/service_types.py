@@ -25,6 +25,8 @@ FILLED_ORDERS = "filled_orders"  # 已成交订单
 ORDER_TRANSACTIONS = "order_transactions"  # 订单成交记录
 ANALYTICS_ASSET = "analytics_asset"
 
+USER_LICENSE = "user_license"
+
 """
 合约
 """
