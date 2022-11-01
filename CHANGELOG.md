@@ -1,3 +1,8 @@
+## 2.2.0 (2022-11-01)
+### New
+- 长链接支持期货逐笔推送. 可通过 `PushClient.subscribe_tick` 订阅，使用 `PushClient.tick_changed` 接收回调
+
+
 ## 2.1.9 (2022-10-12)
 ### New
 - 支持多牌照配置, 分牌照请求不同域名. 可通过 client_config.license 指定牌照
