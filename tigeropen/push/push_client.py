@@ -482,8 +482,7 @@ class PushClient(stomp.ConnectionListener):
             headers.update(extra_headers)
         return headers
 
-    @staticmethod
-    def _convert_tick(tick):
+    def _convert_tick(self, tick):
         data = json.loads(tick)
         symbol = data.pop('symbol')
         data = camel_to_underline_obj(data)
@@ -493,16 +492,19 @@ class PushClient(stomp.ConnectionListener):
         price_items = [('price', (item + price_base) / price_offset) for item in data.pop('prices')]
         time_items = [('time', item) for item in accumulate(data.pop('times'))]
         volumes = [('volume', item) for item in data.pop('volumes')]
-        tick_type_items = [('tick_type', item) for item in data.pop('tick_type')]
-        part_codes = data.pop('part_code')
+        tick_types = data.pop('tick_type') if 'tick_type' in data else None
+        if tick_types:
+            tick_type_items = [('tick_type', item) for item in tick_types]
+        else:
+            tick_type_items = [('tick_type', None) for _ in range(len(time_items))]
+        part_codes = data.pop('part_code') if 'part_code' in data else None
         if part_codes:
             part_code_items = [('part_code', get_part_code(item)) for item in part_codes]
             part_code_name_items = [('part_code_name', get_part_code_name(item)) for item in part_codes]
         else:
             part_code_items = [('part_code', None) for _ in range(len(time_items))]
             part_code_name_items = [('part_code_name', None) for _ in range(len(time_items))]
-
-        conds = data.pop('cond')
+        conds = data.pop('cond') if 'cond' in data else None
         cond_map = get_trade_condition_map(data.get('quote_level'))
         if conds:
             cond_items = [('cond', get_trade_condition(item, cond_map)) for item in conds]
@@ -510,12 +512,30 @@ class PushClient(stomp.ConnectionListener):
             cond_items = [('cond', None) for _ in range(len(time_items))]
         sn = data.pop('sn')
         sn_list = [('sn', sn + i) for i in range(len(time_items))]
+        merged_vols = data.pop('merged_vols') if 'merged_vols' in data else None
+        if merged_vols:
+            merged_vols_items = [('merged_vols', item) for item in merged_vols]
+        else:
+            merged_vols_items = [('merged_vols', None) for _ in range(len(time_items))]
         tick_data = zip_longest(tick_type_items, price_items, volumes, part_code_items,
-                                part_code_name_items, cond_items, time_items, sn_list)
+                                part_code_name_items, cond_items, time_items, sn_list, merged_vols_items)
         items = []
         for item in tick_data:
-            item_dict = dict(item)
+            try:
+                item_dict = dict(item)
+            except:
+                self.logger.error('convert tick error')
+                continue
             item_dict.update(data)
-            items.append(item_dict)
+            if item_dict.get('merged_vols'):
+                vols = item_dict.pop('merged_vols').get('vols')
+                for i, vol in enumerate(vols):
+                    sub_item = dict(item_dict)
+                    sub_item['sn'] = sub_item['sn'] * 10 + i
+                    sub_item['volume'] = vol
+                    items.append(sub_item)
+            else:
+                item_dict.pop('merged_vols', None)
+                items.append(item_dict)
         return symbol, items
 

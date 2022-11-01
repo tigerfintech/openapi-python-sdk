@@ -89,6 +89,17 @@ def on_tick_changed(symbol, items):
           'part_code_name': 'NASDAQ Stock Market, LLC (NASDAQ)', 'cond': 'US_FORM_T', 'time': 1656405616573,
           'server_timestamp': 1656405573461,
           'type': 'TradeTick', 'quote_level': 'usStockQuote', 'sn': 343, 'timestamp': 1656405617385}]
+
+      Futures tick items example:
+          [{'tick_type': None, 'price': 15544.0, 'volume': 1, 'part_code': None, 'part_code_name': None, 'cond': None,
+           'time': 1667285183000, 'sn': 636960, 'server_timestamp': 1667285184162, 'quote_level': 'quote-fut-tick',
+            'type': 'TradeTick', 'timestamp': 1667285184156},
+            {'tick_type': None, 'price': 15544.0, 'volume': 1, 'part_code': None, 'part_code_name': None, 'cond': None,
+             'time': 1667285183000, 'sn': 636961, 'server_timestamp': 1667285184162, 'quote_level': 'quote-fut-tick',
+              'type': 'TradeTick', 'timestamp': 1667285184156},
+            {'tick_type': None, 'price': 15544.0, 'volume': 2, 'part_code': None, 'part_code_name': None,
+              'cond': None, 'time': 1667285183000, 'sn': 636962, 'server_timestamp': 1667285184162,
+              'quote_level': 'quote-fut-tick', 'type': 'TradeTick', 'timestamp': 1667285184156}]
     :return:
     """
     print(symbol, items)
@@ -227,6 +238,7 @@ if __name__ == '__main__':
 
     # 订阅逐笔数据
     push_client.subscribe_tick(['AMD', 'QQQ'])
+    push_client.subscribe_tick(['HSImain'])
 
     # 订阅资产变动
     push_client.subscribe_asset()
