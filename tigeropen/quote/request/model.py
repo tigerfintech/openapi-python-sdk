@@ -363,13 +363,13 @@ class MultipleQuoteParams(MarketParams):
         if self.end_time:
             params['end_time'] = self.end_time
 
-        if self.limit:
+        if self.limit is not None:
             params['limit'] = self.limit
 
-        if self.begin_index:
+        if self.begin_index is not None:
             params['begin_index'] = self.begin_index
 
-        if self.end_index:
+        if self.end_index is not None:
             params['end_index'] = self.end_index
 
         if self.date:
