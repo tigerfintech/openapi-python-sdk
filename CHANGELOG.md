@@ -1,3 +1,8 @@
+## 2.2.1 (2022-11-07)
+### Fixed
+- 修复 `TradeClient.get_trade_ticks` begin_index 参数传 0 不生效的问题
+
+
 ## 2.2.0 (2022-11-01)
 ### New
 - 长链接支持期货逐笔推送. 可通过 `PushClient.subscribe_tick` 订阅，使用 `PushClient.tick_changed` 接收回调
