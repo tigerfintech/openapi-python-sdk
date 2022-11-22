@@ -45,7 +45,7 @@ class Order:
         - trailing_percent:  跟踪止损单-百分比, 取值范围为0-100
         - percent_offset: None,
         - order_type: 订单类型, 'MKT' 市价单 / 'LMT' 限价单 / 'STP' 止损单 / 'STP_LMT' 止损限价单 / 'TRAIL' 跟踪止损单
-        - time_in_force: 有效期,'DAY' 日内有效 / 'GTC' 撤销前有效
+        - time_in_force: 有效期,'DAY' 日内有效 / 'GTC' good til cancel  / 'GTD' good til date
         - outside_rth: 是否允许盘前盘后交易(outside of regular trading hours 美股专属). True 允许, False 不允许
         - contract: 合约对象
         - status: Order_Status 的枚举, 表示订单状态
