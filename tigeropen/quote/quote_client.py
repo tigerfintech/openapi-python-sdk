@@ -72,8 +72,9 @@ class QuoteClient(TigerOpenClient):
 
     def __init__(self, client_config, logger=None, is_grab_permission=True):
         if not logger:
-            self.logger = logging.getLogger('tiger_openapi')
-        super(QuoteClient, self).__init__(client_config, logger=self.logger)
+            logger = logging.getLogger('tiger_openapi')
+        self.logger = logger
+        super(QuoteClient, self).__init__(client_config, logger=logger)
         self._lang = LANGUAGE
         self._timezone = eastern
         self._url = None
