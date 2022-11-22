@@ -22,7 +22,7 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'contractId': 'contract_id', 'algoStrategy': 'algo_strategy',
                         'trailStopPrice': 'trail_stop_price', 'trailingPercent': 'trailing_percent',
                         'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params',
-                        'userMark': 'user_mark', 'updateTime': 'update_time'
+                        'userMark': 'user_mark', 'updateTime': 'update_time', 'expireTime': 'expire_time'
                         }
 
 
@@ -87,6 +87,7 @@ class OrdersResponse(TigerResponse):
         trailing_percent = order_fields.get('trailing_percent')
         percent_offset = order_fields.get('percent_offset')
         time_in_force = order_fields.get('time_in_force')
+        expire_time = order_fields.get('expire_time')
         outside_rth = order_fields.get('outside_rth')
         filled = order_fields.get('filled')
         avg_fill_price = order_fields.get('avg_fill_price')
@@ -110,7 +111,7 @@ class OrdersResponse(TigerResponse):
                       filled=filled, avg_fill_price=avg_fill_price, commission=commission,
                       realized_pnl=realized_pnl, id=id_, order_id=order_id, parent_id=parent_id,
                       algo_params=algo_params, liquidation=liquidation, algo_strategy=algo_strategy, discount=discount,
-                      attr_desc=attr_desc, source=source, user_mark=user_mark)
+                      attr_desc=attr_desc, source=source, user_mark=user_mark, expire_time=expire_time)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:

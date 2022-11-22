@@ -123,6 +123,19 @@ def on_order_changed(account, items):
     """
     print(account, items)
 
+def on_transaction_changed(account, items):
+    """
+
+    :param account:
+    :param items:
+    :return:
+    account:11111,
+    items: [('id', 28819544190616576), ('currency', 'USD'), ('sec_type', 'FUT'), ('market', 'SG'), ('symbol', 'CN'),
+     ('multiplier', 1.0), ('action', 'BUY'), ('filled_quantity', 1.0), ('filled_price', 12309.0),
+     ('order_id', 28819544031364096), ('transact_time', 1668774872538), ('create_time', 1668774872946),
+      ('update_time', 1668774872946), ('identifier', 'CN2212'), ('timestamp', 1668774873002), ('segment', 'C')]
+    """
+    print(f'account:{account}, items: {items}')
 
 def on_asset_changed(account, items):
     """
@@ -210,6 +223,8 @@ if __name__ == '__main__':
     # push_client.subscribed_symbols = on_query_subscribed_quote
     # 订单变动回调
     push_client.order_changed = on_order_changed
+    # 订单执行明细回调
+    push_client.transaction_changed = on_transaction_changed
     # 资产变动回调
     push_client.asset_changed = on_asset_changed
     # 持仓变动回调
@@ -244,6 +259,8 @@ if __name__ == '__main__':
     push_client.subscribe_asset()
     # 订阅订单变动
     push_client.subscribe_order()
+    # 订阅订单执行明细
+    push_client.subscribe_transaction()
     # 订阅持仓变动
     push_client.subscribe_position()
     # 查询已订阅的 symbol

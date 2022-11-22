@@ -17,10 +17,10 @@ from tigeropen import __VERSION__
 from tigeropen.common.consts import OrderStatus
 from tigeropen.common.consts.params import P_SDK_VERSION, P_SDK_VERSION_PREFIX
 from tigeropen.common.consts.push_destinations import QUOTE, QUOTE_DEPTH, QUOTE_FUTURE, QUOTE_OPTION, TRADE_ASSET, \
-    TRADE_ORDER, TRADE_POSITION, TRADE_TICK, TRADE_EXECUTION
+    TRADE_ORDER, TRADE_POSITION, TRADE_TICK, TRADE_TRANSACTION
 from tigeropen.common.consts.push_subscriptions import SUBSCRIPTION_QUOTE, SUBSCRIPTION_QUOTE_DEPTH, \
     SUBSCRIPTION_QUOTE_OPTION, SUBSCRIPTION_QUOTE_FUTURE, SUBSCRIPTION_TRADE_ASSET, SUBSCRIPTION_TRADE_POSITION, \
-    SUBSCRIPTION_TRADE_ORDER, SUBSCRIPTION_TRADE_TICK, SUBSCRIPTION_TRADE_EXECUTION
+    SUBSCRIPTION_TRADE_ORDER, SUBSCRIPTION_TRADE_TICK, SUBSCRIPTION_TRADE_TRANSACTION
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
 from tigeropen.common.exceptions import ApiException
@@ -97,7 +97,7 @@ class PushClient(stomp.ConnectionListener):
         self.asset_changed = None
         self.position_changed = None
         self.order_changed = None
-        self.execution_changed = None
+        self.transaction_changed = None
         self.connect_callback = None
         self.disconnect_callback = None
         self.subscribe_callback = None
@@ -276,14 +276,14 @@ class PushClient(stomp.ConnectionListener):
                             self.order_changed(account, items)
             elif response_type == str(ResponseType.SUBSCRIBE_TRADE_EXECUTION.value):
                 data = json.loads(body)
-                if self.execution_changed:
+                if self.transaction_changed:
                     if 'account' in data:
                         account = data.pop('account', None)
                         items = []
                         for key, value in data.items():
                             items.append((camel_to_underline(key), value))
                         if items:
-                            self.execution_changed(account, items)
+                            self.transaction_changed(account, items)
             elif response_type == str(ResponseType.GET_SUBSCRIBE_END.value):
                 if self.subscribe_callback:
                     self.subscribe_callback(headers.get('destination'), json.loads(body))
@@ -356,19 +356,19 @@ class PushClient(stomp.ConnectionListener):
         """
         self._handle_trade_unsubscribe(TRADE_ORDER, SUBSCRIPTION_TRADE_ORDER, sub_id=id)
 
-    def subscribe_execution(self, account=None):
+    def subscribe_transaction(self, account=None):
         """
         订阅订单执行明细
         :return:
         """
-        return self._handle_trade_subscribe(TRADE_EXECUTION, SUBSCRIPTION_TRADE_EXECUTION, account)
+        return self._handle_trade_subscribe(TRADE_TRANSACTION, SUBSCRIPTION_TRADE_TRANSACTION, account)
 
-    def unsubscribe_execution(self, id=None):
+    def unsubscribe_transaction(self, id=None):
         """
         退订订单执行明细
         :return:
         """
-        self._handle_trade_unsubscribe(TRADE_EXECUTION, SUBSCRIPTION_TRADE_EXECUTION, sub_id=id)
+        self._handle_trade_unsubscribe(TRADE_TRANSACTION, SUBSCRIPTION_TRADE_TRANSACTION, sub_id=id)
 
     def subscribe_quote(self, symbols, quote_key_type=QuoteKeyType.TRADE, focus_keys=None):
         """
