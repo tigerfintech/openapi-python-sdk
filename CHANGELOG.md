@@ -1,3 +1,8 @@
+## 2.2.2 (2022-11-22)
+### New
+- 订单支持GTD类型, 下单时可通过指定 Order 属性 time_in_force = "GTD" 设置
+- 订单成交明细支持长链接订阅推送
+
 ## 2.2.1 (2022-11-07)
 ### Fixed
 - 修复 `TradeClient.get_trade_ticks` begin_index 参数传 0 不生效的问题
