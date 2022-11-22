@@ -774,6 +774,7 @@ class PlaceModifyOrderParams(BaseParams):
         self.algo_params = None
         self.adjust_limit = None
         self.user_mark = None
+        self.expire_time = None
 
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
@@ -831,6 +832,8 @@ class PlaceModifyOrderParams(BaseParams):
                 params['adjust_limit'] = self.adjust_limit
             if self.user_mark is not None:
                 params['user_mark'] = self.user_mark
+            if self.expire_time is not None:
+                params['expire_time'] = self.expire_time
 
             if self.order_legs:
                 if len(self.order_legs) > 2:

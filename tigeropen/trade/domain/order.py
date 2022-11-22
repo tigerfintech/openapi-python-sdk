@@ -17,7 +17,7 @@ class Order:
                  "trail_stop_price", "limit_price", "aux_price", "trailing_percent", "percent_offset", "action",
                  "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params", "algo_strategy",
                  "secret_key", "liquidation", "discount", "attr_desc", "source", 'adjust_limit', 'sub_ids', "user_mark",
-                 "update_time"]
+                 "update_time", "expire_time"]
 
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
@@ -45,7 +45,7 @@ class Order:
         - trailing_percent:  跟踪止损单-百分比, 取值范围为0-100
         - percent_offset: None,
         - order_type: 订单类型, 'MKT' 市价单 / 'LMT' 限价单 / 'STP' 止损单 / 'STP_LMT' 止损限价单 / 'TRAIL' 跟踪止损单
-        - time_in_force: 有效期,'DAY' 日内有效 / 'GTC' 撤销前有效
+        - time_in_force: 有效期,'DAY' 日内有效 / 'GTC' good till cancel  / 'GTD' good till date
         - outside_rth: 是否允许盘前盘后交易(outside of regular trading hours 美股专属). True 允许, False 不允许
         - contract: 合约对象
         - status: Order_Status 的枚举, 表示订单状态
@@ -60,6 +60,7 @@ class Order:
           例如：0.001 代表向上调整且幅度不超过 0.1%；-0.001 代表向下调整且幅度不超过 0.1%。默认 0 表示不调整
         - sub_ids id list of sub orders.
         - user_mark: user's remark
+        - expire_time: GTD order's expire time
         """
 
         self.id = id
@@ -98,6 +99,7 @@ class Order:
         self.adjust_limit = kwargs.get('adjust_limit')
         self.sub_ids = kwargs.get('sub_ids')
         self.user_mark = kwargs.get('user_mark')
+        self.expire_time = kwargs.get('expire_time')
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
