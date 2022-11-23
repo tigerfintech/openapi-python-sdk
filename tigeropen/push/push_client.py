@@ -17,10 +17,10 @@ from tigeropen import __VERSION__
 from tigeropen.common.consts import OrderStatus
 from tigeropen.common.consts.params import P_SDK_VERSION, P_SDK_VERSION_PREFIX
 from tigeropen.common.consts.push_destinations import QUOTE, QUOTE_DEPTH, QUOTE_FUTURE, QUOTE_OPTION, TRADE_ASSET, \
-    TRADE_ORDER, TRADE_POSITION, TRADE_TICK
+    TRADE_ORDER, TRADE_POSITION, TRADE_TICK, TRADE_TRANSACTION
 from tigeropen.common.consts.push_subscriptions import SUBSCRIPTION_QUOTE, SUBSCRIPTION_QUOTE_DEPTH, \
     SUBSCRIPTION_QUOTE_OPTION, SUBSCRIPTION_QUOTE_FUTURE, SUBSCRIPTION_TRADE_ASSET, SUBSCRIPTION_TRADE_POSITION, \
-    SUBSCRIPTION_TRADE_ORDER, SUBSCRIPTION_TRADE_TICK
+    SUBSCRIPTION_TRADE_ORDER, SUBSCRIPTION_TRADE_TICK, SUBSCRIPTION_TRADE_TRANSACTION
 from tigeropen.common.consts.push_types import RequestType, ResponseType
 from tigeropen.common.consts.quote_keys import QuoteChangeKey, QuoteKeyType
 from tigeropen.common.exceptions import ApiException
@@ -97,6 +97,7 @@ class PushClient(stomp.ConnectionListener):
         self.asset_changed = None
         self.position_changed = None
         self.order_changed = None
+        self.transaction_changed = None
         self.connect_callback = None
         self.disconnect_callback = None
         self.subscribe_callback = None
@@ -273,6 +274,16 @@ class PushClient(stomp.ConnectionListener):
                                 items.append((camel_to_underline(key), value))
                         if items:
                             self.order_changed(account, items)
+            elif response_type == str(ResponseType.SUBSCRIBE_TRADE_EXECUTION.value):
+                data = json.loads(body)
+                if self.transaction_changed:
+                    if 'account' in data:
+                        account = data.pop('account', None)
+                        items = []
+                        for key, value in data.items():
+                            items.append((camel_to_underline(key), value))
+                        if items:
+                            self.transaction_changed(account, items)
             elif response_type == str(ResponseType.GET_SUBSCRIBE_END.value):
                 if self.subscribe_callback:
                     self.subscribe_callback(headers.get('destination'), json.loads(body))
@@ -344,6 +355,20 @@ class PushClient(stomp.ConnectionListener):
         :return:
         """
         self._handle_trade_unsubscribe(TRADE_ORDER, SUBSCRIPTION_TRADE_ORDER, sub_id=id)
+
+    def subscribe_transaction(self, account=None):
+        """
+        订阅订单执行明细
+        :return:
+        """
+        return self._handle_trade_subscribe(TRADE_TRANSACTION, SUBSCRIPTION_TRADE_TRANSACTION, account)
+
+    def unsubscribe_transaction(self, id=None):
+        """
+        退订订单执行明细
+        :return:
+        """
+        self._handle_trade_unsubscribe(TRADE_TRANSACTION, SUBSCRIPTION_TRADE_TRANSACTION, sub_id=id)
 
     def subscribe_quote(self, symbols, quote_key_type=QuoteKeyType.TRADE, focus_keys=None):
         """
@@ -482,8 +507,7 @@ class PushClient(stomp.ConnectionListener):
             headers.update(extra_headers)
         return headers
 
-    @staticmethod
-    def _convert_tick(tick):
+    def _convert_tick(self, tick):
         data = json.loads(tick)
         symbol = data.pop('symbol')
         data = camel_to_underline_obj(data)
@@ -493,16 +517,19 @@ class PushClient(stomp.ConnectionListener):
         price_items = [('price', (item + price_base) / price_offset) for item in data.pop('prices')]
         time_items = [('time', item) for item in accumulate(data.pop('times'))]
         volumes = [('volume', item) for item in data.pop('volumes')]
-        tick_type_items = [('tick_type', item) for item in data.pop('tick_type')]
-        part_codes = data.pop('part_code')
+        tick_types = data.pop('tick_type') if 'tick_type' in data else None
+        if tick_types:
+            tick_type_items = [('tick_type', item) for item in tick_types]
+        else:
+            tick_type_items = [('tick_type', None) for _ in range(len(time_items))]
+        part_codes = data.pop('part_code') if 'part_code' in data else None
         if part_codes:
             part_code_items = [('part_code', get_part_code(item)) for item in part_codes]
             part_code_name_items = [('part_code_name', get_part_code_name(item)) for item in part_codes]
         else:
             part_code_items = [('part_code', None) for _ in range(len(time_items))]
             part_code_name_items = [('part_code_name', None) for _ in range(len(time_items))]
-
-        conds = data.pop('cond')
+        conds = data.pop('cond') if 'cond' in data else None
         cond_map = get_trade_condition_map(data.get('quote_level'))
         if conds:
             cond_items = [('cond', get_trade_condition(item, cond_map)) for item in conds]
@@ -510,12 +537,30 @@ class PushClient(stomp.ConnectionListener):
             cond_items = [('cond', None) for _ in range(len(time_items))]
         sn = data.pop('sn')
         sn_list = [('sn', sn + i) for i in range(len(time_items))]
+        merged_vols = data.pop('merged_vols') if 'merged_vols' in data else None
+        if merged_vols:
+            merged_vols_items = [('merged_vols', item) for item in merged_vols]
+        else:
+            merged_vols_items = [('merged_vols', None) for _ in range(len(time_items))]
         tick_data = zip_longest(tick_type_items, price_items, volumes, part_code_items,
-                                part_code_name_items, cond_items, time_items, sn_list)
+                                part_code_name_items, cond_items, time_items, sn_list, merged_vols_items)
         items = []
         for item in tick_data:
-            item_dict = dict(item)
+            try:
+                item_dict = dict(item)
+            except:
+                self.logger.error('convert tick error')
+                continue
             item_dict.update(data)
-            items.append(item_dict)
+            if item_dict.get('merged_vols'):
+                vols = item_dict.pop('merged_vols').get('vols')
+                for i, vol in enumerate(vols):
+                    sub_item = dict(item_dict)
+                    sub_item['sn'] = sub_item['sn'] * 10 + i
+                    sub_item['volume'] = vol
+                    items.append(sub_item)
+            else:
+                item_dict.pop('merged_vols', None)
+                items.append(item_dict)
         return symbol, items
 

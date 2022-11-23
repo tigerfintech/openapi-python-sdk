@@ -569,6 +569,7 @@ class TradeClient(TigerOpenClient):
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
         params.adjust_limit = order.adjust_limit
         params.user_mark = order.user_mark
+        params.expire_time = order.expire_time
         params.lang = get_enum_value(self._lang)
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
@@ -615,6 +616,9 @@ class TradeClient(TigerOpenClient):
         params.trailing_percent = trailing_percent if trailing_percent is not None else order.trailing_percent
         params.percent_offset = percent_offset if percent_offset is not None else order.percent_offset
         params.time_in_force = time_in_force if time_in_force is not None else order.time_in_force
+        expire_time = kwargs.get('expire_time', order.expire_time)
+        if expire_time is not None:
+            params.expire_time = expire_time
         params.outside_rth = outside_rth if outside_rth is not None else order.outside_rth
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
         params.adjust_limit = kwargs.get('adjust_limit', order.adjust_limit)
