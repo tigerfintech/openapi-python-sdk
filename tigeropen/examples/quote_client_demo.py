@@ -208,6 +208,8 @@ def test_market_scanner(self):
     page_size = 50
     # 是否为最后一页数据
     is_last_page = False
+    # 筛选后的symbol列表
+    scanner_result_symbols = set()
 
     while not is_last_page:
         # filters参数里填需要使用的过滤器
@@ -226,12 +228,17 @@ def test_market_scanner(self):
                 accumulate_filter_value = item[accumulate_filter]
                 print(
                     f'page:{result.page}, symbol:{symbol}, base_filter1 value:{base_filter1_value}, accumulate_filter value:{accumulate_filter_value}')
+            print(f'current page symbols:{result.symbols}')
+            scanner_result_symbols.update(result.symbols)
         time.sleep(1)
         # 处理分页
         if result.page >= result.total_page - 1:
             is_last_page = True
         else:
             begin_page = result.page + 1
+
+    print(f'scanned symbols:{scanner_result_symbols}')
+
 
 
 if __name__ == '__main__':

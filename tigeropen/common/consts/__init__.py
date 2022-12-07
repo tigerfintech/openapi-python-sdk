@@ -11,6 +11,7 @@ from .fundamental_fields import Valuation, Income, Balance, CashFlow, BalanceShe
     Leverage, Profitability
 from .quote_keys import QuoteChangeKey, QuoteKeyType
 
+OPEN_API_SERVICE_VERSION_V1 = "1.0"
 OPEN_API_SERVICE_VERSION = "2.0"
 OPEN_API_SERVICE_VERSION_V3 = "3.0"
 

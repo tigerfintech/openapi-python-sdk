@@ -10,7 +10,8 @@ import time
 
 import pandas as pd
 
-from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
+from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3, \
+    OPEN_API_SERVICE_VERSION_V1
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
@@ -1349,7 +1350,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def market_scanner(self, market=Market.US, filters=None, sort_field_data=None, page=None, page_size=100):
+    def market_scanner(self, market=Market.US, filters=None, sort_field_data=None, page=0, page_size=100):
         """
         screen stocks
         :param market: tigeropen.common.consts.Market
@@ -1360,7 +1361,7 @@ class QuoteClient(TigerOpenClient):
         :return:
         """
         params = MarketScannerParams()
-        params.version = "1.0"
+        params.version = OPEN_API_SERVICE_VERSION_V1
         params.market = market.value
         if filters is not None:
             params.base_filter_list = list()

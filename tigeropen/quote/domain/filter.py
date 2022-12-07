@@ -166,20 +166,25 @@ class ScannerResult:
         self.total_page = total_page
         self.total_count = total_count
         self.page_size = page_size
-        self.items = self._build_items(items)
+        self.items = list()
+        self.symbols = list()
+        self._build_items(items)
 
     def _build_items(self, items):
         result_items = list()
+        symbols = set()
         if items:
             for item in items:
-                item = ScannerResultItem(symbol=item.get('symbol'),
+                result_item = ScannerResultItem(symbol=item.get('symbol'),
                                          market=item.get('market'),
                                          base_data_list=item.get('base_data_list'),
                                          accumulate_data_list=item.get('accumulate_data_list'),
                                          financial_data_list=item.get('financial_data_list'),
                                          multi_tag_data_list=item.get('multi_tag_data_list'))
-                result_items.append(item)
-        return result_items
+                result_items.append(result_item)
+                symbols.add(item.get('symbol'))
+        self.items = result_items
+        self.symbols = list(symbols)
 
     def __repr__(self):
         return "ScannerResult(%s)" % self.__dict__
