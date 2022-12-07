@@ -12,7 +12,10 @@ from tigeropen import __VERSION__
 from tigeropen.common.consts import OPEN_API_SERVICE_VERSION, THREAD_LOCAL
 from tigeropen.common.consts.params import P_TIMESTAMP, P_TIGER_ID, P_METHOD, P_CHARSET, P_VERSION, P_SIGN_TYPE, \
     P_DEVICE_ID, P_NOTIFY_URL, COMMON_PARAM_KEYS, P_SIGN
+from tigeropen.common.consts.service_types import USER_LICENSE
 from tigeropen.common.exceptions import ResponseException, RequestException
+from tigeropen.common.request import OpenApiRequest
+from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.common_utils import has_value
 from tigeropen.common.util.signature_utils import get_sign_content, sign_with_rsa, verify_with_rsa
 from tigeropen.common.util.web_utils import do_post
@@ -40,6 +43,16 @@ class TigerOpenClient:
             "User-Agent": 'openapi-python-sdk-' + __VERSION__
         }
         self.__device_id = self.__get_device_id()
+        self.__init_license()
+        self.__refresh_server_info()
+
+    def __init_license(self):
+        if self.__config.license is None and self.__config.enable_dynamic_domain:
+            self.__config.license = self.query_license()
+
+    def __refresh_server_info(self):
+        self.__config.refresh_server_info()
+
 
     """
     内部方法，从params中抽取公共参数
@@ -82,7 +95,7 @@ class TigerOpenClient:
     """
     内部方法，通过请求request对象构造请求查询字符串和业务参数
     """
-    def __prepare_request(self, request):
+    def __prepare_request(self, request, url=None):
         THREAD_LOCAL.logger = self.__logger
         params = request.get_params()
         params[P_TIMESTAMP] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -97,9 +110,9 @@ class TigerOpenClient:
             raise RequestException('[' + THREAD_LOCAL.uuid + ']request sign failed. ' + str(e))
         all_params[P_SIGN] = sign
 
-        log_url = self.__config.server_url + '?' + sign_content + "&sign=" + sign
+        log_url = url + '?' + sign_content + "&sign=" + sign
         if THREAD_LOCAL.logger:
-            THREAD_LOCAL.logger.info('[' + THREAD_LOCAL.uuid + ']request:' + log_url)
+            THREAD_LOCAL.logger.debug('[' + THREAD_LOCAL.uuid + ']request:' + log_url)
 
         return all_params
 
@@ -110,7 +123,7 @@ class TigerOpenClient:
     def __parse_response(self, response_str, timestamp=None):
         response_str = response_str.decode(self.__config.charset)
         if THREAD_LOCAL.logger:
-            THREAD_LOCAL.logger.info('[' + THREAD_LOCAL.uuid + ']response:' + response_str)
+            THREAD_LOCAL.logger.debug('[' + THREAD_LOCAL.uuid + ']response:' + response_str)
 
         response_content = json.loads(response_str)
 
@@ -134,12 +147,29 @@ class TigerOpenClient:
     执行接口请求
     """
 
-    def execute(self, request):
+    def execute(self, request, url=None):
+        if url is None:
+            url = self.__config.server_url
         THREAD_LOCAL.uuid = str(uuid.uuid1())
         query_string = None
-        params = self.__prepare_request(request)
+        params = self.__prepare_request(request, url)
 
-        response = do_post(self.__config.server_url, query_string, self.__headers, params, self.__config.timeout,
+        response = do_post(url, query_string, self.__headers, params, self.__config.timeout,
                            self.__config.charset)
 
         return self.__parse_response(response, params.get('timestamp'))
+
+    def query_license(self):
+        request = OpenApiRequest(method=USER_LICENSE)
+
+        response_content = None
+        try:
+            response_content = self.execute(request)
+        except Exception as e:
+            self.__logger.error(e, exc_info=True)
+        if response_content:
+            response = TigerResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return json.loads(response.data).get('license')
+        self.__logger.error(f"failed to query license, response: {response_content}")

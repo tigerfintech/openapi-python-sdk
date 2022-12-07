@@ -2,9 +2,7 @@
 # 
 # @Date    : 2021/11/15
 # @Author  : sukai
-from tigeropen.common.consts import SortDirection
-from tigeropen.common.model import Field
-from tigeropen.common.util.string_utils import underline_to_camel
+from tigeropen.common.consts.filter_fields import FilterField, FieldBelongType
 
 GREEKS = ['delta', 'gamma', 'theta', 'vega', 'rho']
 
@@ -61,28 +59,127 @@ class OptionFilter:
         return {'min': getattr(self, k + '_min'), 'max': getattr(self, k + '_max')}
 
 
-class StockFilter:
-    def __init__(self, field, min_value=None, max_value=None, sort_direction=None, enable=True):
-        """
-        stock filter
-        :param field: filter field. subclass of tigeropen.common.consts.Field, or field name string
-        :param min_value:
-        :param max_value:
-        :param sort_direction: tigeropen.common.consts.SortDirection. ASC or DESC
-        :param enable:
-        """
+class SortFilterData:
+    def __init__(self, field, sort_dir):
+        # 排序属性
         self.field = field
-        self.min_value = min_value
-        self.max_value = max_value
-        self.sort = sort_direction
-        self.enable = enable
+        # SortDir 排序方向，默认不排序
+        self.sort_dir = sort_dir
 
     def to_dict(self):
+        return {
+            'field_name': self.field.index,
+            'field_type': self.field.field_type_request_name,
+            'sort_dir': self.sort_dir.value
+        }
 
-        return {'field': underline_to_camel(self.field.name if isinstance(self.field, Field) else self.field),
-                'min_value': self.min_value,
-                'max_value': self.max_value,
-                'sort_direction': self.sort.value if isinstance(self.sort, SortDirection) else self.sort,
-                }
+
+class StockFilter:
+    def __init__(self, field, filter_min=None, filter_max=None, is_no_filter=False, accumulate_period=None,
+                 financial_period=None, tag_list=None):
+        """
+        stock filter
+        :param field: filter field, subclass of tigeropen.common.consts.filter_fields.FilterField
+        :param filter_min: Lower limit of the interval (closed interval), if not pass, means negative infinity
+        :param filter_max: Upper limit of the interval (closed interval), if not pass, means positive infinity
+        :param is_no_filter: is enable filter for this field
+        :param accumulate_period:
+        :param financial_period:
+        :param tag_list:
+        """
+        self.field = field
+        self.min_value = filter_min
+        self.max_value = filter_max
+        self.is_no_filter = is_no_filter
+        self.accumulate_period = accumulate_period
+        self.financial_period = financial_period
+        self.tag_list = tag_list
+
+    @property
+    def field_belong_type(self):
+        return FieldBelongType(self.field.field_type)
+
+    def to_dict(self):
+        param = {'field_name': self.field.field_type + '_' + self.field.name,
+                 'is_no_filter': self.is_no_filter
+                 }
+        if self.field_belong_type != FieldBelongType.MULTI_TAG:
+            param.update({'filter_min': self.min_value,
+                          'filter_max': self.max_value})
+        if self.field_belong_type == FieldBelongType.ACCUMULATE and self.accumulate_period:
+            param['period'] = self.accumulate_period.name
+        if self.field_belong_type == FieldBelongType.FINANCIAL and self.financial_period:
+            param['financial_period'] = self.financial_period.name
+        if self.field_belong_type == FieldBelongType.MULTI_TAG and self.tag_list:
+            param['tag_list'] = self.tag_list
+        return param
 
 
+class ScannerResultItem:
+    def __init__(self, symbol, market, base_data_list=None, accumulate_data_list=None, financial_data_list=None,
+                 multi_tag_data_list=None):
+        self.symbol = symbol
+        self.market = market
+        self.field_data = dict()
+        self.field_data.update(self._build_data_map(base_data_list, FieldBelongType.BASE))
+        self.field_data.update(self._build_data_map(accumulate_data_list, FieldBelongType.ACCUMULATE))
+        self.field_data.update(self._build_data_map(financial_data_list, FieldBelongType.FINANCIAL))
+        self.field_data.update(self._build_data_map(multi_tag_data_list, FieldBelongType.MULTI_TAG))
+
+    def _build_data_map(self, data_list, field_belong_type):
+        data_map = dict()
+        if data_list:
+            for item in data_list:
+                field = field_belong_type.field_class(item.get('index'))
+                data_map[field] = item.get('value')
+        return data_map
+
+    def __getitem__(self, key):
+        if isinstance(key, StockFilter):
+            return self.field_data.get(key.field)
+        elif isinstance(key, FilterField):
+            return self.field_data.get(key)
+
+    def __repr__(self):
+        return "ScannerResultItem(%s)" % self.__dict__
+
+
+class ScannerResult:
+    def __init__(self, page, page_size, total_page, total_count, items):
+        """
+        {'page': 0, 'total_page': 668, 'total_count': 6678, 'page_size': 10,
+        'items': [
+            {'symbol': 'MMIT', 'market': 'US',
+                'base_data_list': [{'index': 13, 'name': 'floatShares', 'value': 10000000.0}],
+                'accumulate_data_list': [],
+                'financial_data_list': [],
+                'multi_tag_data_list': []},
+            {'symbol': 'DPM', 'market': 'US',
+                'base_data_list': [{'index': 13, 'name': 'floatShares', 'value': 10000000.0}],
+                 'accumulate_data_list': [],
+                 'financial_data_list': [],
+                 'multi_tag_data_list': []},
+                ]
+        }
+        """
+        self.page = page
+        self.total_page = total_page
+        self.total_count = total_count
+        self.page_size = page_size
+        self.items = self._build_items(items)
+
+    def _build_items(self, items):
+        result_items = list()
+        if items:
+            for item in items:
+                item = ScannerResultItem(symbol=item.get('symbol'),
+                                         market=item.get('market'),
+                                         base_data_list=item.get('base_data_list'),
+                                         accumulate_data_list=item.get('accumulate_data_list'),
+                                         financial_data_list=item.get('financial_data_list'),
+                                         multi_tag_data_list=item.get('multi_tag_data_list'))
+                result_items.append(item)
+        return result_items
+
+    def __repr__(self):
+        return "ScannerResult(%s)" % self.__dict__

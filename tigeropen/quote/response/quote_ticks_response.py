@@ -4,6 +4,8 @@ Created on 2018/10/31
 
 @author: gaoan
 """
+import json
+
 import pandas as pd
 
 from tigeropen.common.response import TigerResponse
@@ -22,15 +24,33 @@ class TradeTickResponse(TigerResponse):
         if 'is_success' in response:
             self._is_success = response['is_success']
 
-        if self.data and isinstance(self.data, list):
+        # v2: {'data': [{'symbol': 'AAPL', 'beginIndex': 724203, 'endIndex': 724403,
+        # 'items': [{'time': 1663963199040, 'volume': 200, 'price': 150.66, 'type': '+'},
+        # {'time': 1663963199051, 'volume': 100, 'price': 150.65, 'type': '-'},
+        # {'time': 1663963199051, 'volume': 300, 'price': 150.65, 'type': '-'}]
+
+        # v1: {'data': '{"beginIndex":722500,"endIndex":724403,
+        # "items":[{"time":1663963192126,"volume":400,"price":150.5901,"type":"-"},
+        # {"time":1663963192142,"volume":100,"price":150.61,"type":"+"}
+
+        if self.data:
+            # v2
+            if isinstance(self.data, list):
+                symbol_items = self.data
+            else:
+                data = json.loads(self.data)
+                symbol_items = [data]
+
             tick_items = []
-            for symbol_item in self.data:
+            for symbol_item in symbol_items:
                 symbol = symbol_item.get('symbol')
                 if 'items' in symbol_item:
                     index = symbol_item.get('beginIndex')
 
                     for item in symbol_item['items']:
-                        item_values = {'symbol': symbol}
+                        item_values = dict()
+                        if symbol is not None:
+                            item_values['symbol'] = symbol
 
                         for key, value in item.items():
                             if value is None:
@@ -44,6 +64,6 @@ class TradeTickResponse(TigerResponse):
                         if index is not None:
                             item_values['index'] = index
                             index += 1
-                        tick_items.append([item_values.get(tag) for tag in COLUMNS])
+                        tick_items.append(item_values)
 
-                self.trade_ticks = pd.DataFrame(tick_items, columns=COLUMNS)
+            self.trade_ticks = pd.DataFrame(tick_items)
