@@ -1,3 +1,8 @@
+## 2.2.3 (2022-12-07)
+### new
+- 选股器 `QuoteClient.market_scanner`
+
+
 ## 2.2.2 (2022-11-22)
 ### New
 - 订单支持GTD类型, 下单时可通过指定 Order 属性 time_in_force = "GTD" 设置

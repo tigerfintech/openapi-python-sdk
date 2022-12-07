@@ -942,8 +942,8 @@ class MarketScannerParams(BaseParams):
             params['multi_tags_filter_list'] = self.multi_tags_filter_list
         if self.sort_field_data:
             params['sort_field_data'] = self.sort_field_data.to_dict()
-        if self.page:
+        if self.page is not None:
             params['page'] = self.page
-        if self.page_size:
+        if self.page_size is not None:
             params['page_size'] = self.page_size
         return params
