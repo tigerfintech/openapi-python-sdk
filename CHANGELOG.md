@@ -1,3 +1,143 @@
+## 2.2.2 (2022-11-22)
+### New
+- 订单支持GTD类型, 下单时可通过指定 Order 属性 time_in_force = "GTD" 设置
+- 订单成交明细支持长链接订阅推送
+
+## 2.2.1 (2022-11-07)
+### Fixed
+- 修复 `TradeClient.get_trade_ticks` begin_index 参数传 0 不生效的问题
+
+
+## 2.2.0 (2022-11-01)
+### New
+- 长链接支持期货逐笔推送. 可通过 `PushClient.subscribe_tick` 订阅，使用 `PushClient.tick_changed` 接收回调
+
+
+## 2.1.9 (2022-10-12)
+### New
+- 支持多牌照配置, 分牌照请求不同域名. 可通过 client_config.license 指定牌照
+### Modify
+- `Contract` 新增属性 `short_initial_margin`, `short_maintenance_margin`, 新增方法 `to_str()` 可打印全部属性
+- `QuoteClient.get_financial_report` 增加参数 `begin_date`, `end_date`
+- `QuoteClient.get_trade_ticks` 兼容 1.0 版本接口
+
+
+## 2.1.8 (2022-08-26)
+### Modify
+- `TradeClient.get_orders` 新增参数 `seg_type`， 可指定交易品种(证券SEC/期货FUT/全部ALL)  
+- `PushClient` 修改自动重连重试次数
+- `TradeClient.get_contract` 接口版本升级到V3
+### Fixed
+- 修复 `TradeClient.get_contract` 获取港股期权合约时返回空的问题
+
+
+## 2.1.7 (2022-08-19)
+### New
+- 新增获取期货某类型所有合约接口 `QuoteClient.get_all_future_contracts`
+- 附加订单支持追踪止损单
+
+### Breaking
+- 期货tick接口 `QuoteClient.get_future_trade_ticks`, 合约参数由接受列表改为只接受单个合约
+
+## 2.1.6 (2022-08-11)
+### Modify
+- 支持全局时区配置， 可通过 ClientConfig.timezone 设置时区
+
+
+## 2.1.5 (2022-08-01) 
+### Modify
+- 交易相关接口支持全局语言配置, 可通过 ClientConfig.language 改变默认语言
+
+
+## 2.1.4 (2022-07-18)
+### New
+- 新增历史资产分析接口 `TradeClient.get_analytics_asset`
+- 新增合约价格校正工具函数 `tigeropen.common.util.price_util.PriceUtil`, 可根据请求到的合约tick size, 校正输入的下单价格
+- 订单对象新增属性: 更新时间: `update_time`
+- 查询订单列表接口 `TradeClieng.get_orders (get_open_orders/get_filled_orders)` 支持指定排序规则, 按照订单创建时间或订单状态更新时间排序
+- 查询持仓接口 `TradeClient.get_positions` 支持期权要素(expiry, strike, put_call)参数过滤
+
+
+## 2.1.3 (2022-07-01)
+### New
+- 长连接新增逐笔订阅: `PushClient.subscribe_tick`, 退订 `PushClient.unsubscribe_tick`
+- 新增已订阅查询回调方法 `PushClient.query_subscribed_callback` 取代旧有的 `Pushclient.subscribed_symbols`
+- `QuoteClient.get_trade_ticks` 新增 `trade_session` 参数，可指定该参数查询盘前盘后数据
+
+### Modify
+- `Pushclient.subscribed_symbols` 标记为废弃
+
+
+## 2.1.2 (2022-06-14)
+### Modify
+- 升级 stomp.py 版本, 将之前的 4.1.24 升级到 8.0.1
+### Breaking
+- PushClient 去除 `auto_reconnect` 参数，如需自定义重连方式，可自定义方法并绑定 `disconnect_callback` 进行重连
+- 处理连接被踢的情况，如果有多台设备使用相同 tiger_id 连接, 新连接会将较早的连接踢掉，较早连接会抛出异常，停止接收消息
+
+## 2.1.1 (2022-05-25)
+### New
+- 新增批量分页获取k线接口
+  股票：`QuoteClient.get_bars_by_page`
+  期货：`QuoteClient.get_future_bars_by_page`
+- `QuoteClient.get_future_bars`, `QuoteClient.get_bars` 增加 `page_token` 参数，可用于分页请求定位下一页位置
+- `tigeropen.trade.domain.order.Order` 新增 `user_mark` 属性，用户下单时可传入一定长度的备注信息，该属性值在查询订单时会返回。(需用户提前向平台申请配置)
+
+## 2.1.0 (2022-05-07)
+### New
+- 动态获取服务域名；更改默认域名
+- 新增期权计算工具(examples.option_helpers.helpers)
+- 新增根据期货代码获取期货合约接口 `QuoteClient.get_future_contract`
+- 新增根据正股查衍生合约接口 `TradeClient.get_derivative_contracts`
+
+
+## 2.0.9 (2022-04-18)
+### New
+- 新增历史分时接口 `QuoteClient.get_timeline_history`
+- Order 对象新增字段
+  sub_ids: 附加订单子订单id列表(仅在下附加订单时此字段会有值)
+  adjust_limit: 限价单价格调整限制比例(作为下单参数使用, 查询时不返回)
+  
+### Breaking
+- 下单 `TradeClient.place_order`, 改单 `TradeClient.modify_order`, 撤单 `TradeClient.cancel_order` 三个接口返回值，由之前的
+  `True` 或 `False` 改为订单 id
+- 行情权限抢占，改为在 `QuoteClient` 初始化时默认自动抢占，提供参数 `is_grab_permission` 可配置为不自动抢占。若该参数设置为 `False`, 
+  则需用户自行调用 `QuoteClient.grab_quote_permission()` 进行行情权限抢占
+
+
+## 2.0.7 (2022-01-31)
+### Modify
+- 修改服务域名
+
+## 2.0.6 (2022-01-24)
+### New 
+- Contract 合约对象新增字段。  
+  marginable：是否可融资  
+  close_only：是否只允许平仓   
+  shortable_count：做空池剩余  
+- Order 订单对象新增字段。
+  attr_desc：属性描述（如期权是否为被动行权）  
+  source：订单来源  
+
+### Breaking
+- 将 `tigeropen.quote.request.OpenApiRequest` 移动到 `tigeropen.common.request.OpenApiRequest`
+
+
+## 2.0.5 (2022-01-10)
+### New
+- 查询行情权限接口 QuoteClient.get_quote_permission
+- 订单综合账户成交记录接口 TradeClient.get_transactions
+- 增加一个完整的策略示例
+
+### Changed
+- 方法枚举参数优化，使用枚举参数的方法也可以直接使用该枚举对应值
+- TradeClient.place_order 去除返回数据中 Order.order_id 属性的校验
+- 将 SDK 内部的日志级别由 INFO 调整为 DEBUG, 防止默认情况下输出 SDK 的日志
+- 去除 pandas 固定版本号, 方便安装时灵活指定版本
+
+### Breaking
+- 行情权限抢占接口 QuoteClient.grab_quote_permission 返回的数据项中，'expireAt' 字段格式转换为 'expire_at'
+
 ## 2.0.4 (2021-12-08)
 ### New
 - 综合/模拟账户查询资产接口 TradeClient.get_prime_assets

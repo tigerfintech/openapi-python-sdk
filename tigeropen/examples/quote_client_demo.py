@@ -5,10 +5,15 @@ Created on 2018/10/31
 @author: gaoan
 """
 import logging
+import time
+
 import pandas as pd
 from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, Valuation, \
-    Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, IndustryLevel
-from tigeropen.quote.domain.filter import OptionFilter
+    Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, IndustryLevel, BarPeriod, \
+    SortDirection
+from tigeropen.common.consts.filter_fields import AccumulateField, StockField, FinancialField, MultiTagField, \
+    AccumulatePeriod, FinancialPeriod
+from tigeropen.quote.domain.filter import OptionFilter, StockFilter, SortFilterData
 
 from tigeropen.quote.quote_client import QuoteClient
 
@@ -27,6 +32,9 @@ def get_quote():
     # 抢占行情权限
     quote_permissions = openapi_client.grab_quote_permission()
     print(quote_permissions)
+    # 查询行情权限
+    perms = openapi_client.get_quote_permission()
+    print(perms)
 
     market_status_list = openapi_client.get_market_status(Market.US)
     print(market_status_list)
@@ -38,6 +46,8 @@ def get_quote():
     print(metas)
     timelines = openapi_client.get_timeline(['AAPL'], include_hour_trading=True)
     print(timelines)
+    history_timelines = openapi_client.get_timeline_history(['AAPL'], date='2022-04-11')
+    print(history_timelines)
     bars = openapi_client.get_bars(['AAPL'])
     print(bars)
     ticks = openapi_client.get_trade_ticks(['00700'])
@@ -54,6 +64,21 @@ def get_quote():
     # 获取延迟行情
     delay_brief = openapi_client.get_stock_delay_briefs(['AAPL', 'GOOG'])
     print(delay_brief)
+
+    # 获取市场交易日历
+    calendar = openapi_client.get_trading_calendar(Market.US, begin_date='2022-07-01', end_date='2022-09-02')
+    print(calendar)
+
+
+def test_gat_bars_by_page():
+    bars = openapi_client.get_bars_by_page(['AAPL'], period=BarPeriod.DAY,
+                                           end_time='2022-05-01',
+                                           total=10,
+                                           page_size=4,
+                                           )
+    bars['cn_date'] = pd.to_datetime(bars['time'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('Asia/Shanghai')
+    bars['us_date'] = pd.to_datetime(bars['time'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+    print(bars)
 
 
 def get_option_quote():
@@ -80,9 +105,9 @@ def get_option_quote():
     chains = openapi_client.get_option_chain('AAPL', '2023-01-20', implied_volatility_min=0.5, open_interest_min=200,
                                              vega_min=0.1, rho_max=0.9)
     # convert expiry date to US/Eastern
-    chains['expiry_date'] = pd.to_datetime(chains['expiry'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+    chains['expiry_date'] = pd.to_datetime(chains['expiry'], unit='ms').dt.tz_localize('UTC').dt.tz_convert(
+        'US/Eastern')
     print(chains)
-
 
 
 def get_future_quote():
@@ -90,19 +115,33 @@ def get_future_quote():
     print(exchanges)
     bars = openapi_client.get_future_bars(['CN1901'], begin_time=-1, end_time=1545105097358)
     print(bars)
-    ticks = openapi_client.get_future_trade_ticks(['CN1901'])
+    ticks = openapi_client.get_future_trade_ticks('CN2209')
     print(ticks)
     contracts = openapi_client.get_future_contracts('CME')
     print(contracts)
+    contracts = openapi_client.get_all_future_contracts('CL')
+    print(contracts)
+    contract = openapi_client.get_future_contract('VIX2206')
+    print(contract)
     trading_times = openapi_client.get_future_trading_times('CN1901', trading_date=1545049282852)
     print(trading_times)
     briefs = openapi_client.get_future_brief(['ES1906', 'CN1901'])
     print(briefs)
 
 
+def test_get_future_bars_by_page():
+    bars = openapi_client.get_future_bars_by_page('CLmain',
+                                                  end_time=1648526400000,
+                                                  total=10,
+                                                  page_size=4)
+    bars['cn_date'] = pd.to_datetime(bars['time'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('Asia/Shanghai')
+    bars['us_date'] = pd.to_datetime(bars['time'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+    print(bars)
+
+
 def get_fundamental():
     """获取基础数据"""
-    
+
     # 日级财务数据
     financial_daily = openapi_client.get_financial_daily(symbols=['AAPL', 'MSFT'],
                                                          market=Market.US,
@@ -110,7 +149,7 @@ def get_fundamental():
                                                          begin_date='2019-01-01',
                                                          end_date='2019-01-10')
     print(financial_daily)
-    
+
     # 财报数据(季报或年报)
     financial_report = openapi_client.get_financial_report(symbols=['AAPL', 'GOOG'],
                                                            market=Market.US,
@@ -146,6 +185,53 @@ def get_fundamental():
     # 获取某股票的行业
     stock_industry = openapi_client.get_stock_industry('AAPL', Market.US)
     print(stock_industry)
+
+
+def test_market_scanner(self):
+    # 股票基本数据过滤(is_no_filter为True时表示不启用该过滤器)
+    base_filter1 = StockFilter(StockField.FloatShare, filter_min=1e7, filter_max=1e13, is_no_filter=True)
+    base_filter2 = StockFilter(StockField.MarketValue, filter_min=1e8, filter_max=1e14, is_no_filter=False)
+    # 周期累计数据过滤
+    accumulate_filter = StockFilter(AccumulateField.ChangeRate, filter_min=0.01, filter_max=1, is_no_filter=False,
+                                    accumulate_period=AccumulatePeriod.Last_Year)
+    # 财务数据过滤
+    financial_filter = StockFilter(FinancialField.LYR_PE, filter_min=1, filter_max=100, is_no_filter=False,
+                                   financial_period=FinancialPeriod.LTM)
+    # 多标签数据过滤
+    multi_tag_filter = StockFilter(MultiTagField.isOTC, tag_list=[0])
+
+    # 排序字段
+    sort_field_data = SortFilterData(StockField.FloatShare, sort_dir=SortDirection.ASC)
+
+    # 请求的开始页码
+    begin_page = 0
+    page_size = 50
+    # 是否为最后一页数据
+    is_last_page = False
+
+    while not is_last_page:
+        # filters参数里填需要使用的过滤器
+        result = openapi_client.market_scanner(market=Market.US,
+                                               filters=[base_filter1, base_filter2, accumulate_filter, financial_filter,
+                                                        multi_tag_filter],
+                                               sort_field_data=sort_field_data,
+                                               page=begin_page,
+                                               page_size=page_size)
+        if result.total_page:
+            for item in result.items:
+                symbol = item.symbol
+                market = item.market
+                # 可以字典的形式获取某个filter的字段对应的值
+                base_filter1_value = item[base_filter1]
+                accumulate_filter_value = item[accumulate_filter]
+                print(
+                    f'page:{result.page}, symbol:{symbol}, base_filter1 value:{base_filter1_value}, accumulate_filter value:{accumulate_filter_value}')
+        time.sleep(1)
+        # 处理分页
+        if result.page >= result.total_page - 1:
+            is_last_page = True
+        else:
+            begin_page = result.page + 1
 
 
 if __name__ == '__main__':

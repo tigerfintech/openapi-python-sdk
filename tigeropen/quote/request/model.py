@@ -12,7 +12,6 @@ class MarketParams(BaseParams):
         super(MarketParams, self).__init__()
         self._market = None  # 市场
         self._sec_type = None  # 交易品种
-        self._lang = None  # 语言
 
     @property
     def market(self):
@@ -30,24 +29,13 @@ class MarketParams(BaseParams):
     def sec_type(self, value):
         self._sec_type = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.market:
             params['market'] = self.market
 
         if self.sec_type:
             params['sec_type'] = self.sec_type
-
-        if self.lang:
-            params['lang'] = self.lang
 
         return params
 
@@ -222,6 +210,7 @@ class MultipleQuoteParams(MarketParams):
     def __init__(self):
         super(MultipleQuoteParams, self).__init__()
         self._symbols = None
+        self._symbol = None
         self._include_hour_trading = None
         self._include_ask_bid = None
         self._right = None
@@ -231,6 +220,9 @@ class MultipleQuoteParams(MarketParams):
         self._limit = None
         self._begin_index = None
         self._end_index = None
+        self._date = None
+        self._page_token = None
+        self._trade_session = None
 
     @property
     def symbols(self):
@@ -239,6 +231,14 @@ class MultipleQuoteParams(MarketParams):
     @symbols.setter
     def symbols(self, value):
         self._symbols = value
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
 
     @property
     def include_hour_trading(self):
@@ -312,11 +312,38 @@ class MultipleQuoteParams(MarketParams):
     def end_index(self, value):
         self._end_index = value
 
+    @property
+    def date(self):
+        return self._date
+
+    @date.setter
+    def date(self, value):
+        self._date = value
+
+    @property
+    def page_token(self):
+        return self._page_token
+
+    @page_token.setter
+    def page_token(self, value):
+        self._page_token = value
+
+    @property
+    def trade_session(self):
+        return self._trade_session
+
+    @trade_session.setter
+    def trade_session(self, value):
+        self._trade_session = value
+
     def to_openapi_dict(self):
         params = super(MultipleQuoteParams, self).to_openapi_dict()
 
         if self.symbols:
             params['symbols'] = self.symbols
+
+        if self.symbol:
+            params['symbol'] = self.symbol
 
         if self.include_hour_trading is not None:
             params['include_hour_trading'] = self.include_hour_trading
@@ -336,14 +363,23 @@ class MultipleQuoteParams(MarketParams):
         if self.end_time:
             params['end_time'] = self.end_time
 
-        if self.limit:
+        if self.limit is not None:
             params['limit'] = self.limit
 
-        if self.begin_index:
+        if self.begin_index is not None:
             params['begin_index'] = self.begin_index
 
-        if self.end_index:
+        if self.end_index is not None:
             params['end_index'] = self.end_index
+
+        if self.date:
+            params['date'] = self.date
+
+        if self.page_token:
+            params['page_token'] = self.page_token
+
+        if self.trade_session:
+            params['trade_session'] = self.trade_session
 
         return params
 
@@ -389,7 +425,7 @@ class SingleContractParams(BaseParams):
         self._strike = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
 
         if self.symbol:
             params['symbol'] = self.symbol
@@ -491,7 +527,6 @@ class FutureExchangeParams(BaseParams):
     def __init__(self):
         super(FutureExchangeParams, self).__init__()
         self._exchange_code = None  # 交易所
-        self._lang = None  # 语言
 
     @property
     def exchange_code(self):
@@ -501,29 +536,19 @@ class FutureExchangeParams(BaseParams):
     def exchange_code(self, value):
         self._exchange_code = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.exchange_code:
             params['exchange_code'] = self.exchange_code
-
-        if self.lang:
-            params['lang'] = self.lang
 
         return params
 
 
-class FutureTypeParams(BaseParams):
+class FutureContractParams(BaseParams):
     def __init__(self):
+        super().__init__()
         self._type = None  # 期货品种
-        self._lang = None  # 语言
+        self._contract_code = None  # 期货代码
 
     @property
     def type(self):
@@ -534,20 +559,20 @@ class FutureTypeParams(BaseParams):
         self._type = value
 
     @property
-    def lang(self):
-        return self._lang
+    def contract_code(self):
+        return self._contract_code
 
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
+    @contract_code.setter
+    def contract_code(self, value):
+        self._contract_code = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.type:
             params['type'] = self.type
 
-        if self.lang:
-            params['lang'] = self.lang
+        if self.contract_code:
+            params['contract_code'] = self.contract_code
 
         return params
 
@@ -575,7 +600,7 @@ class FutureTradingTimeParams(BaseParams):
         self._trading_date = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.contract_code:
             params['contract_code'] = self.contract_code
 
@@ -588,6 +613,7 @@ class FutureTradingTimeParams(BaseParams):
 class FutureQuoteParams(MarketParams):
     def __init__(self):
         super(FutureQuoteParams, self).__init__()
+        self._contract_code = None
         self._contract_codes = None
         self._period = None
         self._begin_time = None
@@ -595,6 +621,15 @@ class FutureQuoteParams(MarketParams):
         self._limit = None
         self._begin_index = None
         self._end_index = None
+        self._page_token = None
+
+    @property
+    def contract_code(self):
+        return self._contract_code
+
+    @contract_code.setter
+    def contract_code(self, value):
+        self._contract_code = value
 
     @property
     def contract_codes(self):
@@ -652,8 +687,19 @@ class FutureQuoteParams(MarketParams):
     def limit(self, value):
         self._limit = value
 
+    @property
+    def page_token(self):
+        return self._page_token
+
+    @page_token.setter
+    def page_token(self, value):
+        self._page_token = value
+
     def to_openapi_dict(self):
         params = super(FutureQuoteParams, self).to_openapi_dict()
+
+        if self.contract_code:
+            params['contract_code'] = self.contract_code
 
         if self.contract_codes:
             params['contract_codes'] = self.contract_codes
@@ -675,6 +721,9 @@ class FutureQuoteParams(MarketParams):
 
         if self.limit:
             params['limit'] = self.limit
+
+        if self.page_token:
+            params['page_token'] = self.page_token
 
         return params
 
@@ -702,7 +751,7 @@ class DepthQuoteParams(BaseParams):
         self._market = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.symbols:
             params['symbols'] = self.symbols
         if self.market:
@@ -733,7 +782,8 @@ class OptionChainParams(BaseParams):
         self._option_filter = value
 
     def to_openapi_dict(self):
-        params = {'option_basic': list(), 'option_filter': dict()}
+        params = super().to_openapi_dict()
+        params.update({'option_basic': list(), 'option_filter': dict()})
 
         if self.contracts:
             for contract in self.contracts:
@@ -743,13 +793,12 @@ class OptionChainParams(BaseParams):
         return params
 
 
-class StockScreenerParams(BaseParams):
+class TradingCalendarParams(BaseParams):
     def __init__(self):
-        super(StockScreenerParams, self).__init__()
+        super().__init__()
         self._market = None
-        self._stock_filters = None
-        self._page = None
-        self._limit = None
+        self._begin_date = None
+        self._end_date = None
 
     @property
     def market(self):
@@ -760,12 +809,92 @@ class StockScreenerParams(BaseParams):
         self._market = value
 
     @property
-    def stock_filters(self):
-        return self._stock_filters
+    def begin_date(self):
+        return self._begin_date
 
-    @stock_filters.setter
-    def stock_filters(self, value):
-        self._stock_filters = value
+    @begin_date.setter
+    def begin_date(self, value):
+        self._begin_date = value
+
+    @property
+    def end_date(self):
+        return self._end_date
+
+    @end_date.setter
+    def end_date(self, value):
+        self._end_date = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.market:
+            params['market'] = self.market
+
+        if self.begin_date:
+            params['begin_date'] = self.begin_date
+
+        if self.end_date:
+            params['end_date'] = self.end_date
+
+
+class MarketScannerParams(BaseParams):
+    def __init__(self):
+        super(MarketScannerParams, self).__init__()
+        self._market = None
+        self._base_filter_list = None
+        self._accumulate_filter_list = None
+        self._financial_filter_list = None
+        self._multi_tags_filter_list = None
+        self._sort_field_data = None
+        self._page = None
+        self._page_size = None
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
+    @property
+    def base_filter_list(self):
+        return self._base_filter_list
+
+    @base_filter_list.setter
+    def base_filter_list(self, value):
+        self._base_filter_list = value
+
+    @property
+    def accumulate_filter_list(self):
+        return self._accumulate_filter_list
+
+    @accumulate_filter_list.setter
+    def accumulate_filter_list(self, value):
+        self._accumulate_filter_list = value
+
+    @property
+    def financial_filter_list(self):
+        return self._financial_filter_list
+
+    @financial_filter_list.setter
+    def financial_filter_list(self, value):
+        self._financial_filter_list = value
+
+    @property
+    def multi_tags_filter_list(self):
+        return self._multi_tags_filter_list
+
+    @multi_tags_filter_list.setter
+    def multi_tags_filter_list(self, value):
+        self._multi_tags_filter_list = value
+
+    @property
+    def sort_field_data(self):
+        return self._sort_field_data
+
+    @sort_field_data.setter
+    def sort_field_data(self, value):
+        self._sort_field_data = value
 
     @property
     def page(self):
@@ -776,24 +905,45 @@ class StockScreenerParams(BaseParams):
         self._page = value
 
     @property
-    def limit(self):
-        return self._limit
+    def page_size(self):
+        return self._page_size
 
-    @limit.setter
-    def limit(self, value):
-        self._limit = value
+    @page_size.setter
+    def page_size(self, value):
+        self._page_size = value
 
     def to_openapi_dict(self):
+        """
+        example
+        {"accumulate_filter_list":
+            [{"field_name":"AccumulateField_ChangeRate","filter_max":1,"filter_min":0.01,"is_no_filter":false,"period":"Last_Year"}],
+        "base_filter_list":
+            [{"field_name":"StockField_FloatShare","filter_max":10000000000000.0,"filter_min":10000000.0,"is_no_filter":true},
+            {"field_name":"StockField_MarketValue","filter_max":100000000000000.0,"filter_min":100000000.0,"is_no_filter":false}],
+        "financial_filter_list":
+            [{"field_name":"FinancialField_LYR_PE","filter_max":100,"filter_min":1,"financial_period":"LTM","is_no_filter":false}],
+        "multi_tags_filter_list":
+            [{"field_name":"MultiTagField_isOTC","is_no_filter":false,"tag_list":[1]}],
+        "sort_field_data":{"field_name":13,"field_type":"StockField_Type","sort_dir":"SortDir_Ascend"},
+        "page_size":50,
+        "market":"US"}
+        :return:
+        """
         params = dict()
         if self.market:
             params['market'] = self.market
-        if self.stock_filters:
-            params['stock_filters'] = list()
-            for item in self.stock_filters:
-                if item.enable:
-                    params['stock_filters'].append(item.to_dict())
+        if self.base_filter_list:
+            params['base_filter_list'] = self.base_filter_list
+        if self.accumulate_filter_list:
+            params['accumulate_filter_list'] = self.accumulate_filter_list
+        if self.financial_filter_list:
+            params['financial_filter_list'] = self.financial_filter_list
+        if self.multi_tags_filter_list:
+            params['multi_tags_filter_list'] = self.multi_tags_filter_list
+        if self.sort_field_data:
+            params['sort_field_data'] = self.sort_field_data.to_dict()
         if self.page:
             params['page'] = self.page
-        if self.limit:
-            params['limit'] = self.limit
+        if self.page_size:
+            params['page_size'] = self.page_size
         return params

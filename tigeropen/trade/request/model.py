@@ -30,7 +30,7 @@ class AccountsParams(BaseParams):
         self._secret_key = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
         if self.secret_key:
@@ -46,6 +46,7 @@ class AssetParams(BaseParams):
         self._segment = False
         self._market_value = False
         self._sub_accounts = None
+        self._base_currency = None
 
     @property
     def account(self):
@@ -87,8 +88,16 @@ class AssetParams(BaseParams):
     def sub_accounts(self, value):
         self._sub_accounts = value
 
+    @property
+    def base_currency(self):
+        return self._base_currency
+
+    @base_currency.setter
+    def base_currency(self, value):
+        self._base_currency = value
+
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -104,6 +113,9 @@ class AssetParams(BaseParams):
         if self.sub_accounts:
             params['sub_accounts'] = self.sub_accounts
 
+        if self.base_currency:
+            params['base_currency'] = self.base_currency
+
         return params
 
 
@@ -117,6 +129,9 @@ class PositionParams(BaseParams):
         self._currency = None
         self._market = None
         self._sub_accounts = None
+        self._expiry = None
+        self._strike = None
+        self._right = None
 
     @property
     def account(self):
@@ -174,8 +189,32 @@ class PositionParams(BaseParams):
     def sub_accounts(self, value):
         self._sub_accounts = value
 
+    @property
+    def expiry(self):
+        return self._expiry
+
+    @expiry.setter
+    def expiry(self, value):
+        self._expiry = value
+
+    @property
+    def strike(self):
+        return self._strike
+
+    @strike.setter
+    def strike(self, value):
+        self._strike = value
+
+    @property
+    def right(self):
+        return self._right
+
+    @right.setter
+    def right(self, value):
+        self._right = value
+
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -196,6 +235,15 @@ class PositionParams(BaseParams):
 
         if self.sub_accounts:
             params['sub_accounts'] = self.sub_accounts
+
+        if self.expiry:
+            params['expiry'] = self.expiry
+
+        if self.strike:
+            params['strike'] = self.strike
+
+        if self.right:
+            params['right'] = self.right
 
         return params
 
@@ -295,7 +343,7 @@ class ContractParams(BaseParams):
         self._right = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -337,7 +385,6 @@ class OrderParams(BaseParams):
         self._id = None  # 订单号(全局)
         self._order_id = None  # 订单号(账户维度)
         self._is_brief = None
-        self._lang = None  # 语言
 
     @property
     def account(self):
@@ -379,16 +426,8 @@ class OrderParams(BaseParams):
     def is_brief(self, value):
         self._is_brief = value
 
-    @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -400,9 +439,6 @@ class OrderParams(BaseParams):
 
         if self.is_brief:
             params['is_brief'] = self.is_brief
-
-        if self.lang:
-            params['lang'] = self.lang
 
         if self.id:
             params['id'] = self.id
@@ -417,14 +453,15 @@ class OrdersParams(BaseParams):
         self._secret_key = None
         self._market = None  # 市场
         self._sec_type = None  # 合约类型
+        self._seg_type = None  # segment type
         self._symbol = None  # 合约代码
         self._is_brief = None
-        self._lang = None  # 语言
         self._start_date = None
         self._end_date = None
         self._limit = None
         self._states = None
         self._parent_id = None
+        self._sort_by = None
 
     @property
     def account(self):
@@ -457,6 +494,14 @@ class OrdersParams(BaseParams):
     @sec_type.setter
     def sec_type(self, value):
         self._sec_type = value
+
+    @property
+    def seg_type(self):
+        return self._seg_type
+
+    @seg_type.setter
+    def seg_type(self, value):
+        self._seg_type = value
 
     @property
     def symbol(self):
@@ -499,14 +544,6 @@ class OrdersParams(BaseParams):
         self._is_brief = value
 
     @property
-    def lang(self):
-        return self._lang
-
-    @lang.setter
-    def lang(self, value):
-        self._lang = value
-
-    @property
     def states(self):
         return self._states
 
@@ -522,8 +559,16 @@ class OrdersParams(BaseParams):
     def parent_id(self, value):
         self._parent_id = value
 
+    @property
+    def sort_by(self):
+        return self._sort_by
+
+    @sort_by.setter
+    def sort_by(self, value):
+        self._sort_by = value
+
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -535,6 +580,9 @@ class OrdersParams(BaseParams):
 
         if self.sec_type:
             params['sec_type'] = self.sec_type
+
+        if self.seg_type:
+            params['seg_type'] = self.seg_type
 
         if self.symbol:
             params['symbol'] = self.symbol
@@ -551,14 +599,155 @@ class OrdersParams(BaseParams):
         if self.is_brief:
             params['is_brief'] = self.is_brief
 
-        if self.lang:
-            params['lang'] = self.lang
-
         if self.states:
             params['states'] = self.states
 
         if self.parent_id:
             params['parent_id'] = self.parent_id
+
+        if self.sort_by:
+            params['sort_by'] = self.sort_by
+
+        return params
+
+
+class TransactionsParams(BaseParams):
+    def __init__(self):
+        super(TransactionsParams, self).__init__()
+        self._account = None
+        self._secret_key = None
+        self._order_id = None
+        self._sec_type = None
+        self._symbol = None
+        self._expiry = None
+        self._strike = None
+        self._right = None
+        self._start_date = None
+        self._end_date = None
+        self._limit = None
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def order_id(self):
+        return self._order_id
+
+    @order_id.setter
+    def order_id(self, value):
+        self._order_id = value
+
+    @property
+    def sec_type(self):
+        return self._sec_type
+
+    @sec_type.setter
+    def sec_type(self, value):
+        self._sec_type = value
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
+
+    @property
+    def start_date(self):
+        return self._start_date
+
+    @start_date.setter
+    def start_date(self, value):
+        self._start_date = value
+
+    @property
+    def end_date(self):
+        return self._end_date
+
+    @end_date.setter
+    def end_date(self, value):
+        self._end_date = value
+
+    @property
+    def limit(self):
+        return self._limit
+
+    @limit.setter
+    def limit(self, value):
+        self._limit = value
+
+    @property
+    def expiry(self):
+        return self._expiry
+
+    @expiry.setter
+    def expiry(self, value):
+        self._expiry = value
+
+    @property
+    def strike(self):
+        return self._strike
+
+    @strike.setter
+    def strike(self, value):
+        self._strike = value
+
+    @property
+    def right(self):
+        return self._right
+
+    @right.setter
+    def right(self, value):
+        self._right = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.account:
+            params['account'] = self.account
+
+        if self.order_id:
+            params['order_id'] = self.order_id
+
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+
+        if self.symbol:
+            params['symbol'] = self.symbol
+
+        if self.sec_type:
+            params['sec_type'] = self.sec_type
+
+        if self.start_date:
+            params['start_date'] = self.start_date
+
+        if self.end_date:
+            params['end_date'] = self.end_date
+
+        if self.limit:
+            params['limit'] = self.limit
+
+        if self.expiry:
+            params['expiry'] = self.expiry
+
+        if self.strike:
+            params['strike'] = self.strike
+
+        if self.right:
+            params['right'] = self.right
 
         return params
 
@@ -583,9 +772,12 @@ class PlaceModifyOrderParams(BaseParams):
         self.outside_rth = None
         self.order_legs = None
         self.algo_params = None
+        self.adjust_limit = None
+        self.user_mark = None
+        self.expire_time = None
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
 
         if self.contract:
             if self.contract.symbol is not None:
@@ -636,6 +828,12 @@ class PlaceModifyOrderParams(BaseParams):
                 params['time_in_force'] = self.time_in_force
             if self.outside_rth is not None:
                 params['outside_rth'] = self.outside_rth
+            if self.adjust_limit is not None:
+                params['adjust_limit'] = self.adjust_limit
+            if self.user_mark is not None:
+                params['user_mark'] = self.user_mark
+            if self.expire_time is not None:
+                params['expire_time'] = self.expire_time
 
             if self.order_legs:
                 if len(self.order_legs) > 2:
@@ -660,6 +858,13 @@ class PlaceModifyOrderParams(BaseParams):
                             params['stop_loss_tif'] = order_leg.time_in_force
                         if order_leg.outside_rth is not None:
                             params['stop_loss_rth'] = order_leg.outside_rth
+                        if order_leg.limit_price is not None:
+                            params['stop_loss_limit_price'] = order_leg.limit_price
+                        if order_leg.trailing_percent is not None:
+                            params['stop_loss_trailing_percent'] = order_leg.trailing_percent
+                        if order_leg.trailing_percent is not None:
+                            params['stop_loss_trailing_amount'] = order_leg.trailing_amount
+
                 # 括号订单(止盈和止损)
                 if len(leg_types) == 2:
                     params['attach_type'] = 'BRACKETS'
@@ -710,7 +915,7 @@ class CancelOrderParams(BaseParams):
         self._id = value
 
     def to_openapi_dict(self):
-        params = dict()
+        params = super().to_openapi_dict()
         if self.account:
             params['account'] = self.account
 
@@ -723,4 +928,108 @@ class CancelOrderParams(BaseParams):
         if self.id:
             params['id'] = self.id
 
+        return params
+
+
+class AnalyticsAssetParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._account = None
+        self._sub_account = None
+        self._secret_key = None
+        self._seg_type = None
+        self._currency = None
+        self._sub_accounts = None
+        self._start_date = None
+        self._end_date = None
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def sub_account(self):
+        return self._sub_account
+
+    @sub_account.setter
+    def sub_account(self, value):
+        self._sub_account = value
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def seg_type(self):
+        return self._seg_type
+
+    @seg_type.setter
+    def seg_type(self, value):
+        self._seg_type = value
+
+    @property
+    def currency(self):
+        return self._currency
+
+    @currency.setter
+    def currency(self, value):
+        self._currency = value
+
+    @property
+    def sub_accounts(self):
+        return self._sub_accounts
+
+    @sub_accounts.setter
+    def sub_accounts(self, value):
+        self._sub_accounts = value
+
+    @property
+    def start_date(self):
+        return self._start_date
+
+    @start_date.setter
+    def start_date(self, value):
+        self._start_date = value
+
+    @property
+    def end_date(self):
+        return self._end_date
+
+    @end_date.setter
+    def end_date(self, value):
+        self._end_date = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.account:
+            params['account'] = self.account
+
+        if self.sub_account:
+            params['sub_account'] = self.sub_account
+
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+
+        if self.seg_type:
+            params['seg_type'] = self.seg_type
+
+        if self.currency:
+            params['currency'] = self.currency
+
+        if self.sub_accounts:
+            params['sub_accounts'] = self.sub_accounts
+
+        if self.start_date:
+            params['start_date'] = self.start_date
+
+        if self.end_date:
+            params['end_date'] = self.end_date
         return params

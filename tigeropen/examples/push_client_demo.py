@@ -6,12 +6,29 @@ Created on 2018/10/30
 """
 import time
 # from tigeropen.common.consts import QuoteKeyType
+import pandas as pd
+
 from tigeropen.push.push_client import PushClient
 from tigeropen.examples.client_config import get_client_config
 
 
+def query_subscribed_callback(data):
+    """
+    callback of PushClient.query_subscribed_quote
+    :param data:
+        example:
+        {'subscribed_symbols': ['QQQ'], 'limit': 1200, 'used': 1, 'symbol_focus_keys': {'qqq': ['open', 'prev_close', 'low', 'volume', 'latest_price', 'close', 'high']},
+         'subscribed_quote_depth_symbols': ['NVDA'], 'quote_depth_limit': 20, 'quote_depth_used': 1,
+         'subscribed_trade_tick_symbols': ['QQQ', 'AMD', '00700'], 'trade_tick_limit': 1200, 'trade_tick_used': 3
+         }
+    :return:
+    """
+    print(data)
+
+
 def on_query_subscribed_quote(symbols, focus_keys, limit, used):
     """
+    deprecated. Use query_subscribed_callback instead.
     查询已订阅symbol回调
     :param symbols: 订阅合约的列表
     :param focus_keys: 每个合约订阅的 key 列表
@@ -58,6 +75,39 @@ def on_quote_changed(symbol, items, hour_trading):
     print(symbol, items, hour_trading)
 
 
+def on_tick_changed(symbol, items):
+    """
+
+    :param symbol:
+    :param items:
+      items example:
+        [{'tick_type': '*', 'price': 293.87, 'volume': 102, 'part_code': 'NSDQ',
+            'part_code_name': 'NASDAQ Stock Market, LLC (NASDAQ)', 'cond': 'US_FORM_T', 'time': 1656405615779,
+            'server_timestamp': 1656405573461, 'type': 'TradeTick', 'quote_level': 'usStockQuote', 'sn': 342,
+            'timestamp': 1656405617385},
+         {'tick_type': '*', 'price': 293.87, 'volume': 102, 'part_code': 'NSDQ',
+          'part_code_name': 'NASDAQ Stock Market, LLC (NASDAQ)', 'cond': 'US_FORM_T', 'time': 1656405616573,
+          'server_timestamp': 1656405573461,
+          'type': 'TradeTick', 'quote_level': 'usStockQuote', 'sn': 343, 'timestamp': 1656405617385}]
+
+      Futures tick items example:
+          [{'tick_type': None, 'price': 15544.0, 'volume': 1, 'part_code': None, 'part_code_name': None, 'cond': None,
+           'time': 1667285183000, 'sn': 636960, 'server_timestamp': 1667285184162, 'quote_level': 'quote-fut-tick',
+            'type': 'TradeTick', 'timestamp': 1667285184156},
+            {'tick_type': None, 'price': 15544.0, 'volume': 1, 'part_code': None, 'part_code_name': None, 'cond': None,
+             'time': 1667285183000, 'sn': 636961, 'server_timestamp': 1667285184162, 'quote_level': 'quote-fut-tick',
+              'type': 'TradeTick', 'timestamp': 1667285184156},
+            {'tick_type': None, 'price': 15544.0, 'volume': 2, 'part_code': None, 'part_code_name': None,
+              'cond': None, 'time': 1667285183000, 'sn': 636962, 'server_timestamp': 1667285184162,
+              'quote_level': 'quote-fut-tick', 'type': 'TradeTick', 'timestamp': 1667285184156}]
+    :return:
+    """
+    print(symbol, items)
+    # convert to DataFrame
+    # frame = pd.DataFrame(items)
+    # print(frame)
+
+
 def on_order_changed(account, items):
     """
 
@@ -73,6 +123,19 @@ def on_order_changed(account, items):
     """
     print(account, items)
 
+def on_transaction_changed(account, items):
+    """
+
+    :param account:
+    :param items:
+    :return:
+    account:11111,
+    items: [('id', 28819544190616576), ('currency', 'USD'), ('sec_type', 'FUT'), ('market', 'SG'), ('symbol', 'CN'),
+     ('multiplier', 1.0), ('action', 'BUY'), ('filled_quantity', 1.0), ('filled_price', 12309.0),
+     ('order_id', 28819544031364096), ('transact_time', 1668774872538), ('create_time', 1668774872946),
+      ('update_time', 1668774872946), ('identifier', 'CN2212'), ('timestamp', 1668774873002), ('segment', 'C')]
+    """
+    print(f'account:{account}, items: {items}')
 
 def on_asset_changed(account, items):
     """
@@ -120,25 +183,30 @@ def unsubscribe_callback(destination, content):
     print('subscribe:{}, callback content:{}'.format(destination, content))
 
 
-# def connect_callback():
-#     """连接建立回调"""
-#     print('connected')
-#
-#
-# def disconnect_callback():
-#     """连接断开回调. 此处利用回调进行重连"""
-#     for t in range(1, 200):
-#         try:
-#             print('disconnected, reconnecting')
-#             push_client.connect(client_config.tiger_id, client_config.private_key)
-#         except:
-#             print('connect failed, retry')
-#             time.sleep(t)
-#         else:
-#             print('reconnect success')
-#             return
-#     print('reconnect failed, please check your network')
-#
+def error_callback(frame):
+    """错误回调"""
+    print(frame)
+
+
+def connect_callback(frame):
+    """连接建立回调"""
+    print('connected')
+
+
+def disconnect_callback():
+    """连接断开回调. 此处利用回调进行重连"""
+    for t in range(1, 200):
+        try:
+            print('disconnected, reconnecting')
+            push_client.connect(client_config.tiger_id, client_config.private_key)
+        except:
+            print('connect failed, retry')
+            time.sleep(t)
+        else:
+            print('reconnect success')
+            return
+    print('reconnect failed, please check your network')
+
 
 if __name__ == '__main__':
     client_config = get_client_config()
@@ -147,24 +215,33 @@ if __name__ == '__main__':
 
     # 行情变动回调
     push_client.quote_changed = on_quote_changed
+    # 逐笔数据回调
+    push_client.tick_changed = on_tick_changed
     # 已订阅 symbol 查询回调
-    push_client.subscribed_symbols = on_query_subscribed_quote
+    push_client.query_subscribed_callback = query_subscribed_callback
+    # 已订阅 symbol 查询回调(已废弃)
+    # push_client.subscribed_symbols = on_query_subscribed_quote
     # 订单变动回调
-    # push_client.order_changed = on_order_changed
+    push_client.order_changed = on_order_changed
+    # 订单执行明细回调
+    push_client.transaction_changed = on_transaction_changed
     # 资产变动回调
-    # push_client.asset_changed = on_asset_changed
+    push_client.asset_changed = on_asset_changed
     # 持仓变动回调
-    # push_client.position_changed = on_position_changed
+    push_client.position_changed = on_position_changed
 
     # 订阅成功与否的回调
     push_client.subscribe_callback = subscribe_callback
     # 退订成功与否的回调
     push_client.unsubscribe_callback = unsubscribe_callback
 
+    # 错误信息回调
+    push_client.error_callback = error_callback
+
     # 建立推送连接
     push_client.connect(client_config.tiger_id, client_config.private_key)
     # 断线重连回调
-    # push_client.disconnect_callback = disconnect_callback
+    push_client.disconnect_callback = disconnect_callback
 
     # 订阅行情
     push_client.subscribe_quote(['AAPL', 'GOOG'])
@@ -174,10 +251,16 @@ if __name__ == '__main__':
     # 订阅深度行情
     push_client.subscribe_depth_quote(['AMD', 'BABA'])
 
+    # 订阅逐笔数据
+    push_client.subscribe_tick(['AMD', 'QQQ'])
+    push_client.subscribe_tick(['HSImain'])
+
     # 订阅资产变动
     push_client.subscribe_asset()
     # 订阅订单变动
     push_client.subscribe_order()
+    # 订阅订单执行明细
+    push_client.subscribe_transaction()
     # 订阅持仓变动
     push_client.subscribe_position()
     # 查询已订阅的 symbol

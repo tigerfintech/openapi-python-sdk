@@ -22,12 +22,17 @@ ORDERS = "orders"
 ACTIVE_ORDERS = "active_orders"  # 待成交订单
 INACTIVE_ORDERS = "inactive_orders"  # 已撤销订单
 FILLED_ORDERS = "filled_orders"  # 已成交订单
+ORDER_TRANSACTIONS = "order_transactions"  # 订单成交记录
+ANALYTICS_ASSET = "analytics_asset"
+
+USER_LICENSE = "user_license"
 
 """
 合约
 """
 CONTRACT = "contract"
 CONTRACTS = "contracts"
+QUOTE_CONTRACT = "quote_contract"
 
 """
 行情
@@ -38,6 +43,7 @@ ALL_SYMBOL_NAMES = "all_symbol_names"
 BRIEF = "brief"
 STOCK_DETAIL = "stock_detail"
 TIMELINE = "timeline"
+HISTORY_TIMELINE = "history_timeline"
 KLINE = "kline"
 TRADE_TICK = "trade_tick"
 QUOTE_REAL_TIME = "quote_real_time"
@@ -46,7 +52,9 @@ QUOTE_SHORTABLE_STOCKS = "quote_shortable_stocks"
 QUOTE_STOCK_TRADE = "quote_stock_trade"
 QUOTE_DEPTH = "quote_depth"  # level2 深度行情
 GRAB_QUOTE_PERMISSION = "grab_quote_permission"  # 抢占行情
-STOCK_SCREENER = "stock_screener"  # 选股器
+MARKET_SCANNER = "market_scanner"  # 选股器
+GET_QUOTE_PERMISSION = "get_quote_permission"
+TRADING_CALENDAR = "trading_calendar"
 
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"
@@ -59,6 +67,7 @@ OPTION_TRADE_TICK = "option_trade_tick"
 FUTURE_EXCHANGE = "future_exchange"
 FUTURE_CONTRACT_BY_CONTRACT_CODE = "future_contract_by_contract_code"
 FUTURE_CONTRACT_BY_EXCHANGE_CODE = "future_contract_by_exchange_code"
+FUTURE_CONTRACTS = "future_contracts"
 FUTURE_CONTINUOUS_CONTRACTS = "future_continuous_contracts"
 FUTURE_CURRENT_CONTRACT = "future_current_contract"
 FUTURE_KLINE = "future_kline"

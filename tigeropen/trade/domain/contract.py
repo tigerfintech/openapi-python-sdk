@@ -5,19 +5,22 @@ Created on 2018/9/20
 @author: gaoan
 """
 from tigeropen.common.consts import SecurityType
+from tigeropen.common.util.common_utils import get_enum_value
 
 
 class Contract:
-    def __init__(self, symbol, currency, contract_id=None, sec_type=None, exchange=None, origin_symbol=None,
+    def __init__(self, symbol=None, currency=None, contract_id=None, sec_type=None, exchange=None, origin_symbol=None,
                  local_symbol=None, expiry=None, strike=None, put_call=None, multiplier=None, name=None,
-                 short_margin=None, short_fee_rate=None, shortable=None, long_initial_margin=None,
+                 short_margin=None, short_initial_margin=None, short_maintenance_margin=None,
+                 short_fee_rate=None, shortable=None, shortable_count=None, long_initial_margin=None,
                  long_maintenance_margin=None, contract_month=None, identifier=None, primary_exchange=None,
                  market=None, min_tick=None, trading_class=None, status=None, continuous=None, trade=None,
-                 last_trading_date=None, first_notice_date=None, last_bidding_close_time=None):
+                 marginable=None, close_only=None,
+                 last_trading_date=None, first_notice_date=None, last_bidding_close_time=None, tick_sizes=None):
         self.contract_id = contract_id
         self.symbol = symbol
-        self.currency = currency
-        self.sec_type = sec_type
+        self.currency = get_enum_value(currency)
+        self.sec_type = get_enum_value(sec_type)
         self.exchange = exchange
         self.origin_symbol = origin_symbol
         self.local_symbol = local_symbol
@@ -27,17 +30,19 @@ class Contract:
         self.strike = strike
         # 看跌/看涨
         self.put_call = put_call
-        self.right = self.put_call
         # 合约乘数
         self.multiplier = multiplier
         # 合约名称
         self.name = name
         # 做空保证金比例
         self.short_margin = short_margin
+        self.short_initial_margin = short_initial_margin
+        self.short_maintenance_margin = short_maintenance_margin
         # 做空费率
         self.short_fee_rate = short_fee_rate
         # 做空池剩余
         self.shortable = shortable
+        self.shortable_count = shortable_count
         # 做多初始保证金
         self.long_initial_margin = long_initial_margin
         # 做多维持保证金
@@ -52,14 +57,20 @@ class Contract:
         self.market = market
         # 最小报价单位
         self.min_tick = min_tick
+        # tick size info list
+        self.tick_sizes = tick_sizes
         # 合约的交易级别名称
         self.trading_class = trading_class
         # 状态
         self.status = status
+        # is marginable
+        self.marginable = marginable
+        # is tradeable
+        self.trade = trade
+        # is only closed a position allowed
+        self.close_only = close_only
         # 期货专有，是否连续合约
         self.continuous = continuous
-        # 期货专有，是否可交易
-        self.trade = trade
         # 期货专有，最后交易日
         self.last_trading_date = last_trading_date
         # 期货专有，第一通知日，合约在第一通知日后无法开多仓. 已有的多仓会在第一通知日之前（通常为前三个交易日）被强制平仓
@@ -67,12 +78,19 @@ class Contract:
         # 期货专有，竞价截止时间
         self.last_bidding_close_time = last_bidding_close_time
 
+    @property
+    def right(self):
+        return self.put_call
+
     def __repr__(self):
         identifier = self.identifier if self.identifier else self.symbol
         if self.sec_type == SecurityType.FUT.value:
             return '%s/%s/%s/%s' % (identifier, self.sec_type, self.currency, self.exchange)
         else:
             return '%s/%s/%s' % (identifier, self.sec_type, self.currency)
+
+    def to_str(self):
+        return str(self.__dict__)
 
     def is_cn_stock(self):
         """

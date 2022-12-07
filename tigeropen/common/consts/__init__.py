@@ -50,6 +50,13 @@ class SecurityType(Enum):
 
 
 @unique
+class SegmentType(Enum):
+    ALL = 'ALL'
+    SEC = 'SEC'
+    FUT = 'FUT'
+
+
+@unique
 class Currency(Enum):
     """Enum for currency """
     
@@ -144,6 +151,42 @@ class IndustryLevel(Enum):
 
 @unique
 class SortDirection(Enum):
-    ASC = 'ASC'
-    DESC = 'DESC'
+    NO = 'SortDir_No'
+    ASC = 'SortDir_Ascend'
+    DESC = 'SortDir_Descend'
+
+
+@unique
+class TickSizeType(Enum):
+    CLOSED = 'CLOSED'
+    OPEN_CLOSED = 'OPEN_CLOSED'
+    OPEN = 'OPEN'
+
+
+@unique
+class OrderSortBy(Enum):
+    LATEST_CREATED = 'LATEST_CREATED'
+    LATEST_STATUS_UPDATED = 'LATEST_STATUS_UPDATED'
+
+
+@unique
+class OrderType(Enum):
+    MKT = 'MKT'  # 市价单
+    LMT = 'LMT'  # 限价单
+    STP = 'STP'  # 止损单
+    STP_LMT = 'STP_LMT'  # 止损限价单
+    TRAIL = 'TRAIL'  # 跟踪止损单
+
+
+@unique
+class License(Enum):
+    TBNZ = 'TBNZ'
+    TBSG = 'TBSG'
+
+
+@unique
+class ServiceType(Enum):
+    COMMON = 'COMMON'
+    TRADE = 'TRADE'
+    QUOTE = 'QUOTE'
 
