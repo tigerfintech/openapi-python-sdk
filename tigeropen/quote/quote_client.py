@@ -10,10 +10,12 @@ import time
 
 import pandas as pd
 
-from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3
+from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3, \
+    OPEN_API_SERVICE_VERSION_V1
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
+from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
-    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS
+    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -36,7 +38,7 @@ from tigeropen.fundamental.response.industry_response import IndustryListRespons
 from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams
+    SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
@@ -57,6 +59,7 @@ from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPer
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
 from tigeropen.quote.response.quote_timeline_history_response import QuoteTimelineHistoryResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
+from tigeropen.quote.response.market_scanner_response import MarketScannerResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
 from tigeropen.quote.response.stock_details_response import StockDetailsResponse
 from tigeropen.quote.response.stock_short_interest_response import ShortInterestResponse
@@ -1344,6 +1347,47 @@ class QuoteClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.stock_industry
+            else:
+                raise ApiException(response.code, response.message)
+
+    def market_scanner(self, market=Market.US, filters=None, sort_field_data=None, page=0, page_size=100):
+        """
+        screen stocks
+        :param market: tigeropen.common.consts.Market
+        :param filters: list of tigeropen.quote.domain.filter.StockFilter
+        :param sort_field_data: tigeropen.quote.domain.filter.FilterSortData
+        :param page: page begin number
+        :param page_size: page size limit
+        :return:
+        """
+        params = MarketScannerParams()
+        params.version = OPEN_API_SERVICE_VERSION_V1
+        params.market = market.value
+        if filters is not None:
+            params.base_filter_list = list()
+            params.accumulate_filter_list = list()
+            params.financial_filter_list = list()
+            params.multi_tags_filter_list = list()
+            for f in filters:
+                if f.field_belong_type == FieldBelongType.BASE:
+                    params.base_filter_list.append(f.to_dict())
+                elif f.field_belong_type == FieldBelongType.ACCUMULATE:
+                    params.accumulate_filter_list.append(f.to_dict())
+                elif f.field_belong_type == FieldBelongType.FINANCIAL:
+                    params.financial_filter_list.append(f.to_dict())
+                elif f.field_belong_type == FieldBelongType.MULTI_TAG:
+                    params.multi_tags_filter_list.append(f.to_dict())
+        if sort_field_data is not None:
+            params.sort_field_data = sort_field_data
+        params.page = page
+        params.page_size = page_size
+        request = OpenApiRequest(MARKET_SCANNER, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = MarketScannerResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
 
