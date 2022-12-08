@@ -68,11 +68,13 @@ def do_request(method, url, query_string=None, headers=None, params=None, timeou
     try:
         connection.connect()
     except Exception as e:
-        raise RequestException('[' + THREAD_LOCAL.uuid + ']' + method + ' connect failed. ' + str(e))
+        raise RequestException('[' + THREAD_LOCAL.uuid + ']' + method + ' connect failed. url: ' + url
+                               + ' params: ' + str(params) + ' detail: ' + str(e))
     try:
         connection.request(method, url, body=json.dumps(params), headers=headers)
     except Exception as e:
-        raise RequestException('[' + THREAD_LOCAL.uuid + ']' + method + ' request failed. ' + str(e))
+        raise RequestException('[' + THREAD_LOCAL.uuid + ']' + method + ' request failed. url: ' + url
+                               + ' params: ' + str(params) + ' detail: ' + str(e))
     response = connection.getresponse()
     result = response.read()
 
@@ -80,7 +82,7 @@ def do_request(method, url, query_string=None, headers=None, params=None, timeou
         if charset:
             result = result.decode(charset)
         raise ResponseException('[' + THREAD_LOCAL.uuid + ']invalid http status ' + str(response.status) +
-                                ',detail body:' + result)
+                                ',detail body:' + result + ' params: ' + str(params))
     try:
         response.close()
         connection.close()
