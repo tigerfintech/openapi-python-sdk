@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from enum import unique
+from enum import unique, Enum
 
-from tigeropen.common.model import Field
+
+class Field(Enum):
+    pass
 
 
 @unique

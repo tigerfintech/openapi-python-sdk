@@ -2,7 +2,6 @@
 # 
 # @Date    : 2021/11/12
 # @Author  : sukai
-from enum import Enum
 
 
 class BaseParams:
@@ -35,5 +34,3 @@ class BaseParams:
         return params
 
 
-class Field(Enum):
-    pass
