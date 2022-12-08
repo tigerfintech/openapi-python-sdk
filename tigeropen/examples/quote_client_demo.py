@@ -9,8 +9,11 @@ import time
 
 import pandas as pd
 from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, Valuation, \
-    Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, IndustryLevel, BarPeriod
-from tigeropen.quote.domain.filter import OptionFilter
+    Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, IndustryLevel, BarPeriod, \
+    SortDirection
+from tigeropen.common.consts.filter_fields import AccumulateField, StockField, FinancialField, MultiTagField, \
+    AccumulatePeriod, FinancialPeriod
+from tigeropen.quote.domain.filter import OptionFilter, StockFilter, SortFilterData
 
 from tigeropen.quote.quote_client import QuoteClient
 
@@ -182,6 +185,60 @@ def get_fundamental():
     # 获取某股票的行业
     stock_industry = openapi_client.get_stock_industry('AAPL', Market.US)
     print(stock_industry)
+
+
+def test_market_scanner(self):
+    # 股票基本数据过滤(is_no_filter为True时表示不启用该过滤器)
+    base_filter1 = StockFilter(StockField.FloatShare, filter_min=1e7, filter_max=1e13, is_no_filter=True)
+    base_filter2 = StockFilter(StockField.MarketValue, filter_min=1e8, filter_max=1e14, is_no_filter=False)
+    # 周期累计数据过滤
+    accumulate_filter = StockFilter(AccumulateField.ChangeRate, filter_min=0.01, filter_max=1, is_no_filter=False,
+                                    accumulate_period=AccumulatePeriod.Last_Year)
+    # 财务数据过滤
+    financial_filter = StockFilter(FinancialField.LYR_PE, filter_min=1, filter_max=100, is_no_filter=False,
+                                   financial_period=FinancialPeriod.LTM)
+    # 多标签数据过滤
+    multi_tag_filter = StockFilter(MultiTagField.isOTC, tag_list=[0])
+
+    # 排序字段
+    sort_field_data = SortFilterData(StockField.FloatShare, sort_dir=SortDirection.ASC)
+
+    # 请求的开始页码
+    begin_page = 0
+    page_size = 50
+    # 是否为最后一页数据
+    is_last_page = False
+    # 筛选后的symbol列表
+    scanner_result_symbols = set()
+
+    while not is_last_page:
+        # filters参数里填需要使用的过滤器
+        result = openapi_client.market_scanner(market=Market.US,
+                                               filters=[base_filter1, base_filter2, accumulate_filter, financial_filter,
+                                                        multi_tag_filter],
+                                               sort_field_data=sort_field_data,
+                                               page=begin_page,
+                                               page_size=page_size)
+        if result.total_page:
+            for item in result.items:
+                symbol = item.symbol
+                market = item.market
+                # 可以字典的形式获取某个filter的字段对应的值
+                base_filter1_value = item[base_filter1]
+                accumulate_filter_value = item[accumulate_filter]
+                print(
+                    f'page:{result.page}, symbol:{symbol}, base_filter1 value:{base_filter1_value}, accumulate_filter value:{accumulate_filter_value}')
+            print(f'current page symbols:{result.symbols}')
+            scanner_result_symbols.update(result.symbols)
+        time.sleep(1)
+        # 处理分页
+        if result.page >= result.total_page - 1:
+            is_last_page = True
+        else:
+            begin_page = result.page + 1
+
+    print(f'scanned symbols:{scanner_result_symbols}')
+
 
 
 if __name__ == '__main__':
