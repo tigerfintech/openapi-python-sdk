@@ -240,6 +240,26 @@ def test_market_scanner(self):
     print(f'scanned symbols:{scanner_result_symbols}')
 
 
+def test_stock_broker(self):
+    """
+
+    :return:
+    {'symbol': '00700',
+    'bid_broker':
+        [{'level': 1, 'price': 322.4, 'broker_count': 5,
+        'broker': [{'id': '5345', 'name': 'J.P. Morgan'},
+            {'id': '6996', 'name': '中国投资'}, {'id': '6999', 'name': '中国投资'}, {'id': '6999', 'name': '中国投资'},
+             {'id': '6997', 'name': '中国投资'}]}],
+    'ask_broker':
+        [{'level': 1, 'price': 322.6, 'broker_count': 2,
+            'broker': [{'id': '8461', 'name': 'FUTU Securities'}, {'id': '7389', 'name': '花旗'}]},
+        {'level': 2, 'price': 322.8, 'broker_count': 3,
+            'broker': [{'id': '6999', 'name': '中国投资'},
+            {'id': '0746', 'name': '万邦亚太'}, {'id': '5339', 'name': 'J.P. Morgan'}]}]}
+    """
+    result = openapi_client.get_stock_broker('00700', limit=5)
+    print(result)
+
 
 if __name__ == '__main__':
     with pd.option_context('display.max_rows', None, 'display.max_columns', None):

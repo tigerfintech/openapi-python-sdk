@@ -929,7 +929,8 @@ class MarketScannerParams(BaseParams):
         "market":"US"}
         :return:
         """
-        params = dict()
+        params = super().to_openapi_dict()
+
         if self.market:
             params['market'] = self.market
         if self.base_filter_list:
@@ -946,4 +947,35 @@ class MarketScannerParams(BaseParams):
             params['page'] = self.page
         if self.page_size is not None:
             params['page_size'] = self.page_size
+        return params
+
+
+class StockBrokerParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._symbol = None
+        self._limit = None
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
+
+    @property
+    def limit(self):
+        return self._limit
+
+    @limit.setter
+    def limit(self, value):
+        self._limit = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.symbol:
+            params['symbol'] = self.symbol
+        if self.limit:
+            params['limit'] = self.limit
         return params
