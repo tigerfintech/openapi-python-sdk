@@ -15,7 +15,8 @@ from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERV
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
-    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, STOCK_BROKER
+    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
+    STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -39,7 +40,9 @@ from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
-    StockBrokerParams
+    StockBrokerParams, CapitalParams
+from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
+from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
@@ -1411,7 +1414,6 @@ class QuoteClient(TigerOpenClient):
                 return response.permissions
             else:
                 raise ApiException(response.code, response.message)
-        return False
 
     def get_quote_permission(self):
         """
@@ -1431,7 +1433,6 @@ class QuoteClient(TigerOpenClient):
                 return response.permissions
             else:
                 raise ApiException(response.code, response.message)
-        return False
 
     def get_trading_calendar(self, market, begin_date=None, end_date=None):
         """
@@ -1455,7 +1456,6 @@ class QuoteClient(TigerOpenClient):
                 return response.calendar
             else:
                 raise ApiException(response.code, response.message)
-        return False
 
     def get_stock_broker(self, symbol, limit=40, lang=None):
         """Get stock broker information
@@ -1476,4 +1476,52 @@ class QuoteClient(TigerOpenClient):
                 return response.result
             else:
                 raise ApiException(response.code, response.message)
-        return False
+
+    def get_capital_flow(self, symbol, market, period, begin_time=-1, end_time=-1, limit=200, lang=None):
+        """Get capital net inflow Data, including different time periods, such as daily, weekly, monthly, etc.
+        :param symbol: 股票代号
+        :param market: tigeropen.common.consts.Market
+        :param period: period, possible values are: intraday, day, week, month, year, quarter, 6month
+        :param begin_time: 开始时间. 若是时间戳需要精确到毫秒, 为13位整数;
+                                    或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
+        :param end_time: 结束时间. 格式同 begin_time
+        :param limit: 数量限制
+        :param lang: 语言支持: zh_CN,zh_TW,en_US
+        """
+        params = CapitalParams()
+        params.symbol = symbol
+        params.market = get_enum_value(market)
+        params.period = get_enum_value(period)
+        params.begin_time = begin_time
+        params.end_time = end_time
+        params.limit = limit
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        request = OpenApiRequest(CAPITAL_FLOW, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = CapitalFlowResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_capital_distribution(self, symbol, market, lang=None):
+        """Get capital distribution.
+        :param symbol: 股票代号
+        :param market: tigeropen.common.consts.Market
+        :param lang: 语言支持: zh_CN,zh_TW,en_US
+        """
+        params = CapitalParams()
+        params.symbol = symbol
+        params.market = get_enum_value(market)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        request = OpenApiRequest(CAPITAL_DISTRIBUTION, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = CapitalDistributionResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
