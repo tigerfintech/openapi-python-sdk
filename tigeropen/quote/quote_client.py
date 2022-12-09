@@ -1462,6 +1462,19 @@ class QuoteClient(TigerOpenClient):
         :param symbol:
         :param limit: The maximum number of items returned. Default value is 40.
         :param lang: tigeropen.common.consts.Language
+        return: tigeropen.quote.domain.stock_broker.StockBroker
+        example:
+        StockBroker({'symbol': '01810',
+            'bid_broker': [
+                LevelBroker({'level': 1, 'price': 11.46, 'broker_count': 5,
+                    'broker': [Broker({'id': '5999', 'name': '中国创盈'}), Broker({'id': '4374', 'name': '巴克莱亚洲'}),
+                            Broker({'id': '1438', 'name': 'Susquehanna'}), Broker({'id': '4821', 'name': '华盛'}),
+                             Broker({'id': '6998', 'name': '中国投资'})]})],
+            'ask_broker': [
+                LevelBroker({'level': 1, 'price': 11.48, 'broker_count': 5,
+                    'broker': [Broker({'id': '4374', 'name': '巴克莱亚洲'}), Broker({'id': '9056', 'name': '瑞银'}),
+                            Broker({'id': '2027', 'name': '东亚'}), Broker({'id': '4821', 'name': '华盛'}),
+                            Broker({'id': '4374', 'name': '巴克莱亚洲'})]})]})
         """
         params = StockBrokerParams()
         params.symbol = symbol
@@ -1487,6 +1500,11 @@ class QuoteClient(TigerOpenClient):
         :param end_time: 结束时间. 格式同 begin_time
         :param limit: 数量限制
         :param lang: 语言支持: zh_CN,zh_TW,en_US
+        :return pandas.DataFrame, example:
+                   time      timestamp    net_inflow symbol period
+        0    2022-02-24  1645678800000 -5.889058e+08   AAPL    day
+        1    2022-02-25  1645765200000 -1.229127e+08   AAPL    day
+        2    2022-02-28  1646024400000  1.763644e+08   AAPL    day
         """
         params = CapitalParams()
         params.symbol = symbol
@@ -1511,6 +1529,7 @@ class QuoteClient(TigerOpenClient):
         :param symbol: 股票代号
         :param market: tigeropen.common.consts.Market
         :param lang: 语言支持: zh_CN,zh_TW,en_US
+        return: tigeropen.quote.domain.capital_distribution.CapitalDistribution
         """
         params = CapitalParams()
         params.symbol = symbol
