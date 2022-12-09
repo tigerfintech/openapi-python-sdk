@@ -1,3 +1,10 @@
+## 2.2.4 (2022-12-09)
+### new
+- 资金流接口 `QuoteClient.get_capital_flow`
+- 资金分布接口 `QuoteClient.get_capital_distribution`
+- 港股经纪商接口 `QuoteClient.get_stock_broker`
+
+
 ## 2.2.3 (2022-12-07)
 ### new
 - 选股器 `QuoteClient.market_scanner`

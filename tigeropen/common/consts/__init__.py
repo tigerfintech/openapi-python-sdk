@@ -107,6 +107,16 @@ class BarPeriod(Enum):
     SIX_HOURS = '6hour'  # 6小时
 
 
+class CapitalPeriod(Enum):
+    INTRADAY = "intraday"
+    DAY = "day"
+    WEEK = "week"
+    MONTH = "month"
+    YEAR = "year"
+    QUARTER = "quarter"
+    HALFAYEAR = "6month"
+
+
 class OrderStatus(Enum):
     PENDING_NEW = 'PendingNew'
     NEW = 'Initial'  # 订单初始状态
