@@ -10,7 +10,7 @@ import time
 import pandas as pd
 from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, Valuation, \
     Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, IndustryLevel, BarPeriod, \
-    SortDirection
+    SortDirection, CapitalPeriod
 from tigeropen.common.consts.filter_fields import AccumulateField, StockField, FinancialField, MultiTagField, \
     AccumulatePeriod, FinancialPeriod
 from tigeropen.quote.domain.filter import OptionFilter, StockFilter, SortFilterData
@@ -187,7 +187,7 @@ def get_fundamental():
     print(stock_industry)
 
 
-def test_market_scanner(self):
+def test_market_scanner():
     # 股票基本数据过滤(is_no_filter为True时表示不启用该过滤器)
     base_filter1 = StockFilter(StockField.FloatShare, filter_min=1e7, filter_max=1e13, is_no_filter=True)
     base_filter2 = StockFilter(StockField.MarketValue, filter_min=1e8, filter_max=1e14, is_no_filter=False)
@@ -240,24 +240,47 @@ def test_market_scanner(self):
     print(f'scanned symbols:{scanner_result_symbols}')
 
 
-def test_stock_broker(self):
+def test_stock_broker():
     """
 
     :return:
-    {'symbol': '00700',
-    'bid_broker':
-        [{'level': 1, 'price': 322.4, 'broker_count': 5,
-        'broker': [{'id': '5345', 'name': 'J.P. Morgan'},
-            {'id': '6996', 'name': '中国投资'}, {'id': '6999', 'name': '中国投资'}, {'id': '6999', 'name': '中国投资'},
-             {'id': '6997', 'name': '中国投资'}]}],
-    'ask_broker':
-        [{'level': 1, 'price': 322.6, 'broker_count': 2,
-            'broker': [{'id': '8461', 'name': 'FUTU Securities'}, {'id': '7389', 'name': '花旗'}]},
-        {'level': 2, 'price': 322.8, 'broker_count': 3,
-            'broker': [{'id': '6999', 'name': '中国投资'},
-            {'id': '0746', 'name': '万邦亚太'}, {'id': '5339', 'name': 'J.P. Morgan'}]}]}
+    StockBroker({'symbol': '01810',
+        'bid_broker': [
+            LevelBroker({'level': 1, 'price': 11.46, 'broker_count': 5,
+                'broker': [Broker({'id': '5999', 'name': '中国创盈'}), Broker({'id': '4374', 'name': '巴克莱亚洲'}),
+                        Broker({'id': '1438', 'name': 'Susquehanna'}), Broker({'id': '4821', 'name': '华盛'}),
+                         Broker({'id': '6998', 'name': '中国投资'})]})],
+        'ask_broker': [
+            LevelBroker({'level': 1, 'price': 11.48, 'broker_count': 5,
+                'broker': [Broker({'id': '4374', 'name': '巴克莱亚洲'}), Broker({'id': '9056', 'name': '瑞银'}),
+                        Broker({'id': '2027', 'name': '东亚'}), Broker({'id': '4821', 'name': '华盛'}),
+                        Broker({'id': '4374', 'name': '巴克莱亚洲'})]})]})
     """
-    result = openapi_client.get_stock_broker('00700', limit=5)
+    result = openapi_client.get_stock_broker('01810', limit=5)
+    print(result)
+
+
+def test_capital_flow():
+    """
+               time      timestamp    net_inflow symbol period
+    0    2022-02-24  1645678800000 -5.889058e+08   AAPL    day
+    1    2022-02-25  1645765200000 -1.229127e+08   AAPL    day
+    2    2022-02-28  1646024400000  1.763644e+08   AAPL    day
+    """
+    result = openapi_client.get_capital_flow('AAPL', market=Market.US, period=CapitalPeriod.INTRADAY)
+    print(result)
+
+
+def test_capital_distribution():
+    """
+
+    :return:
+    CapitalDistribution({'symbol': 'JD', 'net_inflow': -14178801.76, 'in_all': 157357147.5,
+    'in_big': 25577130.842900004, 'in_mid': 13664116.789999994, 'in_small': 118115899.86410056,
+    'out_all': 171535949.25, 'out_big': 22642951.677099995, 'out_mid': 12733553.691200001,
+    'out_small': 136159443.88620025})
+    """
+    result = openapi_client.get_capital_distribution('JD', market=Market.US)
     print(result)
 
 

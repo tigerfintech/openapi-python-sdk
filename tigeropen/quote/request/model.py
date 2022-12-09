@@ -979,3 +979,78 @@ class StockBrokerParams(BaseParams):
         if self.limit:
             params['limit'] = self.limit
         return params
+
+
+class CapitalParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._symbol = None
+        self._market = None
+        self._period = None
+        self._begin_time = None
+        self._end_time = None
+        self._limit = None
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
+    @property
+    def period(self):
+        return self._period
+
+    @period.setter
+    def period(self, value):
+        self._period = value
+
+    @property
+    def begin_time(self):
+        return self._begin_time
+
+    @begin_time.setter
+    def begin_time(self, value):
+        self._begin_time = value
+
+    @property
+    def end_time(self):
+        return self._end_time
+
+    @end_time.setter
+    def end_time(self, value):
+        self._end_time = value
+
+    @property
+    def limit(self):
+        return self._limit
+
+    @limit.setter
+    def limit(self, value):
+        self._limit = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.symbol:
+            params['symbol'] = self.symbol
+        if self.market:
+            params['market'] = self.market
+        if self.period:
+            params['period'] = self.period
+        if self.begin_time:
+            params['begin_time'] = self.begin_time
+        if self.end_time:
+            params['end_time'] = self.end_time
+        if self.limit:
+            params['limit'] = self.limit
+        return params
