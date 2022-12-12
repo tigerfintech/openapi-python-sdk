@@ -1,5 +1,10 @@
+## 2.2.5 (2022-12-12)
+### New
+- `TradeClient.get_contract` 返回的合约对象 `tigeropen.trade.domain.contract.Contract` 新增属性: `is_etf`, `etf_leverage`
+
+
 ## 2.2.4 (2022-12-09)
-### new
+### New
 - 资金流接口 `QuoteClient.get_capital_flow`
 - 资金分布接口 `QuoteClient.get_capital_distribution`
 - 港股经纪商接口 `QuoteClient.get_stock_broker`
