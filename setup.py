@@ -10,7 +10,7 @@ from tigeropen import __VERSION__
 
 with open(path.join(path.abspath(path.dirname(__file__)), 'requirements.txt')) as f:
     install_requires = f.read()
-with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as f:
+with open(path.join(path.abspath(path.dirname(__file__)), 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
