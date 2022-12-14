@@ -1,3 +1,7 @@
+## 2.2.6 (2022-12-14)
+### Fix
+- 修复 Windows 系统编码为gbk时安装报编码错误的问题
+
 ## 2.2.5 (2022-12-12)
 ### New
 - `TradeClient.get_contract` 返回的合约对象 `tigeropen.trade.domain.contract.Contract` 新增属性: `is_etf`, `etf_leverage`
