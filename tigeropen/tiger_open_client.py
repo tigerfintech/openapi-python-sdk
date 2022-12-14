@@ -95,7 +95,7 @@ class TigerOpenClient:
     """
     内部方法，通过请求request对象构造请求查询字符串和业务参数
     """
-    def __prepare_request(self, request, url=None):
+    def __prepare_request(self, request, url=''):
         THREAD_LOCAL.logger = self.__logger
         params = request.get_params()
         params[P_TIMESTAMP] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
