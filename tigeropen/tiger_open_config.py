@@ -5,6 +5,8 @@ Created on 2018/9/20
 @author: gaoan
 """
 import json
+import logging
+
 from pytz import timezone
 from tigeropen.common.consts import Language, ServiceType
 from tigeropen.common.util.account_util import AccountUtil
@@ -89,6 +91,9 @@ class TigerOpenClientConfig:
         if enable_dynamic_domain:
             self.domain_conf = self.query_domains()
             self.refresh_server_info()
+
+        self.log_level = None
+        self.log_path = None
 
     @property
     def tiger_id(self):
