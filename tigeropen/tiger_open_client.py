@@ -6,6 +6,7 @@ Created on 2018/9/20
 """
 import datetime
 import json
+import logging
 import uuid
 
 from tigeropen import __VERSION__
@@ -26,6 +27,8 @@ except ImportError:
     def get_mac_address():
         return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
 
+LOG_FORMATTER = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
+
 
 class TigerOpenClient:
     """
@@ -35,7 +38,14 @@ class TigerOpenClient:
 
     def __init__(self, client_config, logger=None):
         self.__config = client_config
-        self.__logger = logger
+        if logger:
+            if client_config.log_level:
+                logger.setLevel(logging.getLevelName(client_config.log_level))
+            if client_config.log_path:
+                file_handler = logging.FileHandler(client_config.log_path)
+                file_handler.setFormatter(LOG_FORMATTER)
+                logger.addHandler(file_handler)
+            self.__logger = logger
         self.__headers = {
             'Content-type': 'application/json;charset=' + self.__config.charset,
             "Cache-Control": "no-cache",

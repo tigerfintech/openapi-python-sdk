@@ -8,9 +8,9 @@ import pandas as pd
 
 from tigeropen.common.response import TigerResponse
 
-COLUMNS = ['contract_code', 'symbol', 'type', 'name', 'contract_month', 'multiplier', 'exchange', 'currency',
+COLUMNS = ['contract_code', 'symbol', 'type', 'name', 'contract_month', 'multiplier', 'exchange', 'exchange_code', 'currency',
            'first_notice_date', 'last_bidding_close_time', 'last_trading_date', 'trade', 'continuous', 'min_tick']
-CONTRACT_FIELD_MAPPINGS = {'contractCode': 'contract_code', 'exchangeCode': 'exchange', 'ibCode': 'symbol',
+CONTRACT_FIELD_MAPPINGS = {'contractCode': 'contract_code', 'exchangeCode': 'exchange_code', 'ibCode': 'symbol',
                            'contractMonth': 'contract_month', 'firstNoticeDate': 'first_notice_date',
                            'lastBiddingCloseTime': 'last_bidding_close_time', 'lastTradingDate': 'last_trading_date',
                            'minTick': 'min_tick'}
