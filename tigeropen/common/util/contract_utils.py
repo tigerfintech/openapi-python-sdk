@@ -66,7 +66,7 @@ def extract_option_info(identifier):
     :return:
     """
     if identifier:
-        tokens = re.findall(r'(\w+)\s*(\d{6})([CP])(\d+)', identifier, re.M)
+        tokens = re.findall(r'(\w+(?:\.\w+)?)\s*(\d{6})([CP])(\d+)', identifier, re.M)
         if len(tokens) == 1:
             underlying_symbol, expiry, put_call, strike = tokens[0]
             expiry = '20' + expiry
