@@ -512,12 +512,16 @@ class PushClient(stomp.ConnectionListener):
         symbol = data.pop('symbol')
         data = camel_to_underline_obj(data)
         price_offset = 10 ** data.pop('price_offset')
-        price_base = data.pop('price_base')
+        price_base = float(data.pop('price_base'))
+        data['timestamp'] = int(data.get('timestamp'))
+        prices = data.pop('prices') if 'prices' in data else data.pop('price')
         # The latter time is equal to the sum of all previous values
-        price_items = [('price', (item + price_base) / price_offset) for item in data.pop('prices')]
-        time_items = [('time', item) for item in accumulate(data.pop('times'))]
-        volumes = [('volume', item) for item in data.pop('volumes')]
-        tick_types = data.pop('tick_type') if 'tick_type' in data else None
+        price_items = [('price', (float(item) + price_base) / price_offset) for item in prices]
+        times = [int(i) for i in (data.pop('times') if 'times' in data else data.pop('time'))]
+        time_items = [('time', item) for item in accumulate(times)]
+        volumes = data.pop('volumes') if 'volumes' in data else data.pop('volume')
+        volume_items = [('volume', int(item)) for item in volumes]
+        tick_types = data.pop('tick_type') if 'tick_type' in data else data.pop('type')
         if tick_types:
             tick_type_items = [('tick_type', item) for item in tick_types]
         else:
@@ -535,14 +539,14 @@ class PushClient(stomp.ConnectionListener):
             cond_items = [('cond', get_trade_condition(item, cond_map)) for item in conds]
         else:
             cond_items = [('cond', None) for _ in range(len(time_items))]
-        sn = data.pop('sn')
+        sn = int(data.pop('sn'))
         sn_list = [('sn', sn + i) for i in range(len(time_items))]
         merged_vols = data.pop('merged_vols') if 'merged_vols' in data else None
         if merged_vols:
             merged_vols_items = [('merged_vols', item) for item in merged_vols]
         else:
             merged_vols_items = [('merged_vols', None) for _ in range(len(time_items))]
-        tick_data = zip_longest(tick_type_items, price_items, volumes, part_code_items,
+        tick_data = zip_longest(tick_type_items, price_items, volume_items, part_code_items,
                                 part_code_name_items, cond_items, time_items, sn_list, merged_vols_items)
         items = []
         for item in tick_data:
