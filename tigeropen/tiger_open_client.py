@@ -9,11 +9,13 @@ import json
 import logging
 import uuid
 
+import backoff
+
 from tigeropen import __VERSION__
 from tigeropen.common.consts import OPEN_API_SERVICE_VERSION, THREAD_LOCAL
 from tigeropen.common.consts.params import P_TIMESTAMP, P_TIGER_ID, P_METHOD, P_CHARSET, P_VERSION, P_SIGN_TYPE, \
     P_DEVICE_ID, P_NOTIFY_URL, COMMON_PARAM_KEYS, P_SIGN
-from tigeropen.common.consts.service_types import USER_LICENSE
+from tigeropen.common.consts.service_types import USER_LICENSE, PLACE_ORDER, CANCEL_ORDER, MODIFY_ORDER
 from tigeropen.common.exceptions import ResponseException, RequestException
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.common.response import TigerResponse
@@ -28,6 +30,7 @@ except ImportError:
         return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
 
 LOG_FORMATTER = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
+SKIP_RETRY_SERVICES = {PLACE_ORDER, CANCEL_ORDER, MODIFY_ORDER}
 
 
 class TigerOpenClient:
@@ -153,10 +156,18 @@ class TigerOpenClient:
 
         return response_content
 
+    def _get_retry_deco(self, service):
+        if service not in SKIP_RETRY_SERVICES and self.__config.retry_max_tries > 0:
+            return backoff.on_exception(backoff.fibo,
+                                        (RequestException, ResponseException),
+                                        max_time=self.__config.retry_max_time,
+                                        max_tries=self.__config.retry_max_tries,
+                                        jitter=None)
+        return None
+
     """
     执行接口请求
     """
-
     def execute(self, request, url=None):
         if url is None:
             url = self.__config.server_url
@@ -164,9 +175,13 @@ class TigerOpenClient:
         query_string = None
         params = self.__prepare_request(request, url)
 
-        response = do_post(url, query_string, self.__headers, params, self.__config.timeout,
-                           self.__config.charset)
-
+        retry_deco = self._get_retry_deco(request._method)
+        if retry_deco is not None:
+            response = retry_deco(do_post)(url, query_string, self.__headers, params, self.__config.timeout,
+                               self.__config.charset)
+        else:
+            response = do_post(url, query_string, self.__headers, params, self.__config.timeout,
+                               self.__config.charset)
         return self.__parse_response(response, params.get('timestamp'))
 
     def query_license(self):

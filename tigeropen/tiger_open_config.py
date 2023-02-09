@@ -94,6 +94,8 @@ class TigerOpenClientConfig:
 
         self.log_level = None
         self.log_path = None
+        self.retry_max_time = 60
+        self.retry_max_tries = 5
 
     @property
     def tiger_id(self):
