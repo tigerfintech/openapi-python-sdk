@@ -60,17 +60,26 @@ class OptionFilter:
 
 
 class SortFilterData:
-    def __init__(self, field, sort_dir):
+    def __init__(self, field, sort_dir, period=None):
+        """
+
+        :param field: filter field, subclass of tigeropen.common.consts.filter_fields.FilterField
+        :param sort_dir: tigeropen.common.consts.SortDirection
+        :param period: tigeropen.common.consts.filter_fields.AccumulateField
+        """
         # 排序属性
         self.field = field
         # SortDir 排序方向，默认不排序
         self.sort_dir = sort_dir
+        # 时间周期 AccumulatePeriod非必传项-只有排序为ACC相关字段,需要此字段
+        self.period = period
 
     def to_dict(self):
         return {
             'field_name': self.field.index,
             'field_type': self.field.field_type_request_name,
-            'sort_dir': self.sort_dir.value
+            'sort_dir': self.sort_dir.value,
+            'period': self.period.value
         }
 
 
@@ -83,8 +92,8 @@ class StockFilter:
         :param filter_min: Lower limit of the interval (closed interval), if not pass, means negative infinity
         :param filter_max: Upper limit of the interval (closed interval), if not pass, means positive infinity
         :param is_no_filter: is enable filter for this field
-        :param accumulate_period:
-        :param financial_period:
+        :param accumulate_period: tigeropen.common.consts.filter_fields.AccumulateField
+        :param financial_period: tigeropen.common.consts.filter_fields.FinancialPeriod
         :param tag_list:
         """
         self.field = field
