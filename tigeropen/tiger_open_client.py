@@ -15,7 +15,8 @@ from tigeropen import __VERSION__
 from tigeropen.common.consts import OPEN_API_SERVICE_VERSION, THREAD_LOCAL
 from tigeropen.common.consts.params import P_TIMESTAMP, P_TIGER_ID, P_METHOD, P_CHARSET, P_VERSION, P_SIGN_TYPE, \
     P_DEVICE_ID, P_NOTIFY_URL, COMMON_PARAM_KEYS, P_SIGN
-from tigeropen.common.consts.service_types import USER_LICENSE, PLACE_ORDER, CANCEL_ORDER, MODIFY_ORDER
+from tigeropen.common.consts.service_types import USER_LICENSE, PLACE_ORDER, CANCEL_ORDER, MODIFY_ORDER, \
+    USER_TOKEN_REFRESH
 from tigeropen.common.exceptions import ResponseException, RequestException
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.common.response import TigerResponse
@@ -58,6 +59,7 @@ class TigerOpenClient:
         self.__device_id = self.__get_device_id()
         self.__init_license()
         self.__refresh_server_info()
+        self.__refresh_token()
 
     def __init_license(self):
         if self.__config.license is None and self.__config.enable_dynamic_domain:
@@ -156,6 +158,9 @@ class TigerOpenClient:
 
         return response_content
 
+    def _update_header(self):
+        self.__headers['Authorization'] = self.__config.token
+
     def _get_retry_deco(self, service):
         if service not in SKIP_RETRY_SERVICES and self.__config.retry_max_tries > 0:
             return backoff.on_exception(backoff.fibo,
@@ -169,6 +174,7 @@ class TigerOpenClient:
     执行接口请求
     """
     def execute(self, request, url=None):
+        self._update_header()
         if url is None:
             url = self.__config.server_url
         THREAD_LOCAL.uuid = str(uuid.uuid1())
@@ -198,3 +204,19 @@ class TigerOpenClient:
             if response.is_success():
                 return json.loads(response.data).get('license')
         self.__logger.error(f"failed to query license, response: {response_content}")
+
+    def __refresh_token(self):
+        request = OpenApiRequest(method=USER_TOKEN_REFRESH)
+
+        response_content = None
+        try:
+            response_content = self.execute(request)
+        except Exception as e:
+            self.__logger.error(e, exc_info=True)
+        if response_content:
+            response = TigerResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return json.loads(response.data).get('token')
+        self.__logger.error(f"failed to refresh token, response: {response_content}")
+

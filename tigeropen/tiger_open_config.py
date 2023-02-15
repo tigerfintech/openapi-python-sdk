@@ -6,7 +6,9 @@ Created on 2018/9/20
 """
 import json
 import logging
+import os
 
+from jproperties import Properties
 from pytz import timezone
 from tigeropen.common.consts import Language, ServiceType
 from tigeropen.common.util.account_util import AccountUtil
@@ -47,9 +49,12 @@ SANDBOX_TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbm21i11hgAENG
                            'MidihTvHHf+tJ0PYD0o3PruI0hl3qhEjHTAxb75T5YD3SGK4IBhHn/Rk6mhqlGgI+bBrBVYaXixm' \
                            'HfRo75RpUUuWACyeqQkZckgR0McxuW9xRMIa2cXZOoL1E4SL4lXKGhKoWbwIDAQAB'
 
+DEFAULT_PROPS_FILE = 'tiger_openapi_config.properties'
+DEFAULT_TOKEN_FILE = 'tiger_openapi_token.properties'
+
 
 class TigerOpenClientConfig:
-    def __init__(self, sandbox_debug=False, enable_dynamic_domain=True):
+    def __init__(self, sandbox_debug=False, enable_dynamic_domain=True, props_path='.'):
         # 开发者应用id
         self._tiger_id = ''
         # 授权账户
@@ -86,16 +91,20 @@ class TigerOpenClientConfig:
             self._quote_server_url = SANDBOX_SERVER_URL
             self._socket_host_port = SANDBOX_SOCKET_HOST_PORT
 
+        self.log_level = None
+        self.log_path = None
+        self.retry_max_time = 60
+        self.retry_max_tries = 5
+        self.props_path = props_path
+        self.token = None
+        self._load_props()
+        self._load_token()
+
         self.domain_conf = dict()
         self.enable_dynamic_domain = enable_dynamic_domain
         if enable_dynamic_domain:
             self.domain_conf = self.query_domains()
             self.refresh_server_info()
-
-        self.log_level = None
-        self.log_path = None
-        self.retry_max_time = 60
-        self.retry_max_tries = 5
 
     @property
     def tiger_id(self):
@@ -220,6 +229,53 @@ class TigerOpenClientConfig:
     @secret_key.setter
     def secret_key(self, value):
         self._secret_key = value
+
+    @property
+    def token(self):
+        return self._token
+
+    @token.setter
+    def token(self, value):
+        self._token = value
+
+    def _get_props_path(self, filename):
+        if self.props_path is not None and os.path.exists(self.props_path):
+            if os.path.isdir(self.props_path):
+                full_path = os.path.join(self.props_path, filename)
+            else:
+                full_path = self.props_path
+            return full_path
+        return None
+
+    def _load_props(self):
+        full_path = self._get_props_path(DEFAULT_PROPS_FILE)
+        if full_path and os.path.exists(full_path):
+            try:
+                p = Properties()
+                with open(full_path, "rb") as f:
+                    p.load(f, "utf-8")
+                    if not self.tiger_id:
+                        self.tiger_id = getattr(p.get('tiger_id'), 'data', '')
+                    if not self.private_key:
+                        self.private_key = getattr(p.get('private_key_pk1'), 'data', '')
+                    if not self.account:
+                        self.account = getattr(p.get('account'), 'data', '')
+                    if not self.license:
+                        self.license = getattr(p.get('license'), 'data', '')
+            except Exception as e:
+                logging.error(e, exc_info=True)
+
+    def _load_token(self):
+        full_path = self._get_props_path(DEFAULT_TOKEN_FILE)
+        if full_path and os.path.exists(full_path):
+            try:
+                p = Properties()
+                with open(full_path, "r+b") as f:
+                    p.load(f, "utf-8")
+                    if not self.token:
+                        self.token = getattr(p.get('token'), 'data', '')
+            except Exception as e:
+                logging.error(e, exc_info=True)
 
     def refresh_server_info(self):
         if self.enable_dynamic_domain and self.domain_conf:
