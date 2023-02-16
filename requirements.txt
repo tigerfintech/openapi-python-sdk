@@ -9,3 +9,4 @@ stomp.py
 getmac
 cryptography
 backoff
+jproperties
