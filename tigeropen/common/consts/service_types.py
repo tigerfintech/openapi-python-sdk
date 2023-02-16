@@ -4,7 +4,9 @@ Created on 2018/9/20
 
 @author: gaoan
 """
+USER_TOKEN_REFRESH = "user_token_refresh"
 
+# 订单
 ORDER_NO = "order_no"
 PREVIEW_ORDER = "preview_order"
 PLACE_ORDER = "place_order"
