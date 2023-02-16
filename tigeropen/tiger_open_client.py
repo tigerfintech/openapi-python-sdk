@@ -8,6 +8,7 @@ import datetime
 import json
 import logging
 import uuid
+from threading import Timer
 
 import backoff
 
@@ -15,7 +16,8 @@ from tigeropen import __VERSION__
 from tigeropen.common.consts import OPEN_API_SERVICE_VERSION, THREAD_LOCAL
 from tigeropen.common.consts.params import P_TIMESTAMP, P_TIGER_ID, P_METHOD, P_CHARSET, P_VERSION, P_SIGN_TYPE, \
     P_DEVICE_ID, P_NOTIFY_URL, COMMON_PARAM_KEYS, P_SIGN
-from tigeropen.common.consts.service_types import USER_LICENSE, PLACE_ORDER, CANCEL_ORDER, MODIFY_ORDER
+from tigeropen.common.consts.service_types import USER_LICENSE, PLACE_ORDER, CANCEL_ORDER, MODIFY_ORDER, \
+    USER_TOKEN_REFRESH
 from tigeropen.common.exceptions import ResponseException, RequestException
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.common.response import TigerResponse
@@ -33,14 +35,21 @@ LOG_FORMATTER = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message
 SKIP_RETRY_SERVICES = {PLACE_ORDER, CANCEL_ORDER, MODIFY_ORDER}
 
 
+_SCHEDULE_STATE = {'is_running': False}
+TOKEN_CHECK_INTERVAL = 300
+
+
 class TigerOpenClient:
     """
     client_config：客户端配置，包含tiger_id、应用私钥、老虎公钥等
     logger：日志对象，客户端执行信息会通过此日志对象输出
     """
-
     def __init__(self, client_config, logger=None):
         self.__config = client_config
+        if not client_config.private_key:
+            raise Exception('private key can not be empty')
+        if not client_config.tiger_id:
+            raise Exception('tiger id can not be empty')
         if logger:
             if client_config.log_level:
                 logger.setLevel(logging.getLevelName(client_config.log_level))
@@ -58,6 +67,8 @@ class TigerOpenClient:
         self.__device_id = self.__get_device_id()
         self.__init_license()
         self.__refresh_server_info()
+        if self.__config.token and self.__config.license:
+            self.__schedule_thread()
 
     def __init_license(self):
         if self.__config.license is None and self.__config.enable_dynamic_domain:
@@ -156,6 +167,9 @@ class TigerOpenClient:
 
         return response_content
 
+    def _update_header(self):
+        self.__headers['Authorization'] = self.__config.token
+
     def _get_retry_deco(self, service):
         if service not in SKIP_RETRY_SERVICES and self.__config.retry_max_tries > 0:
             return backoff.on_exception(backoff.fibo,
@@ -169,6 +183,8 @@ class TigerOpenClient:
     执行接口请求
     """
     def execute(self, request, url=None):
+        if self.__config.token:
+            self._update_header()
         if url is None:
             url = self.__config.server_url
         THREAD_LOCAL.uuid = str(uuid.uuid1())
@@ -198,3 +214,42 @@ class TigerOpenClient:
             if response.is_success():
                 return json.loads(response.data).get('license')
         self.__logger.error(f"failed to query license, response: {response_content}")
+
+    def refresh_token(self):
+        request = OpenApiRequest(method=USER_TOKEN_REFRESH)
+
+        response_content = None
+        try:
+            response_content = self.execute(request)
+        except Exception as e:
+            self.__logger.error(e, exc_info=True)
+        if response_content:
+            response = TigerResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return json.loads(response.data).get('token')
+        self.__logger.error(f"failed to refresh token, response: {response_content}")
+        return None
+
+    def token_refresh_task(self):
+        try:
+            if self.__config.should_token_refresh():
+                new_token = self.refresh_token()
+                if new_token:
+                    self.__logger.info(f"refresh token, old:{self.__config.token}, new:{new_token}")
+                    self.__config.load_or_store_token(new_token)
+        except Exception as e:
+            self.__logger.error(e, exc_info=True)
+
+    def __schedule_thread(self):
+        if not _SCHEDULE_STATE['is_running']:
+            _SCHEDULE_STATE['is_running'] = True
+            self.__logger.info('Starting schedule thread...')
+            daemon = RepeatTimer(TOKEN_CHECK_INTERVAL, self.token_refresh_task)
+            daemon.start()
+
+
+class RepeatTimer(Timer):
+    def run(self):
+        while not self.finished.wait(self.interval):
+            self.function(*self.args, **self.kwargs)
