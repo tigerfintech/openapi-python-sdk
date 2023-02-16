@@ -4,9 +4,11 @@ Created on 2018/9/20
 
 @author: gaoan
 """
+import base64
 import json
 import logging
 import os
+import time
 
 from jproperties import Properties
 from pytz import timezone
@@ -51,10 +53,11 @@ SANDBOX_TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbm21i11hgAENG
 
 DEFAULT_PROPS_FILE = 'tiger_openapi_config.properties'
 DEFAULT_TOKEN_FILE = 'tiger_openapi_token.properties'
+TOKEN_REFRESH_DURATION = 24 * 60 * 60  # seconds
 
 
 class TigerOpenClientConfig:
-    def __init__(self, sandbox_debug=False, enable_dynamic_domain=True, props_path='.'):
+    def __init__(self, sandbox_debug=None, enable_dynamic_domain=True, props_path='.'):
         # 开发者应用id
         self._tiger_id = ''
         # 授权账户
@@ -85,11 +88,6 @@ class TigerOpenClientConfig:
         self._server_url = SERVER_URL
         self._quote_server_url = SERVER_URL
         self._socket_host_port = SOCKET_HOST_PORT
-        if sandbox_debug:
-            self._tiger_public_key = SANDBOX_TIGER_PUBLIC_KEY
-            self._server_url = SANDBOX_SERVER_URL
-            self._quote_server_url = SANDBOX_SERVER_URL
-            self._socket_host_port = SANDBOX_SOCKET_HOST_PORT
 
         self.log_level = None
         self.log_path = None
@@ -98,11 +96,16 @@ class TigerOpenClientConfig:
         self.props_path = props_path
         self.token = None
         self._load_props()
-        self._load_token()
+        self.load_or_store_token()
 
         self.domain_conf = dict()
         self.enable_dynamic_domain = enable_dynamic_domain
-        if enable_dynamic_domain:
+        if self._sandbox_debug:
+            self._tiger_public_key = SANDBOX_TIGER_PUBLIC_KEY
+            self._server_url = SANDBOX_SERVER_URL
+            self._quote_server_url = SANDBOX_SERVER_URL
+            self._socket_host_port = SANDBOX_SOCKET_HOST_PORT
+        if self.enable_dynamic_domain:
             self.domain_conf = self.query_domains()
             self.refresh_server_info()
 
@@ -239,11 +242,12 @@ class TigerOpenClientConfig:
         self._token = value
 
     def _get_props_path(self, filename):
-        if self.props_path is not None and os.path.exists(self.props_path):
+        if self.props_path is not None:
             if os.path.isdir(self.props_path):
                 full_path = os.path.join(self.props_path, filename)
             else:
-                full_path = self.props_path
+                dirname = os.path.dirname(self.props_path)
+                full_path = os.path.join(dirname, filename)
             return full_path
         return None
 
@@ -262,20 +266,36 @@ class TigerOpenClientConfig:
                         self.account = getattr(p.get('account'), 'data', '')
                     if not self.license:
                         self.license = getattr(p.get('license'), 'data', '')
+                    if not self._sandbox_debug:
+                        is_sandbox_env = getattr(p.get('env'), 'data', '').upper() == 'SANDBOX'
+                        self._sandbox_debug = is_sandbox_env
             except Exception as e:
                 logging.error(e, exc_info=True)
 
-    def _load_token(self):
+    def load_or_store_token(self, token=None):
         full_path = self._get_props_path(DEFAULT_TOKEN_FILE)
         if full_path and os.path.exists(full_path):
             try:
                 p = Properties()
                 with open(full_path, "r+b") as f:
-                    p.load(f, "utf-8")
-                    if not self.token:
-                        self.token = getattr(p.get('token'), 'data', '')
+                    if token:
+                        self.token = token
+                        p['token'] = token
+                        p.store(f, encoding='utf-8')
+                    else:
+                        p.load(f, "utf-8")
+                        if not self.token:
+                            self.token = getattr(p.get('token'), 'data', '')
             except Exception as e:
                 logging.error(e, exc_info=True)
+
+    def should_token_refresh(self, duration=TOKEN_REFRESH_DURATION):
+        if self.token:
+            tokeninfo = base64.b64decode(self.token)
+            gen_ts, expire_ts = tokeninfo[:27].decode('utf-8').split(',')
+            if (int(time.time()) - int(gen_ts) // 1000) > duration:
+                return True
+            return False
 
     def refresh_server_info(self):
         if self.enable_dynamic_domain and self.domain_conf:
