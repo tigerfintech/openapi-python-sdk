@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package tigeropen.push.pb;
+
+
+message TradeTickData {
+  string symbol = 1;
+  string type = 2;                // tick type 逐笔方向（+-* 组成的字符串）(Futures are not supported)
+  string cond = 3;                // 成交条件（该值为空时表示所有成交都是正常成交）(Futures are not supported)
+  int64 sn = 4;                   // 首个逐笔对应的序号
+  int64 priceBase = 5;
+  int32 priceOffset = 6;
+  repeated int64 time = 7;        // 压缩后的成交时间，恢复为原时间信息 time[i] = time[i] + time[i-1]
+  repeated int64 price = 8;       // 压缩后的成交价格，恢复为原始价格信息 price[i] = (priceBase + price[i]) / 10^priceOffset
+  repeated int64 volume = 9;      // 原始的成交量
+  repeated string partCode = 10;  // 交易所代码，一般是 a ~ z 字符(Futures are not supported)
+  string quoteLevel = 11;         // (Futures are not supported)
+  uint64 timestamp = 12;
+
+  string secType = 13; // STK Stocks, FUT Futures
+  repeated MergedVol mergedVols = 14; // 原始合并次数(Only futures are supported)
+  message MergedVol {
+    int32 mergeTimes = 1; // 原始合并次数
+    repeated int64 vol = 2; // 原始合并的成交量
+  }
+}

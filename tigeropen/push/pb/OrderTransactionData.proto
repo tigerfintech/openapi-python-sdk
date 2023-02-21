@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package tigeropen.push.pb;
+
+message OrderTransactionData {
+  sint64 id = 1; // transact id
+  sint64 orderId = 2; // unique order id
+  string account = 3; // user account
+  string symbol = 4;
+  string identifier = 5;
+  uint32 multiplier = 6; // multiplier for futures, options, warrants and CBBC
+  string action = 7; // BUY or SELL
+  string market = 8; // market. US, HK, etc.
+  string currency = 9; // currency. USD, HKD, etc.
+  string segType = 10; // Securities Category C: (Commodities Futures), S: (Securities Stocks)
+  string secType = 11; // STK Stocks, OPT Options, WAR Warrants, IOPT CBBC, CASH FOREX, FUT Futures, FOP Future Options
+  double filledPrice = 12; // filled price
+  sint64 filledQuantity = 13; // filled quantity
+  uint64 createTime = 14;
+  uint64 updateTime = 15;
+  uint64 transactTime = 16; // transact time
+  uint64 timestamp = 17;
+
+}
