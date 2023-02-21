@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package tigeropen.push.pb;
+
+
+message AssetData {
+  string account = 1; // user account
+  string currency = 2; // currency. USD, HKD, etc.
+  string segType = 3; // Securities Category C: (Commodities Futures), S: (Securities Stocks)
+
+  double availableFunds = 4; // available funds, overnight liquidity
+  double excessLiquidity = 5; // excess liquidity, used to represent intraday risk value.
+  double netLiquidation = 6; // Total Assets (Net Liquidation Value)
+  double equityWithLoan = 7; // Equity with loan value (asset with loan value) - Securities Segment: Cash Value + Stock Value - Futures Segment: Cash Value - Maintenance Margin
+  double buyingPower = 8; // buying power. An estimation of how many more dollars you can buy in stock assets. Only apply to stock segment
+  double cashBalance = 9; // Cash amount. Sum of current cash balances in all currencies
+  double grossPositionValue = 10; // total value of securities
+
+  double initMarginReq = 11; // initial margin requirement
+  double maintMarginReq = 12; // maintenance margin requirement
+  uint64 timestamp = 13;
+
+}

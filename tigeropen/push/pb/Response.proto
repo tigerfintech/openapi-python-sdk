@@ -1,0 +1,15 @@
+syntax = "proto3";
+import public "tigeropen/push/pb/SocketCommon.proto";
+import public "tigeropen/push/pb/PushData.proto";
+
+package tigeropen.push.pb;
+
+message Response {
+
+  SocketCommon.Command command = 1;
+  optional uint32 id = 2; // from request's id
+  optional int32 code = 3;// command为MESSAGE时，code为111,112,113分别表示返回数据为获取所有订阅标的、订阅结果状态，取消订阅结果状态
+  optional string msg = 4;
+  optional PushData body = 5;
+
+}

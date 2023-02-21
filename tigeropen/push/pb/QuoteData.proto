@@ -1,0 +1,55 @@
+syntax = "proto3";
+package tigeropen.push.pb;
+
+import "tigeropen/push/pb/SocketCommon.proto";
+
+
+
+message QuoteData {
+
+  string symbol = 1;
+  SocketCommon.QuoteType type = 2; // ALL/BASIC/BBO
+  uint64 timestamp = 3;
+  optional uint64 serverTimestamp = 4;
+  optional double avgPrice = 5; // Options data not support
+  optional double latestPrice = 6; // required when type is 'BASIC'
+  optional uint64 latestPriceTimestamp = 7; // required when type is 'BASIC', Pre/Post-Mkt data not support
+  optional string latestTime = 8; // required when type is 'BASIC'
+  optional double preClose = 9; // required when type is 'BASIC'
+  optional sint64 volume = 10; // required when type is 'BASIC'
+  optional double amount = 11; // required when type is 'BASIC', Futures and Options data not support
+
+  optional double open = 12; // required when symbol in HK market
+  optional double high = 13; // required when symbol in HK market
+  optional double low = 14; // required when symbol in HK market
+
+  optional string hourTradingTag = 15; // Pre/Post-Mkt
+  optional string marketStatus = 16;
+
+  optional double askPrice = 17; // required when type is 'BBO'
+  optional sint64 askSize = 18; // required when type is 'BBO'
+  optional uint64 askTimestamp = 19; // Pre/Post-Mkt data not support
+  optional double bidPrice = 20; // required when type is 'BBO'
+  optional sint64 bidSize = 21; // required when type is 'BBO'
+  optional uint64 bidTimestamp = 22; // Pre/Post-Mkt data not support
+
+  optional string identifier = 23; // only Options support
+  optional sint64 openInt = 24; // open interest, only Options support
+
+  optional uint64 tradeTime = 25; // latest trad time, only Futures support
+  optional double preSettlement = 26; // previous settlement price, only Futures support
+  optional float minTick = 27; // min tick, only Futures support
+
+  // minute data: price, average price, time, volume
+  optional Minute mi = 28;
+
+  message Minute {
+    double p = 1; // last price of the minute bar
+    double a = 2; // average price of the minute bar
+    uint64 t = 3; // timestamp of the minute bar
+    sint64 v = 4; // trading volume of the minute bar
+    double o = 5; // open price of the minute bar (only futures support)
+    double h = 6; // highest price of the minute bar (only futures support)
+    double l = 7; // lowest price of the minute bar (only futures support)
+  }
+}
