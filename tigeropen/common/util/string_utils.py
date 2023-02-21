@@ -26,3 +26,8 @@ def camel_to_underline_obj(d):
         return [camel_to_underline_obj(i) if isinstance(i, (dict, list)) else i for i in d]
     return {camel_to_underline(k): camel_to_underline_obj(v) if isinstance(v, (dict, list)) else v
             for k, v in d.items()}
+
+
+def underline_to_camel(underline_str):
+    parts = underline_str.split('_')
+    return parts[0] + ''.join(x.title() for x in parts[1:])

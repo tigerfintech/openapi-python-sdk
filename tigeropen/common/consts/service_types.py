@@ -4,7 +4,9 @@ Created on 2018/9/20
 
 @author: gaoan
 """
+USER_TOKEN_REFRESH = "user_token_refresh"
 
+# 订单
 ORDER_NO = "order_no"
 PREVIEW_ORDER = "preview_order"
 PLACE_ORDER = "place_order"
@@ -52,8 +54,12 @@ QUOTE_SHORTABLE_STOCKS = "quote_shortable_stocks"
 QUOTE_STOCK_TRADE = "quote_stock_trade"
 QUOTE_DEPTH = "quote_depth"  # level2 深度行情
 GRAB_QUOTE_PERMISSION = "grab_quote_permission"  # 抢占行情
+MARKET_SCANNER = "market_scanner"  # 选股器
 GET_QUOTE_PERMISSION = "get_quote_permission"
 TRADING_CALENDAR = "trading_calendar"
+STOCK_BROKER = "stock_broker"  # 港股股票实时经纪队列
+CAPITAL_DISTRIBUTION = "capital_distribution"  # 股票当日资金分布
+CAPITAL_FLOW = "capital_flow"  # 股票资金流向
 
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"
