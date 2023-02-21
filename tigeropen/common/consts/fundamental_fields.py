@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from enum import Enum, unique
+from enum import unique, Enum
+
+
+class Field(Enum):
+    pass
 
 
 @unique
-class Valuation(Enum):
+class Valuation(Field):
     """
     估值指标
     tev: total enterprice value
@@ -30,7 +34,7 @@ class Valuation(Enum):
 
 
 @unique
-class Income(Enum):
+class Income(Field):
     """
     利润表
     """
@@ -187,7 +191,7 @@ class Income(Enum):
 
 
 @unique
-class Balance(Enum):
+class Balance(Field):
     """
     资产负债表
     """
@@ -316,7 +320,7 @@ class Balance(Enum):
 
 
 @unique
-class CashFlow(Enum):
+class CashFlow(Field):
     """
     现金流量表
     """
@@ -405,7 +409,7 @@ class CashFlow(Enum):
 
 
 @unique
-class BalanceSheetRatio(Enum):
+class BalanceSheetRatio(Field):
     """
     资产负债表相关比率
     """
@@ -422,7 +426,7 @@ class BalanceSheetRatio(Enum):
 
 
 @unique
-class Growth(Enum):
+class Growth(Field):
     """
     成长能力
     """
@@ -549,7 +553,7 @@ class Growth(Enum):
 
 
 @unique
-class Leverage(Enum):
+class Leverage(Field):
     """
     财务杠杆
     """
@@ -571,7 +575,7 @@ class Leverage(Enum):
 
 
 @unique
-class Profitability(Enum):
+class Profitability(Field):
     """
     盈利能力
     """
@@ -590,4 +594,3 @@ class Profitability(Enum):
     levered_free_cash_flow_margin = "levered_free_cash_flow_margin"
     unlevered_free_cash_flow_margin = "unlevered_free_cash_flow_margin"
     normalized_net_income_margin = "normalized_net_income_margin"
-

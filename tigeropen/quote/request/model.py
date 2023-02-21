@@ -835,4 +835,222 @@ class TradingCalendarParams(BaseParams):
         if self.end_date:
             params['end_date'] = self.end_date
 
+
+class MarketScannerParams(BaseParams):
+    def __init__(self):
+        super(MarketScannerParams, self).__init__()
+        self._market = None
+        self._base_filter_list = None
+        self._accumulate_filter_list = None
+        self._financial_filter_list = None
+        self._multi_tags_filter_list = None
+        self._sort_field_data = None
+        self._page = None
+        self._page_size = None
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
+    @property
+    def base_filter_list(self):
+        return self._base_filter_list
+
+    @base_filter_list.setter
+    def base_filter_list(self, value):
+        self._base_filter_list = value
+
+    @property
+    def accumulate_filter_list(self):
+        return self._accumulate_filter_list
+
+    @accumulate_filter_list.setter
+    def accumulate_filter_list(self, value):
+        self._accumulate_filter_list = value
+
+    @property
+    def financial_filter_list(self):
+        return self._financial_filter_list
+
+    @financial_filter_list.setter
+    def financial_filter_list(self, value):
+        self._financial_filter_list = value
+
+    @property
+    def multi_tags_filter_list(self):
+        return self._multi_tags_filter_list
+
+    @multi_tags_filter_list.setter
+    def multi_tags_filter_list(self, value):
+        self._multi_tags_filter_list = value
+
+    @property
+    def sort_field_data(self):
+        return self._sort_field_data
+
+    @sort_field_data.setter
+    def sort_field_data(self, value):
+        self._sort_field_data = value
+
+    @property
+    def page(self):
+        return self._page
+
+    @page.setter
+    def page(self, value):
+        self._page = value
+
+    @property
+    def page_size(self):
+        return self._page_size
+
+    @page_size.setter
+    def page_size(self, value):
+        self._page_size = value
+
+    def to_openapi_dict(self):
+        """
+        example
+        {"accumulate_filter_list":
+            [{"field_name":"AccumulateField_ChangeRate","filter_max":1,"filter_min":0.01,"is_no_filter":false,"period":"Last_Year"}],
+        "base_filter_list":
+            [{"field_name":"StockField_FloatShare","filter_max":10000000000000.0,"filter_min":10000000.0,"is_no_filter":true},
+            {"field_name":"StockField_MarketValue","filter_max":100000000000000.0,"filter_min":100000000.0,"is_no_filter":false}],
+        "financial_filter_list":
+            [{"field_name":"FinancialField_LYR_PE","filter_max":100,"filter_min":1,"financial_period":"LTM","is_no_filter":false}],
+        "multi_tags_filter_list":
+            [{"field_name":"MultiTagField_isOTC","is_no_filter":false,"tag_list":[1]}],
+        "sort_field_data":{"field_name":13,"field_type":"StockField_Type","sort_dir":"SortDir_Ascend"},
+        "page_size":50,
+        "market":"US"}
+        :return:
+        """
+        params = super().to_openapi_dict()
+
+        if self.market:
+            params['market'] = self.market
+        if self.base_filter_list:
+            params['base_filter_list'] = self.base_filter_list
+        if self.accumulate_filter_list:
+            params['accumulate_filter_list'] = self.accumulate_filter_list
+        if self.financial_filter_list:
+            params['financial_filter_list'] = self.financial_filter_list
+        if self.multi_tags_filter_list:
+            params['multi_tags_filter_list'] = self.multi_tags_filter_list
+        if self.sort_field_data:
+            params['sort_field_data'] = self.sort_field_data.to_dict()
+        if self.page is not None:
+            params['page'] = self.page
+        if self.page_size is not None:
+            params['page_size'] = self.page_size
+        return params
+
+
+class StockBrokerParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._symbol = None
+        self._limit = None
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
+
+    @property
+    def limit(self):
+        return self._limit
+
+    @limit.setter
+    def limit(self, value):
+        self._limit = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.symbol:
+            params['symbol'] = self.symbol
+        if self.limit:
+            params['limit'] = self.limit
+        return params
+
+
+class CapitalParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._symbol = None
+        self._market = None
+        self._period = None
+        self._begin_time = None
+        self._end_time = None
+        self._limit = None
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
+    @property
+    def period(self):
+        return self._period
+
+    @period.setter
+    def period(self, value):
+        self._period = value
+
+    @property
+    def begin_time(self):
+        return self._begin_time
+
+    @begin_time.setter
+    def begin_time(self, value):
+        self._begin_time = value
+
+    @property
+    def end_time(self):
+        return self._end_time
+
+    @end_time.setter
+    def end_time(self, value):
+        self._end_time = value
+
+    @property
+    def limit(self):
+        return self._limit
+
+    @limit.setter
+    def limit(self, value):
+        self._limit = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.symbol:
+            params['symbol'] = self.symbol
+        if self.market:
+            params['market'] = self.market
+        if self.period:
+            params['period'] = self.period
+        if self.begin_time:
+            params['begin_time'] = self.begin_time
+        if self.end_time:
+            params['end_time'] = self.end_time
+        if self.limit:
+            params['limit'] = self.limit
         return params

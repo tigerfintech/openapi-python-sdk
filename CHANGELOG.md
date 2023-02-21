@@ -1,3 +1,47 @@
+## 2.3.0 (2023-02-16)
+### New
+- 支持配置文件
+- 支持2FA token
+
+
+## 2.2.9 (2023-02-09)
+### Fix
+- 修复tick数据推送报错的问题
+### Modify
+- 除下单/改单/撤单外的接口，增加重试机制。默认重试5次，可通过 client_config.retry_max_tries 参数修改，设置为0则不进行重试
+
+
+## 2.2.8 (2023-02-03)
+### Fix
+- 修复期权合约四要素解析工具无法处理部分港股期权的问题
+
+
+## 2.2.7 (2023-01-11)
+### New
+- 支持配置日志路径
+
+
+## 2.2.6 (2022-12-14)
+### Fix
+- 修复 Windows 系统编码为gbk时安装报编码错误的问题
+
+## 2.2.5 (2022-12-12)
+### New
+- `TradeClient.get_contract` 返回的合约对象 `tigeropen.trade.domain.contract.Contract` 新增属性: `is_etf`, `etf_leverage`
+
+
+## 2.2.4 (2022-12-09)
+### New
+- 资金流接口 `QuoteClient.get_capital_flow`
+- 资金分布接口 `QuoteClient.get_capital_distribution`
+- 港股经纪商接口 `QuoteClient.get_stock_broker`
+
+
+## 2.2.3 (2022-12-07)
+### new
+- 选股器 `QuoteClient.market_scanner`
+
+
 ## 2.2.2 (2022-11-22)
 ### New
 - 订单支持GTD类型, 下单时可通过指定 Order 属性 time_in_force = "GTD" 设置
