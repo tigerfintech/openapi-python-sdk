@@ -176,6 +176,9 @@ class TigerOpenClient:
                                         (RequestException, ResponseException),
                                         max_time=self.__config.retry_max_time,
                                         max_tries=self.__config.retry_max_tries,
+                                        logger=self.__logger,
+                                        on_giveup=lambda x: self.__logger.error(f'give up after '
+                                                                                f'{self.__config.retry_max_tries} retries'),
                                         jitter=None)
         return None
 
@@ -215,7 +218,7 @@ class TigerOpenClient:
                 return json.loads(response.data).get('license')
         self.__logger.error(f"failed to query license, response: {response_content}")
 
-    def refresh_token(self):
+    def query_token(self):
         request = OpenApiRequest(method=USER_TOKEN_REFRESH)
 
         response_content = None
@@ -231,21 +234,25 @@ class TigerOpenClient:
         self.__logger.error(f"failed to refresh token, response: {response_content}")
         return None
 
-    def token_refresh_task(self):
+    def refresh_token(self):
+        new_token = self.query_token()
+        if new_token:
+            self.__logger.info(f"refresh token, old:{self.__config.token}, new:{new_token}")
+            self.__config.load_or_store_token(new_token)
+
+    def __token_refresh_task(self):
         try:
             if self.__config.should_token_refresh():
-                new_token = self.refresh_token()
-                if new_token:
-                    self.__logger.info(f"refresh token, old:{self.__config.token}, new:{new_token}")
-                    self.__config.load_or_store_token(new_token)
+                self.refresh_token()
         except Exception as e:
             self.__logger.error(e, exc_info=True)
 
     def __schedule_thread(self):
-        if not _SCHEDULE_STATE['is_running']:
+        if not _SCHEDULE_STATE['is_running'] and self.__config.token_refresh_duration != 0:
             _SCHEDULE_STATE['is_running'] = True
             self.__logger.info('Starting schedule thread...')
-            daemon = RepeatTimer(TOKEN_CHECK_INTERVAL, self.token_refresh_task)
+            daemon = RepeatTimer(TOKEN_CHECK_INTERVAL, self.__token_refresh_task)
+            daemon.daemon = True
             daemon.start()
 
 
