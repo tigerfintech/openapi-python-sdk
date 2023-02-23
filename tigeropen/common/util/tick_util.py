@@ -16,7 +16,7 @@ def get_part_code_name(code):
 
 
 def get_trade_condition_map(quote_level):
-    if quote_level.lower().startswith(HK_QUOTE_LEVEL_PREFIX):
+    if quote_level and quote_level.lower().startswith(HK_QUOTE_LEVEL_PREFIX):
         return HK_TRADE_COND_MAP
     return US_TRADE_COND_MAP
 

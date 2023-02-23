@@ -8,7 +8,7 @@ import pandas as pd
 
 from tigeropen.common.response import TigerResponse
 
-COLUMNS = ['symbol', 'time', 'open', 'high', 'low', 'close', 'volume', 'next_page_token']
+COLUMNS = ['symbol', 'time', 'open', 'high', 'low', 'close', 'volume', 'amount', 'next_page_token']
 BAR_FIELD_MAPPINGS = {'avgPrice': 'avg_price'}
 
 
