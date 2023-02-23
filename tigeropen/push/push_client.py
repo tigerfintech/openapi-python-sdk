@@ -508,10 +508,18 @@ class PushClient(stomp.ConnectionListener):
         return headers
 
     def _convert_tick(self, tick):
+        """"将原始数据转换为tick列表。
+
+        '{"symbol":"00700","type":"-+","sn":"17441","priceBase":"3552","priceOffset":1,"time":["1677119933174","97"],"price":["0","2"],"volume":["300","100"],"quoteLevel":"hkStockQuoteLv2","timestamp":"1677119933391","secType":"STK"}'
+
+        转换为tick的列表：
+        [{'tick_type': '-', 'price': 355.2, 'volume': 300, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1677119933174, 'sn': 17441, 'quote_level': 'hkStockQuoteLv2', 'timestamp': 1677119933391, 'sec_type': 'STK'},
+         {'tick_type': '+', 'price': 355.4, 'volume': 100, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1677119933271, 'sn': 17442, 'quote_level': 'hkStockQuoteLv2', 'timestamp': 1677119933391, 'sec_type': 'STK'}]
+        """
         data = json.loads(tick)
         symbol = data.pop('symbol')
         data = camel_to_underline_obj(data)
-        price_offset = 10 ** data.pop('price_offset')
+        price_offset = 10 ** data.pop('price_offset', 0)
         price_base = float(data.pop('price_base'))
         data['timestamp'] = int(data.get('timestamp'))
         prices = data.pop('prices') if 'prices' in data else data.pop('price')
@@ -521,7 +529,7 @@ class PushClient(stomp.ConnectionListener):
         time_items = [('time', item) for item in accumulate(times)]
         volumes = data.pop('volumes') if 'volumes' in data else data.pop('volume')
         volume_items = [('volume', int(item)) for item in volumes]
-        tick_types = data.pop('tick_type') if 'tick_type' in data else data.pop('type')
+        tick_types = data.pop('tick_type') if 'tick_type' in data else data.pop('type', None)
         if tick_types:
             tick_type_items = [('tick_type', item) for item in tick_types]
         else:
@@ -534,8 +542,10 @@ class PushClient(stomp.ConnectionListener):
             part_code_items = [('part_code', None) for _ in range(len(time_items))]
             part_code_name_items = [('part_code_name', None) for _ in range(len(time_items))]
         conds = data.pop('cond') if 'cond' in data else None
-        cond_map = get_trade_condition_map(data.get('quote_level'))
+        cond_map = get_trade_condition_map(data.get('quote_level', ''))
         if conds:
+            if len(time_items) - len(conds) > 0:
+                conds += ' ' * (len(time_items) - len(conds))
             cond_items = [('cond', get_trade_condition(item, cond_map)) for item in conds]
         else:
             cond_items = [('cond', None) for _ in range(len(time_items))]
@@ -553,11 +563,12 @@ class PushClient(stomp.ConnectionListener):
             try:
                 item_dict = dict(item)
             except:
-                self.logger.error('convert tick error')
+                self.logger.error(f'convert tick error, item:{item}')
                 continue
             item_dict.update(data)
             if item_dict.get('merged_vols'):
-                vols = item_dict.pop('merged_vols').get('vols')
+                m_vols = item_dict.pop('merged_vols')
+                vols = m_vols.get('vols') if 'vols' in m_vols else m_vols.get('vol')
                 for i, vol in enumerate(vols):
                     sub_item = dict(item_dict)
                     sub_item['sn'] = sub_item['sn'] * 10 + i
