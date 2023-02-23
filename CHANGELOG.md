@@ -1,3 +1,10 @@
+## 2.3.1 (2023-02-23)
+### New
+- 支持2FA token自定义刷新间隔，可通过 client_config.token_refresh_duration = 0 关闭自动刷新
+### Fix
+- tick数据推送字段异常问题
+- 若开启token，刷新线程不随主线程退出的问题
+
 ## 2.3.0 (2023-02-16)
 ### New
 - 支持配置文件
