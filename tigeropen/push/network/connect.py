@@ -90,7 +90,6 @@ class PushConnection(BaseConnection, Protocol):
                  vhost=None,
                  auto_decode=True,
                  encoding="utf-8",
-                 auto_content_length=True,
                  heart_beat_receive_scale=1.5,
                  bind_host_port=None):
         transport = Transport(host_and_ports, prefer_localhost, try_loopback_connect,
@@ -98,7 +97,7 @@ class PushConnection(BaseConnection, Protocol):
                               reconnect_sleep_max, reconnect_attempts_max, timeout,
                               keepalive, vhost, auto_decode, encoding, bind_host_port=bind_host_port)
         BaseConnection.__init__(self, transport)
-        Protocol.__init__(self, transport, heartbeats, auto_content_length,
+        Protocol.__init__(self, transport, heartbeats,
                           heart_beat_receive_scale=heart_beat_receive_scale)
 
     def connect(self, *args, **kwargs):
