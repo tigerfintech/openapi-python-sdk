@@ -78,23 +78,47 @@ class ProtoMessageUtil:
         return cls.build_trade_message(data_type, account, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
 
     @classmethod
-    def build_subscribe_quote_message(cls, symbols, market):
-        return cls.build_quote_message(symbols, market, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
+    def build_subscribe_query_message(cls):
+        request = Request_pb2.Request()
+        request.command = SocketCommon_pb2.SocketCommon.SEND
+        request.id = cls.increment
+        return request
 
     @classmethod
-    def build_unsubscribe_quote_message(cls, symbols, market):
-        return cls.build_quote_message(symbols, market, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
+    def build_subscribe_quote_message(cls, symbols, market=None):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.Quote, symbols, market, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
 
     @classmethod
-    def build_quote_message(cls, symbols, market, command):
+    def build_unsubscribe_quote_message(cls, symbols, market=None):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.Quote, symbols, market, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
+
+    @classmethod
+    def build_subscribe_tick_quote_message(cls, symbols, market):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.TradeTick, symbols, market, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
+
+    @classmethod
+    def build_unsubscribe_tick_quote_message(cls, symbols, market):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.TradeTick, symbols, market, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
+
+    @classmethod
+    def build_subscribe_depth_quote_message(cls, symbols, market):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.QuoteDepth, symbols, market, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
+
+    @classmethod
+    def build_unsubscribe_depth_quote_message(cls, symbols, market):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.QuoteDepth, symbols, market, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
+
+    @classmethod
+    def build_quote_message(cls, data_type, symbols, market, command):
         request = Request_pb2.Request()
         request.command = command
         request.id = cls.increment
 
         sub = Request_pb2.Request.Subscribe()
-        sub.dataType = SocketCommon_pb2.SocketCommon.Quote
+        sub.dataType = data_type
         sub.symbols = ','.join(symbols) if isinstance(symbols, list) else symbols
-        sub.market = market
+        if market:
+            sub.market = market
         request.subscribe.CopyFrom(sub)
         return request
 
@@ -106,6 +130,7 @@ class ProtoMessageUtil:
 
         sub = Request_pb2.Request.Subscribe()
         sub.dataType = data_type
-        sub.account = account
+        if account:
+            sub.account = account
         request.subscribe.CopyFrom(sub)
         return request

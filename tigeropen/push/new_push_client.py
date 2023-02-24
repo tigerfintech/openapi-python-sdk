@@ -5,15 +5,12 @@
 import logging
 import sys
 
-from google.protobuf.json_format import MessageToJson
-
-from tigeropen.common.consts import QuoteKeyType
 from tigeropen.common.consts.push_types import ResponseType
 from tigeropen.common.util.signature_utils import sign_with_rsa, read_private_key
 from tigeropen.push import _patch_ssl
 from tigeropen.push.network.connect import PushConnection
 from tigeropen.push.network.exception import ConnectFailedException
-from tigeropen.push.network.listener import HeartbeatListener, ConnectionListener
+from tigeropen.push.network.listener import ConnectionListener
 from tigeropen.push.pb.SocketCommon_pb2 import SocketCommon
 from tigeropen.push.pb.util import ProtoMessageUtil
 
@@ -21,8 +18,6 @@ if sys.platform == 'linux' or sys.platform == 'linux2':
     KEEPALIVE = True
 else:
     KEEPALIVE = False
-
-
 
 
 class NewPushClient(ConnectionListener):
@@ -99,10 +94,6 @@ class NewPushClient(ConnectionListener):
         self.logger.error(frame)
 
     def on_message(self, frame):
-        # self.logger.info(f'receive message: {MessageToJson(frame)}')
-        # self.logger.debug(frame.code)
-        # self.logger.debug(frame.body.dataType)
-        # self.logger.debug(frame)
         if frame.code == ResponseType.GET_SUB_SYMBOLS_END.value:
             if self.query_subscribed_callback:
                 self.query_subscribed_callback(frame)
@@ -143,13 +134,15 @@ class NewPushClient(ConnectionListener):
         :return:
         """
         req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.Asset, account)
-        self._connection.subscribe(req)
+        self._connection.send_frame(req)
 
-    def unsubscribe_asset(self, id=None):
+    def unsubscribe_asset(self, account=None):
         """
         退订账户资产更新
         :return:
         """
+        req = ProtoMessageUtil.build_unsubscribe_trade_message(SocketCommon.DataType.Asset, account)
+        self._connection.send_frame(req)
 
     def subscribe_position(self, account=None):
         """
@@ -157,13 +150,15 @@ class NewPushClient(ConnectionListener):
         :return:
         """
         req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.Position, account)
-        self._connection.subscribe(req)
+        self._connection.send_frame(req)
 
-    def unsubscribe_position(self, id=None):
+    def unsubscribe_position(self, account=None):
         """
         退订账户持仓更新
         :return:
         """
+        req = ProtoMessageUtil.build_unsubscribe_trade_message(SocketCommon.DataType.Position, account)
+        self._connection.send_frame(req)
 
     def subscribe_order(self, account=''):
         """
@@ -171,48 +166,58 @@ class NewPushClient(ConnectionListener):
         :return:
         """
         req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.OrderStatus, account)
-        self._connection.subscribe(req)
+        self._connection.send_frame(req)
 
-    def unsubscribe_order(self, id=None):
+    def unsubscribe_order(self, account=None):
         """
         退订账户订单更新
         :return:
         """
+        req = ProtoMessageUtil.build_unsubscribe_trade_message(SocketCommon.DataType.OrderStatus, account)
+        self._connection.send_frame(req)
 
     def subscribe_transaction(self, account=None):
         """
         订阅订单执行明细
         :return:
         """
+        req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.OrderTransaction, account)
+        self._connection.send_frame(req)
 
-    def unsubscribe_transaction(self, id=None):
+    def unsubscribe_transaction(self, account=None):
         """
         退订订单执行明细
         :return:
         """
+        req = ProtoMessageUtil.build_unsubscribe_trade_message(SocketCommon.DataType.OrderTransaction, account)
+        self._connection.send_frame(req)
 
-    def subscribe_quote(self, symbols, market=''):
+    def subscribe_quote(self, symbols, market=None):
         """
         订阅行情更新
         :param symbols:
         :return:
         """
         req = ProtoMessageUtil.build_subscribe_quote_message(symbols, market)
-        self._connection.subscribe(req)
+        self._connection.send_frame(req)
 
-    def subscribe_tick(self, symbols):
+    def subscribe_tick(self, symbols, market=None):
         """
         subscribe trade tick
         :param symbols: symbol列表
         :return:
         """
+        req = ProtoMessageUtil.build_subscribe_tick_quote_message(symbols, market)
+        self._connection.send_frame(req)
 
-    def subscribe_depth_quote(self, symbols):
+    def subscribe_depth_quote(self, symbols, market=None):
         """
         订阅深度行情
         :param symbols: symbol列表
         :return:
         """
+        req = ProtoMessageUtil.build_subscribe_depth_quote_message(symbols, market)
+        self._connection.send_frame(req)
 
     def subscribe_option(self, symbols):
         """
@@ -220,6 +225,8 @@ class NewPushClient(ConnectionListener):
         :param symbols: symbol列表
         :return:
         """
+        req = ProtoMessageUtil.build_subscribe_quote_message(symbols)
+        self._connection.send_frame(req)
 
     def subscribe_future(self, symbols):
         """
@@ -227,30 +234,40 @@ class NewPushClient(ConnectionListener):
         :param symbols: symbol列表
         :return:
         """
+        req = ProtoMessageUtil.build_subscribe_quote_message(symbols)
+        self._connection.send_frame(req)
 
     def query_subscribed_quote(self):
         """
         查询已订阅行情的合约
         :return:
         """
+        req = ProtoMessageUtil.build_subscribe_query_message()
+        self._connection.send_frame(req)
 
-    def unsubscribe_quote(self, symbols=None, id=None):
+    def unsubscribe_quote(self, symbols=None, market=None):
         """
         退订行情更新
         :return:
         """
+        req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols, market)
+        self._connection.send_frame(req)
 
-    def unsubscribe_tick(self, symbols=None, id=None):
+    def unsubscribe_tick(self, symbols=None, market=None):
         """
         退订行情更新
         :return:
         """
+        req = ProtoMessageUtil.build_unsubscribe_tick_quote_message(symbols, market)
+        self._connection.send_frame(req)
 
-    def unsubscribe_depth_quote(self, symbols=None, id=None):
+    def unsubscribe_depth_quote(self, symbols=None, market=None):
         """
         退订深度行情更新
         :return:
         """
+        req = ProtoMessageUtil.build_unsubscribe_depth_quote_message(symbols, market)
+        self._connection.send_frame(req)
 
 
 if __name__ == '__main__':
