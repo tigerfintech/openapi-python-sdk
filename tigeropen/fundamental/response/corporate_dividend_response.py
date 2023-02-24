@@ -26,5 +26,6 @@ class CorporateDividendResponse(TigerResponse):
             for symbol, dividend_items in self.data.items():
                 for item in dividend_items:
                     item['symbol'] = symbol
+                    item['announcedDate'] = item.get('announcedDate', None)
                     items.append(item)
-            self.corporate_dividend = pd.DataFrame(items).rename(columns=DIVIDEND_FIELD_MAPPINGS)[COLUMNS]
+            self.corporate_dividend = pd.DataFrame(items).rename(columns=DIVIDEND_FIELD_MAPPINGS)
