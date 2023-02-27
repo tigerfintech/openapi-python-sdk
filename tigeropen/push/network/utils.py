@@ -98,11 +98,6 @@ def calculate_heartbeats(shb, chb):
         y = max(cy, int(sx))
     return x, y
 
-
-def get_uuid():
-    return str(uuid.uuid4())
-
-
 def get_errno(e):
     """
     Return the errno of an exception, or the first argument if errno is not available.

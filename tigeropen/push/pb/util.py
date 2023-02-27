@@ -27,7 +27,10 @@ class ProtoMessageUtil:
     @classmethod
     def parse_response_message(cls, data):
         response = Response_pb2.Response()
-        response.ParseFromString(data)
+        try:
+            response.ParseFromString(data)
+        except Exception as e:
+            print(f'parse msg error: {e}')
         return response
 
     @classmethod
@@ -116,7 +119,8 @@ class ProtoMessageUtil:
 
         sub = Request_pb2.Request.Subscribe()
         sub.dataType = data_type
-        sub.symbols = ','.join(symbols) if isinstance(symbols, list) else symbols
+        if symbols:
+            sub.symbols = ','.join(symbols) if isinstance(symbols, list) else symbols
         if market:
             sub.market = market
         request.subscribe.CopyFrom(sub)
