@@ -1,13 +1,5 @@
-"""Main entry point for clients to create a STOMP connection.
-
-Provides connection classes for `1.0 <http://stomp.github.io/stomp-specification-1.0.html>`_,
-`1.1 <http://stomp.github.io/stomp-specification-1.1.html>`_, and
-`1.2 <http://stomp.github.io/stomp-specification-1.2.html>`_ versions of the STOMP protocol.
-"""
-
 from .protocal import *
 from .transport import *
-from .utils import get_uuid
 
 
 class BaseConnection(Publisher):
@@ -21,24 +13,9 @@ class BaseConnection(Publisher):
         """
         self.transport = transport
 
-    # def __enter__(self):
-    #     self.disconnect_receipt_id = get_uuid()
-    #     self.disconnect_listener = WaitingListener(self.disconnect_receipt_id)
-    #     self.set_listener("ZZZZZ-disconnect-listener", self.disconnect_listener)
-    #     return self
-
     def disconnect(self): pass
 
-    # def __exit__(self, exc_type, exc_val, exc_tb):
-    #     self.disconnect(self.disconnect_receipt_id)
-    #     self.disconnect_listener.wait_on_receipt()
-    #     self.disconnect_listener.wait_on_disconnected()
-
     def set_listener(self, name, listener):
-        """
-        :param str name:
-        :param ConnectionListener listener:
-        """
         self.transport.set_listener(name, listener)
 
     def remove_listener(self, name):
@@ -107,7 +84,3 @@ class PushConnection(BaseConnection, Protocol):
     def disconnect(self):
         Protocol.disconnect(self)
         self.transport.stop()
-
-    # @staticmethod
-    # def is_eol(c):
-    #     return c == b"\x0a" or c == b"\x0d\x0a"

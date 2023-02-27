@@ -1,6 +1,7 @@
 """Various listeners for using with stomp.py connections.
 """
 
+import logging
 import sys
 import threading
 import time
@@ -8,10 +9,6 @@ from time import monotonic
 
 from . import exception
 from . import utils
-# from stomp.constants import *
-# from import logging
-import logging
-
 from ..pb.util import ProtoMessageUtil
 
 
@@ -132,7 +129,7 @@ class ConnectionListener(object):
         """
         pass
 
-    def on_heartbeat(self):
+    def on_heartbeat(self, frame):
         """
         Called on receipt of a heartbeat.
         """
@@ -215,7 +212,7 @@ class HeartbeatListener(ConnectionListener):
         """
         self.__update_heartbeat()
 
-    def on_heartbeat(self):
+    def on_heartbeat(self, frame):
         """
         Reset the last received time whenever a heartbeat message is received.
         """

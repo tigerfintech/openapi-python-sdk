@@ -20,7 +20,7 @@ else:
     KEEPALIVE = False
 
 
-class NewPushClient(ConnectionListener):
+class ProtobufPushClient(ConnectionListener):
     def __init__(self, host, port, use_ssl=True, connection_timeout=120, heartbeats=(30 * 1000, 30 * 1000)):
         self.host = host
         self.port = port
@@ -30,8 +30,11 @@ class NewPushClient(ConnectionListener):
         self._sign = None
         self._connection = None
 
+        self.subscribed_symbols = None
         self.query_subscribed_callback = None
         self.quote_changed = None
+        self.future_changed = None
+        self.option_changed = None
         self.tick_changed = None
         self.asset_changed = None
         self.position_changed = None
@@ -96,7 +99,7 @@ class NewPushClient(ConnectionListener):
     def on_message(self, frame):
         if frame.code == ResponseType.GET_SUB_SYMBOLS_END.value:
             if self.query_subscribed_callback:
-                self.query_subscribed_callback(frame)
+                self.query_subscribed_callback(frame.msg)
         elif frame.code == ResponseType.GET_SUBSCRIBE_END.value:
             if self.subscribe_callback:
                 self.subscribe_callback(frame)
@@ -109,24 +112,34 @@ class NewPushClient(ConnectionListener):
         else:
             if frame.body.dataType == SocketCommon.DataType.Quote:
                 if self.quote_changed:
-                    self.quote_changed(frame)
+                    self.quote_changed(frame.body.quoteData)
+            elif frame.body.dataType == SocketCommon.DataType.Future:
+                if self.future_changed:
+                    self.future_changed(frame.body.quoteData)
+                if self.quote_changed:
+                    self.quote_changed(frame.body.quoteData)
+            elif frame.body.dataType == SocketCommon.DataType.Option:
+                if self.option_changed:
+                    self.option_changed(frame.body.quoteData)
+                if self.quote_changed:
+                    self.quote_changed(frame.body.quoteData)
             elif frame.body.dataType == SocketCommon.DataType.OrderStatus:
                 if self.order_changed:
-                    self.order_changed(frame)
+                    self.order_changed(frame.body.orderStatusData)
             elif frame.body.dataType == SocketCommon.DataType.OrderTransaction:
                 if self.transaction_changed:
-                    self.transaction_changed(frame)
+                    self.transaction_changed(frame.body.orderTransactionData)
             elif frame.body.dataType == SocketCommon.DataType.Asset:
                 if self.asset_changed:
-                    self.asset_changed(frame)
+                    self.asset_changed(frame.body.assetData)
             elif frame.body.dataType == SocketCommon.DataType.Position:
                 if self.position_changed:
-                    self.position_changed(frame)
+                    self.position_changed(frame.body.positionData)
             elif frame.body.dataType == SocketCommon.DataType.TradeTick:
                 if self.tick_changed:
-                    self.tick_changed(frame)
+                    self.tick_changed(frame.body.tradeTickData)
             else:
-                self.logger.info(f'unhandled frame: {frame}')
+                self.logger.warning(f'unhandled frame: {frame}')
 
     def subscribe_asset(self, account=None):
         """
@@ -277,7 +290,7 @@ if __name__ == '__main__':
     #
     # js = MessageToJson(con_req)
     # print(js)
-    NewPushClient()
+    ProtobufPushClient()
     # h = 'openapi-sandbox.tigerfintech.com'
     # p = 9885
     # client = NewPushClient(h, p)

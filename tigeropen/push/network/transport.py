@@ -2,20 +2,18 @@
 """
 
 import errno
+import logging
 import math
 import random
+import re
 import struct
 import sys
 import time
-import logging
-import re
 from io import BytesIO
 from time import monotonic
 
 from google.protobuf.json_format import MessageToJson
 
-from ..pb.Response_pb2 import Response
-from ..pb.SocketCommon_pb2 import SocketCommon
 from ..pb.util import ProtoMessageUtil
 
 try:
@@ -80,21 +78,6 @@ def DecodeVarint(buffer):
 
 
 class BaseTransport(listener.Publisher):
-    """
-    Base class for transport classes providing support for listeners, threading overrides,
-    and anything else outside of actually establishing a network connection, sending and
-    receiving of messages (so generally socket-agnostic functions).
-
-    :param bool auto_decode: automatically decode message responses as strings, rather than
-        leaving them as bytes. This preserves the behaviour as of version 4.0.16.
-        (To be defaulted to False as of the next release)
-    :param encoding: the character encoding to use for the message body
-    """
-
-    #
-    # Used to parse the STOMP "content-length" header lines,
-    #
-    __content_length_re = re.compile(b"^content-length[:]\\s*(?P<value>[0-9]+)", re.MULTILINE)
 
     def __init__(self, auto_decode=True, encoding="utf-8", is_eol_fc=is_eol_default):
         self.__recvbuf = b""
@@ -126,7 +109,6 @@ class BaseTransport(listener.Publisher):
         self.__frame_buffer = b""
         self.__frame_len = None
 
-
     def override_threading(self, create_thread_fc):
         """
         Override for thread creation. Use an alternate threading library by
@@ -137,9 +119,6 @@ class BaseTransport(listener.Publisher):
         """
         self.create_thread_fc = create_thread_fc
 
-    #
-    # Manage the connection
-    #
 
     def start(self):
         """
@@ -185,9 +164,6 @@ class BaseTransport(listener.Publisher):
         elif receipt_id in self.__receipts:
             del self.__receipts[receipt_id]
 
-    #
-    # Manage objects listening to incoming frames
-    #
 
     def set_listener(self, name, listener):
         """
@@ -248,7 +224,10 @@ class BaseTransport(listener.Publisher):
             if not notify_func:
                 logging.debug("listener %s has no method on_%s", listener, cmd_name)
                 continue
-            if cmd_type in (SocketCommon.Command.HEARTBEAT, SocketCommon.Command.DISCONNECT):
+            if cmd_type == SocketCommon.Command.HEARTBEAT:
+                notify_func(frame)
+                continue
+            if cmd_type == SocketCommon.Command.DISCONNECT:
                 notify_func()
                 continue
             if cmd_type == SocketCommon.Command.CONNECT:
@@ -396,15 +375,16 @@ class BaseTransport(listener.Publisher):
             if c is None or len(c) == 0:
                 logging.debug("nothing received, raising CCE")
                 raise exception.ConnectionClosedException()
-            if self.__is_eol(c) and not self.__recvbuf and not fastbuf.tell():
-                #
-                # EOL to an empty receive buffer: treat as heartbeat.
-                # Note that this may misdetect an optional EOL at end of frame as heartbeat in case the
-                # previous receive() got a complete frame whose NUL at end of frame happened to be the
-                # last byte of that read. But that should be harmless in practice.
-                #
-                fastbuf.close()
-                return [c]
+
+            # if self.__is_eol(c) and not self.__recvbuf and not fastbuf.tell():
+            #     #
+            #     # EOL to an empty receive buffer: treat as heartbeat.
+            #     # Note that this may misdetect an optional EOL at end of frame as heartbeat in case the
+            #     # previous receive() got a complete frame whose NUL at end of frame happened to be the
+            #     # last byte of that read. But that should be harmless in practice.
+            #     #
+            #     fastbuf.close()
+            #     return [c]
             fastbuf.write(c)
             if b"\x00" in c:
                 #
