@@ -12,7 +12,7 @@ from tigeropen.push.network.connect import PushConnection
 from tigeropen.push.network.exception import ConnectFailedException
 from tigeropen.push.network.listener import ConnectionListener
 from tigeropen.push.pb.SocketCommon_pb2 import SocketCommon
-from tigeropen.push.pb.util import ProtoMessageUtil
+from tigeropen.push.pb.util import ProtoMessageUtil, convert_to_basic_data, convert_to_bbo_data
 
 if sys.platform == 'linux' or sys.platform == 'linux2':
     KEEPALIVE = True
@@ -33,8 +33,9 @@ class ProtobufPushClient(ConnectionListener):
         self.subscribed_symbols = None
         self.query_subscribed_callback = None
         self.quote_changed = None
-        self.future_changed = None
-        self.option_changed = None
+        self.quote_bbo_changed = None
+        self.quote_all_changed = None
+        self.quote_depth_changed = None
         self.tick_changed = None
         self.asset_changed = None
         self.position_changed = None
@@ -111,18 +112,27 @@ class ProtobufPushClient(ConnectionListener):
                 self.error_callback(frame)
         else:
             if frame.body.dataType == SocketCommon.DataType.Quote:
-                if self.quote_changed:
+                if frame.body.quoteData.type == SocketCommon.QuoteType.BASIC and self.quote_changed:
                     self.quote_changed(frame.body.quoteData)
-            elif frame.body.dataType == SocketCommon.DataType.Future:
-                if self.future_changed:
-                    self.future_changed(frame.body.quoteData)
+                if frame.body.quoteData.type == SocketCommon.QuoteType.BBO and self.quote_bbo_changed:
+                    self.quote_bbo_changed(frame.body.quoteData)
+                if frame.body.quoteData.type == SocketCommon.QuoteType.ALL and self.quote_all_changed:
+                    self.quote_all_changed(frame.body.quoteData)
+            elif frame.body.dataType in {SocketCommon.DataType.Future, SocketCommon.DataType.Option}:
                 if self.quote_changed:
-                    self.quote_changed(frame.body.quoteData)
-            elif frame.body.dataType == SocketCommon.DataType.Option:
-                if self.option_changed:
-                    self.option_changed(frame.body.quoteData)
-                if self.quote_changed:
-                    self.quote_changed(frame.body.quoteData)
+                    basic_data = convert_to_basic_data(frame.body.quoteData)
+                    if basic_data:
+                        self.quote_changed(basic_data)
+                if self.quote_bbo_changed:
+                    bbo_data = convert_to_bbo_data(frame.body.quoteData)
+                    if bbo_data:
+                        self.quote_bbo_changed(bbo_data)
+            elif frame.body.dataType == SocketCommon.DataType.QuoteDepth:
+                if self.quote_depth_changed:
+                    self.quote_depth_changed(frame.body.quoteDepthData)
+            elif frame.body.dataType == SocketCommon.DataType.TradeTick:
+                if self.tick_changed:
+                    self.tick_changed(frame.body.tradeTickData)
             elif frame.body.dataType == SocketCommon.DataType.OrderStatus:
                 if self.order_changed:
                     self.order_changed(frame.body.orderStatusData)
@@ -135,9 +145,6 @@ class ProtobufPushClient(ConnectionListener):
             elif frame.body.dataType == SocketCommon.DataType.Position:
                 if self.position_changed:
                     self.position_changed(frame.body.positionData)
-            elif frame.body.dataType == SocketCommon.DataType.TradeTick:
-                if self.tick_changed:
-                    self.tick_changed(frame.body.tradeTickData)
             else:
                 self.logger.warning(f'unhandled frame: {frame}')
 
@@ -205,31 +212,31 @@ class ProtobufPushClient(ConnectionListener):
         req = ProtoMessageUtil.build_unsubscribe_trade_message(SocketCommon.DataType.OrderTransaction, account)
         self._connection.send_frame(req)
 
-    def subscribe_quote(self, symbols, market=None):
+    def subscribe_quote(self, symbols):
         """
         订阅行情更新
         :param symbols:
         :return:
         """
-        req = ProtoMessageUtil.build_subscribe_quote_message(symbols, market)
+        req = ProtoMessageUtil.build_subscribe_quote_message(symbols)
         self._connection.send_frame(req)
 
-    def subscribe_tick(self, symbols, market=None):
+    def subscribe_tick(self, symbols):
         """
         subscribe trade tick
         :param symbols: symbol列表
         :return:
         """
-        req = ProtoMessageUtil.build_subscribe_tick_quote_message(symbols, market)
+        req = ProtoMessageUtil.build_subscribe_tick_quote_message(symbols)
         self._connection.send_frame(req)
 
-    def subscribe_depth_quote(self, symbols, market=None):
+    def subscribe_depth_quote(self, symbols):
         """
         订阅深度行情
         :param symbols: symbol列表
         :return:
         """
-        req = ProtoMessageUtil.build_subscribe_depth_quote_message(symbols, market)
+        req = ProtoMessageUtil.build_subscribe_depth_quote_message(symbols)
         self._connection.send_frame(req)
 
     def subscribe_option(self, symbols):
@@ -247,7 +254,7 @@ class ProtobufPushClient(ConnectionListener):
         :param symbols: symbol列表
         :return:
         """
-        req = ProtoMessageUtil.build_subscribe_quote_message(symbols)
+        req = ProtoMessageUtil.build_subscribe_quote_message(symbols, data_type=SocketCommon.Future)
         self._connection.send_frame(req)
 
     def query_subscribed_quote(self):
@@ -258,40 +265,26 @@ class ProtobufPushClient(ConnectionListener):
         req = ProtoMessageUtil.build_subscribe_query_message()
         self._connection.send_frame(req)
 
-    def unsubscribe_quote(self, symbols=None, market=None):
+    def unsubscribe_quote(self, symbols=None):
         """
         退订行情更新
         :return:
         """
-        req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols, market)
+        req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols)
         self._connection.send_frame(req)
 
-    def unsubscribe_tick(self, symbols=None, market=None):
+    def unsubscribe_tick(self, symbols=None):
         """
         退订行情更新
         :return:
         """
-        req = ProtoMessageUtil.build_unsubscribe_tick_quote_message(symbols, market)
+        req = ProtoMessageUtil.build_unsubscribe_tick_quote_message(symbols)
         self._connection.send_frame(req)
 
-    def unsubscribe_depth_quote(self, symbols=None, market=None):
+    def unsubscribe_depth_quote(self, symbols=None):
         """
         退订深度行情更新
         :return:
         """
-        req = ProtoMessageUtil.build_unsubscribe_depth_quote_message(symbols, market)
+        req = ProtoMessageUtil.build_unsubscribe_depth_quote_message(symbols)
         self._connection.send_frame(req)
-
-
-if __name__ == '__main__':
-    tiger_id = '2'
-    key = read_private_key('/data0/conf/tiger-quant/openapi_test_private.pem')
-    # con_req = ProtoMessageUtil.build_connect_message(tiger_id, 'signxxxx')
-    #
-    # js = MessageToJson(con_req)
-    # print(js)
-    ProtobufPushClient()
-    # h = 'openapi-sandbox.tigerfintech.com'
-    # p = 9885
-    # client = NewPushClient(h, p)
-    # client.connect('2', read_private_key('/data0/conf/tiger-quant/openapi_test_private.pem'))
