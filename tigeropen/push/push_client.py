@@ -5,7 +5,6 @@ Created on 2018/10/30
 @author: gaoan
 """
 
-from tigeropen.common.consts.quote_keys import QuoteKeyType
 from tigeropen.push.protobuf_push_client import ProtobufPushClient
 from tigeropen.push.stomp_push_client import StompPushClient
 
@@ -14,34 +13,23 @@ USE_STOMP = False
 
 class PushClient:
     def __init__(self, host, port, use_ssl=True, connection_timeout=120, heartbeats=(30 * 1000, 30 * 1000),
-                 use_stomp=True):
+                 use_protobuf=False):
         """
         :param host:
         :param port:
         :param use_ssl:
         :param connection_timeout: unit: second. The timeout value should be greater the heartbeats interval
         :param heartbeats: tuple of millisecond
+        :param use_protobuf: use stomp protocol or protobuf
         """
-        if use_stomp:
-            self.client = StompPushClient(host=host, port=port, use_ssl=use_ssl, connection_timeout=connection_timeout,
-                                          heartbeats=heartbeats)
-        else:
+        if use_protobuf:
             self.client = ProtobufPushClient(host=host, port=port, use_ssl=use_ssl,
                                              connection_timeout=connection_timeout,
                                              heartbeats=heartbeats)
-        # self.subscribed_symbols = None
-        # self.query_subscribed_callback = None
-        # self.quote_changed = None
-        # self.tick_changed = None
-        # self.asset_changed = None
-        # self.position_changed = None
-        # self.order_changed = None
-        # self.transaction_changed = None
-        # self.connect_callback = None
-        # self.disconnect_callback = None
-        # self.subscribe_callback = None
-        # self.unsubscribe_callback = None
-        # self.error_callback = None
+        else:
+            self.client = StompPushClient(host=host, port=port, use_ssl=use_ssl, connection_timeout=connection_timeout,
+                                          heartbeats=heartbeats)
+
 
     @property
     def subscribed_symbols(self):
@@ -67,6 +55,30 @@ class PushClient:
     @quote_changed.setter
     def quote_changed(self, value):
         self.client.quote_changed = value
+
+    @property
+    def quote_all_changed(self):
+        return self.client.quote_all_changed
+
+    @quote_all_changed.setter
+    def quote_all_changed(self, value):
+        self.client.quote_all_changed = value
+
+    @property
+    def quote_bbo_changed(self):
+        return self.client.quote_bbo_changed
+
+    @quote_bbo_changed.setter
+    def quote_bbo_changed(self, value):
+        self.client.quote_bbo_changed = value
+
+    @property
+    def quote_depth_changed(self):
+        return self.client.quote_depth_changed
+
+    @quote_depth_changed.setter
+    def quote_depth_changed(self, value):
+        self.client.quote_depth_changed = value
 
     @property
     def tick_changed(self):
@@ -222,30 +234,30 @@ class PushClient:
         """
         self.client.unsubscribe_transaction()
 
-    def subscribe_quote(self, symbols, market=None, **kwargs):
+    def subscribe_quote(self, symbols, **kwargs):
         """
         订阅行情更新
         :param symbols:
         :return:
         """
 
-        return self.client.subscribe_quote(symbols=symbols, market=market)
+        return self.client.subscribe_quote(symbols=symbols)
 
-    def subscribe_tick(self, symbols, market=None):
+    def subscribe_tick(self, symbols):
         """
         subscribe trade tick
         :param symbols: symbol列表
         :return:
         """
-        return self.client.subscribe_tick(symbols=symbols, market=market)
+        return self.client.subscribe_tick(symbols=symbols)
 
-    def subscribe_depth_quote(self, symbols, market=None):
+    def subscribe_depth_quote(self, symbols):
         """
         订阅深度行情
         :param symbols: symbol列表
         :return:
         """
-        return self.client.subscribe_depth_quote(symbols=symbols, market=market)
+        return self.client.subscribe_depth_quote(symbols=symbols)
 
     def subscribe_option(self, symbols):
         """

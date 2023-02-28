@@ -4,10 +4,16 @@
 # @Author  : sukai
 import time
 import uuid
+from typing import Optional
+
 from tigeropen import __VERSION__
 
 from tigeropen.common.consts.params import P_SDK_VERSION_PREFIX
 from tigeropen.push.pb import Request_pb2, SocketCommon_pb2, Response_pb2
+from tigeropen.push.pb.QuoteBBOData_pb2 import QuoteBBOData
+from tigeropen.push.pb.QuoteBasicData_pb2 import QuoteBasicData
+from tigeropen.push.pb.QuoteData_pb2 import QuoteData
+from tigeropen.push.pb.SocketCommon_pb2 import SocketCommon
 
 
 class ProtoMessageUtil:
@@ -88,31 +94,31 @@ class ProtoMessageUtil:
         return request
 
     @classmethod
-    def build_subscribe_quote_message(cls, symbols, market=None):
-        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.Quote, symbols, market, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
+    def build_subscribe_quote_message(cls, symbols, data_type=SocketCommon_pb2.SocketCommon.Quote):
+        return cls.build_quote_message(data_type, symbols, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
 
     @classmethod
-    def build_unsubscribe_quote_message(cls, symbols, market=None):
-        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.Quote, symbols, market, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
+    def build_unsubscribe_quote_message(cls, symbols, data_type=SocketCommon_pb2.SocketCommon.Quote):
+        return cls.build_quote_message(data_type, symbols, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
 
     @classmethod
-    def build_subscribe_tick_quote_message(cls, symbols, market):
-        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.TradeTick, symbols, market, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
+    def build_subscribe_tick_quote_message(cls, symbols):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.TradeTick, symbols, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
 
     @classmethod
-    def build_unsubscribe_tick_quote_message(cls, symbols, market):
-        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.TradeTick, symbols, market, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
+    def build_unsubscribe_tick_quote_message(cls, symbols):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.TradeTick, symbols, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
 
     @classmethod
-    def build_subscribe_depth_quote_message(cls, symbols, market):
-        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.QuoteDepth, symbols, market, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
+    def build_subscribe_depth_quote_message(cls, symbols):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.QuoteDepth, symbols, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
 
     @classmethod
-    def build_unsubscribe_depth_quote_message(cls, symbols, market):
-        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.QuoteDepth, symbols, market, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
+    def build_unsubscribe_depth_quote_message(cls, symbols):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.QuoteDepth, symbols, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
 
     @classmethod
-    def build_quote_message(cls, data_type, symbols, market, command):
+    def build_quote_message(cls, data_type, symbols, command):
         request = Request_pb2.Request()
         request.command = command
         request.id = cls.increment
@@ -121,8 +127,6 @@ class ProtoMessageUtil:
         sub.dataType = data_type
         if symbols:
             sub.symbols = ','.join(symbols) if isinstance(symbols, list) else symbols
-        if market:
-            sub.market = market
         request.subscribe.CopyFrom(sub)
         return request
 
@@ -138,3 +142,73 @@ class ProtoMessageUtil:
             sub.account = account
         request.subscribe.CopyFrom(sub)
         return request
+
+
+def convert_to_bbo_data(quote_data):
+    if not quote_data or not quote_data.type:
+        return None
+    quote_type = quote_data.type
+    if quote_type != SocketCommon.QuoteType.ALL and quote_type != SocketCommon.QuoteType.BBO:
+        return None
+    builder = QuoteBBOData()
+    builder.symbol = quote_data.symbol
+    builder.type = SocketCommon.QuoteType.BBO
+    builder.timestamp = quote_data.timestamp
+    builder.askPrice = quote_data.askPrice
+    builder.askSize = quote_data.askSize
+    builder.bidPrice = quote_data.bidPrice
+    builder.bidSize = quote_data.bidSize
+    if quote_data.HasField('askTimestamp'):
+        builder.askTimestamp = quote_data.askTimestamp
+    if quote_data.HasField('bidTimestamp'):
+        builder.bidTimestamp = quote_data.bidTimestamp
+    return builder
+
+
+def convert_to_basic_data(quote_data):
+    if not quote_data or not quote_data.type:
+        return None
+    quote_type = quote_data.type
+    if quote_type != SocketCommon.QuoteType.ALL and quote_type != SocketCommon.QuoteType.BASIC:
+        return None
+    builder = QuoteBasicData()
+    builder.symbol = quote_data.symbol
+    builder.type = SocketCommon.QuoteType.BASIC
+    builder.timestamp = quote_data.timestamp
+    if quote_data.HasField('serverTimestamp'):
+        builder.serverTimestamp = quote_data.serverTimestamp
+    if quote_data.HasField('avgPrice'):
+        builder.avgPrice = quote_data.avgPrice
+    builder.latestPrice = quote_data.latestPrice
+    if quote_data.HasField('latestPriceTimestamp'):
+        builder.latestPriceTimestamp = quote_data.latestPriceTimestamp
+    builder.latestTime = quote_data.latestTime
+    builder.preClose = quote_data.preClose
+    builder.volume = quote_data.volume
+    if quote_data.HasField('amount'):
+        builder.amount = quote_data.amount
+    if quote_data.HasField('open'):
+        builder.open = quote_data.open
+    if quote_data.HasField('high'):
+        builder.high = quote_data.high
+    if quote_data.HasField('low'):
+        builder.low = quote_data.low
+    if quote_data.HasField('hourTradingTag'):
+        builder.hourTradingTag = quote_data.hourTradingTag
+    if quote_data.HasField('marketStatus'):
+        builder.marketStatus = quote_data.marketStatus
+    if quote_data.HasField('identifier'):
+        builder.identifier = quote_data.identifier
+    if quote_data.HasField('openInt'):
+        builder.openInt = quote_data.openInt
+    if quote_data.HasField('tradeTime'):
+        builder.tradeTime = quote_data.tradeTime
+    if quote_data.HasField('preSettlement'):
+        builder.preSettlement = quote_data.preSettlement
+    if quote_data.HasField('minTick'):
+        builder.minTick = quote_data.minTick
+    if quote_data.HasField('mi'):
+        builder.mi.CopyFrom(quote_data.mi)
+    return builder
+
+    
