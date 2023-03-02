@@ -54,6 +54,7 @@ SANDBOX_TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbm21i11hgAENG
 DEFAULT_PROPS_FILE = 'tiger_openapi_config.properties'
 DEFAULT_TOKEN_FILE = 'tiger_openapi_token.properties'
 TOKEN_REFRESH_DURATION = 24 * 60 * 60  # seconds
+TOKEN_CHECK_INTERVAL = 5 * 60  # seconds
 
 
 class TigerOpenClientConfig:
@@ -97,6 +98,7 @@ class TigerOpenClientConfig:
         self.token = None
         # token 刷新间隔周期， 单位秒
         self.token_refresh_duration = TOKEN_REFRESH_DURATION
+        self.token_check_interval = TOKEN_CHECK_INTERVAL
         self._load_props()
         self.load_or_store_token()
 
