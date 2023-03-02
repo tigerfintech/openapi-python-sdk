@@ -57,14 +57,6 @@ class PushClient:
         self.client.quote_changed = value
 
     @property
-    def quote_all_changed(self):
-        return self.client.quote_all_changed
-
-    @quote_all_changed.setter
-    def quote_all_changed(self, value):
-        self.client.quote_all_changed = value
-
-    @property
     def quote_bbo_changed(self):
         return self.client.quote_bbo_changed
 
