@@ -36,7 +36,6 @@ SKIP_RETRY_SERVICES = {PLACE_ORDER, CANCEL_ORDER, MODIFY_ORDER}
 
 
 _SCHEDULE_STATE = {'is_running': False}
-TOKEN_CHECK_INTERVAL = 300
 
 
 class TigerOpenClient:
@@ -251,7 +250,7 @@ class TigerOpenClient:
         if not _SCHEDULE_STATE['is_running'] and self.__config.token_refresh_duration != 0:
             _SCHEDULE_STATE['is_running'] = True
             self.__logger.info('Starting schedule thread...')
-            daemon = RepeatTimer(TOKEN_CHECK_INTERVAL, self.__token_refresh_task)
+            daemon = RepeatTimer(self.__config.token_check_interval, self.__token_refresh_task)
             daemon.daemon = True
             daemon.start()
 

@@ -131,7 +131,10 @@ class Order:
 
     @property
     def remaining(self):
-        return self.quantity - self.filled
+        try:
+            return int(self.quantity) - int(self.filled)
+        except:
+            return None
 
     def __repr__(self):
         """
