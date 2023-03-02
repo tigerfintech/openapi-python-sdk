@@ -54,6 +54,7 @@ SANDBOX_TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbm21i11hgAENG
 DEFAULT_PROPS_FILE = 'tiger_openapi_config.properties'
 DEFAULT_TOKEN_FILE = 'tiger_openapi_token.properties'
 TOKEN_REFRESH_DURATION = 24 * 60 * 60  # seconds
+TOKEN_CHECK_INTERVAL = 5 * 60  # seconds
 
 
 class TigerOpenClientConfig:
@@ -95,6 +96,9 @@ class TigerOpenClientConfig:
         self.retry_max_tries = 5
         self.props_path = props_path
         self.token = None
+        # token 刷新间隔周期， 单位秒
+        self.token_refresh_duration = TOKEN_REFRESH_DURATION
+        self.token_check_interval = TOKEN_CHECK_INTERVAL
         self._load_props()
         self.load_or_store_token()
 
@@ -289,11 +293,11 @@ class TigerOpenClientConfig:
             except Exception as e:
                 logging.error(e, exc_info=True)
 
-    def should_token_refresh(self, duration=TOKEN_REFRESH_DURATION):
-        if self.token:
+    def should_token_refresh(self):
+        if self.token and self.token_refresh_duration != 0:
             tokeninfo = base64.b64decode(self.token)
             gen_ts, expire_ts = tokeninfo[:27].decode('utf-8').split(',')
-            if (int(time.time()) - int(gen_ts) // 1000) > duration:
+            if (int(time.time()) - int(gen_ts) // 1000) > self.token_refresh_duration:
                 return True
             return False
 

@@ -294,3 +294,4 @@ class PushClient:
         :return:
         """
         self.client.unsubscribe_depth_quote(symbols=symbols)
+
