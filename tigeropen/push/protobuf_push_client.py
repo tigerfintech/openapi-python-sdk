@@ -34,7 +34,6 @@ class ProtobufPushClient(ConnectionListener):
         self.query_subscribed_callback = None
         self.quote_changed = None
         self.quote_bbo_changed = None
-        self.quote_all_changed = None
         self.quote_depth_changed = None
         self.tick_changed = None
         self.asset_changed = None
@@ -116,8 +115,15 @@ class ProtobufPushClient(ConnectionListener):
                     self.quote_changed(frame.body.quoteData)
                 if frame.body.quoteData.type == SocketCommon.QuoteType.BBO and self.quote_bbo_changed:
                     self.quote_bbo_changed(frame.body.quoteData)
-                if frame.body.quoteData.type == SocketCommon.QuoteType.ALL and self.quote_all_changed:
-                    self.quote_all_changed(frame.body.quoteData)
+                if frame.body.quoteData.type == SocketCommon.QuoteType.ALL:
+                    if self.quote_changed:
+                        basic_data = convert_to_basic_data(frame.body.quoteData)
+                        if basic_data:
+                            self.quote_changed(basic_data)
+                    if self.quote_bbo_changed:
+                        bbo_data = convert_to_bbo_data(frame.body.quoteData)
+                        if bbo_data:
+                            self.quote_bbo_changed(bbo_data)
             elif frame.body.dataType in {SocketCommon.DataType.Future, SocketCommon.DataType.Option}:
                 if self.quote_changed:
                     basic_data = convert_to_basic_data(frame.body.quoteData)

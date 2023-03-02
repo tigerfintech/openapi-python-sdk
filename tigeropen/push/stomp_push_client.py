@@ -94,7 +94,6 @@ class StompPushClient(stomp.ConnectionListener):
         self.query_subscribed_callback = None
         self.quote_changed = None
         self.quote_bbo_changed = None
-        self.quote_all_changed = None
         self.quote_depth_changed = None
         self.tick_changed = None
         self.asset_changed = None
