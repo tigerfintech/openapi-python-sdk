@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package tigeropen.push.pb;
+
+message PositionData {
+  string account = 1; // user account
+  string symbol = 2;
+  string expiry = 3; // for options
+  string strike = 4; // for options
+  string right = 5; // for options
+  string identifier = 6;
+  uint32 multiplier = 7; // multiplier for futures, options, warrants and CBBC
+  string market = 8; // market. US, HK, etc.
+  string currency = 9; // currency. USD, HKD, etc.
+  string segType = 10; // Securities Category C: (Commodities Futures), S: (Securities Stocks)
+  string secType = 11; // STK Stocks, OPT Options, WAR Warrants, IOPT CBBC, CASH FOREX, FUT Futures, FOP Future Options
+
+  sint64 position = 12; // total position
+  sint32 positionScale = 13; // total position scale
+  double averageCost = 14; // average holding cost
+  double latestPrice = 15; // last price of the asset
+  double marketValue = 16; // market value of the asset
+  double unrealizedPnl = 17; // unrealized profit and loss
+  string name = 18; // symbol name
+  uint64 timestamp = 19;
+
+}
