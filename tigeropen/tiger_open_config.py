@@ -12,6 +12,7 @@ import time
 
 from jproperties import Properties
 from pytz import timezone
+from tigeropen import __VERSION__
 from tigeropen.common.consts import Language, ServiceType
 from tigeropen.common.util.account_util import AccountUtil
 from tigeropen.common.util.common_utils import get_enum_value
@@ -386,10 +387,14 @@ class TigerOpenClientConfig:
 
         return common_domain
 
+    @property
+    def sdk_version(self):
+        return __VERSION__
+
 
 def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, sign_type=None, timeout=None,
                       language=None, charset=None, server_url=None, socket_host_port=None, secret_key=None,
-                      enable_dynamic_domain=True, timezone=None, license=None):
+                      enable_dynamic_domain=True, timezone=None, license=None, props_path=None):
     """
     生成客户端配置
     :param private_key_path: 私钥文件路径, 如 '/Users/tiger/.ssh/rsa_private_key.pem'
@@ -408,7 +413,8 @@ def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, 
     :param license: account license, like TBSG/TBNZ
     :return:
     """
-    config = TigerOpenClientConfig(sandbox_debug=sandbox_debug, enable_dynamic_domain=enable_dynamic_domain)
+    config = TigerOpenClientConfig(sandbox_debug=sandbox_debug, enable_dynamic_domain=enable_dynamic_domain,
+                                   props_path=props_path)
     config.private_key = read_private_key(private_key_path)
     config.tiger_id = tiger_id
     config.account = account

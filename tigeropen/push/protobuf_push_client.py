@@ -294,3 +294,12 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_unsubscribe_depth_quote_message(symbols)
         self._connection.send_frame(req)
+
+    def subscribe_market(self, market):
+        req = ProtoMessageUtil.build_subscribe_market_message(market)
+        self._connection.send_frame(req)
+
+    def unsubscribe_market(self, market):
+        req = ProtoMessageUtil.build_unsubscribe_market_message(market)
+        self._connection.send_frame(req)
+

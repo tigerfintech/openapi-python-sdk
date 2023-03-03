@@ -1,10 +1,8 @@
 """General utility functions.
 """
 
-import os
 import socket
 import threading
-import uuid
 
 from tigeropen.push.pb.SocketCommon_pb2 import SocketCommon
 
@@ -29,21 +27,20 @@ def get_command_name(cmd_type):
 LOCALHOST_NAMES = ["localhost", "127.0.0.1"]
 
 
-if not os.environ.get("STOMP_SKIP_HOSTNAME_SCAN"):
-    try:
-        LOCALHOST_NAMES.append(socket.gethostbyname(socket.gethostname()))
-    except Exception:
-        pass
+try:
+    LOCALHOST_NAMES.append(socket.gethostbyname(socket.gethostname()))
+except Exception:
+    pass
 
-    try:
-        LOCALHOST_NAMES.append(socket.gethostname())
-    except Exception:
-        pass
+try:
+    LOCALHOST_NAMES.append(socket.gethostname())
+except Exception:
+    pass
 
-    try:
-        LOCALHOST_NAMES.append(socket.getfqdn(socket.gethostname()))
-    except Exception:
-        pass
+try:
+    LOCALHOST_NAMES.append(socket.getfqdn(socket.gethostname()))
+except Exception:
+    pass
 
 
 def is_eol_default(c):

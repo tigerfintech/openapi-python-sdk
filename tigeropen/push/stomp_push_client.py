@@ -459,6 +459,12 @@ class StompPushClient(stomp.ConnectionListener):
         """
         self._handle_quote_unsubscribe(destination=QUOTE_DEPTH, subscription=SUBSCRIPTION_QUOTE_DEPTH, sub_id=id, symbols=symbols)
 
+    def subscribe_market(self, market):
+        raise NotImplementedError('Only protobuf support subscribe market')
+
+    def unsubscribe_market(self, market):
+        raise NotImplementedError('Only protobuf support unsubscribe market')
+
     def _handle_trade_subscribe(self, destination, subscription, account=None, extra_headers=None):
         if extra_headers is None:
             extra_headers = dict()

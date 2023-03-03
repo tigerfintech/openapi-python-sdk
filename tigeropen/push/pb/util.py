@@ -118,6 +118,14 @@ class ProtoMessageUtil:
         return cls.build_quote_message(SocketCommon_pb2.SocketCommon.QuoteDepth, symbols, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
 
     @classmethod
+    def build_subscribe_market_message(cls, market):
+        return cls.build_market_quote_message(market, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
+
+    @classmethod
+    def build_unsubscribe_market_message(cls, market):
+        return cls.build_market_quote_message(market, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
+
+    @classmethod
     def build_quote_message(cls, data_type, symbols, command):
         request = Request_pb2.Request()
         request.command = command
@@ -127,6 +135,18 @@ class ProtoMessageUtil:
         sub.dataType = data_type
         if symbols:
             sub.symbols = ','.join(symbols) if isinstance(symbols, list) else symbols
+        request.subscribe.CopyFrom(sub)
+        return request
+
+    @classmethod
+    def build_market_quote_message(cls, market, command):
+        request = Request_pb2.Request()
+        request.command = command
+        request.id = cls.increment
+
+        sub = Request_pb2.Request.Subscribe()
+        sub.dataType = SocketCommon_pb2.SocketCommon.Quote
+        sub.market = market
         request.subscribe.CopyFrom(sub)
         return request
 
