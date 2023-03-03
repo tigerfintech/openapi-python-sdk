@@ -17,12 +17,14 @@ from ..pb.util import ProtoMessageUtil
 
 try:
     from socket import SOL_SOCKET, SO_KEEPALIVE, SOL_TCP, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_KEEPCNT
+
     LINUX_KEEPALIVE_AVAIL = True
 except ImportError:
     LINUX_KEEPALIVE_AVAIL = False
 
 try:
     from socket import IPPROTO_TCP
+
     MAC_KEEPALIVE_AVAIL = True
 except ImportError:
     MAC_KEEPALIVE_AVAIL = False
@@ -30,18 +32,21 @@ except ImportError:
 try:
     import ssl
     from ssl import SSLError
+
     DEFAULT_SSL_VERSION = ssl.PROTOCOL_TLS_CLIENT
 except (ImportError, AttributeError):
     ssl = None
+
+
     class SSLError(object):
         pass
-    DEFAULT_SSL_VERSION = None
 
+
+    DEFAULT_SSL_VERSION = None
 
 from . import exception
 from .utils import *
 from . import listener
-
 
 PARSING_LEN = 0
 PARSING_MSG = 1
@@ -117,7 +122,6 @@ class BaseTransport(listener.Publisher):
         :param function create_thread_fc: single argument function for creating a thread
         """
         self.create_thread_fc = create_thread_fc
-
 
     def start(self):
         """
@@ -338,7 +342,6 @@ class BaseTransport(listener.Publisher):
                 self.__receiver_thread_exited = True
                 self.__receiver_thread_exit_condition.notify_all()
             logging.debug("receiver loop ended")
-            # self.notify("receiver_loop_completed")
             if notify_disconnected and not self.notified_on_disconnect:
                 self.notify(SocketCommon.Command.DISCONNECT)
             with self.__connect_wait_condition:
@@ -366,22 +369,8 @@ class BaseTransport(listener.Publisher):
             if c is None or len(c) == 0:
                 logging.debug("nothing received, raising CCE")
                 raise exception.ConnectionClosedException()
-
-            # if self.__is_eol(c) and not self.__recvbuf and not fastbuf.tell():
-            #     #
-            #     # EOL to an empty receive buffer: treat as heartbeat.
-            #     # Note that this may misdetect an optional EOL at end of frame as heartbeat in case the
-            #     # previous receive() got a complete frame whose NUL at end of frame happened to be the
-            #     # last byte of that read. But that should be harmless in practice.
-            #     #
-            #     fastbuf.close()
-            #     return [c]
             fastbuf.write(c)
-            if b"\x00" in c:
-                #
-                # Possible end of frame
-                #
-                break
+            break
         self.__recvbuf += fastbuf.getvalue()
         fastbuf.close()
         result = []
