@@ -1,0 +1,42 @@
+
+syntax = "proto3";
+
+package tigeropen.push.pb;
+
+message SocketCommon {
+  // request and response command
+  enum Command {
+    UNKNOWN = 0;
+    CONNECT = 1;
+    CONNECTED = 2;
+    SEND = 3;
+    SUBSCRIBE = 4;
+    UNSUBSCRIBE = 5;
+    DISCONNECT = 6;
+    MESSAGE = 7;
+    HEARTBEAT = 8;
+    ERROR = 9;
+  }
+
+  // data type
+  enum DataType {
+    Unknown = 0;
+    Quote = 1;
+    Option = 2;
+    Future = 3;
+    QuoteDepth = 4;
+    TradeTick = 5;
+    Asset = 6;
+    Position = 7;
+    OrderStatus = 8;
+    OrderTransaction = 9;
+  }
+
+  enum QuoteType {
+    None = 0;
+    BASIC = 1; // basic quote data
+    BBO = 2; // best bid and offer(include fields: askSize,askPrice,bidSize,bizePrice)
+    ALL = 3; // include BASIC AND BBO
+  }
+
+}
