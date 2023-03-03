@@ -2,7 +2,7 @@
 ### New
 - PushClient长链接支持Protobuf，当前版本默认不开启，可通过在 PushClient 初始化时传人 `user_protobuf=True ` 开启，
 未来版本将默认使用Protobuf。
-  Protobuf方式的订阅方式与之前版本基本兼容一致；回调方法的参数改用Protobuf对象，与之间不兼容，
+  Protobuf方式的订阅方式与之前版本基本兼容一致；回调方法的参数改用Protobuf对象，与之前不兼容，
 
 ## 2.3.1 (2023-02-23)
 ### New
