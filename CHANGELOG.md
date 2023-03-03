@@ -1,9 +1,16 @@
+## 2.3.2 (2023-03-03)
+### New
+- PushClient长链接支持Protobuf，当前版本默认不开启，可通过在 PushClient 初始化时传人 `user_protobuf=True ` 开启，
+未来版本将默认使用Protobuf。
+  Protobuf方式的订阅方式与之前版本基本兼容一致；回调方法的参数改用Protobuf对象，与之前不兼容，
+
 ## 2.3.1 (2023-02-23)
 ### New
 - 支持2FA token自定义刷新间隔，可通过 client_config.token_refresh_duration = 0 关闭自动刷新
 ### Fix
 - tick数据推送字段异常问题
 - 若开启token，刷新线程不随主线程退出的问题
+
 
 ## 2.3.0 (2023-02-16)
 ### New
