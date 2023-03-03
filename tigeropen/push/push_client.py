@@ -295,3 +295,8 @@ class PushClient:
         """
         self.client.unsubscribe_depth_quote(symbols=symbols)
 
+    def subscribe_market(self, market):
+        self.client.subscribe_market(market)
+
+    def unsubscribe_market(self, market):
+        self.client.unsubscribe_market(market)

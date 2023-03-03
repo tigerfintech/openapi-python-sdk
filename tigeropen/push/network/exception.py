@@ -1,17 +1,10 @@
 
 class PushException(Exception):
-    """
-    Common exception class. All specific stomp.py exceptions are subclasses
-    of StompException, allowing the library user to catch all current and
-    future library exceptions.
-    """
+    pass
 
 
 class ConnectionClosedException(PushException):
-    """
-    Raised in the receiver thread when the connection has been closed
-    by the server.
-    """
+    pass
 
 
 class NotConnectedException(PushException):

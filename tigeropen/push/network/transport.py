@@ -5,7 +5,6 @@ import errno
 import logging
 import math
 import random
-import re
 import struct
 import sys
 import time
@@ -164,15 +163,7 @@ class BaseTransport(listener.Publisher):
         elif receipt_id in self.__receipts:
             del self.__receipts[receipt_id]
 
-
     def set_listener(self, name, listener):
-        """
-        Set a named listener to use with this connection.
-        See :py:class:`stomp.listener.ConnectionListener`
-
-        :param str name: the name of the listener
-        :param ConnectionListener listener: the listener object
-        """
         assert listener is not None
         with self.__listeners_change_condition:
             self.listeners[name] = listener
@@ -444,7 +435,7 @@ class Transport(BaseTransport):
         an extra 0%-10% (randomly determined) of the delay
         calculated using the previous three parameters.
     :param int reconnect_attempts_max: maximum attempts to reconnect (Can also be used for infinite attempts : `-1`)
-    :param timeout: the timeout value to use when connecting the stomp socket
+    :param timeout: the timeout value to use when connecting the socket
     :param keepalive: some operating systems support sending the occasional heart
         beat packets to detect when a connection fails.  This
         parameter can either be set set to a boolean to turn on the
