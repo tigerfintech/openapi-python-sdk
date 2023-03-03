@@ -1,4 +1,4 @@
-## 2.3.2 (2023-03-02)
+## 2.3.2 (2023-03-03)
 ### New
 - PushClient长链接支持Protobuf，当前版本默认不开启，可通过在 PushClient 初始化时传人 `user_protobuf=True ` 开启，
 未来版本将默认使用Protobuf。
