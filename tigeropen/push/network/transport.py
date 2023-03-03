@@ -161,12 +161,6 @@ class BaseTransport(listener.Publisher):
                 self.disconnecting = False
                 self.__connect_wait_condition.notify()
 
-    def set_receipt(self, receipt_id, value):
-        if value:
-            self.__receipts[receipt_id] = value
-        elif receipt_id in self.__receipts:
-            del self.__receipts[receipt_id]
-
     def set_listener(self, name, listener):
         assert listener is not None
         with self.__listeners_change_condition:
@@ -398,7 +392,7 @@ class BaseTransport(listener.Publisher):
 
 class Transport(BaseTransport):
     """
-    Represents a STOMP client 'transport'. Effectively this is the communications mechanism without the definition of
+    Represents a client 'transport'. Effectively this is the communications mechanism without the definition of
     the protocol.
 
     :param list((str,int)) host_and_ports: a list of (host, port) tuples
@@ -559,8 +553,6 @@ class Transport(BaseTransport):
                 logging.warning("unable to close socket because of error '%s'", e)
         self.current_host_and_port = None
         self.socket = None
-        # if not self.notified_on_disconnect:
-        #     self.notify("disconnected")
 
     def send(self, encoded_frame):
         """

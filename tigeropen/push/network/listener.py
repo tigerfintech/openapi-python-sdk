@@ -60,12 +60,6 @@ class ConnectionListener(object):
     def on_disconnected(self):
         pass
 
-    def on_heartbeat_timeout(self):
-        pass
-
-    def on_before_message(self, frame):
-        pass
-
     def on_message(self, frame):
         pass
 
