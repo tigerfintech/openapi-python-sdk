@@ -1,4 +1,3 @@
-
 import logging
 import sys
 import threading
@@ -70,7 +69,6 @@ class ConnectionListener(object):
     def on_message(self, frame):
         pass
 
-
     def on_error(self, frame):
         pass
 
@@ -108,7 +106,9 @@ class HeartbeatListener(ConnectionListener):
         :param Frame frame: the frame
         """
         self.disconnecting = False
-        if ProtoMessageUtil.is_heart_beat(frame):
+        heartbeat = ProtoMessageUtil.extract_heart_beat(frame)
+        if heartbeat:
+            self.heartbeats = heartbeat
             logging.debug("heartbeats calculated %s", str(self.heartbeats))
             if self.heartbeats != (0, 0):
                 self.send_sleep = self.heartbeats[0] / 1000
@@ -126,7 +126,7 @@ class HeartbeatListener(ConnectionListener):
                 if self.heartbeat_thread is None:
                     self.heartbeat_thread = utils.default_create_thread(
                         self.__heartbeat_loop)
-                    self.heartbeat_thread.name = "StompHeartbeat%s" % \
+                    self.heartbeat_thread.name = "Heartbeat%s" % \
                                                  getattr(self.heartbeat_thread, "name", "Thread")
 
     def on_disconnected(self):
@@ -212,7 +212,6 @@ class HeartbeatListener(ConnectionListener):
                 try:
                     msg = ProtoMessageUtil.build_heart_beat_message()
                     self.transport.transmit(msg)
-                    # self.transport.transmit(utils.Frame(None, {}, None))
                 except exception.NotConnectedException:
                     logging.debug("lost connection, unable to send heartbeat")
                 except Exception:

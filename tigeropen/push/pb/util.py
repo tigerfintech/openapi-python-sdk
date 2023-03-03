@@ -2,6 +2,7 @@
 # 
 # @Date    : 2023/2/21
 # @Author  : sukai
+import json
 import time
 import uuid
 from typing import Optional
@@ -27,8 +28,13 @@ class ProtoMessageUtil:
         return cls.increment_count
 
     @classmethod
-    def is_heart_beat(cls, resp):
-        return resp.command == SocketCommon_pb2.SocketCommon.HEARTBEAT
+    def extract_heart_beat(cls, resp):
+        if resp.command == SocketCommon_pb2.SocketCommon.CONNECTED and "heart-beat" in resp.msg:
+            msg = json.loads(resp.msg)
+            hb_str = msg.get("heart-beat")
+            send, recv = (int(i) for i in hb_str.split(','))
+            return send, recv
+        return None
 
     @classmethod
     def parse_response_message(cls, data):
@@ -36,7 +42,7 @@ class ProtoMessageUtil:
         try:
             response.ParseFromString(data)
         except Exception as e:
-            print(f'parse msg error: {e}')
+            print(f'parse msg error: {e}, data:{data}')
         return response
 
     @classmethod
