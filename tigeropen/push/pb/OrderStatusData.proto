@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package tigeropen.push.pb;
+
+
+message OrderStatusData {
+  sint64 id = 1; // unique order id
+  string account = 2; // user account
+  string symbol = 3;
+  string identifier = 4;
+  uint32 multiplier = 5; // multiplier for futures, options, warrants and CBBC
+  string action = 6; // BUY or SELL
+  string market = 7; // market. US, HK, etc.
+  string currency = 8; // currency. USD, HKD, etc.
+  string segType = 9; // Securities Category C: (Commodities Futures), S: (Securities Stocks)
+  string secType = 10; // STK Stocks, OPT Options, WAR Warrants, IOPT CBBC, CASH FOREX, FUT Futures, FOP Future Options
+
+  string orderType = 11; // order type
+  bool isLong = 12;
+  sint64 totalQuantity = 13; // total quantity
+  sint32 totalQuantityScale = 14; // total quantity scale
+  sint64 filledQuantity = 15; // filled quantity
+  sint32 filledQuantityScale = 16; // filled quantity scale
+  double avgFillPrice = 17; // average price at which the orders got filled
+  double limitPrice = 18; // limit price（required when orderType is 'LMT'）
+  double realizedPnl = 19; // realized profit and loss
+  string status = 20; // order status
+
+  bool outsideRth = 21; // if trade outside regular trading hours (only applicable to U.S. market)
+  bool canModify = 22;
+  bool canCancel = 23;
+  string name = 24; // symbol name
+  string source = 25; // order source(from 'OpenApi', or not)
+  string errorMsg = 26; // error message
+  float commissionAndFee = 27; // commission and fee
+  uint64 openTime = 28; // timestamp when the order is placed
+  uint64 timestamp = 29;
+}

@@ -12,6 +12,7 @@ import time
 
 from jproperties import Properties
 from pytz import timezone
+from tigeropen import __VERSION__
 from tigeropen.common.consts import Language, ServiceType
 from tigeropen.common.util.account_util import AccountUtil
 from tigeropen.common.util.common_utils import get_enum_value
@@ -54,6 +55,7 @@ SANDBOX_TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbm21i11hgAENG
 DEFAULT_PROPS_FILE = 'tiger_openapi_config.properties'
 DEFAULT_TOKEN_FILE = 'tiger_openapi_token.properties'
 TOKEN_REFRESH_DURATION = 24 * 60 * 60  # seconds
+TOKEN_CHECK_INTERVAL = 5 * 60  # seconds
 
 
 class TigerOpenClientConfig:
@@ -97,6 +99,7 @@ class TigerOpenClientConfig:
         self.token = None
         # token 刷新间隔周期， 单位秒
         self.token_refresh_duration = TOKEN_REFRESH_DURATION
+        self.token_check_interval = TOKEN_CHECK_INTERVAL
         self._load_props()
         self.load_or_store_token()
 
@@ -384,10 +387,14 @@ class TigerOpenClientConfig:
 
         return common_domain
 
+    @property
+    def sdk_version(self):
+        return __VERSION__
+
 
 def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, sign_type=None, timeout=None,
                       language=None, charset=None, server_url=None, socket_host_port=None, secret_key=None,
-                      enable_dynamic_domain=True, timezone=None, license=None):
+                      enable_dynamic_domain=True, timezone=None, license=None, props_path=None):
     """
     生成客户端配置
     :param private_key_path: 私钥文件路径, 如 '/Users/tiger/.ssh/rsa_private_key.pem'
@@ -406,7 +413,8 @@ def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, 
     :param license: account license, like TBSG/TBNZ
     :return:
     """
-    config = TigerOpenClientConfig(sandbox_debug=sandbox_debug, enable_dynamic_domain=enable_dynamic_domain)
+    config = TigerOpenClientConfig(sandbox_debug=sandbox_debug, enable_dynamic_domain=enable_dynamic_domain,
+                                   props_path=props_path)
     config.private_key = read_private_key(private_key_path)
     config.tiger_id = tiger_id
     config.account = account
