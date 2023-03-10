@@ -835,6 +835,8 @@ class TradingCalendarParams(BaseParams):
         if self.end_date:
             params['end_date'] = self.end_date
 
+        return params
+
 
 class MarketScannerParams(BaseParams):
     def __init__(self):
