@@ -1,3 +1,10 @@
+## 2.3.3 (2023-03-10)
+### Modify
+- 支持多进程运行场景下的 token 刷新，需安装 pip install watchdog 已开启 token 文件监听
+### Fix
+- 修复日历接口
+
+
 ## 2.3.2 (2023-03-03)
 ### New
 - PushClient长链接支持Protobuf，当前版本默认不开启，可通过在 PushClient 初始化时传人 `user_protobuf=True ` 开启，
