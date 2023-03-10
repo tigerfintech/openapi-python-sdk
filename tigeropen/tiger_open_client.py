@@ -25,15 +25,9 @@ from tigeropen.common.util.common_utils import has_value
 from tigeropen.common.util.signature_utils import get_sign_content, sign_with_rsa, verify_with_rsa
 from tigeropen.common.util.web_utils import do_post
 
-try:
-    from getmac import get_mac_address
-except ImportError:
-    def get_mac_address():
-        return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
 
 LOG_FORMATTER = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
 SKIP_RETRY_SERVICES = {PLACE_ORDER, CANCEL_ORDER, MODIFY_ORDER}
-
 
 _SCHEDULE_STATE = {'is_running': False}
 
@@ -43,6 +37,7 @@ class TigerOpenClient:
     client_config：客户端配置，包含tiger_id、应用私钥、老虎公钥等
     logger：日志对象，客户端执行信息会通过此日志对象输出
     """
+
     def __init__(self, client_config, logger=None):
         self.__config = client_config
         if not client_config.private_key:
@@ -63,25 +58,30 @@ class TigerOpenClient:
             "Connection": "Keep-Alive",
             "User-Agent": 'openapi-python-sdk-' + __VERSION__
         }
-        self.__device_id = self.__get_device_id()
-        self.__init_license()
-        self.__refresh_server_info()
-        if self.__config.token and self.__config.license:
-            self.__schedule_thread()
+        self._initialize()
+
+    def _initialize(self):
+        if not self.__config.inited:
+            self.__logger.info(f'sdk version: {self.__config.sdk_version}')
+            self.__init_license()
+            self.__refresh_server_info()
+            if self.__config.token and self.__config.license:
+                self.__schedule_thread()
+            self.__config.inited = True
 
     def __init_license(self):
+        self.__logger.debug('init license')
         if self.__config.license is None and self.__config.enable_dynamic_domain:
             self.__config.license = self.query_license()
 
     def __refresh_server_info(self):
+        self.__logger.debug('init server info')
         self.__config.refresh_server_info()
 
-
-    """
-    内部方法，从params中抽取公共参数
-    """
-
     def __get_common_params(self, params):
+        """
+        内部方法，从params中抽取公共参数
+        """
         common_params = dict()
         common_params[P_TIMESTAMP] = params[P_TIMESTAMP]
         common_params[P_TIGER_ID] = self.__config.tiger_id
@@ -89,36 +89,25 @@ class TigerOpenClient:
         common_params[P_CHARSET] = self.__config.charset
         common_params[P_VERSION] = params[P_VERSION] if params.get(P_VERSION) is not None else OPEN_API_SERVICE_VERSION
         common_params[P_SIGN_TYPE] = self.__config.sign_type
-        common_params[P_DEVICE_ID] = self.__device_id
+        common_params[P_DEVICE_ID] = self.__config._device_id
         if has_value(params, P_NOTIFY_URL):
             common_params[P_NOTIFY_URL] = params[P_NOTIFY_URL]
         return common_params
 
-    @staticmethod
-    def __get_device_id():
-        """
-        获取mac地址作为device_id
-        :return:
-        """
-        try:
-            return get_mac_address()
-        except:
-            return None
-
-    """
-    内部方法，从params中移除公共参数
-    """
     def __remove_common_params(self, params):
+        """
+        内部方法，从params中移除公共参数
+        """
         if not params:
             return
         for k in COMMON_PARAM_KEYS:
             if k in params:
                 params.pop(k)
 
-    """
-    内部方法，通过请求request对象构造请求查询字符串和业务参数
-    """
     def __prepare_request(self, request, url=''):
+        """
+        内部方法，通过请求request对象构造请求查询字符串和业务参数
+        """
         THREAD_LOCAL.logger = self.__logger
         params = request.get_params()
         params[P_TIMESTAMP] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -139,11 +128,10 @@ class TigerOpenClient:
 
         return all_params
 
-    """
-    内部方法，解析请求返回结果并做验签
-    """
-
     def __parse_response(self, response_str, timestamp=None):
+        """
+        内部方法，解析请求返回结果并做验签
+        """
         response_str = response_str.decode(self.__config.charset)
         if THREAD_LOCAL.logger:
             THREAD_LOCAL.logger.debug('[' + THREAD_LOCAL.uuid + ']response:' + response_str)
@@ -181,10 +169,10 @@ class TigerOpenClient:
                                         jitter=None)
         return None
 
-    """
-    执行接口请求
-    """
     def execute(self, request, url=None):
+        """
+        执行接口请求
+        """
         if self.__config.token:
             self._update_header()
         if url is None:
@@ -196,7 +184,7 @@ class TigerOpenClient:
         retry_deco = self._get_retry_deco(request._method)
         if retry_deco is not None:
             response = retry_deco(do_post)(url, query_string, self.__headers, params, self.__config.timeout,
-                               self.__config.charset)
+                                           self.__config.charset)
         else:
             response = do_post(url, query_string, self.__headers, params, self.__config.timeout,
                                self.__config.charset)
@@ -234,10 +222,11 @@ class TigerOpenClient:
         return None
 
     def refresh_token(self):
+        self.__config.token = self.__config.load_token()
         new_token = self.query_token()
         if new_token:
             self.__logger.info(f"refresh token, old:{self.__config.token}, new:{new_token}")
-            self.__config.load_or_store_token(new_token)
+            self.__config.store_token(new_token)
 
     def __token_refresh_task(self):
         try:
@@ -249,10 +238,35 @@ class TigerOpenClient:
     def __schedule_thread(self):
         if not _SCHEDULE_STATE['is_running'] and self.__config.token_refresh_duration != 0:
             _SCHEDULE_STATE['is_running'] = True
-            self.__logger.info('Starting schedule thread...')
+            self.__logger.info('Starting token refresh thread...')
             daemon = RepeatTimer(self.__config.token_check_interval, self.__token_refresh_task)
             daemon.daemon = True
             daemon.start()
+            self.__monitor_token()
+
+    def __monitor_token(self):
+        """对于多进程运行的情况，需监控token文件变动并加载，防止另一个进程刷新token后导致本进程token失效.
+        需安装watchdog实现此功能： pip install watchdog"""
+        try:
+            from watchdog.observers import Observer
+            from watchdog.events import FileSystemEventHandler
+        except ImportError:
+            return
+
+        def on_modified(event):
+            file_token = self.__config.load_token()
+            if file_token != self.__config.token:
+                self.__logger.info(f'load token from changed token file, old: {self.__config.token}, '
+                                   f'new:{file_token}')
+                self.__config.token = file_token
+
+        event_handler = FileSystemEventHandler()
+        event_handler.on_modified = on_modified
+        observer = Observer()
+        observer.schedule(event_handler, self.__config.get_token_path(), recursive=True)
+        observer.daemon = True
+        observer.start()
+        self.__logger.info('Starting token monitor thread...')
 
 
 class RepeatTimer(Timer):
