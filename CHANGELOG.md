@@ -1,3 +1,9 @@
+## 2.3.4 (2023-03-20)
+### New
+- 支持AM/AL(盘前竞价单)
+### Fix
+- 修复PushClient报错模块找不到的问题
+
 ## 2.3.3 (2023-03-10)
 ### Modify
 - 支持多进程运行场景下的 token 刷新，需安装 pip install watchdog 已开启 token 文件监听
