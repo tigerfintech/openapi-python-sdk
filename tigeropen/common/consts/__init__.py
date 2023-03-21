@@ -187,6 +187,8 @@ class OrderType(Enum):
     STP = 'STP'  # 止损单
     STP_LMT = 'STP_LMT'  # 止损限价单
     TRAIL = 'TRAIL'  # 跟踪止损单
+    AM = 'AM'  # Auction Market ，竞价市价单
+    AL = 'AL'  # Auction Limit ，竞价限价单
 
 
 @unique

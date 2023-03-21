@@ -10,5 +10,5 @@ getmac
 cryptography
 backoff
 jproperties
-protobuf==4.21.12
-google-cloud==0.34.0
+protobuf
+google-cloud
