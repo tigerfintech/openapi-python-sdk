@@ -548,7 +548,7 @@ class TradeClient(TigerOpenClient):
         """
         下单
         :param order:  Order 对象
-        :return:
+        :return: order's id
         """
         params = PlaceModifyOrderParams()
         params.account = order.account
@@ -600,7 +600,7 @@ class TradeClient(TigerOpenClient):
         :param percent_offset:
         :param time_in_force: 订单有效期， 'DAY'（当日有效）和'GTC'（取消前有效)
         :param outside_rth: 是否允许盘前盘后交易(美股专属)
-        :return:
+        :return: order's id
         """
         params = PlaceModifyOrderParams()
         params.account = order.account
@@ -639,7 +639,7 @@ class TradeClient(TigerOpenClient):
         :param account:
         :param id: 全局订单 id
         :param order_id: 账户自增订单 id
-        :return:
+        :return: order's id
         """
         params = CancelOrderParams()
         params.account = account if account else self._account
