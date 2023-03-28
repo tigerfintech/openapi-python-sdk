@@ -9,7 +9,8 @@ import logging
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency, Language, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
-    PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET
+    PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET, SEGMENT_FUND_AVAILABLE, SEGMENT_FUND_HISTORY, \
+    TRANSFER_SEGMENT_FUND, CANCEL_SEGMENT_FUND, PLACE_FOREX_ORDER
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import get_enum_value, date_str_to_timestamp
 from tigeropen.common.request import OpenApiRequest
@@ -17,16 +18,21 @@ from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.tiger_open_config import LANGUAGE
 from tigeropen.trade.domain.order import Order
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
-    OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams
+    OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams, SegmentFundParams, \
+    ForexTradeOrderParams
 from tigeropen.trade.response.account_profile_response import ProfilesResponse
 from tigeropen.trade.response.analytics_asset_response import AnalyticsAssetResponse
 from tigeropen.trade.response.assets_response import AssetsResponse
 from tigeropen.trade.response.contracts_response import ContractsResponse
+from tigeropen.trade.response.forex_order_response import ForexOrderResponse
 from tigeropen.trade.response.order_id_response import OrderIdResponse
 from tigeropen.trade.response.order_preview_response import PreviewOrderResponse
 from tigeropen.trade.response.orders_response import OrdersResponse
 from tigeropen.trade.response.positions_response import PositionsResponse
 from tigeropen.trade.response.prime_assets_response import PrimeAssetsResponse
+from tigeropen.trade.response.segment_fund_response import SegmentFundAvailableResponse, \
+    SegmentFundHistoryResponse, SegmentFundCancelResponse
+from tigeropen.trade.response.segment_fund_response import SegmentFundTransferResponse
 from tigeropen.trade.response.transactions_response import TransactionsResponse
 
 
@@ -725,6 +731,123 @@ class TradeClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_segment_fund_available(self):
+        """
+        get segment fund available
+        :return:
+        """
+        params = SegmentFundParams()
+        params.account = self._account
+        params.secret_key = self._secret_key
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(SEGMENT_FUND_AVAILABLE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = SegmentFundAvailableResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.data
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_segment_fund_history(self):
+        """
+        get segment fund history
+        :return:
+        """
+        params = SegmentFundParams()
+        params.account = self._account
+        params.secret_key = self._secret_key
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(SEGMENT_FUND_HISTORY, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = SegmentFundHistoryResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.data
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def transfer_segment_fund(self, from_segment=None, to_segment=None, amount=None, currency=None):
+        """
+        transfer segment fund
+        :param from_segment: FUT 期货； SEC 股票。可用枚举 tigeropen.common.consts.SegmentType
+        :param to_segment:
+        :param amount:
+        :param currency:
+        :return:
+        """
+        params = SegmentFundParams()
+        params.account = self._account
+        params.secret_key = self._secret_key
+        params.from_segment = get_enum_value(from_segment)
+        params.to_segment = get_enum_value(to_segment)
+        params.amount = amount
+        params.currency = get_enum_value(currency)
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(TRANSFER_SEGMENT_FUND, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = SegmentFundTransferResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.data
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def cancel_segment_fund(self, id=None):
+        """
+        cancel segment fund
+        :param id:
+        :return:
+        """
+        params = SegmentFundParams()
+        params.account = self._account
+        params.secret_key = self._secret_key
+        params.id = id
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(CANCEL_SEGMENT_FUND, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = SegmentFundCancelResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.data
+            else:
+                raise ApiException(response.code, response.message)
+
+    def place_forex_order(self, seg_type, source_currency, target_currency, source_amount):
+        """
+        place forex order
+        :param seg_type:
+        :param source_currency:
+        :param target_currency:
+        :param source_amount:
+        :return:
+        """
+        params = ForexTradeOrderParams()
+        params.account = self._account
+        params.secret_key = self._secret_key
+        params.seg_type = get_enum_value(seg_type)
+        params.source_currency = get_enum_value(source_currency)
+        params.target_currency = get_enum_value(target_currency)
+        params.source_amount = source_amount
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(PLACE_FOREX_ORDER, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = ForexOrderResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.data
             else:
                 raise ApiException(response.code, response.message)
         return None
