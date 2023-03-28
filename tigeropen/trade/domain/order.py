@@ -17,7 +17,7 @@ class Order:
                  "trail_stop_price", "limit_price", "aux_price", "trailing_percent", "percent_offset", "action",
                  "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params", "algo_strategy",
                  "secret_key", "liquidation", "discount", "attr_desc", "source", 'adjust_limit', 'sub_ids', "user_mark",
-                 "update_time", "expire_time"]
+                 "update_time", "expire_time", "can_modify"]
 
     def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
@@ -100,6 +100,7 @@ class Order:
         self.sub_ids = kwargs.get('sub_ids')
         self.user_mark = kwargs.get('user_mark')
         self.expire_time = kwargs.get('expire_time')
+        self.can_modify = kwargs.get('can_modify')
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
