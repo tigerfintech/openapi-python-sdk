@@ -6,6 +6,7 @@ Created on 2018/9/20
 """
 import logging
 import traceback
+import unittest
 
 from tigeropen.common.util.price_util import PriceUtil
 from tigeropen.trade.domain.order import OrderStatus
@@ -19,14 +20,16 @@ from tigeropen.common.util.contract_utils import stock_contract, option_contract
      war_contract_by_symbol, iopt_contract_by_symbol
 from tigeropen.common.util.order_utils import limit_order, limit_order_with_legs, order_leg, algo_order_params, \
     algo_order
-from tigeropen.examples.client_config import get_client_config
+from tigeropen.tiger_open_config import get_client_config
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s',
                     filemode='a', )
 logger = logging.getLogger('TigerOpenApi')
 
-client_config = get_client_config()
+client_config = get_client_config(private_key_path='your private key file path',
+                                  tiger_id='your tiger id',
+                                  account='your account')
 
 
 def get_contract_apis():
@@ -167,6 +170,33 @@ def get_account_info():
             print("get response data:" + response.data)
         else:
             print("%d,%s,%s" % (response.code, response.message, response.data))
+
+
+class TestTradeClient(unittest.TestCase):
+    trade_client = TradeClient(client_config)
+
+    def test_transfer_segment_fund(self):
+        """资金划转"""
+        # 查看可转资金
+        available = self.trade_client.get_segment_fund_available()
+        print(available)
+
+        # 划转资金
+        res = self.trade_client.transfer_segment_fund(from_segment='SEC', to_segment='FUT', amount=100, currency='USD')
+        print(res)
+        # 撤销划转
+        cancelres = self.trade_client.cancel_segment_fund(id=res.id)
+        print(cancelres)
+
+        # 查看资金划转历史
+        history = self.trade_client.get_segment_fund_history()
+        print(history)
+
+    def test_forex_order(self):
+        """换汇"""
+        order = self.trade_client.place_forex_order(seg_type='FUT', source_currency='USD', target_currency='HKD',
+                                               source_amount=50)
+        print(order)
 
 
 if __name__ == '__main__':

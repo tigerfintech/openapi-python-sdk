@@ -8,179 +8,272 @@ import time
 # from tigeropen.common.consts import QuoteKeyType
 import pandas as pd
 
+from tigeropen.push.pb.AssetData_pb2 import AssetData
+from tigeropen.push.pb.OrderStatusData_pb2 import OrderStatusData
+from tigeropen.push.pb.OrderTransactionData_pb2 import OrderTransactionData
+from tigeropen.push.pb.PositionData_pb2 import PositionData
+from tigeropen.push.pb.QuoteBBOData_pb2 import QuoteBBOData
+from tigeropen.push.pb.QuoteBasicData_pb2 import QuoteBasicData
+from tigeropen.push.pb.QuoteDepthData_pb2 import QuoteDepthData
+from tigeropen.push.pb.TradeTickData_pb2 import TradeTickData
 from tigeropen.push.push_client import PushClient
 from tigeropen.examples.client_config import get_client_config
 
 
 def query_subscribed_callback(data):
     """
-    callback of PushClient.query_subscribed_quote
-    :param data:
-        example:
+    data example:
         {'subscribed_symbols': ['QQQ'], 'limit': 1200, 'used': 1, 'symbol_focus_keys': {'qqq': ['open', 'prev_close', 'low', 'volume', 'latest_price', 'close', 'high']},
          'subscribed_quote_depth_symbols': ['NVDA'], 'quote_depth_limit': 20, 'quote_depth_used': 1,
-         'subscribed_trade_tick_symbols': ['QQQ', 'AMD', '00700'], 'trade_tick_limit': 1200, 'trade_tick_used': 3
-         }
-    :return:
+         'subscribed_trade_tick_symbols': ['QQQ', 'AMD', '00700'], 'trade_tick_limit': 1200, 'trade_tick_used': 3}
     """
-    print(data)
+    print(f'subscribed data:{data}')
+    print(f'subscribed symbols:{data["subscribed_symbols"]}')
 
 
-def on_query_subscribed_quote(symbols, focus_keys, limit, used):
+def on_quote_changed(frame: QuoteBasicData):
     """
-    deprecated. Use query_subscribed_callback instead.
-    查询已订阅symbol回调
-    :param symbols: 订阅合约的列表
-    :param focus_keys: 每个合约订阅的 key 列表
-    :param limit: 当前 tigerid 可以订阅的合约数量
-    :param used: 目前已订阅的合约数量
-    :return:
-        返回示例:
-        symbols: ['00700', 'SPY'],
-        focus_keys: {'00700': ['ask_size', 'latest_price', 'ask_price', 'prev_close', 'open', 'minute', 'low', 'volume',
-         'bid_price', 'bid_size', 'high', 'close'], 'SPY': ['ask_size', 'latest_price', 'ask_price', 'prev_close',
-         'open', 'minute', 'low', 'volume', 'bid_price', 'bid_size', 'high', 'close']},
-        limit: 100,
-        used: 2
+    行情基本数据回调
+    example:
+    symbol: "00700"
+    type: BASIC
+    timestamp: 1677742483530
+    serverTimestamp: 1677742483586
+    avgPrice: 365.37
+    latestPrice: 363.8
+    latestPriceTimestamp: 1677742483369
+    latestTime: "03-02 15:34:43"
+    preClose: 368.8
+    volume: 12674730
+    amount: 4630947968
+    open: 368.2
+    high: 369
+    low: 362.4
+    marketStatus: "交易中"
+    mi {
+      p: 363.8
+      a: 365.37
+      t: 1677742440000
+      v: 27300
+      h: 364
+      l: 363.6
+    }
+    """
+    print(frame)
+
+
+def on_quote_bbo_changed(frame: QuoteBBOData):
+    """行情最优报价，ask/bid
+    example:
+    symbol: "01810"
+    type: BBO
+    timestamp: 1677741267291
+    serverTimestamp: 1677741267329
+    askPrice: 12.54
+    askSize: 397600
+    askTimestamp: 1677741266304
+    bidPrice: 12.52
+    bidSize: 787400
+    bidTimestamp: 1677741266916
+    """
+    print(f'quote bbo changed: {frame}')
+
+
+def on_quote_depth_changed(frame: QuoteDepthData):
+    """深度行情回调
+    example:
+    symbol: "00700"
+    timestamp: 1677742734822
+    ask {
+      price: 363.8
+      price: 364
+      price: 364.2
+      price: 364.4
+      price: 364.6
+      price: 364.8
+      price: 365
+      price: 365.2
+      price: 365.4
+      price: 365.6
+      volume: 26900
+      volume: 14800
+      volume: 15200
+      volume: 31500
+      volume: 15800
+      volume: 7700
+      volume: 29400
+      volume: 6300
+      volume: 6000
+      volume: 5500
+      orderCount: 27
+      orderCount: 20
+      orderCount: 19
+      orderCount: 22
+      orderCount: 14
+      orderCount: 10
+      orderCount: 20
+      orderCount: 12
+      orderCount: 10
+      orderCount: 11
+    }
+    bid {
+      price: 363.6
+      price: 363.4
+      price: 363.2
+      price: 363
+      price: 362.8
+      price: 362.6
+      price: 362.4
+      price: 362.2
+      price: 362
+      price: 361.8
+      volume: 9400
+      volume: 19900
+      volume: 35300
+      volume: 74200
+      volume: 26300
+      volume: 16700
+      volume: 22500
+      volume: 21100
+      volume: 40500
+      volume: 5600
+      orderCount: 16
+      orderCount: 23
+      orderCount: 36
+      orderCount: 79
+      orderCount: 30
+      orderCount: 32
+      orderCount: 31
+      orderCount: 34
+      orderCount: 143
+      orderCount: 26
+    }
+    """
+    print(f'quote depth changed: {frame}')
+
+
+def on_tick_changed(frame: TradeTickData):
+    """逐笔成交回调
+    example:
+    symbol: "00700"
+    type: "-+"
+    sn: 37998
+    priceBase: 3636
+    priceOffset: 1
+    time: 1677742815311
+    time: 69
+    price: 0
+    price: 2
+    volume: 500
+    volume: 100
+    quoteLevel: "hkStockQuoteLv2"
+    timestamp: 1677742815776
+    secType: "STK"
 
     """
-    print(symbols, focus_keys, limit, used)
+    print(frame)
 
 
-def on_quote_changed(symbol, items, hour_trading):
-    """
-    行情推送回调
-    :param symbol: 订阅的证券代码
-    :param items: list，每个元素是一个tuple，对应订阅的字段名称和值
-    :param hour_trading: 是否为盘前盘后的交易
-    :return:
-    items 数据示例
-        [('latest_price', 339.8), ('ask_size', 42500), ('ask_price', 340.0), ('bid_size', 1400), ('bid_price', 339.8),
-         ('high', 345.0), ('prev_close', 342.4), ('low', 339.2), ('open', 344.0), ('volume', 7361440),
-         ('minute', {'p': 339.8, 'a': 341.084, 't': 1568098440000, 'v': 7000, 'h': 340.0, 'l': 339.8}),
-         ('timestamp', '1568098469463')]
-    深度行情 items 数据示例. 最多只推送前 40 档, 由 3 个等长数组构成，分别代表：price(价格)/volume(数量)/count(单量),
-    相邻档位价格可能一样, 其中 count 是可选的
-        [('bid_depth',
-            '[[127.87,127.86,127.86,127.86,127.85,127.85,127.85,127.84,127.84,127.84,127.84,127.83,127.83, 127.83,127.83,127.83,127.82,127.81,127.8,127.8,127.8,127.8,127.8,127.8,127.8,127.79,127.79,127.78, 127.78, 127.75,127.68,127.6,127.6,127.55,127.5,127.5,127.5,127.5,127.29,127.28],
-              [69,2,5,20,1,1,1,18,1,70,80,40,2,330,330,1,40,80,20,10,131,2,30,50,300,1,38,1,1,15,6,20,1,3,100,15,25,30,49,43]
-             ]'),
-        ('ask_depth',
-            '[[127.91,127.94,127.95,127.95,127.95,127.95,127.95,127.96,127.98,127.98,127.98,127.98,127.99,127.99, 128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0, 128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0,128.0],
-              [822,4,98,50,5,5,500,642,300,40,1,36,19,1,1,1,1,50,1,1,50,1,100,10,1,1,10,1,1,1,1,5,1,8,1,1,120,70,1,4]
-            ]'),
-        ('timestamp', 1621933454191)]
+def on_order_changed(frame: OrderStatusData):
+    """订单回调
+    {"id":"28875370355884032","account":"736845","symbol":"CL","identifier":"CL2312","multiplier":1000,
+    "action":"BUY","market":"US","currency":"USD","segment":"C","secType":"FUT","orderType":"LMT",
+    "isLong":true,"totalQuantity":"1","filledQuantity":"1","avgFillPrice":77.76,"limitPrice":77.76,
+    "status":"Filled","outsideRth":true,"name":"WTI原油2312","source":"android","commissionAndFee":4.0,
+    "openTime":"1669200792000","timestamp":"1669200782221"}
 
     """
-    print(symbol, items, hour_trading)
+    print(f'order changed: {frame}')
 
 
-def on_tick_changed(symbol, items):
+def on_transaction_changed(frame: OrderTransactionData):
+    """订单执行明细回调
+    id: 2999543887211111111
+    orderId: 29995438111111111
+    account: "1111111"
+    symbol: "ZC"
+    identifier: "ZC2305"
+    multiplier: 5000
+    action: "BUY"
+    market: "US"
+    currency: "USD"
+    segType: "C"
+    secType: "FUT"
+    filledPrice: 6.385
+    filledQuantity: 1
+    createTime: 1677746237303
+    updateTime: 1677746237303
+    transactTime: 1677746237289
+    timestamp: 1677746237313
     """
+    print(f'transaction changed: {frame}')
 
-    :param symbol:
-    :param items:
-      items example:
-        [{'tick_type': '*', 'price': 293.87, 'volume': 102, 'part_code': 'NSDQ',
-            'part_code_name': 'NASDAQ Stock Market, LLC (NASDAQ)', 'cond': 'US_FORM_T', 'time': 1656405615779,
-            'server_timestamp': 1656405573461, 'type': 'TradeTick', 'quote_level': 'usStockQuote', 'sn': 342,
-            'timestamp': 1656405617385},
-         {'tick_type': '*', 'price': 293.87, 'volume': 102, 'part_code': 'NSDQ',
-          'part_code_name': 'NASDAQ Stock Market, LLC (NASDAQ)', 'cond': 'US_FORM_T', 'time': 1656405616573,
-          'server_timestamp': 1656405573461,
-          'type': 'TradeTick', 'quote_level': 'usStockQuote', 'sn': 343, 'timestamp': 1656405617385}]
 
-      Futures tick items example:
-          [{'tick_type': None, 'price': 15544.0, 'volume': 1, 'part_code': None, 'part_code_name': None, 'cond': None,
-           'time': 1667285183000, 'sn': 636960, 'server_timestamp': 1667285184162, 'quote_level': 'quote-fut-tick',
-            'type': 'TradeTick', 'timestamp': 1667285184156},
-            {'tick_type': None, 'price': 15544.0, 'volume': 1, 'part_code': None, 'part_code_name': None, 'cond': None,
-             'time': 1667285183000, 'sn': 636961, 'server_timestamp': 1667285184162, 'quote_level': 'quote-fut-tick',
-              'type': 'TradeTick', 'timestamp': 1667285184156},
-            {'tick_type': None, 'price': 15544.0, 'volume': 2, 'part_code': None, 'part_code_name': None,
-              'cond': None, 'time': 1667285183000, 'sn': 636962, 'server_timestamp': 1667285184162,
-              'quote_level': 'quote-fut-tick', 'type': 'TradeTick', 'timestamp': 1667285184156}]
-    :return:
+def on_asset_changed(frame: AssetData):
+    """可进行自定义处理，此处仅打印
+    account: "111111"
+    currency: "USD"
+    segType: "S"
+    availableFunds: 1593.1191893
+    excessLiquidity: 1730.5666908
+    netLiquidation: 2856.1016998
+    equityWithLoan: 2858.1016998
+    buyingPower: 6372.4767571
+    cashBalance: 484.1516697
+    grossPositionValue: 2373.95003
+    initMarginReq: 1264.9825105
+    maintMarginReq: 1127.535009
+    timestamp: 1677745420121
     """
-    print(symbol, items)
-    # convert to DataFrame
-    # frame = pd.DataFrame(items)
-    # print(frame)
+    print(f'asset change. {frame}')
+    # 查看可用资金
+    print(frame.availableFunds)
+    # 查看持仓市值
+    print(frame.grossPositionValue)
 
 
-def on_order_changed(account, items):
+def on_position_changed(frame: PositionData):
+    """持仓回调
+    account: "111111"
+    symbol: "BILI"
+    identifier: "BILI"
+    multiplier: 1
+    market: "US"
+    currency: "USD"
+    segType: "S"
+    secType: "STK"
+    position: 100
+    averageCost: 80
+    latestPrice: 19.83
+    marketValue: 1983
+    unrealizedPnl: -6017
+    timestamp: 1677745420121
     """
-
-    :param account:
-    :param items:
-    :return:
-    items 数据示例:
-        [('order_type', 'LMT'), ('symbol', 'ABCD'), ('order_id', 1000101463), ('sec_type', 'STK'), ('filled', 100),
-        ('quantity', 100), ('segment', 'summary'), ('action', 'BUY'), ('currency', 'USD'), ('id', 173612806463631360),
-        ('order_time', 1568095814556), ('time_in_force', 'DAY'), ('identifier', 'ABCD'), ('limit_price', 113.7),
-        ('outside_rth', True), ('avg_fill_price', 113.7), ('trade_time', 1568095815418),
-        ('status', <OrderStatus.FILLED: 'Filled'>)]
-    """
-    print(account, items)
-
-def on_transaction_changed(account, items):
-    """
-
-    :param account:
-    :param items:
-    :return:
-    account:11111,
-    items: [('id', 28819544190616576), ('currency', 'USD'), ('sec_type', 'FUT'), ('market', 'SG'), ('symbol', 'CN'),
-     ('multiplier', 1.0), ('action', 'BUY'), ('filled_quantity', 1.0), ('filled_price', 12309.0),
-     ('order_id', 28819544031364096), ('transact_time', 1668774872538), ('create_time', 1668774872946),
-      ('update_time', 1668774872946), ('identifier', 'CN2212'), ('timestamp', 1668774873002), ('segment', 'C')]
-    """
-    print(f'account:{account}, items: {items}')
-
-def on_asset_changed(account, items):
-    """
-
-    :param account:
-    :param items:
-    :return:
-    items 数据示例:
-        [('equity_with_loan', 721583.83), ('gross_position_value', 1339641.94),
-        ('excess_liquidity', 378624.18), ('available_funds', 320059.1), ('initial_margin_requirement', 497419.25),
-        ('buying_power', 2293551.51), ('cash', 950059.0), ('segment', 'summary'), ('net_liquidation', 817685.72),
-        ('maintenance_margin_requirement', 439061.54)]
-    """
-    print(account, items)
+    print(f'position change. {frame}')
+    # 持仓标的
+    print(frame.symbol)
+    # 持仓成本
+    print(frame.averageCost)
 
 
-def on_position_changed(account, items):
-    """
-
-    :param account:
-    :param items:
-    :return:
-    items 数据示例:
-        [('symbol', 'ABCD'), ('market_price', 3.68525), ('market_value', 0.0), ('sec_type', 'STK'),
-        ('segment', 'summary'), ('currency', 'USD'), ('quantity', 0.0), ('average_cost', 3.884548)]
-    """
-    print(account, items)
-
-
-def subscribe_callback(destination, content):
+def subscribe_callback(frame):
     """
     订阅成功与否的回调
-    :param destination: 订阅的类型. 有 quote, trade/asset, trade/position, trade/order
-    :param content: 回调信息. 如成功 {'code': 0, 'message': 'success'}; 若失败则 code 不为0, message 为错误详情
+    id: 2
+    code: 112
+    msg: "{\"code\":0,\"message\":\"success\"}"
+    body {
+      dataType: OrderStatus
+    }
     """
-    print('subscribe:{}, callback content:{}'.format(destination, content))
+    print(f'subscribe callback:{frame}')
 
 
-def unsubscribe_callback(destination, content):
+def unsubscribe_callback(frame):
     """
-    退订成功与否的回调
-    :param destination: 取消订阅的类型. 有 quote, trade/asset, trade/position, trade/order
-    :param content: 回调信息.
+    取消订阅成功与否的回调
     """
-    print('subscribe:{}, callback content:{}'.format(destination, content))
+    print(f'unsubscribe callback:{frame}')
 
 
 def error_callback(frame):
@@ -215,12 +308,13 @@ if __name__ == '__main__':
 
     # 行情变动回调
     push_client.quote_changed = on_quote_changed
+    push_client.quote_depth_changed = on_quote_depth_changed
+    push_client.quote_bbo_changed = on_quote_bbo_changed
     # 逐笔数据回调
     push_client.tick_changed = on_tick_changed
     # 已订阅 symbol 查询回调
     push_client.query_subscribed_callback = query_subscribed_callback
-    # 已订阅 symbol 查询回调(已废弃)
-    # push_client.subscribed_symbols = on_query_subscribed_quote
+
     # 订单变动回调
     push_client.order_changed = on_order_changed
     # 订单执行明细回调

@@ -26,6 +26,11 @@ INACTIVE_ORDERS = "inactive_orders"  # 已撤销订单
 FILLED_ORDERS = "filled_orders"  # 已成交订单
 ORDER_TRANSACTIONS = "order_transactions"  # 订单成交记录
 ANALYTICS_ASSET = "analytics_asset"
+SEGMENT_FUND_HISTORY = "segment_fund_history"
+SEGMENT_FUND_AVAILABLE = "segment_fund_available"
+TRANSFER_SEGMENT_FUND = "transfer_segment_fund"
+CANCEL_SEGMENT_FUND = "cancel_segment_fund"
+PLACE_FOREX_ORDER = "place_forex_order"
 
 USER_LICENSE = "user_license"
 

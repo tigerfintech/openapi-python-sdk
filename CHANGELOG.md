@@ -1,3 +1,17 @@
+## 2.3.5 (2023-03-28)
+### New
+- TradeClient 新增不同品种(股票SEC/期货FUT/基金FUND)账户间资金划转接口
+  `TradeClient.get_segment_fund_available`  获取可划转资金  
+  `TradeClient.transfer_segment_fund`  划转资金  
+  `TradeClient.cancel_segment_fund`  取消划转  
+  `TradeClient.get_segment_fund_history`  获取划转历史  
+  
+- TradeClient 新增换汇下单接口
+  `TradeClient.place_forex_order`
+  
+- `QuoteClient.get_option_bars` 期权k线接口新增参数 `period`, 支持获取分钟k线
+
+
 ## 2.3.4 (2023-03-20)
 ### New
 - 支持AM/AL(盘前竞价单)
