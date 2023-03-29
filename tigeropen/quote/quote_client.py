@@ -733,13 +733,15 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_option_bars(self, identifiers, begin_time=-1, end_time=4070880000000):
+    def get_option_bars(self, identifiers, begin_time=-1, end_time=4070880000000, period=BarPeriod.DAY):
         """
         获取期权日K数据
         :param identifiers: 期权代码列表
         :param begin_time: 开始时间. 若是时间戳需要精确到毫秒, 为13位整数;
                                     或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
         :param end_time: 结束时间. 格式同 begin_time
+        :param period: 时间间隔. 可选值: DAY("day"), ONE_MINUTE("1min"), FIVE_MINUTES("5min"), HALF_HOUR("30min"),
+            ONE_HOUR("60min");
         :return: pandas.DataFrame, 各 column 含义如下：
             time: 毫秒级时间戳
             open: 开盘价
@@ -763,7 +765,7 @@ class QuoteClient(TigerOpenClient):
             param.expiry = date_str_to_timestamp(expiry, self._timezone)
             param.put_call = put_call
             param.strike = strike
-            param.period = BarPeriod.DAY.value
+            param.period = get_enum_value(period)
             param.begin_time = date_str_to_timestamp(begin_time, self._timezone)
             param.end_time = date_str_to_timestamp(end_time, self._timezone)
             contracts.append(param)

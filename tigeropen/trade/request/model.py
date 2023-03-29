@@ -1033,3 +1033,197 @@ class AnalyticsAssetParams(BaseParams):
         if self.end_date:
             params['end_date'] = self.end_date
         return params
+
+
+class SegmentFundParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._id = None
+        self._account = None
+        self._secret_key = None
+        self._from_segment = None
+        self._to_segment = None
+        self._currency = None
+        self._amount = None
+        self._limit = None
+
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id = value
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def from_segment(self):
+        return self._from_segment
+
+    @from_segment.setter
+    def from_segment(self, value):
+        self._from_segment = value
+
+    @property
+    def to_segment(self):
+        return self._to_segment
+
+    @to_segment.setter
+    def to_segment(self, value):
+        self._to_segment = value
+
+    @property
+    def currency(self):
+        return self._currency
+
+    @currency.setter
+    def currency(self, value):
+        self._currency = value
+
+    @property
+    def amount(self):
+        return self._amount
+
+    @amount.setter
+    def amount(self, value):
+        self._amount = value
+
+    @property
+    def limit(self):
+        return self._limit
+
+    @limit.setter
+    def limit(self, value):
+        self._limit = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self._id:
+            params['id'] = self._id
+        if self._account:
+            params['account'] = self._account
+        if self._secret_key:
+            params['secret_key'] = self._secret_key
+        if self._from_segment:
+            params['from_segment'] = self._from_segment
+        if self._to_segment:
+            params['to_segment'] = self._to_segment
+        if self._currency:
+            params['currency'] = self._currency
+        if self._amount:
+            params['amount'] = self._amount
+        if self._limit:
+            params['limit'] = self._limit
+        return params
+
+
+class ForexTradeOrderParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._account = None
+        self._secret_key = None
+        self._source_currency = None
+        self._source_amount = None
+        self._target_currency = None
+        self._seg_type = None
+        self._external_id = None
+        self._time_in_force = None
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def source_currency(self):
+        return self._source_currency
+
+    @source_currency.setter
+    def source_currency(self, value):
+        self._source_currency = value
+
+    @property
+    def source_amount(self):
+        return self._source_amount
+
+    @source_amount.setter
+    def source_amount(self, value):
+        self._source_amount = value
+
+    @property
+    def target_currency(self):
+        return self._target_currency
+
+    @target_currency.setter
+    def target_currency(self, value):
+        self._target_currency = value
+
+    @property
+    def seg_type(self):
+        return self._seg_type
+
+    @seg_type.setter
+    def seg_type(self, value):
+        self._seg_type = value
+
+    @property
+    def external_id(self):
+        return self._external_id
+
+    @external_id.setter
+    def external_id(self, value):
+        self._external_id = value
+
+    @property
+    def time_in_force(self):
+        return self._time_in_force
+
+    @time_in_force.setter
+    def time_in_force(self, value):
+        self._time_in_force = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.account:
+            params['account'] = self.account
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+        if self.source_currency:
+            params['source_currency'] = self.source_currency
+        if self.source_amount:
+            params['source_amount'] = self.source_amount
+        if self.target_currency:
+            params['target_currency'] = self.target_currency
+        if self.seg_type:
+            params['seg_type'] = self.seg_type
+        if self.external_id:
+            params['external_id'] = self.external_id
+        if self.time_in_force:
+            params['time_in_force'] = self.time_in_force
+        return params
