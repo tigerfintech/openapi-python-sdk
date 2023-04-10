@@ -735,13 +735,15 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_segment_fund_available(self):
+    def get_segment_fund_available(self, from_segment=None, currency=None):
         """
         get segment fund available
         :return:
         """
         params = SegmentFundParams()
         params.account = self._account
+        params.from_segment = get_enum_value(from_segment)
+        params.currency = get_enum_value(currency)
         params.secret_key = self._secret_key
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(SEGMENT_FUND_AVAILABLE, biz_model=params)
@@ -755,13 +757,14 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_segment_fund_history(self):
+    def get_segment_fund_history(self, limit=None):
         """
         get segment fund history
         :return:
         """
         params = SegmentFundParams()
         params.account = self._account
+        params.limit = limit
         params.secret_key = self._secret_key
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(SEGMENT_FUND_HISTORY, biz_model=params)

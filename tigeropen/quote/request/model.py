@@ -1056,3 +1056,214 @@ class CapitalParams(BaseParams):
         if self.limit:
             params['limit'] = self.limit
         return params
+
+
+class WarrantFilterParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._symbol = None
+        self._page = None
+        self._page_size = None
+        self._sort_field_name = None
+        # sort directions
+        self._sort_dir = None
+        # 1:Call, 2: Put, 3: Bull,4: Bear, 0: All
+        self._warrant_type = None
+        self._issuer_name = None
+        # expiry date: yyyy-MM
+        self._expire_ym = None
+        # 0 All, 1 Normal, 2 Terminate Trades, 3 Waiting to be listed
+        self._state = None
+        # -1:out the money, 1: in the money
+        self._in_out_price: set[int] = set()
+        self._lot_size: set[int] = set()
+        self._entitlement_ratio: set[float] = set()
+
+        self._strike: tuple[float, float] = tuple()
+        self._effective_leverage: tuple[float, float] = tuple()
+        self._leverage_ratio: tuple[float, float] = tuple()
+        self._call_price: tuple[float, float] = tuple()
+        self._volume: tuple[int, int] = tuple()
+        self._premium: tuple[float, float] = tuple()
+        self._outstanding_ratio: tuple[float, float] = tuple()
+        self._implied_volatility: tuple[int, int] = tuple()
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
+
+    @property
+    def page(self):
+        return self._page
+
+    @page.setter
+    def page(self, value):
+        self._page = value
+
+    @property
+    def page_size(self):
+        return self._page_size
+
+    @page_size.setter
+    def page_size(self, value):
+        self._page_size = value
+
+    @property
+    def sort_field_name(self):
+        return self._sort_field_name
+
+    @sort_field_name.setter
+    def sort_field_name(self, value):
+        self._sort_field_name = value
+
+    @property
+    def sort_dir(self):
+        return self._sort_dir
+
+    @sort_dir.setter
+    def sort_dir(self, value):
+        self._sort_dir = value
+
+    @property
+    def warrant_type(self):
+        return self._warrant_type
+
+    @warrant_type.setter
+    def warrant_type(self, value):
+        self._warrant_type = value
+
+    @property
+    def issuer_name(self):
+        return self._issuer_name
+
+    @issuer_name.setter
+    def issuer_name(self, value):
+        self._issuer_name = value
+
+    @property
+    def expire_ym(self):
+        return self._expire_ym
+
+    @expire_ym.setter
+    def expire_ym(self, value):
+        self._expire_ym = value
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        self._state = value
+
+    @property
+    def strike(self):
+        return self._strike
+
+    @strike.setter
+    def strike(self, value):
+        self._strike = value
+
+    @property
+    def effective_leverage(self):
+        return self._effective_leverage
+
+    @effective_leverage.setter
+    def effective_leverage(self, value):
+        self._effective_leverage = value
+
+    @property
+    def leverage_ratio(self):
+        return self._leverage_ratio
+
+    @leverage_ratio.setter
+    def leverage_ratio(self, value):
+        self._leverage_ratio = value
+
+    @property
+    def call_price(self):
+        return self._call_price
+
+    @call_price.setter
+    def call_price(self, value):
+        self._call_price = value
+
+    @property
+    def volume(self):
+        return self._volume
+
+    @volume.setter
+    def volume(self, value):
+        self._volume = value
+
+    @property
+    def premium(self):
+        return self._premium
+
+    @premium.setter
+    def premium(self, value):
+        self._premium = value
+
+    @property
+    def outstanding_ratio(self):
+        return self._outstanding_ratio
+
+    @outstanding_ratio.setter
+    def outstanding_ratio(self, value):
+        self._outstanding_ratio = value
+
+    @property
+    def implied_volatility(self):
+        return self._implied_volatility
+
+    @implied_volatility.setter
+    def implied_volatility(self, value):
+        self._implied_volatility = value
+
+    def convert_range_param(self, value: tuple):
+        if value and len(value) == 2:
+            return {'min': value[0], 'max': value[1]}
+        return None
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.symbol:
+            params['symbol'] = self.symbol
+        if self.page:
+            params['page'] = self.page
+        if self.page_size:
+            params['page_size'] = self.page_size
+        if self.sort_field_name:
+            params['sort_field_name'] = self.sort_field_name
+        if self.sort_dir:
+            params['sort_dir'] = self.sort_dir
+        if self.warrant_type:
+            params['warrant_type'] = self.warrant_type
+        if self.issuer_name:
+            params['issuer_name'] = self.issuer_name
+        if self.expire_ym:
+            params['expire_ym'] = self.expire_ym
+        if self.state:
+            params['state'] = self.state
+        # tuple params
+        if self.strike:
+            params['strike'] = self.convert_range_param(self.strike)
+        if self.effective_leverage:
+            params['effective_leverage'] = self.convert_range_param(self.effective_leverage)
+        if self.leverage_ratio:
+            params['leverage_ratio'] = self.convert_range_param(self.leverage_ratio)
+        if self.call_price:
+            params['call_price'] = self.convert_range_param(self.call_price)
+        if self.volume:
+            params['volume'] = self.convert_range_param(self.volume)
+        if self.premium:
+            params['premium'] = self.convert_range_param(self.premium)
+        if self.outstanding_ratio:
+            params['outstanding_ratio'] = self.convert_range_param(self.outstanding_ratio)
+        if self.implied_volatility:
+            params['implied_volatility'] = self.convert_range_param(self.implied_volatility)
+        return params
