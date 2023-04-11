@@ -65,6 +65,8 @@ TRADING_CALENDAR = "trading_calendar"
 STOCK_BROKER = "stock_broker"  # 港股股票实时经纪队列
 CAPITAL_DISTRIBUTION = "capital_distribution"  # 股票当日资金分布
 CAPITAL_FLOW = "capital_flow"  # 股票资金流向
+WARRANT_FILTER = "warrant_filter"
+WARRANT_REAL_TIME_QUOTE = "warrant_real_time_quote"
 
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"
