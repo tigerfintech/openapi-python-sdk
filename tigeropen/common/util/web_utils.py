@@ -77,9 +77,13 @@ def do_request(method, url, query_string=None, headers=None, params=None, timeou
         raise RequestException('[' + THREAD_LOCAL.uuid + ']' + method + ' request failed. url: ' + url
                                + ' headers: ' + str(headers)
                                + ' params: ' + str(params) + ' detail: ' + str(e))
-    response = connection.getresponse()
-    result = response.read()
-
+    try:
+        response = connection.getresponse()
+        result = response.read()
+    except Exception as e:
+        raise ResponseException('[' + THREAD_LOCAL.uuid + '] read response error ' +
+                                ' headers: ' + str(headers) +
+                                ' params: ' + str(params))
     if response.status != 200:
         if charset:
             result = result.decode(charset)

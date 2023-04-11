@@ -1,6 +1,4 @@
-"""Various listeners for using with stomp.py connections.
-"""
-
+import logging
 import sys
 import threading
 import time
@@ -8,10 +6,6 @@ from time import monotonic
 
 from . import exception
 from . import utils
-# from stomp.constants import *
-# from import logging
-import logging
-
 from ..pb.util import ProtoMessageUtil
 
 
@@ -55,93 +49,30 @@ class ConnectionListener(object):
     """
 
     def on_connecting(self, host_and_port):
-        """
-        Called by the connection once a TCP/IP connection to the
-        server has been established or re-established. Note that
-        at this point, no connection has been established on the STOMP
-        protocol level. For this, you need to invoke the "connect"
-        method on the connection.
-
-        :param (str,int) host_and_port: a tuple containing the host name and port number to which the connection
-            has been established.
-        """
         pass
 
     def on_connected(self, frame):
-        """
-        Called by the connection when a CONNECTED frame is
-        received (after a connection has been established or
-        re-established).
-
-        :param Frame frame: the frame
-        """
         pass
 
     def on_disconnecting(self):
-        """
-        Called before a DISCONNECT frame is sent.
-        """
         pass
 
     def on_disconnected(self):
-        """
-        Called by the connection when a TCP/IP connection to the
-        server has been lost.  No messages should be sent via
-        the connection until it has been reestablished.
-        """
-        pass
-
-    def on_heartbeat_timeout(self):
-        """
-        Called by the connection when a heartbeat message has not been
-        received beyond the specified period.
-        """
-        pass
-
-    def on_before_message(self, frame):
-        """
-        Called by the connection before a message is returned to the client app. Returns a tuple
-        containing the headers and body (so that implementing listeners can pre-process the content).
-
-        :param Frame frame: the frame
-        """
         pass
 
     def on_message(self, frame):
-        """
-        Called by the connection when a MESSAGE frame is received.
-
-        :param Frame frame: the frame
-        """
         pass
 
-
     def on_error(self, frame):
-        """
-        Called by the connection when an ERROR frame is received.
-
-        :param Frame frame: the frame
-        """
         pass
 
     def on_send(self, frame):
-        """
-        Called by the connection when it is in the process of sending a message
-
-        :param Frame frame: the frame
-        """
         pass
 
-    def on_heartbeat(self):
-        """
-        Called on receipt of a heartbeat.
-        """
+    def on_heartbeat(self, frame):
         pass
 
     def on_receiver_loop_completed(self, frame):
-        """
-        Called when the connection receiver_loop has finished.
-        """
         pass
 
 
@@ -169,10 +100,9 @@ class HeartbeatListener(ConnectionListener):
         :param Frame frame: the frame
         """
         self.disconnecting = False
-        if ProtoMessageUtil.is_heart_beat(frame):
-        # if "heart-beat" in frame.headers:
-        #     self.heartbeats = utils.calculate_heartbeats(
-        #         frame.headers["heart-beat"].replace(" ", "").split(","), self.heartbeats)
+        heartbeat = ProtoMessageUtil.extract_heart_beat(frame)
+        if heartbeat:
+            self.heartbeats = heartbeat
             logging.debug("heartbeats calculated %s", str(self.heartbeats))
             if self.heartbeats != (0, 0):
                 self.send_sleep = self.heartbeats[0] / 1000
@@ -190,7 +120,7 @@ class HeartbeatListener(ConnectionListener):
                 if self.heartbeat_thread is None:
                     self.heartbeat_thread = utils.default_create_thread(
                         self.__heartbeat_loop)
-                    self.heartbeat_thread.name = "StompHeartbeat%s" % \
+                    self.heartbeat_thread.name = "Heartbeat%s" % \
                                                  getattr(self.heartbeat_thread, "name", "Thread")
 
     def on_disconnected(self):
@@ -206,7 +136,6 @@ class HeartbeatListener(ConnectionListener):
 
         :param Frame frame: the frame
         """
-        # reset the heartbeat for any received message
         self.__update_heartbeat()
 
     def on_error(self, *_):
@@ -215,7 +144,7 @@ class HeartbeatListener(ConnectionListener):
         """
         self.__update_heartbeat()
 
-    def on_heartbeat(self):
+    def on_heartbeat(self, frame):
         """
         Reset the last received time whenever a heartbeat message is received.
         """
@@ -228,14 +157,10 @@ class HeartbeatListener(ConnectionListener):
 
         :param Frame frame: the Frame object
         """
-        # todo
-        # if frame.cmd in [CMD_CONNECT, CMD_STOMP] and self.heartbeats != (0, 0):
-        #     frame.headers[HDR_HEARTBEAT] = "%s,%s" % self.heartbeats
         if self.next_outbound_heartbeat is not None:
             self.next_outbound_heartbeat = monotonic() + self.send_sleep
 
     def __update_heartbeat(self):
-        # Honour any grace that has been already included
         if self.received_heartbeat is None:
             return
         now = monotonic()
@@ -281,7 +206,6 @@ class HeartbeatListener(ConnectionListener):
                 try:
                     msg = ProtoMessageUtil.build_heart_beat_message()
                     self.transport.transmit(msg)
-                    # self.transport.transmit(utils.Frame(None, {}, None))
                 except exception.NotConnectedException:
                     logging.debug("lost connection, unable to send heartbeat")
                 except Exception:

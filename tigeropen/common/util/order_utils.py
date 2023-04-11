@@ -74,6 +74,34 @@ def trail_order(account, contract, action, quantity, trailing_percent=None, aux_
     return Order(account, contract, action, 'TRAIL', quantity, trailing_percent=trailing_percent, aux_price=aux_price)
 
 
+def auction_limit_order(account, contract, action, quantity, limit_price, time_in_force='DAY'):
+    """
+    竞价限价单 Auction Limit
+    :param account:
+    :param contract:
+    :param action: BUY/SELL
+    :param quantity:
+    :param limit_price: 限价的价格
+    :param time_in_force: only support 'DAY' or 'OPG' (Opening Price Gap, 盘前竞价有效)
+    :return:
+    """
+    return Order(account, contract, action, 'AL', quantity, limit_price=limit_price, outside_rth=True,
+                 time_in_force=time_in_force)
+
+
+def auction_market_order(account, contract, action, quantity, time_in_force='DAY'):
+    """
+    竞价市价单 Auction Market
+    :param account:
+    :param contract:
+    :param action: BUY/SELL
+    :param quantity:
+    :param time_in_force: only support 'DAY' or 'OPG' (Opening Price Gap, 盘前竞价有效)
+    :return:
+    """
+    return Order(account, contract, action, 'AM', quantity, outside_rth=True, time_in_force=time_in_force)
+
+
 def order_leg(leg_type, price, time_in_force='DAY', outside_rth=None, limit_price=None, trailing_percent=None,
               trailing_amount=None):
     """

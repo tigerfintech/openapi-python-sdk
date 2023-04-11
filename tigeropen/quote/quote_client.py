@@ -16,7 +16,7 @@ from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionT
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
     HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
-    STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION
+    STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -40,7 +40,7 @@ from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
-    StockBrokerParams, CapitalParams
+    StockBrokerParams, CapitalParams, WarrantFilterParams
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
@@ -72,6 +72,8 @@ from tigeropen.quote.response.stock_trade_meta_response import TradeMetaResponse
 from tigeropen.quote.response.symbol_names_response import SymbolNamesResponse
 from tigeropen.quote.response.symbols_response import SymbolsResponse
 from tigeropen.quote.response.trading_calendar_response import TradingCalendarResponse
+from tigeropen.quote.response.warrant_briefs_response import WarrantBriefsResponse
+from tigeropen.quote.response.warrant_filter_response import WarrantFilterResponse
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.tiger_open_config import LANGUAGE
 
@@ -733,13 +735,16 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_option_bars(self, identifiers, begin_time=-1, end_time=4070880000000):
+    def get_option_bars(self, identifiers, begin_time=-1, end_time=4070880000000, period=BarPeriod.DAY, limit=None):
         """
         获取期权日K数据
         :param identifiers: 期权代码列表
         :param begin_time: 开始时间. 若是时间戳需要精确到毫秒, 为13位整数;
                                     或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
         :param end_time: 结束时间. 格式同 begin_time
+        :param period: 时间间隔. 可选值: DAY("day"), ONE_MINUTE("1min"), FIVE_MINUTES("5min"), HALF_HOUR("30min"),
+            ONE_HOUR("60min");
+        :param limit: 每个期权的返回k线数量
         :return: pandas.DataFrame, 各 column 含义如下：
             time: 毫秒级时间戳
             open: 开盘价
@@ -763,9 +768,10 @@ class QuoteClient(TigerOpenClient):
             param.expiry = date_str_to_timestamp(expiry, self._timezone)
             param.put_call = put_call
             param.strike = strike
-            param.period = BarPeriod.DAY.value
+            param.period = get_enum_value(period)
             param.begin_time = date_str_to_timestamp(begin_time, self._timezone)
             param.end_time = date_str_to_timestamp(end_time, self._timezone)
+            param.limit = limit
             contracts.append(param)
         params.contracts = contracts
         request = OpenApiRequest(OPTION_KLINE, biz_model=params)
@@ -1539,6 +1545,65 @@ class QuoteClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = CapitalDistributionResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_warrant_briefs(self, symbols):
+        """
+        get warrant/iopt quote
+        :param symbols:
+        :return:
+        """
+        params = MultipleQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(WARRANT_REAL_TIME_QUOTE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = WarrantBriefsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_warrant_filter(self, symbol, page=None, page_size=None, sort_field_name=None, sort_dir=None,
+                           filter_params=None):
+        """
+        :param sort_dir: tigeropen.common.consts.SortDirection, e.g. SortDirection.DESC
+        :param filter_params: tigeropen.quote.request.model.WarrantFilterParams
+        :return:
+        """
+        params = WarrantFilterParams()
+        params.lang = get_enum_value(self._lang)
+        params.symbol = symbol or (filter_params.symbol if filter_params else None)
+        params.page = page or (filter_params.page if filter_params else None)
+        params.page_size = page_size or (filter_params.page_size if filter_params else None)
+        params.sort_field_name = sort_field_name or (filter_params.sort_field_name if filter_params else None)
+        params.sort_dir = get_enum_value(sort_dir or (filter_params.sort_dir if filter_params else None))
+        if filter_params:
+            params.warrant_type = filter_params.warrant_type
+            params.in_out_price = filter_params.in_out_price
+            params.issuer_name = filter_params.issuer_name
+            params.expire_ym = filter_params.expire_ym
+            params.lot_size = filter_params.lot_size
+            params.entitlement_ratio = filter_params.entitlement_ratio
+            params.leverage_ratio = filter_params.leverage_ratio
+            params.strike = filter_params.strike
+            params.premium = filter_params.premium
+            params.outstanding_ratio = filter_params.outstanding_ratio
+            params.implied_volatility = filter_params.implied_volatility
+            params.effective_leverage = filter_params.effective_leverage
+            params.call_price = filter_params.call_price
+            params.state = filter_params.state
+
+        request = OpenApiRequest(WARRANT_FILTER, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = WarrantFilterResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.result
