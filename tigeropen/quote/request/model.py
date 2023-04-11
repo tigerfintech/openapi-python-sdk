@@ -5,6 +5,7 @@ Created on 2018/9/20
 @author: gaoan
 """
 from tigeropen.common.model import BaseParams
+from tigeropen.common.util.string_utils import underline_to_camel
 
 
 class MarketParams(BaseParams):
@@ -1068,12 +1069,12 @@ class WarrantFilterParams(BaseParams):
         # sort directions
         self._sort_dir = None
         # 1:Call, 2: Put, 3: Bull,4: Bear, 0: All
-        self._warrant_type = None
+        self._warrant_type: set[int] = set()
         self._issuer_name = None
         # expiry date: yyyy-MM
         self._expire_ym = None
         # 0 All, 1 Normal, 2 Terminate Trades, 3 Waiting to be listed
-        self._state = None
+        self._state: int = None
         # -1:out the money, 1: in the money
         self._in_out_price: set[int] = set()
         self._lot_size: set[int] = set()
@@ -1087,6 +1088,51 @@ class WarrantFilterParams(BaseParams):
         self._premium: tuple[float, float] = tuple()
         self._outstanding_ratio: tuple[float, float] = tuple()
         self._implied_volatility: tuple[int, int] = tuple()
+
+    def set_state(self, value):
+        self._state = value
+
+    def set_issuer_name(self, value):
+        self._issuer_name = value
+
+    def set_expire_ym(self, value):
+        self._expire_ym = value
+
+    def add_warrant_type(self, value):
+        self._warrant_type.add(value)
+
+    def add_in_out_price(self, value):
+        self._in_out_price.add(value)
+
+    def add_lot_size(self, value):
+        self._lot_size.add(value)
+
+    def add_entitlement_ratio(self, value):
+        self._entitlement_ratio.add(value)
+
+    def set_strike_range(self, min_value, max_value):
+        self._strike = (min_value, max_value)
+
+    def set_effective_leverage_range(self, min_value, max_value):
+        self._effective_leverage = (min_value, max_value)
+
+    def set_leverage_ratio_range(self, min_value, max_value):
+        self._leverage_ratio = (min_value, max_value)
+
+    def set_call_price_range(self, min_value, max_value):
+        self._call_price = (min_value, max_value)
+
+    def set_volume_range(self, min_value, max_value):
+        self._volume = (min_value, max_value)
+
+    def set_premium_range(self, min_value, max_value):
+        self._premium = (min_value, max_value)
+
+    def set_outstanding_ratio_range(self, min_value, max_value):
+        self._outstanding_ratio = (min_value, max_value)
+
+    def set_implied_volatility_range(self, min_value, max_value):
+        self._implied_volatility = (min_value, max_value)
 
     @property
     def symbol(self):
@@ -1161,6 +1207,30 @@ class WarrantFilterParams(BaseParams):
         self._state = value
 
     @property
+    def in_out_price(self):
+        return self._in_out_price
+
+    @in_out_price.setter
+    def in_out_price(self, value):
+        self._in_out_price = value
+
+    @property
+    def lot_size(self):
+        return self._lot_size
+
+    @lot_size.setter
+    def lot_size(self, value):
+        self._lot_size = value
+
+    @property
+    def entitlement_ratio(self):
+        return self._entitlement_ratio
+
+    @entitlement_ratio.setter
+    def entitlement_ratio(self, value):
+        self._entitlement_ratio = value
+
+    @property
     def strike(self):
         return self._strike
 
@@ -1225,9 +1295,9 @@ class WarrantFilterParams(BaseParams):
         self._implied_volatility = value
 
     def convert_range_param(self, value: tuple):
-        if value and len(value) == 2:
+        if (isinstance(value, tuple) or isinstance(value, list)) and len(value) == 2:
             return {'min': value[0], 'max': value[1]}
-        return None
+        return value
 
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
@@ -1238,15 +1308,21 @@ class WarrantFilterParams(BaseParams):
         if self.page_size:
             params['page_size'] = self.page_size
         if self.sort_field_name:
-            params['sort_field_name'] = self.sort_field_name
+            params['sort_field_name'] = underline_to_camel(self.sort_field_name)
         if self.sort_dir:
             params['sort_dir'] = self.sort_dir
-        if self.warrant_type:
-            params['warrant_type'] = self.warrant_type
         if self.issuer_name:
             params['issuer_name'] = self.issuer_name
         if self.expire_ym:
             params['expire_ym'] = self.expire_ym
+        if self.in_out_price:
+            params['in_out_price'] = list(self.in_out_price)
+        if self.lot_size:
+            params['lot_size'] = list(self.lot_size)
+        if self.entitlement_ratio:
+            params['entitlement_ratio'] = list(self.entitlement_ratio)
+        if self.warrant_type:
+            params['warrant_type'] = list(self.warrant_type)
         if self.state:
             params['state'] = self.state
         # tuple params

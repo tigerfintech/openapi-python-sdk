@@ -200,11 +200,11 @@ class ScannerResult:
 
 
 class WarrantFilterItem:
-    def __init__(self, page=None, total_page=None, total_count=None, items=None, bounds=None):
+    def __init__(self, items=None, page=None, total_page=None, total_count=None, bounds=None):
+        self.items = items
         self.page = page
         self.total_page = total_page
         self.total_count = total_count
-        self.items = items
         self.bounds = bounds
 
     def __repr__(self):
@@ -214,15 +214,17 @@ class WarrantFilterItem:
 class WarrantFilterBounds:
     def __init__(self, issuer_name=None, expire_date=None, lot_size=None, entitlement_ratio=None,
                  leverage_ratio=None, strike=None, premium=None, outstanding_ratio=None,
-                 implied_volatility=None, effective_leverage=None, call_price=None):
-        if entitlement_ratio is None:
-            entitlement_ratio = []
-        if lot_size is None:
-            lot_size = []
+                 implied_volatility=None, effective_leverage=None, call_price=None, state=None):
+
         if expire_date is None:
-            expire_date = []
+            expire_date = set()
         if issuer_name is None:
-            issuer_name = []
+            issuer_name = set()
+        if entitlement_ratio is None:
+            entitlement_ratio = set()
+        if lot_size is None:
+            lot_size = set()
+
         self.issuer_name = issuer_name
         self.expire_date = expire_date
         self.lot_size = lot_size

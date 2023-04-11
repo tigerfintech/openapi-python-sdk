@@ -1570,13 +1570,36 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_warrant_filter(self, symbol, ):
+    def get_warrant_filter(self, symbol, page=None, page_size=None, sort_field_name=None, sort_dir=None,
+                           filter_params=None):
         """
+        :param sort_dir: tigeropen.common.consts.SortDirection, e.g. SortDirection.DESC
+        :param filter_params: tigeropen.quote.request.model.WarrantFilterParams
         :return:
         """
         params = WarrantFilterParams()
         params.lang = get_enum_value(self._lang)
-        params.symbol = symbol
+        params.symbol = symbol or (filter_params.symbol if filter_params else None)
+        params.page = page or (filter_params.page if filter_params else None)
+        params.page_size = page_size or (filter_params.page_size if filter_params else None)
+        params.sort_field_name = sort_field_name or (filter_params.sort_field_name if filter_params else None)
+        params.sort_dir = get_enum_value(sort_dir or (filter_params.sort_dir if filter_params else None))
+        if filter_params:
+            params.warrant_type = filter_params.warrant_type
+            params.in_out_price = filter_params.in_out_price
+            params.issuer_name = filter_params.issuer_name
+            params.expire_ym = filter_params.expire_ym
+            params.lot_size = filter_params.lot_size
+            params.entitlement_ratio = filter_params.entitlement_ratio
+            params.leverage_ratio = filter_params.leverage_ratio
+            params.strike = filter_params.strike
+            params.premium = filter_params.premium
+            params.outstanding_ratio = filter_params.outstanding_ratio
+            params.implied_volatility = filter_params.implied_volatility
+            params.effective_leverage = filter_params.effective_leverage
+            params.call_price = filter_params.call_price
+            params.state = filter_params.state
+
         request = OpenApiRequest(WARRANT_FILTER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
