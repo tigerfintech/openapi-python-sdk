@@ -9,9 +9,11 @@ import json
 import logging
 import os
 import time
+import uuid
 
 from jproperties import Properties
 from pytz import timezone
+from tigeropen import __VERSION__
 from tigeropen.common.consts import Language, ServiceType
 from tigeropen.common.util.account_util import AccountUtil
 from tigeropen.common.util.common_utils import get_enum_value
@@ -54,6 +56,13 @@ SANDBOX_TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbm21i11hgAENG
 DEFAULT_PROPS_FILE = 'tiger_openapi_config.properties'
 DEFAULT_TOKEN_FILE = 'tiger_openapi_token.properties'
 TOKEN_REFRESH_DURATION = 24 * 60 * 60  # seconds
+TOKEN_CHECK_INTERVAL = 5 * 60  # seconds
+
+try:
+    from getmac import get_mac_address
+except ImportError:
+    def get_mac_address():
+        return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
 
 
 class TigerOpenClientConfig:
@@ -89,16 +98,18 @@ class TigerOpenClientConfig:
         self._quote_server_url = SERVER_URL
         self._socket_host_port = SOCKET_HOST_PORT
 
+        self._device_id = self.__get_device_id()
+
         self.log_level = None
         self.log_path = None
         self.retry_max_time = 60
         self.retry_max_tries = 5
         self.props_path = props_path
-        self.token = None
         # token 刷新间隔周期， 单位秒
-        self.token_refresh_duration = TOKEN_REFRESH_DURATION
+        self._token_refresh_duration = TOKEN_REFRESH_DURATION
+        self.token_check_interval = TOKEN_CHECK_INTERVAL
         self._load_props()
-        self.load_or_store_token()
+        self._token = self.load_token()
 
         self.domain_conf = dict()
         self.enable_dynamic_domain = enable_dynamic_domain
@@ -110,6 +121,7 @@ class TigerOpenClientConfig:
         if self.enable_dynamic_domain:
             self.domain_conf = self.query_domains()
             self.refresh_server_info()
+        self.inited = False
 
     @property
     def tiger_id(self):
@@ -243,6 +255,28 @@ class TigerOpenClientConfig:
     def token(self, value):
         self._token = value
 
+    @property
+    def token_refresh_duration(self):
+        return self._token_refresh_duration
+
+    @token_refresh_duration.setter
+    def token_refresh_duration(self, value):
+        if value and value < 30:
+            # 最短刷新间隔为 10 s
+            value = 30
+        self._token_refresh_duration = value
+
+    @staticmethod
+    def __get_device_id():
+        """
+        获取mac地址作为device_id
+        :return:
+        """
+        try:
+            return get_mac_address()
+        except:
+            return None
+
     def _get_props_path(self, filename):
         if self.props_path is not None:
             if os.path.isdir(self.props_path):
@@ -274,8 +308,22 @@ class TigerOpenClientConfig:
             except Exception as e:
                 logging.error(e, exc_info=True)
 
-    def load_or_store_token(self, token=None):
-        full_path = self._get_props_path(DEFAULT_TOKEN_FILE)
+    def get_token_path(self):
+        return self._get_props_path(DEFAULT_TOKEN_FILE)
+
+    def load_token(self):
+        full_path = self.get_token_path()
+        if full_path and os.path.exists(full_path):
+            try:
+                p = Properties()
+                with open(full_path, "rb") as f:
+                    p.load(f, "utf-8")
+                    return getattr(p.get('token'), 'data', '')
+            except Exception as e:
+                logging.error(e, exc_info=True)
+
+    def store_token(self, token):
+        full_path = self.get_token_path()
         if full_path and os.path.exists(full_path):
             try:
                 p = Properties()
@@ -284,10 +332,6 @@ class TigerOpenClientConfig:
                         self.token = token
                         p['token'] = token
                         p.store(f, encoding='utf-8')
-                    else:
-                        p.load(f, "utf-8")
-                        if not self.token:
-                            self.token = getattr(p.get('token'), 'data', '')
             except Exception as e:
                 logging.error(e, exc_info=True)
 
@@ -384,10 +428,14 @@ class TigerOpenClientConfig:
 
         return common_domain
 
+    @property
+    def sdk_version(self):
+        return __VERSION__
+
 
 def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, sign_type=None, timeout=None,
                       language=None, charset=None, server_url=None, socket_host_port=None, secret_key=None,
-                      enable_dynamic_domain=True, timezone=None, license=None):
+                      enable_dynamic_domain=True, timezone=None, license=None, props_path=None):
     """
     生成客户端配置
     :param private_key_path: 私钥文件路径, 如 '/Users/tiger/.ssh/rsa_private_key.pem'
@@ -406,7 +454,8 @@ def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, 
     :param license: account license, like TBSG/TBNZ
     :return:
     """
-    config = TigerOpenClientConfig(sandbox_debug=sandbox_debug, enable_dynamic_domain=enable_dynamic_domain)
+    config = TigerOpenClientConfig(sandbox_debug=sandbox_debug, enable_dynamic_domain=enable_dynamic_domain,
+                                   props_path=props_path)
     config.private_key = read_private_key(private_key_path)
     config.tiger_id = tiger_id
     config.account = account

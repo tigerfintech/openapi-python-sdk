@@ -2,30 +2,29 @@
 """
 
 import errno
+import logging
 import math
 import random
 import struct
 import sys
 import time
-import logging
-import re
 from io import BytesIO
 from time import monotonic
 
 from google.protobuf.json_format import MessageToJson
 
-from ..pb.Response_pb2 import Response
-from ..pb.SocketCommon_pb2 import SocketCommon
 from ..pb.util import ProtoMessageUtil
 
 try:
     from socket import SOL_SOCKET, SO_KEEPALIVE, SOL_TCP, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_KEEPCNT
+
     LINUX_KEEPALIVE_AVAIL = True
 except ImportError:
     LINUX_KEEPALIVE_AVAIL = False
 
 try:
     from socket import IPPROTO_TCP
+
     MAC_KEEPALIVE_AVAIL = True
 except ImportError:
     MAC_KEEPALIVE_AVAIL = False
@@ -33,18 +32,21 @@ except ImportError:
 try:
     import ssl
     from ssl import SSLError
+
     DEFAULT_SSL_VERSION = ssl.PROTOCOL_TLS_CLIENT
 except (ImportError, AttributeError):
     ssl = None
+
+
     class SSLError(object):
         pass
-    DEFAULT_SSL_VERSION = None
 
+
+    DEFAULT_SSL_VERSION = None
 
 from . import exception
 from .utils import *
 from . import listener
-
 
 PARSING_LEN = 0
 PARSING_MSG = 1
@@ -80,21 +82,6 @@ def DecodeVarint(buffer):
 
 
 class BaseTransport(listener.Publisher):
-    """
-    Base class for transport classes providing support for listeners, threading overrides,
-    and anything else outside of actually establishing a network connection, sending and
-    receiving of messages (so generally socket-agnostic functions).
-
-    :param bool auto_decode: automatically decode message responses as strings, rather than
-        leaving them as bytes. This preserves the behaviour as of version 4.0.16.
-        (To be defaulted to False as of the next release)
-    :param encoding: the character encoding to use for the message body
-    """
-
-    #
-    # Used to parse the STOMP "content-length" header lines,
-    #
-    __content_length_re = re.compile(b"^content-length[:]\\s*(?P<value>[0-9]+)", re.MULTILINE)
 
     def __init__(self, auto_decode=True, encoding="utf-8", is_eol_fc=is_eol_default):
         self.__recvbuf = b""
@@ -126,7 +113,6 @@ class BaseTransport(listener.Publisher):
         self.__frame_buffer = b""
         self.__frame_len = None
 
-
     def override_threading(self, create_thread_fc):
         """
         Override for thread creation. Use an alternate threading library by
@@ -136,10 +122,6 @@ class BaseTransport(listener.Publisher):
         :param function create_thread_fc: single argument function for creating a thread
         """
         self.create_thread_fc = create_thread_fc
-
-    #
-    # Manage the connection
-    #
 
     def start(self):
         """
@@ -179,24 +161,7 @@ class BaseTransport(listener.Publisher):
                 self.disconnecting = False
                 self.__connect_wait_condition.notify()
 
-    def set_receipt(self, receipt_id, value):
-        if value:
-            self.__receipts[receipt_id] = value
-        elif receipt_id in self.__receipts:
-            del self.__receipts[receipt_id]
-
-    #
-    # Manage objects listening to incoming frames
-    #
-
     def set_listener(self, name, listener):
-        """
-        Set a named listener to use with this connection.
-        See :py:class:`stomp.listener.ConnectionListener`
-
-        :param str name: the name of the listener
-        :param ConnectionListener listener: the listener object
-        """
         assert listener is not None
         with self.__listeners_change_condition:
             self.listeners[name] = listener
@@ -248,7 +213,10 @@ class BaseTransport(listener.Publisher):
             if not notify_func:
                 logging.debug("listener %s has no method on_%s", listener, cmd_name)
                 continue
-            if cmd_type in (SocketCommon.Command.HEARTBEAT, SocketCommon.Command.DISCONNECT):
+            if cmd_type == SocketCommon.Command.HEARTBEAT:
+                notify_func(frame)
+                continue
+            if cmd_type == SocketCommon.Command.DISCONNECT:
                 notify_func()
                 continue
             if cmd_type == SocketCommon.Command.CONNECT:
@@ -368,7 +336,6 @@ class BaseTransport(listener.Publisher):
                 self.__receiver_thread_exited = True
                 self.__receiver_thread_exit_condition.notify_all()
             logging.debug("receiver loop ended")
-            # self.notify("receiver_loop_completed")
             if notify_disconnected and not self.notified_on_disconnect:
                 self.notify(SocketCommon.Command.DISCONNECT)
             with self.__connect_wait_condition:
@@ -396,21 +363,8 @@ class BaseTransport(listener.Publisher):
             if c is None or len(c) == 0:
                 logging.debug("nothing received, raising CCE")
                 raise exception.ConnectionClosedException()
-            if self.__is_eol(c) and not self.__recvbuf and not fastbuf.tell():
-                #
-                # EOL to an empty receive buffer: treat as heartbeat.
-                # Note that this may misdetect an optional EOL at end of frame as heartbeat in case the
-                # previous receive() got a complete frame whose NUL at end of frame happened to be the
-                # last byte of that read. But that should be harmless in practice.
-                #
-                fastbuf.close()
-                return [c]
             fastbuf.write(c)
-            if b"\x00" in c:
-                #
-                # Possible end of frame
-                #
-                break
+            break
         self.__recvbuf += fastbuf.getvalue()
         fastbuf.close()
         result = []
@@ -438,7 +392,7 @@ class BaseTransport(listener.Publisher):
 
 class Transport(BaseTransport):
     """
-    Represents a STOMP client 'transport'. Effectively this is the communications mechanism without the definition of
+    Represents a client 'transport'. Effectively this is the communications mechanism without the definition of
     the protocol.
 
     :param list((str,int)) host_and_ports: a list of (host, port) tuples
@@ -464,7 +418,7 @@ class Transport(BaseTransport):
         an extra 0%-10% (randomly determined) of the delay
         calculated using the previous three parameters.
     :param int reconnect_attempts_max: maximum attempts to reconnect (Can also be used for infinite attempts : `-1`)
-    :param timeout: the timeout value to use when connecting the stomp socket
+    :param timeout: the timeout value to use when connecting the socket
     :param keepalive: some operating systems support sending the occasional heart
         beat packets to detect when a connection fails.  This
         parameter can either be set set to a boolean to turn on the
@@ -599,8 +553,6 @@ class Transport(BaseTransport):
                 logging.warning("unable to close socket because of error '%s'", e)
         self.current_host_and_port = None
         self.socket = None
-        # if not self.notified_on_disconnect:
-        #     self.notify("disconnected")
 
     def send(self, encoded_frame):
         """

@@ -238,3 +238,32 @@ class PortfolioAccount:
     def __repr__(self):
         return "PortfolioAccount({0})".format({'account': self.account, 'summary': self.summary,
                                                'segments': self.segments, 'market_values': self.market_values})
+
+
+class SegmentFundAvailableItem:
+    def __init__(self, from_segment=None, currency=None, amount=None):
+        self.from_segment = from_segment
+        self.currency = currency
+        self.amount = amount
+
+    def __repr__(self):
+        return "SegmentFundAvailableItem({0})".format(self.__dict__)
+
+
+class SegmentFundItem:
+    def __init__(self, id=None, from_segment=None, to_segment=None, currency=None, amount=None, status=None,
+                 status_desc=None, message=None, settled_at=None, updated_at=None, created_at=None):
+        self.id = id
+        self.from_segment = from_segment
+        self.to_segment = to_segment
+        self.currency = currency
+        self.amount = amount
+        self.status = status
+        self.status_desc = status_desc
+        self.message = message
+        self.settled_at = settled_at
+        self.updated_at = updated_at
+        self.created_at = created_at
+
+    def __repr__(self):
+        return "SegmentFundItem({0})".format(self.__dict__)

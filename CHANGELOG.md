@@ -1,9 +1,49 @@
+## 2.3.6 (2023-04-11)
+### New
+- QuoteClient 新增窝轮牛熊证筛选接口 `QuoteClient.get_warrant_filter`, 窝轮牛熊证实时行情接口 `QuoteClient.get_warrant_briefs`
+- `QuoteClient.get_option_bars` 期权k线接口新增参数 `limit`
+
+
+## 2.3.5 (2023-03-28)
+### New
+- TradeClient 新增不同品种(股票SEC/期货FUT/基金FUND)账户间资金划转接口
+  `TradeClient.get_segment_fund_available`  获取可划转资金  
+  `TradeClient.transfer_segment_fund`  划转资金  
+  `TradeClient.cancel_segment_fund`  取消划转  
+  `TradeClient.get_segment_fund_history`  获取划转历史  
+  
+- TradeClient 新增换汇下单接口
+  `TradeClient.place_forex_order`
+  
+- `QuoteClient.get_option_bars` 期权k线接口新增参数 `period`, 支持获取分钟k线
+
+
+## 2.3.4 (2023-03-20)
+### New
+- 支持AM/AL(盘前竞价单)
+### Fix
+- 修复PushClient报错模块找不到的问题
+
+## 2.3.3 (2023-03-10)
+### Modify
+- 支持多进程运行场景下的 token 刷新，需安装 pip install watchdog 已开启 token 文件监听
+### Fix
+- 修复日历接口
+
+
+## 2.3.2 (2023-03-03)
+### New
+- PushClient长链接支持Protobuf，当前版本默认不开启，可通过在 PushClient 初始化时传人 `user_protobuf=True ` 开启，
+未来版本将默认使用Protobuf。
+  Protobuf方式的订阅方式与之前版本基本兼容一致；回调方法的参数改用Protobuf对象，与之前不兼容，
+
 ## 2.3.1 (2023-02-23)
 ### New
 - 支持2FA token自定义刷新间隔，可通过 client_config.token_refresh_duration = 0 关闭自动刷新
 ### Fix
 - tick数据推送字段异常问题
 - 若开启token，刷新线程不随主线程退出的问题
+
 
 ## 2.3.0 (2023-02-16)
 ### New
