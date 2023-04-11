@@ -1,3 +1,9 @@
+## 2.3.6 (2023-04-11)
+### New
+- QuoteClient 新增窝轮牛熊证筛选接口 `QuoteClient.get_warrant_filter`, 窝轮牛熊证实时行情接口 `QuoteClient.get_warrant_briefs`
+- `QuoteClient.get_option_bars` 期权k线接口新增参数 `limit`
+
+
 ## 2.3.5 (2023-03-28)
 ### New
 - TradeClient 新增不同品种(股票SEC/期货FUT/基金FUND)账户间资金划转接口
