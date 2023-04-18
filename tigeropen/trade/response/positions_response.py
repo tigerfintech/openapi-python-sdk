@@ -16,7 +16,7 @@ POSITION_FIELD_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity'
                            'marketValue': 'market_value', 'orderType': 'order_type', 'realizedPnl': 'realized_pnl',
                            'unrealizedPnl': 'unrealized_pnl', 'secType': 'sec_type', 'localSymbol': 'local_symbol',
                            'originSymbol': 'origin_symbol', 'contractId': 'contract_id', 'identifier': 'identifier',
-                           'salable': 'saleable'}
+                           'salable': 'saleable', 'positionScale': 'position_scale'}
 
 
 class PositionsResponse(TigerResponse):
@@ -69,11 +69,11 @@ class PositionsResponse(TigerResponse):
                     realized_pnl = position_fields.get('realized_pnl')
                     unrealized_pnl = position_fields.get('unrealized_pnl')
                     saleable = position_fields.get('saleable')
-
+                    position_scale = position_fields.get('position_scale')
                     position = Position(account, contract, quantity, average_cost=average_cost,
                                         market_price=market_price, market_value=market_value,
                                         realized_pnl=realized_pnl, unrealized_pnl=unrealized_pnl,
-                                        saleable=saleable)
+                                        saleable=saleable, position_scale=position_scale)
                     self.positions.append(position)
 
 
