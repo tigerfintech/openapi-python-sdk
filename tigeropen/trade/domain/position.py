@@ -8,7 +8,7 @@ Created on 2018/9/20
 
 class Position:
     def __init__(self, account, contract, quantity=0, average_cost=None, market_price=None, market_value=None,
-                 realized_pnl=None, unrealized_pnl=None, saleable=None):
+                 realized_pnl=None, unrealized_pnl=None, saleable=None, position_scale=None):
         """
         - account: 对应的账户ID
         - contract: 合约对象
@@ -28,6 +28,7 @@ class Position:
         self.realized_pnl = realized_pnl
         self.unrealized_pnl = unrealized_pnl
         self.saleable = saleable
+        self.position_scale = position_scale
     
     def __repr__(self):
         template = "contract: {contract}, quantity: {quantity}, average_cost: {average_cost}, " \
