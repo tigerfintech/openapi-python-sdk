@@ -23,5 +23,5 @@ message PositionData {
   double unrealizedPnl = 17; // unrealized profit and loss
   string name = 18; // symbol name
   uint64 timestamp = 19;
-
+  optional sint64 saleable = 20; // saleable quantity for Chinese A-share market stocks
 }
