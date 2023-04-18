@@ -7,14 +7,16 @@ Created on 2018/10/31
 import json
 
 from tigeropen.common.response import TigerResponse
+from tigeropen.common.util import string_utils
 from tigeropen.trade.domain.contract import Contract
-from tigeropen.trade.domain.position import Position
+from tigeropen.trade.domain.position import Position, TradableQuantityItem
 from tigeropen.trade.response import CONTRACT_FIELDS
 
 POSITION_FIELD_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity', 'latestPrice': 'market_price',
                            'marketValue': 'market_value', 'orderType': 'order_type', 'realizedPnl': 'realized_pnl',
                            'unrealizedPnl': 'unrealized_pnl', 'secType': 'sec_type', 'localSymbol': 'local_symbol',
-                           'originSymbol': 'origin_symbol', 'contractId': 'contract_id', 'identifier': 'identifier'}
+                           'originSymbol': 'origin_symbol', 'contractId': 'contract_id', 'identifier': 'identifier',
+                           'salable': 'saleable', 'positionScale': 'position_scale'}
 
 
 class PositionsResponse(TigerResponse):
@@ -66,8 +68,26 @@ class PositionsResponse(TigerResponse):
                     market_value = position_fields.get('market_value')
                     realized_pnl = position_fields.get('realized_pnl')
                     unrealized_pnl = position_fields.get('unrealized_pnl')
-                    
+                    saleable = position_fields.get('saleable')
+                    position_scale = position_fields.get('position_scale')
                     position = Position(account, contract, quantity, average_cost=average_cost,
                                         market_price=market_price, market_value=market_value,
-                                        realized_pnl=realized_pnl, unrealized_pnl=unrealized_pnl)
+                                        realized_pnl=realized_pnl, unrealized_pnl=unrealized_pnl,
+                                        saleable=saleable, position_scale=position_scale)
                     self.positions.append(position)
+
+
+class EstimateTradableQuantityResponse(TigerResponse):
+    def __init__(self):
+        super(EstimateTradableQuantityResponse, self).__init__()
+        self.result = None
+        self._is_success = None
+
+    def parse_response_content(self, response_content):
+        response = super(EstimateTradableQuantityResponse, self).parse_response_content(response_content)
+        if 'is_success' in response:
+            self._is_success = response['is_success']
+
+        if self.data:
+            data_json = json.loads(self.data)
+            self.result = TradableQuantityItem(**string_utils.camel_to_underline_obj(data_json))
