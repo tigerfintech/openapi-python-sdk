@@ -1227,3 +1227,109 @@ class ForexTradeOrderParams(BaseParams):
         if self.time_in_force:
             params['time_in_force'] = self.time_in_force
         return params
+
+
+class EstimateTradableQuantityModel(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._account = None
+        self._secret_key = None
+        self._contract = None
+        self._seg_type = None
+        self._action = None
+        self._order_type = None
+        self._limit_price = None
+        self._stop_price = None
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def contract(self):
+        return self._contract
+
+    @contract.setter
+    def contract(self, value):
+        self._contract = value
+
+    @property
+    def seg_type(self):
+        return self._seg_type
+
+    @seg_type.setter
+    def seg_type(self, value):
+        self._seg_type = value
+
+    @property
+    def action(self):
+        return self._action
+
+    @action.setter
+    def action(self, value):
+        self._action = value
+
+    @property
+    def order_type(self):
+        return self._order_type
+
+    @order_type.setter
+    def order_type(self, value):
+        self._order_type = value
+
+    @property
+    def limit_price(self):
+        return self._limit_price
+
+    @limit_price.setter
+    def limit_price(self, value):
+        self._limit_price = value
+
+    @property
+    def stop_price(self):
+        return self._stop_price
+
+    @stop_price.setter
+    def stop_price(self, value):
+        self._stop_price = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.account:
+            params['account'] = self.account
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+        if self.contract:
+            if self.contract.symbol:
+                params['symbol'] = self.contract.symbol
+            if self.contract.expiry:
+                params['expiry'] = self.contract.expiry
+            if self.contract.strike:
+                params['strike'] = self.contract.strike
+            if self.contract.put_call:
+                params['right'] = self.contract.put_call
+            if self.contract.sec_type:
+                params['sec_type'] = self.contract.sec_type
+        if self.seg_type:
+            params['seg_type'] = self.seg_type
+        if self.action:
+            params['action'] = self.action
+        if self.order_type:
+            params['order_type'] = self.order_type
+        if self.limit_price:
+            params['limit_price'] = self.limit_price
+        if self.stop_price:
+            params['stop_price'] = self.stop_price
+        return params
