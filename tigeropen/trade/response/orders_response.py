@@ -23,7 +23,7 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'trailStopPrice': 'trail_stop_price', 'trailingPercent': 'trailing_percent',
                         'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params',
                         'userMark': 'user_mark', 'updateTime': 'update_time', 'expireTime': 'expire_time',
-                        'canModify': 'can_modify'
+                        'canModify': 'can_modify', 'externalId': 'external_id',
                         }
 
 
@@ -106,6 +106,7 @@ class OrdersResponse(TigerResponse):
         source = order_fields.get('source')
         user_mark = order_fields.get('user_mark')
         can_modify = order_fields.get('can_modify')
+        external_id = order_fields.get('external_id')
 
         order = Order(account, contract, action, order_type, quantity, limit_price=limit_price, aux_price=aux_price,
                       trail_stop_price=trail_stop_price, trailing_percent=trailing_percent,
@@ -114,7 +115,7 @@ class OrdersResponse(TigerResponse):
                       realized_pnl=realized_pnl, id=id_, order_id=order_id, parent_id=parent_id,
                       algo_params=algo_params, liquidation=liquidation, algo_strategy=algo_strategy, discount=discount,
                       attr_desc=attr_desc, source=source, user_mark=user_mark, expire_time=expire_time,
-                      can_modify=can_modify)
+                      can_modify=can_modify, external_id=external_id)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:

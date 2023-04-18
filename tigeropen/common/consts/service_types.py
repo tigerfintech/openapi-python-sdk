@@ -31,6 +31,7 @@ SEGMENT_FUND_AVAILABLE = "segment_fund_available"
 TRANSFER_SEGMENT_FUND = "transfer_segment_fund"
 CANCEL_SEGMENT_FUND = "cancel_segment_fund"
 PLACE_FOREX_ORDER = "place_forex_order"
+ESTIMATE_TRADABLE_QUANTITY = "estimate_tradable_quantity"
 
 USER_LICENSE = "user_license"
 

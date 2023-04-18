@@ -1,3 +1,10 @@
+## 2.3.7 (2023-04-18)
+### New
+- TradeClient 新增预估可卖数量接口 `TradeClient.get_estimate_tradable_quantity`
+- `Order` 订单对象新增字段 `external_id`
+- `Position` 持仓对象新增字段 `saleable`，仅A股有值; 持仓推送对象增加 `saleable` 字段
+
+
 ## 2.3.6 (2023-04-11)
 ### New
 - QuoteClient 新增窝轮牛熊证筛选接口 `QuoteClient.get_warrant_filter`, 窝轮牛熊证实时行情接口 `QuoteClient.get_warrant_briefs`
