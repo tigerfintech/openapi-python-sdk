@@ -17,7 +17,7 @@ class Contract:
                  market=None, min_tick=None, trading_class=None, status=None, continuous=None, trade=None,
                  marginable=None, close_only=None,
                  last_trading_date=None, first_notice_date=None, last_bidding_close_time=None, tick_sizes=None,
-                 is_etf=None, etf_leverage=None):
+                 is_etf=None, etf_leverage=None, **kwargs):
         self.contract_id = contract_id
         self.symbol = symbol
         self.currency = get_enum_value(currency)
@@ -82,6 +82,12 @@ class Contract:
         self.is_etf = is_etf
         # ETF杠杆倍数
         self.etf_leverage = etf_leverage
+
+        self.discounted_day_initial_margin = kwargs.get('discounted_day_initial_margin')
+        self.discounted_day_maintenance_margin = kwargs.get('discounted_day_maintenance_margin')
+        self.discounted_time_zone_code = kwargs.get('discounted_time_zone_code')
+        self.discounted_start_at = kwargs.get('discounted_start_at')
+        self.discounted_end_at = kwargs.get('discounted_end_at')
 
     @property
     def right(self):

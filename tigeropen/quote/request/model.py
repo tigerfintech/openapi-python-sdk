@@ -850,7 +850,7 @@ class MarketScannerParams(BaseParams):
         self._sort_field_data = None
         self._page = None
         self._page_size = None
-
+        self._multi_tags_fields = None
     @property
     def market(self):
         return self._market
@@ -915,6 +915,14 @@ class MarketScannerParams(BaseParams):
     def page_size(self, value):
         self._page_size = value
 
+    @property
+    def multi_tags_fields(self):
+        return self._multi_tags_fields
+
+    @multi_tags_fields.setter
+    def multi_tags_fields(self, value):
+        self._multi_tags_fields = value
+
     def to_openapi_dict(self):
         """
         example
@@ -950,6 +958,8 @@ class MarketScannerParams(BaseParams):
             params['page'] = self.page
         if self.page_size is not None:
             params['page_size'] = self.page_size
+        if self.multi_tags_fields:
+            params['multi_tag_field_list'] = [f.index for f in self.multi_tags_fields]
         return params
 
 
