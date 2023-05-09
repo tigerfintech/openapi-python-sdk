@@ -79,7 +79,7 @@ class SortFilterData:
             'field_name': self.field.index,
             'field_type': self.field.field_type_request_name,
             'sort_dir': self.sort_dir.value,
-            'period': self.period.value
+            'period': self.period.value if self.period else None
         }
 
 
