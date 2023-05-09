@@ -61,6 +61,7 @@ QUOTE_STOCK_TRADE = "quote_stock_trade"
 QUOTE_DEPTH = "quote_depth"  # level2 深度行情
 GRAB_QUOTE_PERMISSION = "grab_quote_permission"  # 抢占行情
 MARKET_SCANNER = "market_scanner"  # 选股器
+MARKET_SCANNER_TAGS = "market_scanner_tags"
 GET_QUOTE_PERMISSION = "get_quote_permission"
 TRADING_CALENDAR = "trading_calendar"
 STOCK_BROKER = "stock_broker"  # 港股股票实时经纪队列

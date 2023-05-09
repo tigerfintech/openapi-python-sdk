@@ -16,7 +16,7 @@ from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionT
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
     HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
-    STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER
+    STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -63,7 +63,7 @@ from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPer
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
 from tigeropen.quote.response.quote_timeline_history_response import QuoteTimelineHistoryResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
-from tigeropen.quote.response.market_scanner_response import MarketScannerResponse
+from tigeropen.quote.response.market_scanner_response import MarketScannerResponse, MarketScannerTagsResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
 from tigeropen.quote.response.stock_broker_response import StockBrokerResponse
 from tigeropen.quote.response.stock_details_response import StockDetailsResponse
@@ -1373,7 +1373,7 @@ class QuoteClient(TigerOpenClient):
         """
         params = MarketScannerParams()
         params.version = OPEN_API_SERVICE_VERSION_V1
-        params.market = market.value
+        params.market = get_enum_value(market)
         if filters is not None:
             params.base_filter_list = list()
             params.accumulate_filter_list = list()
@@ -1402,6 +1402,23 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
+    def get_market_scanner_tags(self, market=Market.US, tag_fields=None):
+        """
+        :param market: tigeropen.common.consts.Market
+        :param tag_fields: tigeropen.common.consts.filter_fields.MultiTagField
+        """
+        params = MarketScannerParams()
+        params.market = get_enum_value(market)
+        params.multi_tags_fields = tag_fields
+        request = OpenApiRequest(MARKET_SCANNER_TAGS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = MarketScannerTagsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
     def grab_quote_permission(self):
         """
         抢占行情权限

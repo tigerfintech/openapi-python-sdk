@@ -72,38 +72,32 @@ class StockField(FilterField):
     EarningDate = 23, "earningDate"
     # 市盈率* TTM（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
     PeTTM = 24, "peRate"
-    # 市净率*（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
-    PbRate = 25, "pbRate"
     # 股息   hermes $
-    DividePrice = 26, "dividePrice"
+    DividePrice = 26, "dividePriceVal"
     # 股息收益率 选股服务自身计算
-    DivideRate = 27, "divideRate"
+    DivideRate = 27, "divideRateVal"
     # 股票交易市场
     Exchange = 29, "exchange"
     # 换手率*（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
     TurnoverRate = 30, "turnoverRate"
     # 上市时间
     ListingDate = 31, "listingDate"
-    # 市盈率LYR* TTM（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
-    LyrPeRate = 32, "LyrPeRate"
     # 总股本*
     Share = 33, "shares"
     # 上市价格*
     ListingPrice = 34, "listingPrice"
-    # 交易币种*
-    TradeCurrency = 35, "tradeCurrency"
     # 最新价-发行价*
     DiffBetweenLastPriceAndListPrice = 36, "DiffBetweenLastPriceAndListPrice"
     # 每股收益 lyr=Last Year Ratio 静态市盈率
     lyr_Eps = 37, "lyrEps"
     # 未平仓做空量
-    Open_Short_Interest = 38, "OpenShortInterest"
+    Open_Short_Interest = 38, "OpenShortInterestVal"
     # 未平仓做空比例 = 未平仓做空量/总股本
     Open_Short_Interest_Ratio = 39, "OpenShortInterestRatio"
     # 产权比率 = Liability/Equity 总负债/股东
-    Equity_Ratio = 40, "EquityRatio"
+    Equity_Ratio = 40, "totalDebtToEquity"
     # 权益乘数 = Asset/Equity
-    Equity_Multiplier = 41, "EquityMultiplier"
+    Equity_Multiplier = 41, "totalLiabilitiesToTotalAssets"
     # 最新股东数
     Holder_Nums = 42, "holderNums"
     # 最新股东户数增长率
@@ -128,21 +122,30 @@ class StockField(FilterField):
     Top20_Composition_Rate = 52, "Top20CompoRate"
     # 溢价率(折扣率) - ETF
     DiscountPremium = 53, "discountPremium"
-    # 股息率 - ETF
-    dividend_Rate = 54, "dividendRate"
     # 资产规模-净值 - ETF
     Net_Worth_Aum = 55, "aum"
     # 资产规模-现价 - ETF
     assetSize = 56, "assetSize"
     # 振幅
     Amplitude = 57, "Amplitude"
-
+    #  盘前涨跌幅 
+    Pre_ChangeRate = 58, "preChangeRate"
+    # 盘中涨跌幅 */
+    current_ChangeRate = 59, "curChangeRate"
+    # 盘后涨跌幅 */
+    Post_ChangeRate = 60, "postChangeRate"
+    # 成分变动 - etf */
+    ETF_LastHoldingChangeDay = 61, "LastHoldingChangeDay"
+    # 持仓数量 - etf */
+    ETF_HoldingCount = 62, "etfHoldingCount"
+    # 净利润 不带周期 */
+    Net_Income = 63, "netIncomeVal"
 
 class AccumulateField(FilterField):
     # 涨跌幅*（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
     ChangeRate = 1, "changeRate"
     # 涨跌额*（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
-    ChangeValue = 2, "change"
+    ChangeValue = 2, "changeVal"
     # 总负债增长率
     TotalLiabilities_Ratio_Annual = 3, "totalLiabilitiesRatio"
     # 净资产增长率
@@ -167,10 +170,6 @@ class AccumulateField(FilterField):
     ROE = 13, "ROE"
     # ROA = 净资产收益率
     ROA = 14, "ROA"
-    # 股息   hermes $
-    DividePrice = 15, "dividePrice"
-    # 股息收益率 选股服务自身计算
-    DivideRate = 16, "divideRate"
     # 毛利率
     GrossProfitRate = 17, "grossMargin"
     # 净利率*
@@ -181,8 +180,8 @@ class AccumulateField(FilterField):
     CurrentRatio = 20, "currentRatio"
     # 速动比率
     QuickRatio = 21, "quickRatio"
-    # 经营现金流
-    CashFromOps = 22, "cash4Ops"
+    # 经营现金流比率
+    CashFromOpsRatio = 22, "cash4OpsRatio"
     # 投资现金流
     CashFromInvesting = 23, "cash4Invest"
     # 筹资现金流
@@ -193,23 +192,22 @@ class AccumulateField(FilterField):
     CashFromOps_yearOnYear_Ratio = 26, "cash4OpsYearOnYearRatio"
     # 净资产收益率ROE同比增长率  （T期ROE-T-1期ROE）/T-1期ROE *100%
     ROE_yearOnYear_Ratio = 27, "netIncomeYearOnYearRatio"
-
+    # 营业利润占比
+    Operating_Profits_Ratio = 28, "OperatingProfitsRatio"
+    # 经营现金流
+    CashFromOpsVal = 29, "cash4OpsVal"
 
 class FinancialField(FilterField):
     # 毛利率（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
-    GrossProfitRate = 1, "grossMargin"
+    GrossProfitRate = 1, "grossMarginVal"
     # 净利率（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
-    NetProfitRate = 2, "netIncomeMargin"
+    NetProfitRate = 2, "netIncomeMarginVal"
     # 扣非净利润率（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
     EarningsFromContOpsMargin = 3, "earningsFromContOpsMargin"
-    # 总负债/股东权益 (单位：元)
-    TotalDebtToEquity = 4, "totalDebtToEquity"
     # 长期负债/股东权益
     LongTermDebtToEquity = 5, "ltDebtToEquity"
     # EBIT/利息支出
     EbitToInterestExp = 6, "ebitToInterestExp"
-    # 总负债/总资产
-    TotalLiabilitiesToTotalAssets = 7, "totalLiabilitiesToTotalAssets"
     # 总资产周转率（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
     TotalAssetTurnover = 8, "totalAssetTurnover"
     # 应收帐款周转率
@@ -217,7 +215,7 @@ class FinancialField(FilterField):
     # 存货周转率（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
     InventoryTurnover = 10, "inventoryTurnover"
     # 流动比率（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
-    CurrentRatio = 11, "currentRatio"
+    CurrentRatio = 11, "currentRatioVal"
     # 速动比率（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
     QuickRatio = 12, "quickRatio"
     # 资产回报率 总资产收益率 *$ TTM（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
@@ -238,7 +236,7 @@ class FinancialField(FilterField):
     TotalAssets1YrGrowth = 20, "totalAssets1YrGrowth"
     # 有形资产一年增长率
     TangibleBookValue1YrGrowth = 21, "tangibleBookValue1YrGrowth"
-    # 经营现金流一年增长率
+    # 经营现金流一年增长率  = 经营现金流同比增长率
     CashFromOperations1YrGrowth = 22, "cashFromOperations1YrGrowth"
     # 资本开支一年增长率
     CapitalExpenditures1YrGrowth = 23, "capitalExpenditures1YrGrowth"
@@ -269,7 +267,7 @@ class FinancialField(FilterField):
     # 筹资现金流
     CashFromFinancing = 36, "cashFromFinancing"
     # 净利润2年复合增长率
-    NormalizedNetIncome2YrCagr = 37, "normalizedNetIncome2YrCagr"
+    NormalizedNetIncome2YrCagr = 37, "netIncome2YrCagr"
     # 营收2年复合增长率
     TotalRevenues2YrCagr = 38, "totalRevenues2YrCagr"
     # 净利润5年复合增长率
@@ -277,11 +275,11 @@ class FinancialField(FilterField):
     # 营收5年复合增长率
     TotalRevenues5YrCagr = 40, "totalRevenues5YrCagr"
     # 总资产
-    TotalAssets = 41, "totalAssets"
+    TotalAssets = 41, "totalAssetsVal"
     # 固定资产周转率（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
     FixedAssetTurnover = 42, "fixedAssetTurnover"
     # 营业利润
-    OperatingIncome = 43, "operatingIncome"
+    OperatingIncome = 43, "operatingIncomeVal"
     # 营业总收入
     TotalRevenue = 44, "totalRevenue"
     # 市盈率LYR PE =price-to-earnings ratio
@@ -292,10 +290,6 @@ class FinancialField(FilterField):
     LYR_PS = 47, "LyrPS"
     # 市销率TTM PS =Price-to-sales Ratio
     TTM_PS = 48, "ttmPS"
-    # 市净率LYR PB =price/book value ratio
-    LYR_PB = 47, "LyrPB"
-    # 市净率TTM PB =price/book value ratio
-    TTM_PB = 48, "ttmPB"
     # 当日主力净流入额
     LargeInflowAmountToday = 49, "largeInflowAmountToday"
     # 当日主力增仓占比
@@ -336,7 +330,10 @@ class FinancialField(FilterField):
     Lst2YearAnnualVolatility = 67, "lst2YearAnnualVolatility"
     # 近5年年化波动率  ETF
     Lst5YearAnnualVolatility = 68, "lst5YearAnnualVolatility"
-
+    # 市净率LYR PB =price/book value ratio
+    LYR_PB = 69, "LyrPB"
+    # 市净率TTM PB =price/book value ratio
+    TTM_PB = 70, "ttmPB"
 
 class MultiTagField(FilterField):
     # 所属行业
@@ -374,7 +371,14 @@ class MultiTagField(FilterField):
     Week52HighFlag = 17, "week52HighFlag"
     # 52周最低 0 否 1是
     Week52LowFlag = 18, "week52LowFlag"
-
+    # 交易币种, 需要具体币种
+    TradeCurrency = 19, "tradeCurrency"
+    # ETF类型，需要具体类型
+    ETF_TYPE = 20, "etfType"
+    # 股票市场，支持多个市场
+    Market_Name = 21, "marketName"
+    # 一级行业级别, 需要传递具体sectorId
+    One_Sectors_Level = 22, "oneSectorsLevel"
 
 class FieldBelongType(Enum):
     """选股排序字段对应的filter类别
