@@ -22,7 +22,6 @@ class ProtoMessageUtil:
     increment_count = 0
 
     @classmethod
-    @property
     def increment(cls):
         cls.increment_count += 1
         return cls.increment_count
@@ -51,7 +50,7 @@ class ProtoMessageUtil:
             raise ValueError("sendInterval < 0 or receiveInterval < 0")
         request = Request_pb2.Request()
         request.command = SocketCommon_pb2.SocketCommon.CONNECT
-        request.id = cls.increment
+        request.id = cls.increment()
 
         con = Request_pb2.Request.Connect()
         con.acceptVersion = version
@@ -67,21 +66,21 @@ class ProtoMessageUtil:
     def build_disconnect_message(cls):
         request = Request_pb2.Request()
         request.command = SocketCommon_pb2.SocketCommon.DISCONNECT
-        request.id = cls.increment
+        request.id = cls.increment()
         return request
 
     @classmethod
     def build_send_message(cls):
         request = Request_pb2.Request()
         request.command = SocketCommon_pb2.SocketCommon.SEND
-        request.id = cls.increment
+        request.id = cls.increment()
         return request
 
     @classmethod
     def build_heart_beat_message(cls):
         request = Request_pb2.Request()
         request.command = SocketCommon_pb2.SocketCommon.HEARTBEAT
-        request.id = cls.increment
+        request.id = cls.increment()
         return request
 
     @classmethod
@@ -96,7 +95,7 @@ class ProtoMessageUtil:
     def build_subscribe_query_message(cls):
         request = Request_pb2.Request()
         request.command = SocketCommon_pb2.SocketCommon.SEND
-        request.id = cls.increment
+        request.id = cls.increment()
         return request
 
     @classmethod
@@ -135,7 +134,7 @@ class ProtoMessageUtil:
     def build_quote_message(cls, data_type, symbols, command):
         request = Request_pb2.Request()
         request.command = command
-        request.id = cls.increment
+        request.id = cls.increment()
 
         sub = Request_pb2.Request.Subscribe()
         sub.dataType = data_type
@@ -148,7 +147,7 @@ class ProtoMessageUtil:
     def build_market_quote_message(cls, market, command):
         request = Request_pb2.Request()
         request.command = command
-        request.id = cls.increment
+        request.id = cls.increment()
 
         sub = Request_pb2.Request.Subscribe()
         sub.dataType = SocketCommon_pb2.SocketCommon.Quote
@@ -160,7 +159,7 @@ class ProtoMessageUtil:
     def build_trade_message(cls, data_type, account, command):
         request = Request_pb2.Request()
         request.command = command
-        request.id = cls.increment
+        request.id = cls.increment()
 
         sub = Request_pb2.Request.Subscribe()
         sub.dataType = data_type
