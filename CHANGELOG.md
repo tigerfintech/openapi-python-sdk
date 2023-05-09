@@ -1,3 +1,10 @@
+## 2.3.8 (2023-05-09)
+### New
+- 合约接口新增字段保证金优惠信息
+- QuoteClient 新增获取选股器tag查询接口
+### Modify
+- 修改选股器部分字段
+
 ## 2.3.7 (2023-04-18)
 ### New
 - TradeClient 新增预估可卖数量接口 `TradeClient.get_estimate_tradable_quantity`
