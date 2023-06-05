@@ -5,8 +5,6 @@ Created on 2018/10/31
 @author: gaoan
 """
 
-import json
-
 from tigeropen.common.consts import TradingSession
 from tigeropen.common.response import TigerResponse
 from tigeropen.quote.domain.quote_brief import QuoteBrief, HourTrading
@@ -28,9 +26,8 @@ class QuoteBriefResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            data_json = json.loads(self.data)
-            if 'items' in data_json:
-                for item in data_json['items']:
+            if 'items' in self.data:
+                for item in self.data['items']:
                     brief = QuoteBrief()
                     for key, value in item.items():
                         if value is None:

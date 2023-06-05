@@ -775,6 +775,8 @@ class PlaceModifyOrderParams(BaseParams):
         self.adjust_limit = None
         self.user_mark = None
         self.expire_time = None
+        self.combo_type = None
+        self.contract_legs = None
 
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
@@ -798,79 +800,85 @@ class PlaceModifyOrderParams(BaseParams):
                 params['right'] = self.contract.put_call
             if self.contract.multiplier is not None:
                 params['multiplier'] = self.contract.multiplier
+        if self.contract_legs:
+            params['contract_legs'] = list()
+            for item in self.contract_legs:
+                params['contract_legs'].append(item.to_openapi_dict())
+            params['sec_type'] = 'MLEG'
+        if self.account:
+            params['account'] = self.account
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
 
-            if self.account:
-                params['account'] = self.account
-            if self.secret_key:
-                params['secret_key'] = self.secret_key
+        if self.order_id:
+            params['order_id'] = self.order_id
+        if self.id:
+            params['id'] = self.id
+        if self.order_type:
+            params['order_type'] = self.order_type
+        if self.action:
+            params['action'] = self.action
+        if self.quantity is not None:
+            params['total_quantity'] = self.quantity
+        if self.limit_price is not None:
+            params['limit_price'] = self.limit_price
+        if self.aux_price is not None:
+            params['aux_price'] = self.aux_price
+        if self.trail_stop_price is not None:
+            params['trail_stop_price'] = self.trail_stop_price
+        if self.trailing_percent is not None:
+            params['trailing_percent'] = self.trailing_percent
+        if self.percent_offset is not None:
+            params['percent_offset'] = self.percent_offset
+        if self.time_in_force is not None:
+            params['time_in_force'] = self.time_in_force
+        if self.outside_rth is not None:
+            params['outside_rth'] = self.outside_rth
+        if self.adjust_limit is not None:
+            params['adjust_limit'] = self.adjust_limit
+        if self.user_mark is not None:
+            params['user_mark'] = self.user_mark
+        if self.expire_time is not None:
+            params['expire_time'] = self.expire_time
 
-            if self.order_id:
-                params['order_id'] = self.order_id
-            if self.id:
-                params['id'] = self.id
-            if self.order_type:
-                params['order_type'] = self.order_type
-            if self.action:
-                params['action'] = self.action
-            if self.quantity is not None:
-                params['total_quantity'] = self.quantity
-            if self.limit_price is not None:
-                params['limit_price'] = self.limit_price
-            if self.aux_price is not None:
-                params['aux_price'] = self.aux_price
-            if self.trail_stop_price is not None:
-                params['trail_stop_price'] = self.trail_stop_price
-            if self.trailing_percent is not None:
-                params['trailing_percent'] = self.trailing_percent
-            if self.percent_offset is not None:
-                params['percent_offset'] = self.percent_offset
-            if self.time_in_force is not None:
-                params['time_in_force'] = self.time_in_force
-            if self.outside_rth is not None:
-                params['outside_rth'] = self.outside_rth
-            if self.adjust_limit is not None:
-                params['adjust_limit'] = self.adjust_limit
-            if self.user_mark is not None:
-                params['user_mark'] = self.user_mark
-            if self.expire_time is not None:
-                params['expire_time'] = self.expire_time
+        if self.order_legs:
+            if len(self.order_legs) > 2:
+                raise Exception('2 order legs at most')
+            leg_types = set()
+            for order_leg in self.order_legs:
+                if order_leg.leg_type == 'PROFIT':
+                    leg_types.add('PROFIT')
+                    params['attach_type'] = 'PROFIT'
+                    if order_leg.price is not None:
+                        params['profit_taker_price'] = order_leg.price
+                    if order_leg.time_in_force is not None:
+                        params['profit_taker_tif'] = order_leg.time_in_force
+                    if order_leg.outside_rth is not None:
+                        params['profit_taker_rth'] = order_leg.outside_rth
+                if order_leg.leg_type == 'LOSS':
+                    leg_types.add('LOSS')
+                    params['attach_type'] = 'LOSS'
+                    if order_leg.price is not None:
+                        params['stop_loss_price'] = order_leg.price
+                    if order_leg.time_in_force is not None:
+                        params['stop_loss_tif'] = order_leg.time_in_force
+                    if order_leg.outside_rth is not None:
+                        params['stop_loss_rth'] = order_leg.outside_rth
+                    if order_leg.limit_price is not None:
+                        params['stop_loss_limit_price'] = order_leg.limit_price
+                    if order_leg.trailing_percent is not None:
+                        params['stop_loss_trailing_percent'] = order_leg.trailing_percent
+                    if order_leg.trailing_percent is not None:
+                        params['stop_loss_trailing_amount'] = order_leg.trailing_amount
 
-            if self.order_legs:
-                if len(self.order_legs) > 2:
-                    raise Exception('2 order legs at most')
-                leg_types = set()
-                for order_leg in self.order_legs:
-                    if order_leg.leg_type == 'PROFIT':
-                        leg_types.add('PROFIT')
-                        params['attach_type'] = 'PROFIT'
-                        if order_leg.price is not None:
-                            params['profit_taker_price'] = order_leg.price
-                        if order_leg.time_in_force is not None:
-                            params['profit_taker_tif'] = order_leg.time_in_force
-                        if order_leg.outside_rth is not None:
-                            params['profit_taker_rth'] = order_leg.outside_rth
-                    if order_leg.leg_type == 'LOSS':
-                        leg_types.add('LOSS')
-                        params['attach_type'] = 'LOSS'
-                        if order_leg.price is not None:
-                            params['stop_loss_price'] = order_leg.price
-                        if order_leg.time_in_force is not None:
-                            params['stop_loss_tif'] = order_leg.time_in_force
-                        if order_leg.outside_rth is not None:
-                            params['stop_loss_rth'] = order_leg.outside_rth
-                        if order_leg.limit_price is not None:
-                            params['stop_loss_limit_price'] = order_leg.limit_price
-                        if order_leg.trailing_percent is not None:
-                            params['stop_loss_trailing_percent'] = order_leg.trailing_percent
-                        if order_leg.trailing_percent is not None:
-                            params['stop_loss_trailing_amount'] = order_leg.trailing_amount
+            # 括号订单(止盈和止损)
+            if len(leg_types) == 2:
+                params['attach_type'] = 'BRACKETS'
 
-                # 括号订单(止盈和止损)
-                if len(leg_types) == 2:
-                    params['attach_type'] = 'BRACKETS'
-
-            if self.algo_params:
-                params['algo_params'] = [{'tag': item[0], 'value': item[1]} for item in self.algo_params.to_dict().items()]
+        if self.algo_params:
+            params['algo_params'] = [{'tag': item[0], 'value': item[1]} for item in self.algo_params.to_dict().items()]
+        if self.combo_type:
+            params['combo_type'] = self.combo_type
         return params
 
 
