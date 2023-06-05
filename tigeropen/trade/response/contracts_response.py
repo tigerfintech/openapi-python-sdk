@@ -4,8 +4,6 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import json
-
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.string_utils import camel_to_underline, camel_to_underline_obj
 from tigeropen.trade.domain.contract import Contract
@@ -25,11 +23,10 @@ class ContractsResponse(TigerResponse):
             self._is_success = response['is_success']
         
         if self.data:
-            data_json = self.data if isinstance(self.data, dict) else json.loads(self.data)
-            if 'items' in data_json:
-                items = data_json['items']
+            if 'items' in self.data:
+                items = self.data['items']
             else:
-                items = [data_json]
+                items = [self.data]
             for item in items:
                 contract_fields = {}
                 for key, value in item.items():

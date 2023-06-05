@@ -2,7 +2,6 @@
 # 
 # @Date    : 2022/7/8
 # @Author  : sukai
-import json
 from datetime import datetime
 
 from tigeropen.common.response import TigerResponse

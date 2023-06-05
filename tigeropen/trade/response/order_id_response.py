@@ -4,7 +4,6 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import json
 from tigeropen.common.response import TigerResponse
 
 
@@ -14,6 +13,7 @@ class OrderIdResponse(TigerResponse):
         self.order_id = None
         self.id = None
         self.sub_ids = None
+        self.orders = None
         self._is_success = None
     
     def parse_response_content(self, response_content):
@@ -22,7 +22,7 @@ class OrderIdResponse(TigerResponse):
             self._is_success = response['is_success']
         
         if self.data:
-            data_json = json.loads(self.data)
+            data_json = self.data
             if 'code' in data_json and data_json['code'] != '0':
                 self.code = int(data_json['code'])
                 if 'message' in data_json:

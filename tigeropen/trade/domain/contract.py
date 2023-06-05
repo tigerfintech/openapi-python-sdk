@@ -109,3 +109,48 @@ class Contract:
         :return:
         """
         return self.sec_type == 'STK' and (self.currency == 'CNH' or self.currency == 'CNY')
+
+
+class ContractLeg:
+    def __init__(self, symbol=None, sec_type=None, expiry=None, strike=None, put_call=None, action=None,
+                 ratio=1):
+        self.symbol = symbol
+        self.sec_type = sec_type
+        self.expiry = expiry
+        self.strike = strike
+        self.put_call = put_call
+        self.action = action
+        self.ratio = ratio
+
+    def to_openapi_dict(self):
+        d = dict(self.__dict__)
+        d['right'] = d.pop('put_call', None)
+        return d
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+class OrderContractLeg(ContractLeg):
+    def __init__(self, symbol=None, sec_type=None, expiry=None, strike=None, put_call=None, action=None,
+                 ratio=1, market=None, currency=None, multiplier=None, total_quantity=None, filled_quantity=None,
+                 avg_filled_price=None, created_at=None, updated_at=None, **kwargs):
+        if 'right' in kwargs and not put_call:
+            put_call = kwargs.get('right')
+        super().__init__(symbol=symbol, sec_type=sec_type, expiry=expiry, strike=strike, put_call=put_call, action=action,
+                 ratio=ratio)
+        self.market = market
+        self.currency = currency
+        self.multiplier = multiplier
+        self.total_quantity = total_quantity
+        self.filled_quantity = filled_quantity
+        self.avg_filled_price = avg_filled_price
+        self.created_at = created_at
+        self.updated_at = updated_at
+
+    def to_openapi_dict(self):
+        d = super().to_openapi_dict()
+        d.update(self.__dict__)
+        return d
+
+    def __repr__(self):
+        return str(self.__dict__)

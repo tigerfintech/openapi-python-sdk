@@ -16,7 +16,7 @@ BAR_FIELD_MAPPINGS = {'avgPrice': 'avg_price', 'openInterest': 'open_interest', 
 class FutureQuoteBarResponse(TigerResponse):
     def __init__(self):
         super(FutureQuoteBarResponse, self).__init__()
-        self.bars = []
+        self.bars = pd.DataFrame(columns=COLUMNS)
         self._is_success = None
 
     def parse_response_content(self, response_content):

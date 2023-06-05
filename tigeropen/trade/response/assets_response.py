@@ -4,7 +4,6 @@ Created on 2018/9/20
 
 @author: gaoan
 """
-import json
 from tigeropen.common.response import TigerResponse
 from tigeropen.trade.domain.account import PortfolioAccount
 from tigeropen.common.util.string_utils import camel_to_underline
@@ -29,9 +28,8 @@ class AssetsResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            data_json = json.loads(self.data)
-            if 'items' in data_json:
-                for item in data_json['items']:
+            if 'items' in self.data:
+                for item in self.data['items']:
                     account = item['account']
                     asset = PortfolioAccount(account)
                     summary = asset.summary

@@ -1,4 +1,3 @@
-import json
 from tigeropen.common.response import TigerResponse
 
 PREVIEW_ORDER_FIELD_MAPPING = {"initMarginBefore": "init_margin_before", "commissionCurrency": "commission_currency",
@@ -21,8 +20,7 @@ class PreviewOrderResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            data_json = json.loads(self.data)
-            for key, value in data_json.items():
+            for key, value in self.data.items():
                 field = PREVIEW_ORDER_FIELD_MAPPING.get(key, key)
                 self.preview_order[field] = value
 

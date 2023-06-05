@@ -202,7 +202,7 @@ class TigerOpenClient:
             response = TigerResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return json.loads(response.data).get('license')
+                return response.data.get('license')
         self.__logger.error(f"failed to query license, response: {response_content}")
 
     def query_token(self):
