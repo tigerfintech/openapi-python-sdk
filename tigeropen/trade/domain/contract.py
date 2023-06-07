@@ -123,7 +123,7 @@ class ContractLeg:
         self.ratio = ratio
 
     def to_openapi_dict(self):
-        d = dict(self.__dict__)
+        d = dict(**self.__dict__)
         d['right'] = d.pop('put_call', None)
         return d
 
