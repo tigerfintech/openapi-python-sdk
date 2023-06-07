@@ -4,8 +4,6 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import json
-
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.string_utils import camel_to_underline_obj
 from tigeropen.trade.domain.profile import AccountProfile
@@ -23,9 +21,8 @@ class ProfilesResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            data_json = json.loads(self.data)
-            if 'items' in data_json:
-                for item in data_json['items']:
+            if 'items' in self.data:
+                for item in self.data['items']:
                     data_dict = camel_to_underline_obj(item)
                     profile = AccountProfile(account=data_dict.get('account'), capability=data_dict.get('capability'),
                                              status=data_dict.get('status'), account_type=data_dict.get('account_type'))
