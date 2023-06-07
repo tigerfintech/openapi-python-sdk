@@ -217,7 +217,7 @@ class TigerOpenClient:
             response = TigerResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return json.loads(response.data).get('token')
+                return response.data.get('token')
         self.__logger.error(f"failed to refresh token, response: {response_content}")
         return None
 
