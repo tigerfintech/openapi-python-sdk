@@ -222,8 +222,6 @@ class HeartbeatListener(ConnectionListener):
                     self.transport.set_connected(False)
                     self.transport.disconnect_socket()
                     self.transport.stop()
-                    for listener in self.transport.listeners.values():
-                        listener.on_heartbeat_timeout()
         self.heartbeat_thread = None
         self.heartbeat_terminate_event.clear()
         if self.heartbeats != (0, 0):

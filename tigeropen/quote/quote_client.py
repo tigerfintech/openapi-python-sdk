@@ -480,18 +480,22 @@ class QuoteClient(TigerOpenClient):
         current = 0
         next_page_token = None
         result = list()
+        result_df = None
         while current < total:
             if current + page_size >= total:
                 page_size = total - current
             current += page_size
             bars = self.get_bars(symbols=symbol, period=period, begin_time=begin_time, end_time=end_time, right=right,
                                  limit=page_size, lang=lang, page_token=next_page_token)
+            if bars.empty:
+                result_df = bars
+                break
             next_page_token = bars['next_page_token'].iloc[0]
             result.append(bars)
             if not next_page_token:
                 break
             time.sleep(time_interval)
-        return pd.concat(result).sort_values('time').reset_index(drop=True)
+        return pd.concat(result).sort_values('time').reset_index(drop=True) if result else result_df
 
     def get_trade_ticks(self, symbols, trade_session=None, begin_index=None, end_index=None, limit=None, lang=None,
                         **kwargs):
@@ -1045,18 +1049,22 @@ class QuoteClient(TigerOpenClient):
         current = 0
         next_page_token = None
         result = list()
+        result_df = None
         while current < total:
             if current + page_size >= total:
                 page_size = total - current
             current += page_size
             bars = self.get_future_bars(identifiers=identifier, period=period, begin_time=begin_time, end_time=end_time,
                                         limit=page_size, page_token=next_page_token)
+            if bars.empty:
+                result_df = bars
+                break
             next_page_token = bars['next_page_token'].iloc[0]
             result.append(bars)
             if not next_page_token:
                 break
             time.sleep(time_interval)
-        return pd.concat(result).sort_values('time').reset_index(drop=True)
+        return pd.concat(result).sort_values('time').reset_index(drop=True) if result else result_df
 
     def get_future_trade_ticks(self, identifier, begin_index=0, end_index=30, limit=1000):
         """

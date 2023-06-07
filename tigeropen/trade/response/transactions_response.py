@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import json
-
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util import string_utils
 from tigeropen.trade.domain.contract import Contract
@@ -22,8 +20,7 @@ class TransactionsResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            data_json = json.loads(self.data)
-            for item in data_json.get('items', list()):
+            for item in self.data.get('items', list()):
                 trans = self._parse_transactions(string_utils.camel_to_underline_obj(item))
                 if trans:
                     self.transactions.append(trans)

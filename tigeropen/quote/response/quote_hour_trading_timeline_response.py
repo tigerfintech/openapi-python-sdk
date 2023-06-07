@@ -31,7 +31,7 @@ class QuoteHourTradingTimelineResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            data_json = json.loads(self.data)
+            data_json = self.data
             pre_close = data_json.get('preClose')
             if 'detail' in data_json:
                 detail = data_json['detail']

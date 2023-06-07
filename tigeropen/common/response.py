@@ -4,6 +4,7 @@ Created on 2018/9/20
 
 @author: gaoan
 """
+import json
 
 
 class TigerResponse:
@@ -22,4 +23,6 @@ class TigerResponse:
             self.message = response['message']
         if 'data' in response:
             self.data = response['data']
+            if isinstance(self.data, str):
+                self.data = json.loads(self.data)
         return response

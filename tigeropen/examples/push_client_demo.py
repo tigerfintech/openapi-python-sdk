@@ -16,6 +16,7 @@ from tigeropen.push.pb.QuoteBBOData_pb2 import QuoteBBOData
 from tigeropen.push.pb.QuoteBasicData_pb2 import QuoteBasicData
 from tigeropen.push.pb.QuoteDepthData_pb2 import QuoteDepthData
 from tigeropen.push.pb.TradeTickData_pb2 import TradeTickData
+from tigeropen.push.pb.trade_tick import TradeTick
 from tigeropen.push.push_client import PushClient
 from tigeropen.examples.client_config import get_client_config
 
@@ -152,24 +153,11 @@ def on_quote_depth_changed(frame: QuoteDepthData):
     print(f'quote depth changed: {frame}')
 
 
-def on_tick_changed(frame: TradeTickData):
+def on_tick_changed(frame: TradeTick):
     """逐笔成交回调
     example:
-    symbol: "00700"
-    type: "-+"
-    sn: 37998
-    priceBase: 3636
-    priceOffset: 1
-    time: 1677742815311
-    time: 69
-    price: 0
-    price: 2
-    volume: 500
-    volume: 100
-    quoteLevel: "hkStockQuoteLv2"
-    timestamp: 1677742815776
-    secType: "STK"
-
+    TradeTick<{'symbol': '00700', 'sec_type': 'STK', 'quote_level': 'hkStockQuoteLv2', 'timestamp': 1685602618145, 'ticks': [TradeTickItem<{'tick_type': '+', 'price': 316.6, 'volume': 100, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1685602617046, 'sn': 42055}>, TradeTickItem<{'tick_type': '-', 'price': 316.4, 'volume': 600, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1685602617639, 'sn': 42056}>, TradeTickItem<{'tick_type': '-', 'price': 316.4, 'volume': 200, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1685602617639, 'sn': 42057}>]}>
+    TradeTick<{'symbol': 'CLmain', 'sec_type': 'FUT', 'quote_level': '', 'timestamp': 1685602618153, 'ticks': [TradeTickItem<{'tick_type': None, 'price': 68.7, 'volume': 1, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1685602616000, 'sn': 109150}>, TradeTickItem<{'tick_type': None, 'price': 68.7, 'volume': 1, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1685602616000, 'sn': 109151}>]}>
     """
     print(frame)
 
