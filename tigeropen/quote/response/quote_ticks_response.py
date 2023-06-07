@@ -4,8 +4,6 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import json
-
 import pandas as pd
 
 from tigeropen.common.response import TigerResponse
@@ -38,8 +36,7 @@ class TradeTickResponse(TigerResponse):
             if isinstance(self.data, list):
                 symbol_items = self.data
             else:
-                data = json.loads(self.data)
-                symbol_items = [data]
+                symbol_items = [self.data]
 
             tick_items = []
             for symbol_item in symbol_items:

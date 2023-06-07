@@ -4,8 +4,6 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import json
-
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util import string_utils
 from tigeropen.trade.domain.contract import Contract
@@ -31,9 +29,8 @@ class PositionsResponse(TigerResponse):
             self._is_success = response['is_success']
         
         if self.data:
-            data_json = json.loads(self.data)
-            if 'items' in data_json:
-                for item in data_json['items']:
+            if 'items' in self.data:
+                for item in self.data['items']:
                     contract_fields = {}
                     position_fields = {}
                     for key, value in item.items():
@@ -89,5 +86,4 @@ class EstimateTradableQuantityResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            data_json = json.loads(self.data)
-            self.result = TradableQuantityItem(**string_utils.camel_to_underline_obj(data_json))
+            self.result = TradableQuantityItem(**string_utils.camel_to_underline_obj(self.data))

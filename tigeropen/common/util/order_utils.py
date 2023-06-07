@@ -4,8 +4,9 @@ Created on 2018/11/1
 
 @author: gaoan
 """
+from tigeropen.trade.domain.contract import ContractLeg
 from tigeropen.trade.domain.order import Order, OrderLeg, AlgoParams
-from tigeropen.common.consts import OrderStatus
+from tigeropen.common.consts import OrderStatus, OrderType
 
 
 def market_order(account, contract, action, quantity):
@@ -164,6 +165,17 @@ def algo_order(account, contract, action, quantity, strategy, algo_params=None, 
                  limit_price=limit_price, outside_rth=False)
 
 
+def contract_leg(symbol=None, sec_type=None, expiry=None, strike=None, put_call=None, action=None,
+                 ratio=1):
+    return ContractLeg(symbol=symbol, sec_type=sec_type, expiry=expiry, strike=strike, put_call=put_call,
+                        action=action, ratio=ratio)
+
+
+def combo_order(account, contract_legs, combo_type, action, quantity, order_type=OrderType.LMT.value, limit_price=None,
+                aux_price=None, trailing_percent=None):
+    return Order(account, None, action=action, order_type=order_type, quantity=quantity, limit_price=limit_price,
+                 aux_price=aux_price, trailing_percent=trailing_percent, combo_type=combo_type,
+                 contract_legs=contract_legs)
 def get_order_status(value):
     """
     Invalid(-2), Initial(-1), PendingCancel(3), Cancelled(4), Submitted(5), Filled(6), Inactive(7), PendingSubmit(8)
