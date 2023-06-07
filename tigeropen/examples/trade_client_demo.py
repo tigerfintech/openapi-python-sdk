@@ -138,7 +138,7 @@ def algo_order_demo():
     account = client_config.account
     openapi_client = TradeClient(client_config, logger=logger)
     contract = stock_contract(symbol='AAPL', currency='USD')
-    params = algo_order_params(start_time='2020-11-19 23:00:00', end_time='2020-11-19 23:50:00', no_take_liq=True,
+    params = algo_order_params(start_time=1686147201000, end_time=1686150801000, no_take_liq=True,
                                allow_past_end_time=True, participation_rate=0.1)
     order = algo_order(account, contract, 'BUY', 1000, 'VWAP', algo_params=params, limit_price=100.0)
     openapi_client.place_order(order)

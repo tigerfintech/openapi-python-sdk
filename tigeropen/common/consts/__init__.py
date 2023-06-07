@@ -48,7 +48,7 @@ class SecurityType(Enum):
     FUT = 'FUT'  # 期货
     FOP = 'FOP'  # 期货期权
     CASH = 'CASH'  # 外汇
-
+    MLEG = 'MLEG'
 
 @unique
 class SegmentType(Enum):
@@ -189,7 +189,8 @@ class OrderType(Enum):
     TRAIL = 'TRAIL'  # 跟踪止损单
     AM = 'AM'  # Auction Market ，竞价市价单
     AL = 'AL'  # Auction Limit ，竞价限价单
-
+    TWAP = 'TWAP'  # 'Time Weighted Average Price' 时间加权平均价格算法
+    VWAP = 'VWAP'  # 'Volume Weighted Average Price'  成交量加权平均价格算法
 
 @unique
 class License(Enum):
@@ -203,3 +204,14 @@ class ServiceType(Enum):
     TRADE = 'TRADE'
     QUOTE = 'QUOTE'
 
+@unique
+class ComboType(Enum):
+    COVERED = 'COVERED'
+    PROTECTIVE = 'PROTECTIVE'
+    VERTICAL = 'VERTICAL'
+    STRADDLE = 'STRADDLE'
+    STRANGLE = 'STRANGLE'
+    CALENDAR = 'CALENDAR'
+    DIAGONAL = 'DIAGONAL'
+    SYNTHETIC = 'SYNTHETIC'
+    CUSTOM = 'CUSTOM'

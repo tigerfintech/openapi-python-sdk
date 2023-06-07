@@ -4,8 +4,6 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import json
-
 import pandas as pd
 
 from tigeropen.common.response import TigerResponse
@@ -111,8 +109,7 @@ class StockDetailsResponse(TigerResponse):
         if not self.data:
             return
         detail_data = []
-        data_json = json.loads(self.data)
-        for item in data_json.get('items', {}):
+        for item in self.data.get('items', {}):
             item_values = dict()
             for key, value in item.items():
                 if value is None:
