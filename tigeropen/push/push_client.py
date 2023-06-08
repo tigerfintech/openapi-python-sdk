@@ -8,12 +8,10 @@ Created on 2018/10/30
 from tigeropen.push.protobuf_push_client import ProtobufPushClient
 from tigeropen.push.stomp_push_client import StompPushClient
 
-USE_STOMP = False
-
 
 class PushClient:
     def __init__(self, host, port, use_ssl=True, connection_timeout=120, heartbeats=(30 * 1000, 30 * 1000),
-                 use_protobuf=False):
+                 use_protobuf=True):
         """
         :param host:
         :param port:
