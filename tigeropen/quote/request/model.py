@@ -1353,3 +1353,22 @@ class WarrantFilterParams(BaseParams):
         if self.implied_volatility:
             params['implied_volatility'] = self.convert_range_param(self.implied_volatility)
         return params
+
+class KlineQuotaParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._with_details = False
+
+    @property
+    def with_details(self):
+        return self._with_details
+
+    @with_details.setter
+    def with_details(self, value):
+        self._with_details = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.with_details is not None:
+            params['with_details'] = self.with_details
+        return params
