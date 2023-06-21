@@ -8,6 +8,8 @@ from tigeropen.push.pb import QuoteData_pb2 as _QuoteData_pb2
 from tigeropen.push.pb import QuoteDepthData_pb2 as _QuoteDepthData_pb2
 from tigeropen.push.pb import TradeTickData_pb2 as _TradeTickData_pb2
 from tigeropen.push.pb import OrderTransactionData_pb2 as _OrderTransactionData_pb2
+from tigeropen.push.pb import StockTopData_pb2 as _StockTopData_pb2
+from tigeropen.push.pb import OptionTopData_pb2 as _OptionTopData_pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Optional, Union as _Union
