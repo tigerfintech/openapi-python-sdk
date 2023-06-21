@@ -7,7 +7,8 @@ import sys
 from itertools import accumulate, zip_longest
 
 from tigeropen.common.consts.push_types import ResponseType
-from tigeropen.common.util.signature_utils import sign_with_rsa, read_private_key
+from tigeropen.common.util.common_utils import get_enum_value
+from tigeropen.common.util.signature_utils import sign_with_rsa
 from tigeropen.common.util.tick_util import get_part_code, get_part_code_name, get_trade_condition_map, \
     get_trade_condition
 from tigeropen.push import _patch_ssl
@@ -45,6 +46,8 @@ class ProtobufPushClient(ConnectionListener):
         self.position_changed = None
         self.order_changed = None
         self.transaction_changed = None
+        self.stock_top_changed = None
+        self.option_top_changed = None
         self.connect_callback = None
         self.disconnect_callback = None
         self.subscribe_callback = None
@@ -156,6 +159,12 @@ class ProtobufPushClient(ConnectionListener):
             elif frame.body.dataType == SocketCommon.DataType.Position:
                 if self.position_changed:
                     self.position_changed(frame.body.positionData)
+            elif frame.body.dataType == SocketCommon.DataType.StockTop:
+                if self.stock_top_changed:
+                    self.stock_top_changed(frame.body.stockTopData)
+            elif frame.body.dataType == SocketCommon.DataType.OptionTop:
+                if self.option_top_changed:
+                    self.option_top_changed(frame.body.optionTopData)
             else:
                 self.logger.warning(f'unhandled frame: {frame}')
 
@@ -266,6 +275,56 @@ class ProtobufPushClient(ConnectionListener):
         :return:
         """
         req = ProtoMessageUtil.build_subscribe_quote_message(symbols, data_type=SocketCommon.Future)
+        self._connection.send_frame(req)
+
+    def subscribe_stock_top(self, market, indicators):
+        """
+        订阅股票榜单行情
+        :param market: 市场
+        :param indicators: indicator列表
+        :return:
+        """
+        indicator_names = []
+        if indicators:
+            indicator_names = [get_enum_value(indicator) for indicator in indicators]
+        req = ProtoMessageUtil.build_subscribe_quote_message(symbols=indicator_names, data_type=SocketCommon.StockTop,
+                                                             market=market)
+        self._connection.send_frame(req)
+
+    def unsubscribe_stock_top(self, market, indicators):
+        """
+        退订股票榜单行情
+        :param market: 市场
+        :param indicators: indicator列表
+        :return:
+        """
+        indicator_names = []
+        if indicators:
+            indicator_names = [get_enum_value(indicator) for indicator in indicators]
+        req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols=indicator_names, data_type=SocketCommon.StockTop,
+                                                               market=market)
+        self._connection.send_frame(req)
+
+    def subscribe_option_top(self, market, indicators):
+        """
+        订阅期权榜单行情
+        :param market: 市场
+        :param indicators: indicator列表
+        :return:
+        """
+        req = ProtoMessageUtil.build_subscribe_quote_message(symbols=indicators, data_type=SocketCommon.OptionTop,
+                                                             market=market)
+        self._connection.send_frame(req)
+
+    def unsubscribe_option_top(self, market, indicators):
+        """
+        退订期权榜单行情
+        :param market: 市场
+        :param indicators: indicator列表
+        :return:
+        """
+        req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols=indicators, data_type=SocketCommon.OptionTop,
+                                                               market=market)
         self._connection.send_frame(req)
 
     def query_subscribed_quote(self):

@@ -26,6 +26,7 @@ class SocketCommon(_message.Message):
     MESSAGE: SocketCommon.Command
     None: SocketCommon.QuoteType
     Option: SocketCommon.DataType
+    OptionTop: SocketCommon.DataType
     OrderStatus: SocketCommon.DataType
     OrderTransaction: SocketCommon.DataType
     Position: SocketCommon.DataType
@@ -33,6 +34,7 @@ class SocketCommon(_message.Message):
     QuoteDepth: SocketCommon.DataType
     SEND: SocketCommon.Command
     SUBSCRIBE: SocketCommon.Command
+    StockTop: SocketCommon.DataType
     TradeTick: SocketCommon.DataType
     UNKNOWN: SocketCommon.Command
     UNSUBSCRIBE: SocketCommon.Command

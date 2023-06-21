@@ -74,9 +74,11 @@ class OrdersResponse(TigerResponse):
         put_call = contract_fields.get('right')
         multiplier = contract_fields.get('multiplier')
         identifier = contract_fields.get('identifier')
+        market = contract_fields.get('market')
         contract = Contract(symbol, currency, contract_id=contract_id, sec_type=sec_type, exchange=exchange,
                             origin_symbol=origin_symbol, local_symbol=local_symbol, expiry=expiry,
-                            strike=strike, put_call=put_call, multiplier=multiplier, identifier=identifier)
+                            strike=strike, put_call=put_call, multiplier=multiplier, identifier=identifier,
+                            market=market)
         account = order_fields.get('account')
         action = order_fields.get('action')
         order_type = order_fields.get('order_type')
