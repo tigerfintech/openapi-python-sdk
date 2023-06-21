@@ -69,6 +69,7 @@ CAPITAL_DISTRIBUTION = "capital_distribution"  # 股票当日资金分布
 CAPITAL_FLOW = "capital_flow"  # 股票资金流向
 WARRANT_FILTER = "warrant_filter"
 WARRANT_REAL_TIME_QUOTE = "warrant_real_time_quote"
+KLINE_QUOTA = "kline_quota"  # 历史k线额度
 
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"

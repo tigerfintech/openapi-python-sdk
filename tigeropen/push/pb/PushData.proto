@@ -7,6 +7,8 @@ import public "tigeropen/push/pb/QuoteData.proto";
 import public "tigeropen/push/pb/QuoteDepthData.proto";
 import public "tigeropen/push/pb/TradeTickData.proto";
 import public "tigeropen/push/pb/OrderTransactionData.proto";
+import public "tigeropen/push/pb/StockTopData.proto";
+import public "tigeropen/push/pb/OptionTopData.proto";
 
 package tigeropen.push.pb;
 
@@ -20,5 +22,7 @@ message PushData {
     AssetData assetData = 6;
     OrderStatusData orderStatusData = 7;
     OrderTransactionData orderTransactionData = 8;
+    StockTopData stockTopData = 9;
+    OptionTopData optionTopData = 10;
   }
 }

@@ -215,3 +215,18 @@ class ComboType(Enum):
     DIAGONAL = 'DIAGONAL'
     SYNTHETIC = 'SYNTHETIC'
     CUSTOM = 'CUSTOM'
+
+class StockRankingIndicator(Enum):
+    ChangeRate = "changeRate"
+    ChangeRate5Min = "changeRate5Min"
+    TurnoverRate = "turnoverRate"
+    Amount = "amount"  # trade amount
+    Volume = "volume"  # trade volume
+    Amplitude = "amplitude"
+
+class OptionRankingIndicator(Enum):
+    BigOrder = "bigOrder"
+    Volume = "volume"
+    Amount = "amount"
+    OpenInt = "openInt"
+
