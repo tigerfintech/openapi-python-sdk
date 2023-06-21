@@ -8,7 +8,7 @@ Created on 2018/9/20
 
 class Position:
     def __init__(self, account, contract, quantity=0, average_cost=None, market_price=None, market_value=None,
-                 realized_pnl=None, unrealized_pnl=None):
+                 realized_pnl=None, unrealized_pnl=None, saleable=None, position_scale=None, **kwargs):
         """
         - account: 对应的账户ID
         - contract: 合约对象
@@ -23,10 +23,17 @@ class Position:
         self.contract = contract
         self.quantity = quantity
         self.average_cost = average_cost
+        self.average_cost_by_average = kwargs.get('average_cost_by_average', None)
         self.market_price = market_price
         self.market_value = market_value
         self.realized_pnl = realized_pnl
+        self.realized_pnl_by_average = kwargs.get('realized_pnl_by_average', None)
         self.unrealized_pnl = unrealized_pnl
+        self.unrealized_pnl_by_average = kwargs.get('unrealized_pnl_by_average', None)
+        self.saleable = saleable
+        self.position_scale = position_scale
+        self.unrealized_pnl_percent = kwargs.get('unrealized_pnl_percent', None)
+        self.unrealized_pnl_percent_by_average = kwargs.get('unrealized_pnl_percent_by_average', None)
     
     def __repr__(self):
         template = "contract: {contract}, quantity: {quantity}, average_cost: {average_cost}, " \
@@ -52,3 +59,14 @@ class Position:
             'average_cost': self.average_cost,
             'market_price': self.market_price
         }
+
+
+class TradableQuantityItem:
+    def __init__(self, tradable_quantity=0, financing_quantity=0, position_quantity=0, tradable_position_quantity=0):
+        self.tradable_quantity = tradable_quantity
+        self.financing_quantity = financing_quantity
+        self.position_quantity = position_quantity
+        self.tradable_position_quantity = tradable_position_quantity
+
+    def __repr__(self):
+        return 'TradableQuantityItem<{0}>'.format(self.__dict__)

@@ -4,16 +4,14 @@ Created on 2018/10/30
 
 @author: gaoan
 """
-
+from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.push.protobuf_push_client import ProtobufPushClient
 from tigeropen.push.stomp_push_client import StompPushClient
-
-USE_STOMP = False
 
 
 class PushClient:
     def __init__(self, host, port, use_ssl=True, connection_timeout=120, heartbeats=(30 * 1000, 30 * 1000),
-                 use_protobuf=False):
+                 use_protobuf=True):
         """
         :param host:
         :param port:
@@ -79,6 +77,22 @@ class PushClient:
     @tick_changed.setter
     def tick_changed(self, value):
         self.client.tick_changed = value
+
+    @property
+    def stock_top_changed(self):
+        return self.client.stock_top_changed
+
+    @stock_top_changed.setter
+    def stock_top_changed(self, value):
+        self.client.stock_top_changed = value
+
+    @property
+    def option_top_changed(self):
+        return self.client.option_top_changed
+
+    @option_top_changed.setter
+    def option_top_changed(self, value):
+        self.client.option_top_changed = value
 
     @property
     def asset_changed(self):
@@ -300,3 +314,14 @@ class PushClient:
 
     def unsubscribe_market(self, market):
         self.client.unsubscribe_market(market)
+
+    def subscribe_stock_top(self, market, indicators=None):
+        self.client.subscribe_stock_top(get_enum_value(market), indicators)
+
+    def unsubscribe_stock_top(self, market, indicators=None):
+        self.client.unsubscribe_stock_top(get_enum_value(market), indicators)
+    def subscribe_option_top(self, market, indicators=None):
+        self.client.subscribe_option_top(get_enum_value(market), indicators)
+
+    def unsubscribe_option_top(self, market, indicators=None):
+        self.client.unsubscribe_option_top(get_enum_value(market), indicators)

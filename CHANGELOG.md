@@ -1,3 +1,39 @@
+## 3.0.1 (2023-06-21)
+### New
+- 历史K线额度接口
+- 持仓对象新增按均价计算的盈亏字段
+- 长链接新增榜单数据推送
+
+## 3.0.0 (2023-06-08)
+### Breaking
+- 长链接由默认stomp改为默认使用protobuf
+
+## 2.4.0 (2023-06-07)
+### New
+- 支持期权组合订单
+### Fix
+- 修复分页获取k线数据为空时pandas字段索引错误
+
+## 2.3.9 (2023-06-01)
+### Fix
+- 修复protobuf推送tick数据未解压的问题
+### Modify
+- 修改订单状态推送proto定义，增加 userMark
+
+## 2.3.8 (2023-05-09)
+### New
+- 合约接口新增字段保证金优惠信息
+- QuoteClient 新增获取选股器tag查询接口
+### Modify
+- 修改选股器部分字段
+
+## 2.3.7 (2023-04-18)
+### New
+- TradeClient 新增预估可卖数量接口 `TradeClient.get_estimate_tradable_quantity`
+- `Order` 订单对象新增字段 `external_id`
+- `Position` 持仓对象新增字段 `saleable`，仅A股有值; 持仓推送对象增加 `saleable` 字段
+
+
 ## 2.3.6 (2023-04-11)
 ### New
 - QuoteClient 新增窝轮牛熊证筛选接口 `QuoteClient.get_warrant_filter`, 窝轮牛熊证实时行情接口 `QuoteClient.get_warrant_briefs`

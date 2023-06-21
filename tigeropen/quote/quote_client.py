@@ -16,7 +16,8 @@ from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionT
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
     HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
-    STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER
+    STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
+    KLINE_QUOTA
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -40,7 +41,7 @@ from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
-    StockBrokerParams, CapitalParams, WarrantFilterParams
+    StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
@@ -49,6 +50,7 @@ from tigeropen.quote.response.future_exchange_response import FutureExchangeResp
 from tigeropen.quote.response.future_quote_bar_response import FutureQuoteBarResponse
 from tigeropen.quote.response.future_quote_ticks_response import FutureTradeTickResponse
 from tigeropen.quote.response.future_trading_times_response import FutureTradingTimesResponse
+from tigeropen.quote.response.kline_quota_response import KlineQuotaResponse
 from tigeropen.quote.response.market_status_response import MarketStatusResponse
 from tigeropen.quote.response.option_briefs_response import OptionBriefsResponse
 from tigeropen.quote.response.option_chains_response import OptionChainsResponse
@@ -63,7 +65,7 @@ from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPer
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
 from tigeropen.quote.response.quote_timeline_history_response import QuoteTimelineHistoryResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
-from tigeropen.quote.response.market_scanner_response import MarketScannerResponse
+from tigeropen.quote.response.market_scanner_response import MarketScannerResponse, MarketScannerTagsResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
 from tigeropen.quote.response.stock_broker_response import StockBrokerResponse
 from tigeropen.quote.response.stock_details_response import StockDetailsResponse
@@ -480,18 +482,22 @@ class QuoteClient(TigerOpenClient):
         current = 0
         next_page_token = None
         result = list()
+        result_df = None
         while current < total:
             if current + page_size >= total:
                 page_size = total - current
             current += page_size
             bars = self.get_bars(symbols=symbol, period=period, begin_time=begin_time, end_time=end_time, right=right,
                                  limit=page_size, lang=lang, page_token=next_page_token)
+            if bars.empty:
+                result_df = bars
+                break
             next_page_token = bars['next_page_token'].iloc[0]
             result.append(bars)
             if not next_page_token:
                 break
             time.sleep(time_interval)
-        return pd.concat(result).sort_values('time').reset_index(drop=True)
+        return pd.concat(result).sort_values('time').reset_index(drop=True) if result else result_df
 
     def get_trade_ticks(self, symbols, trade_session=None, begin_index=None, end_index=None, limit=None, lang=None,
                         **kwargs):
@@ -1045,18 +1051,22 @@ class QuoteClient(TigerOpenClient):
         current = 0
         next_page_token = None
         result = list()
+        result_df = None
         while current < total:
             if current + page_size >= total:
                 page_size = total - current
             current += page_size
             bars = self.get_future_bars(identifiers=identifier, period=period, begin_time=begin_time, end_time=end_time,
                                         limit=page_size, page_token=next_page_token)
+            if bars.empty:
+                result_df = bars
+                break
             next_page_token = bars['next_page_token'].iloc[0]
             result.append(bars)
             if not next_page_token:
                 break
             time.sleep(time_interval)
-        return pd.concat(result).sort_values('time').reset_index(drop=True)
+        return pd.concat(result).sort_values('time').reset_index(drop=True) if result else result_df
 
     def get_future_trade_ticks(self, identifier, begin_index=0, end_index=30, limit=1000):
         """
@@ -1373,7 +1383,7 @@ class QuoteClient(TigerOpenClient):
         """
         params = MarketScannerParams()
         params.version = OPEN_API_SERVICE_VERSION_V1
-        params.market = market.value
+        params.market = get_enum_value(market)
         if filters is not None:
             params.base_filter_list = list()
             params.accumulate_filter_list = list()
@@ -1402,6 +1412,23 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
+    def get_market_scanner_tags(self, market=Market.US, tag_fields=None):
+        """
+        :param market: tigeropen.common.consts.Market
+        :param tag_fields: tigeropen.common.consts.filter_fields.MultiTagField
+        """
+        params = MarketScannerParams()
+        params.market = get_enum_value(market)
+        params.multi_tags_fields = tag_fields
+        request = OpenApiRequest(MARKET_SCANNER_TAGS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = MarketScannerTagsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
     def grab_quote_permission(self):
         """
         抢占行情权限
@@ -1604,6 +1631,20 @@ class QuoteClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = WarrantFilterResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_kline_quota(self, with_details=False):
+        params = KlineQuotaParams()
+        params.lang = get_enum_value(self._lang)
+        params.with_details = with_details
+        request = OpenApiRequest(KLINE_QUOTA, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = KlineQuotaResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.result

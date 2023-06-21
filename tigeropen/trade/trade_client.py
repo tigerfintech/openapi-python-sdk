@@ -10,7 +10,7 @@ from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
     PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET, SEGMENT_FUND_AVAILABLE, SEGMENT_FUND_HISTORY, \
-    TRANSFER_SEGMENT_FUND, CANCEL_SEGMENT_FUND, PLACE_FOREX_ORDER
+    TRANSFER_SEGMENT_FUND, CANCEL_SEGMENT_FUND, PLACE_FOREX_ORDER, ESTIMATE_TRADABLE_QUANTITY
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import get_enum_value, date_str_to_timestamp
 from tigeropen.common.request import OpenApiRequest
@@ -19,7 +19,7 @@ from tigeropen.tiger_open_config import LANGUAGE
 from tigeropen.trade.domain.order import Order
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
     OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams, SegmentFundParams, \
-    ForexTradeOrderParams
+    ForexTradeOrderParams, EstimateTradableQuantityModel
 from tigeropen.trade.response.account_profile_response import ProfilesResponse
 from tigeropen.trade.response.analytics_asset_response import AnalyticsAssetResponse
 from tigeropen.trade.response.assets_response import AssetsResponse
@@ -28,7 +28,7 @@ from tigeropen.trade.response.forex_order_response import ForexOrderResponse
 from tigeropen.trade.response.order_id_response import OrderIdResponse
 from tigeropen.trade.response.order_preview_response import PreviewOrderResponse
 from tigeropen.trade.response.orders_response import OrdersResponse
-from tigeropen.trade.response.positions_response import PositionsResponse
+from tigeropen.trade.response.positions_response import PositionsResponse, EstimateTradableQuantityResponse
 from tigeropen.trade.response.prime_assets_response import PrimeAssetsResponse
 from tigeropen.trade.response.segment_fund_response import SegmentFundAvailableResponse, \
     SegmentFundHistoryResponse, SegmentFundCancelResponse
@@ -577,6 +577,8 @@ class TradeClient(TigerOpenClient):
         params.user_mark = order.user_mark
         params.expire_time = order.expire_time
         params.lang = get_enum_value(self._lang)
+        params.combo_type = get_enum_value(order.combo_type)
+        params.contract_legs = order.contract_legs
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -851,6 +853,29 @@ class TradeClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.data
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_estimate_tradable_quantity(self, order, seg_type=None):
+        params = EstimateTradableQuantityModel()
+        params.account = self._account
+        params.secret_key = self._secret_key
+        params.lang = get_enum_value(self._lang)
+        params.contract = order.contract
+        params.order_type = order.order_type
+        params.action = order.action
+        params.limit_price = order.limit_price
+        params.stop_price = order.aux_price
+        params.seg_type = get_enum_value(seg_type)
+
+        request = OpenApiRequest(ESTIMATE_TRADABLE_QUANTITY, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = EstimateTradableQuantityResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
         return None
