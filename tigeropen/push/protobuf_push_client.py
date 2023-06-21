@@ -4,14 +4,20 @@
 # @Author  : sukai
 import logging
 import sys
+from itertools import accumulate, zip_longest
 
 from tigeropen.common.consts.push_types import ResponseType
-from tigeropen.common.util.signature_utils import sign_with_rsa, read_private_key
+from tigeropen.common.util.common_utils import get_enum_value
+from tigeropen.common.util.signature_utils import sign_with_rsa
+from tigeropen.common.util.tick_util import get_part_code, get_part_code_name, get_trade_condition_map, \
+    get_trade_condition
 from tigeropen.push import _patch_ssl
 from tigeropen.push.network.connect import PushConnection
 from tigeropen.push.network.exception import ConnectFailedException
 from tigeropen.push.network.listener import ConnectionListener
 from tigeropen.push.pb.SocketCommon_pb2 import SocketCommon
+from tigeropen.push.pb.TradeTickData_pb2 import TradeTickData
+from tigeropen.push.pb.trade_tick import TradeTickItem, TradeTick
 from tigeropen.push.pb.util import ProtoMessageUtil, convert_to_basic_data, convert_to_bbo_data
 
 if sys.platform == 'linux' or sys.platform == 'linux2':
@@ -40,6 +46,8 @@ class ProtobufPushClient(ConnectionListener):
         self.position_changed = None
         self.order_changed = None
         self.transaction_changed = None
+        self.stock_top_changed = None
+        self.option_top_changed = None
         self.connect_callback = None
         self.disconnect_callback = None
         self.subscribe_callback = None
@@ -138,7 +146,7 @@ class ProtobufPushClient(ConnectionListener):
                     self.quote_depth_changed(frame.body.quoteDepthData)
             elif frame.body.dataType == SocketCommon.DataType.TradeTick:
                 if self.tick_changed:
-                    self.tick_changed(frame.body.tradeTickData)
+                    self.tick_changed(self._convert_tick(frame.body.tradeTickData))
             elif frame.body.dataType == SocketCommon.DataType.OrderStatus:
                 if self.order_changed:
                     self.order_changed(frame.body.orderStatusData)
@@ -151,6 +159,12 @@ class ProtobufPushClient(ConnectionListener):
             elif frame.body.dataType == SocketCommon.DataType.Position:
                 if self.position_changed:
                     self.position_changed(frame.body.positionData)
+            elif frame.body.dataType == SocketCommon.DataType.StockTop:
+                if self.stock_top_changed:
+                    self.stock_top_changed(frame.body.stockTopData)
+            elif frame.body.dataType == SocketCommon.DataType.OptionTop:
+                if self.option_top_changed:
+                    self.option_top_changed(frame.body.optionTopData)
             else:
                 self.logger.warning(f'unhandled frame: {frame}')
 
@@ -263,6 +277,56 @@ class ProtobufPushClient(ConnectionListener):
         req = ProtoMessageUtil.build_subscribe_quote_message(symbols, data_type=SocketCommon.Future)
         self._connection.send_frame(req)
 
+    def subscribe_stock_top(self, market, indicators):
+        """
+        订阅股票榜单行情
+        :param market: 市场
+        :param indicators: indicator列表
+        :return:
+        """
+        indicator_names = []
+        if indicators:
+            indicator_names = [get_enum_value(indicator) for indicator in indicators]
+        req = ProtoMessageUtil.build_subscribe_quote_message(symbols=indicator_names, data_type=SocketCommon.StockTop,
+                                                             market=market)
+        self._connection.send_frame(req)
+
+    def unsubscribe_stock_top(self, market, indicators):
+        """
+        退订股票榜单行情
+        :param market: 市场
+        :param indicators: indicator列表
+        :return:
+        """
+        indicator_names = []
+        if indicators:
+            indicator_names = [get_enum_value(indicator) for indicator in indicators]
+        req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols=indicator_names, data_type=SocketCommon.StockTop,
+                                                               market=market)
+        self._connection.send_frame(req)
+
+    def subscribe_option_top(self, market, indicators):
+        """
+        订阅期权榜单行情
+        :param market: 市场
+        :param indicators: indicator列表
+        :return:
+        """
+        req = ProtoMessageUtil.build_subscribe_quote_message(symbols=indicators, data_type=SocketCommon.OptionTop,
+                                                             market=market)
+        self._connection.send_frame(req)
+
+    def unsubscribe_option_top(self, market, indicators):
+        """
+        退订期权榜单行情
+        :param market: 市场
+        :param indicators: indicator列表
+        :return:
+        """
+        req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols=indicators, data_type=SocketCommon.OptionTop,
+                                                               market=market)
+        self._connection.send_frame(req)
+
     def query_subscribed_quote(self):
         """
         查询已订阅行情的合约
@@ -303,3 +367,66 @@ class ProtobufPushClient(ConnectionListener):
         req = ProtoMessageUtil.build_unsubscribe_market_message(market)
         self._connection.send_frame(req)
 
+    def _convert_tick(self, data: TradeTickData):
+        symbol = data.symbol
+        price_offset = 10 ** data.priceOffset
+        price_base = data.priceBase
+        timestamp = data.timestamp
+        sec_type = data.secType
+        quote_level = data.quoteLevel
+        # The latter time is equal to the sum of all previous values
+        price_items = [('price', (float(item) + price_base) / price_offset) for item in data.price]
+        time_items = [('time', item) for item in accumulate(data.time)]
+        volume_items = [('volume', int(item)) for item in data.volume]
+        tick_types = data.type
+        if tick_types:
+            tick_type_items = [('tick_type', item) for item in tick_types]
+        else:
+            tick_type_items = [('tick_type', None) for _ in range(len(time_items))]
+        part_codes = data.partCode
+        if part_codes:
+            part_code_items = [('part_code', get_part_code(item)) for item in part_codes]
+            part_code_name_items = [('part_code_name', get_part_code_name(item)) for item in part_codes]
+        else:
+            part_code_items = [('part_code', None) for _ in range(len(time_items))]
+            part_code_name_items = [('part_code_name', None) for _ in range(len(time_items))]
+        conds = data.cond
+        cond_map = get_trade_condition_map(data.quoteLevel)
+        if conds:
+            cond_items = [('cond', get_trade_condition(item, cond_map)) for item in conds]
+        else:
+            cond_items = [('cond', None) for _ in range(len(time_items))]
+        sn = int(data.sn)
+        sn_list = [('sn', sn + i) for i in range(len(time_items))]
+        merged_vols = data.mergedVols
+        if merged_vols:
+            merged_vols_items = [('merged_vols', item) for item in merged_vols]
+        else:
+            merged_vols_items = [('merged_vols', None) for _ in range(len(time_items))]
+        tick_data = zip_longest(tick_type_items, price_items, volume_items, part_code_items,
+                                part_code_name_items, cond_items, time_items, sn_list, merged_vols_items)
+        items = []
+        for item in tick_data:
+            try:
+                item_dict = dict(item)
+            except:
+                self.logger.error('convert tick error')
+                continue
+            if item_dict.get('merged_vols'):
+                vols = item_dict.pop('merged_vols').vol
+                for i, vol in enumerate(vols):
+                    sub_item = dict(item_dict)
+                    sub_item['sn'] = sub_item['sn'] * 10 + i
+                    sub_item['volume'] = vol
+                    tick_item = TradeTickItem()
+                    tick_item.__dict__ = sub_item
+                    items.append(tick_item)
+            else:
+                item_dict.pop('merged_vols', None)
+                tick_item = TradeTickItem()
+                tick_item.__dict__ = item_dict
+                items.append(tick_item)
+        tick =  TradeTick()
+        tick.__dict__ = {'symbol': symbol, 'sec_type': sec_type, 'quote_level': quote_level, 'timestamp': timestamp,
+                'ticks': items}
+        return tick

@@ -850,7 +850,7 @@ class MarketScannerParams(BaseParams):
         self._sort_field_data = None
         self._page = None
         self._page_size = None
-
+        self._multi_tags_fields = None
     @property
     def market(self):
         return self._market
@@ -915,6 +915,14 @@ class MarketScannerParams(BaseParams):
     def page_size(self, value):
         self._page_size = value
 
+    @property
+    def multi_tags_fields(self):
+        return self._multi_tags_fields
+
+    @multi_tags_fields.setter
+    def multi_tags_fields(self, value):
+        self._multi_tags_fields = value
+
     def to_openapi_dict(self):
         """
         example
@@ -950,6 +958,8 @@ class MarketScannerParams(BaseParams):
             params['page'] = self.page
         if self.page_size is not None:
             params['page_size'] = self.page_size
+        if self.multi_tags_fields:
+            params['multi_tag_field_list'] = [f.index for f in self.multi_tags_fields]
         return params
 
 
@@ -1342,4 +1352,23 @@ class WarrantFilterParams(BaseParams):
             params['outstanding_ratio'] = self.convert_range_param(self.outstanding_ratio)
         if self.implied_volatility:
             params['implied_volatility'] = self.convert_range_param(self.implied_volatility)
+        return params
+
+class KlineQuotaParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._with_details = False
+
+    @property
+    def with_details(self):
+        return self._with_details
+
+    @with_details.setter
+    def with_details(self, value):
+        self._with_details = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.with_details is not None:
+            params['with_details'] = self.with_details
         return params

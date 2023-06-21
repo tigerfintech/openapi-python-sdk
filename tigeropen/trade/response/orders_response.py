@@ -4,11 +4,10 @@ Created on 2018/10/31
 
 @author: gaoan
 """
-import json
-
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.order_utils import get_order_status
-from tigeropen.trade.domain.contract import Contract
+from tigeropen.common.util.string_utils import camel_to_underline_obj
+from tigeropen.trade.domain.contract import Contract, OrderContractLeg
 from tigeropen.trade.domain.order import Order, AlgoParams
 from tigeropen.trade.response import CONTRACT_FIELDS
 
@@ -23,7 +22,8 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'trailStopPrice': 'trail_stop_price', 'trailingPercent': 'trailing_percent',
                         'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params',
                         'userMark': 'user_mark', 'updateTime': 'update_time', 'expireTime': 'expire_time',
-                        'canModify': 'can_modify'
+                        'canModify': 'can_modify', 'externalId': 'external_id', 'isOpen': 'is_open',
+                        'comboType': 'combo_type', 'comboTypeDesc': 'combo_type_desc'
                         }
 
 
@@ -39,14 +39,13 @@ class OrdersResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            data_json = json.loads(self.data)
-            if 'items' in data_json:
-                for item in data_json['items']:
+            if 'items' in self.data:
+                for item in self.data['items']:
                     order = OrdersResponse.parse_order(item, secret_key)
                     if order:
                         self.orders.append(order)
-            elif 'symbol' in data_json:
-                order = OrdersResponse.parse_order(data_json, secret_key)
+            elif 'symbol' in self.data:
+                order = OrdersResponse.parse_order(self.data, secret_key)
                 if order:
                     self.orders.append(order)
 
@@ -75,9 +74,11 @@ class OrdersResponse(TigerResponse):
         put_call = contract_fields.get('right')
         multiplier = contract_fields.get('multiplier')
         identifier = contract_fields.get('identifier')
+        market = contract_fields.get('market')
         contract = Contract(symbol, currency, contract_id=contract_id, sec_type=sec_type, exchange=exchange,
                             origin_symbol=origin_symbol, local_symbol=local_symbol, expiry=expiry,
-                            strike=strike, put_call=put_call, multiplier=multiplier, identifier=identifier)
+                            strike=strike, put_call=put_call, multiplier=multiplier, identifier=identifier,
+                            market=market)
         account = order_fields.get('account')
         action = order_fields.get('action')
         order_type = order_fields.get('order_type')
@@ -106,6 +107,10 @@ class OrdersResponse(TigerResponse):
         source = order_fields.get('source')
         user_mark = order_fields.get('user_mark')
         can_modify = order_fields.get('can_modify')
+        external_id = order_fields.get('external_id')
+        is_open = order_fields.get('is_open')
+        combo_type = order_fields.get('combo_type')
+        combo_type_desc = order_fields.get('combo_type_desc')
 
         order = Order(account, contract, action, order_type, quantity, limit_price=limit_price, aux_price=aux_price,
                       trail_stop_price=trail_stop_price, trailing_percent=trailing_percent,
@@ -114,7 +119,8 @@ class OrdersResponse(TigerResponse):
                       realized_pnl=realized_pnl, id=id_, order_id=order_id, parent_id=parent_id,
                       algo_params=algo_params, liquidation=liquidation, algo_strategy=algo_strategy, discount=discount,
                       attr_desc=attr_desc, source=source, user_mark=user_mark, expire_time=expire_time,
-                      can_modify=can_modify)
+                      can_modify=can_modify, external_id=external_id, is_open=is_open, combo_type=combo_type,
+                      combo_type_desc=combo_type_desc)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:
@@ -126,6 +132,7 @@ class OrdersResponse(TigerResponse):
         if secret_key is not None:
             order.secret_key = secret_key
         order.status = status
-
+        if 'legs' in order_fields:
+            order.contract_legs = [OrderContractLeg(**camel_to_underline_obj(leg)) for leg in order_fields['legs']]
         return order
 

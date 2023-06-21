@@ -48,8 +48,8 @@ message QuoteData {
     double a = 2; // average price of the minute bar
     uint64 t = 3; // timestamp of the minute bar
     sint64 v = 4; // trading volume of the minute bar
-    double o = 5; // open price of the minute bar (only futures support)
-    double h = 6; // highest price of the minute bar (only futures support)
-    double l = 7; // lowest price of the minute bar (only futures support)
+    double o = 5; // open price of the minute bar
+    double h = 6; // highest price of the minute bar
+    double l = 7; // lowest price of the minute bar
   }
 }

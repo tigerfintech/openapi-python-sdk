@@ -8,14 +8,18 @@ import time
 # from tigeropen.common.consts import QuoteKeyType
 import pandas as pd
 
+from tigeropen.common.consts import StockRankingIndicator, OptionRankingIndicator
 from tigeropen.push.pb.AssetData_pb2 import AssetData
+from tigeropen.push.pb.OptionTopData_pb2 import OptionTopData
 from tigeropen.push.pb.OrderStatusData_pb2 import OrderStatusData
 from tigeropen.push.pb.OrderTransactionData_pb2 import OrderTransactionData
 from tigeropen.push.pb.PositionData_pb2 import PositionData
 from tigeropen.push.pb.QuoteBBOData_pb2 import QuoteBBOData
 from tigeropen.push.pb.QuoteBasicData_pb2 import QuoteBasicData
 from tigeropen.push.pb.QuoteDepthData_pb2 import QuoteDepthData
+from tigeropen.push.pb.StockTopData_pb2 import StockTopData
 from tigeropen.push.pb.TradeTickData_pb2 import TradeTickData
+from tigeropen.push.pb.trade_tick import TradeTick
 from tigeropen.push.push_client import PushClient
 from tigeropen.examples.client_config import get_client_config
 
@@ -152,27 +156,19 @@ def on_quote_depth_changed(frame: QuoteDepthData):
     print(f'quote depth changed: {frame}')
 
 
-def on_tick_changed(frame: TradeTickData):
+def on_tick_changed(frame: TradeTick):
     """逐笔成交回调
     example:
-    symbol: "00700"
-    type: "-+"
-    sn: 37998
-    priceBase: 3636
-    priceOffset: 1
-    time: 1677742815311
-    time: 69
-    price: 0
-    price: 2
-    volume: 500
-    volume: 100
-    quoteLevel: "hkStockQuoteLv2"
-    timestamp: 1677742815776
-    secType: "STK"
-
+    TradeTick<{'symbol': '00700', 'sec_type': 'STK', 'quote_level': 'hkStockQuoteLv2', 'timestamp': 1685602618145, 'ticks': [TradeTickItem<{'tick_type': '+', 'price': 316.6, 'volume': 100, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1685602617046, 'sn': 42055}>, TradeTickItem<{'tick_type': '-', 'price': 316.4, 'volume': 600, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1685602617639, 'sn': 42056}>, TradeTickItem<{'tick_type': '-', 'price': 316.4, 'volume': 200, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1685602617639, 'sn': 42057}>]}>
+    TradeTick<{'symbol': 'CLmain', 'sec_type': 'FUT', 'quote_level': '', 'timestamp': 1685602618153, 'ticks': [TradeTickItem<{'tick_type': None, 'price': 68.7, 'volume': 1, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1685602616000, 'sn': 109150}>, TradeTickItem<{'tick_type': None, 'price': 68.7, 'volume': 1, 'part_code': None, 'part_code_name': None, 'cond': None, 'time': 1685602616000, 'sn': 109151}>]}>
     """
     print(frame)
 
+def on_stock_top_changed(frame: StockTopData):
+    print(f'stock top changed: {frame}')
+
+def on_option_top_changed(frame: OptionTopData):
+    print(f'option top changed: {frame}')
 
 def on_order_changed(frame: OrderStatusData):
     """订单回调
@@ -324,6 +320,12 @@ if __name__ == '__main__':
     # 持仓变动回调
     push_client.position_changed = on_position_changed
 
+    # 股票榜单回调
+    push_client.stock_top_changed = on_stock_top_changed
+    # 期权榜单回调
+    push_client.option_top_changed = on_option_top_changed
+
+
     # 订阅成功与否的回调
     push_client.subscribe_callback = subscribe_callback
     # 退订成功与否的回调
@@ -359,6 +361,11 @@ if __name__ == '__main__':
     push_client.subscribe_position()
     # 查询已订阅的 symbol
     push_client.query_subscribed_quote()
+
+    # 订阅股票榜单数据
+    push_client.subscribe_stock_top("HK", [StockRankingIndicator.Amount, StockRankingIndicator.ChangeRate])
+    # 订阅期权榜单数据
+    push_client.subscribe_option_top("US", [OptionRankingIndicator.Amount])
 
     time.sleep(600)
     push_client.disconnect()
