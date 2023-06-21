@@ -17,7 +17,9 @@ POSITION_FIELD_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity'
                            'salable': 'saleable', 'positionScale': 'position_scale',
                            'averageCostByAverage': 'average_cost_by_average',
                            'unrealizedPnlByAverage': 'unrealized_pnl_by_average',
-                           'realizedPnlByAverage': 'realized_pnl_by_average',}
+                           'realizedPnlByAverage': 'realized_pnl_by_average',
+                           'unrealizedPnlPercent': 'unrealized_pnl_percent',
+                           'unrealizedPnlPercentByAverage': 'unrealized_pnl_percent_by_average'}
 
 
 class PositionsResponse(TigerResponse):
@@ -57,10 +59,11 @@ class PositionsResponse(TigerResponse):
                     put_call = contract_fields.get('right')
                     multiplier = contract_fields.get('multiplier')
                     identifier = contract_fields.get('identifier')
+                    market = contract_fields.get('market')
                     contract = Contract(symbol, currency, contract_id=contract_id, sec_type=sec_type,
                                         exchange=exchange, origin_symbol=origin_symbol, local_symbol=local_symbol,
                                         expiry=expiry, strike=strike, put_call=put_call, multiplier=multiplier,
-                                        identifier=identifier)
+                                        identifier=identifier, market=market)
                     account = position_fields.get('account')
                     quantity = position_fields.get('quantity')
                     average_cost = position_fields.get('average_cost')
@@ -73,13 +76,17 @@ class PositionsResponse(TigerResponse):
                     realized_pnl_by_average = position_fields.get('realized_pnl_by_average')
                     unrealized_pnl_by_average = position_fields.get('unrealized_pnl_by_average')
                     average_cost_by_average = position_fields.get('average_cost_by_average')
+                    unrealized_pnl_percent = position_fields.get('unrealized_pnl_percent')
+                    unrealized_pnl_percent_by_average = position_fields.get('unrealized_pnl_percent_by_average')
                     position = Position(account, contract, quantity, average_cost=average_cost,
                                         market_price=market_price, market_value=market_value,
                                         realized_pnl=realized_pnl, unrealized_pnl=unrealized_pnl,
                                         saleable=saleable, position_scale=position_scale,
                                         realized_pnl_by_average=realized_pnl_by_average,
                                         unrealized_pnl_by_average=unrealized_pnl_by_average,
-                                        average_cost_by_average=average_cost_by_average)
+                                        average_cost_by_average=average_cost_by_average,
+                                        unrealized_pnl_percent=unrealized_pnl_percent,
+                                        unrealized_pnl_percent_by_average=unrealized_pnl_percent_by_average)
                     self.positions.append(position)
 
 

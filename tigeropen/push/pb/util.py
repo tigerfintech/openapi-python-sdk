@@ -99,12 +99,12 @@ class ProtoMessageUtil:
         return request
 
     @classmethod
-    def build_subscribe_quote_message(cls, symbols, data_type=SocketCommon_pb2.SocketCommon.Quote):
-        return cls.build_quote_message(data_type, symbols, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
+    def build_subscribe_quote_message(cls, symbols, data_type=SocketCommon_pb2.SocketCommon.Quote, market=None):
+        return cls.build_quote_message(data_type, symbols, SocketCommon_pb2.SocketCommon.SUBSCRIBE, market=market)
 
     @classmethod
-    def build_unsubscribe_quote_message(cls, symbols, data_type=SocketCommon_pb2.SocketCommon.Quote):
-        return cls.build_quote_message(data_type, symbols, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
+    def build_unsubscribe_quote_message(cls, symbols, data_type=SocketCommon_pb2.SocketCommon.Quote, market=None):
+        return cls.build_quote_message(data_type, symbols, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE, market=market)
 
     @classmethod
     def build_subscribe_tick_quote_message(cls, symbols):
@@ -131,7 +131,7 @@ class ProtoMessageUtil:
         return cls.build_market_quote_message(market, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
 
     @classmethod
-    def build_quote_message(cls, data_type, symbols, command):
+    def build_quote_message(cls, data_type, symbols, command, market=None):
         request = Request_pb2.Request()
         request.command = command
         request.id = cls.increment()
@@ -140,6 +140,8 @@ class ProtoMessageUtil:
         sub.dataType = data_type
         if symbols:
             sub.symbols = ','.join(symbols) if isinstance(symbols, list) else symbols
+        if market:
+            sub.market = market
         request.subscribe.CopyFrom(sub)
         return request
 
