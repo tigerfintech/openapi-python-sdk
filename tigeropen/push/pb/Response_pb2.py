@@ -45,6 +45,14 @@ try:
   tigeropen_dot_push_dot_pb_dot_OrderTransactionData__pb2 = tigeropen_dot_push_dot_pb_dot_PushData__pb2.tigeropen_dot_push_dot_pb_dot_OrderTransactionData__pb2
 except AttributeError:
   tigeropen_dot_push_dot_pb_dot_OrderTransactionData__pb2 = tigeropen_dot_push_dot_pb_dot_PushData__pb2.tigeropen.push.pb.OrderTransactionData_pb2
+try:
+  tigeropen_dot_push_dot_pb_dot_StockTopData__pb2 = tigeropen_dot_push_dot_pb_dot_PushData__pb2.tigeropen_dot_push_dot_pb_dot_StockTopData__pb2
+except AttributeError:
+  tigeropen_dot_push_dot_pb_dot_StockTopData__pb2 = tigeropen_dot_push_dot_pb_dot_PushData__pb2.tigeropen.push.pb.StockTopData_pb2
+try:
+  tigeropen_dot_push_dot_pb_dot_OptionTopData__pb2 = tigeropen_dot_push_dot_pb_dot_PushData__pb2.tigeropen_dot_push_dot_pb_dot_OptionTopData__pb2
+except AttributeError:
+  tigeropen_dot_push_dot_pb_dot_OptionTopData__pb2 = tigeropen_dot_push_dot_pb_dot_PushData__pb2.tigeropen.push.pb.OptionTopData_pb2
 
 from tigeropen.push.pb.SocketCommon_pb2 import *
 from tigeropen.push.pb.PushData_pb2 import *

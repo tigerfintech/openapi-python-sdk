@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package tigeropen.push.pb;
+
+message OptionTopData {
+  string market = 1;
+  int64 timestamp = 2;
+  repeated TopData topData = 3;
+
+  message TopData {
+    string targetName = 1; // bigOrder, volume, amount, openInt
+    repeated BigOrder bigOrder = 2; // large order(bigOrder)
+    repeated OptionItem item = 3; // target value top list(volume, amount, openInt)
+  }
+
+  message BigOrder {
+    string symbol = 1;
+    string expiry = 2; // formate:yyyyMMdd
+    string strike = 3; // strike price
+    string right = 4; // CALL/PUT
+    string dir = 5;     // BUY/SELL
+    double volume = 6;  // target value: volume > 1000
+    double price = 7;   // trade price
+    double amount = 8;  // trade amount
+    int64 tradeTime = 9;// trade timestamp
+  }
+
+  message OptionItem {
+    string symbol = 1;
+    string expiry = 2; // formate:yyyyMMdd
+    string strike = 3; // strike price
+    string right = 4; // CALL/PUT
+    double totalAmount = 5;  // total trade amount
+    double totalVolume = 6;  // total trade volume
+    double totalOpenInt = 7; // open interest
+    double volumeToOpenInt = 8; // Volume to Open Interest
+    double latestPrice = 9;  // option latest price
+    int64 updateTime = 10;    // uptate timestamp
+  }
+}

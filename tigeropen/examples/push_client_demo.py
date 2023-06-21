@@ -8,13 +8,16 @@ import time
 # from tigeropen.common.consts import QuoteKeyType
 import pandas as pd
 
+from tigeropen.common.consts import StockRankingIndicator, OptionRankingIndicator
 from tigeropen.push.pb.AssetData_pb2 import AssetData
+from tigeropen.push.pb.OptionTopData_pb2 import OptionTopData
 from tigeropen.push.pb.OrderStatusData_pb2 import OrderStatusData
 from tigeropen.push.pb.OrderTransactionData_pb2 import OrderTransactionData
 from tigeropen.push.pb.PositionData_pb2 import PositionData
 from tigeropen.push.pb.QuoteBBOData_pb2 import QuoteBBOData
 from tigeropen.push.pb.QuoteBasicData_pb2 import QuoteBasicData
 from tigeropen.push.pb.QuoteDepthData_pb2 import QuoteDepthData
+from tigeropen.push.pb.StockTopData_pb2 import StockTopData
 from tigeropen.push.pb.TradeTickData_pb2 import TradeTickData
 from tigeropen.push.pb.trade_tick import TradeTick
 from tigeropen.push.push_client import PushClient
@@ -161,6 +164,11 @@ def on_tick_changed(frame: TradeTick):
     """
     print(frame)
 
+def on_stock_top_changed(frame: StockTopData):
+    print(f'stock top changed: {frame}')
+
+def on_option_top_changed(frame: OptionTopData):
+    print(f'option top changed: {frame}')
 
 def on_order_changed(frame: OrderStatusData):
     """订单回调
@@ -312,6 +320,12 @@ if __name__ == '__main__':
     # 持仓变动回调
     push_client.position_changed = on_position_changed
 
+    # 股票榜单回调
+    push_client.stock_top_changed = on_stock_top_changed
+    # 期权榜单回调
+    push_client.option_top_changed = on_option_top_changed
+
+
     # 订阅成功与否的回调
     push_client.subscribe_callback = subscribe_callback
     # 退订成功与否的回调
@@ -347,6 +361,11 @@ if __name__ == '__main__':
     push_client.subscribe_position()
     # 查询已订阅的 symbol
     push_client.query_subscribed_quote()
+
+    # 订阅股票榜单数据
+    push_client.subscribe_stock_top("HK", [StockRankingIndicator.Amount, StockRankingIndicator.ChangeRate])
+    # 订阅期权榜单数据
+    push_client.subscribe_option_top("US", [OptionRankingIndicator.Amount])
 
     time.sleep(600)
     push_client.disconnect()
