@@ -32,6 +32,8 @@ class Position:
         self.unrealized_pnl_by_average = kwargs.get('unrealized_pnl_by_average', None)
         self.saleable = saleable
         self.position_scale = position_scale
+        self.unrealized_pnl_percent = kwargs.get('unrealized_pnl_percent', None)
+        self.unrealized_pnl_percent_by_average = kwargs.get('unrealized_pnl_percent_by_average', None)
     
     def __repr__(self):
         template = "contract: {contract}, quantity: {quantity}, average_cost: {average_cost}, " \
