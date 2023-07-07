@@ -101,6 +101,12 @@ class ProtobufPushClient(ConnectionListener):
         else:
             self._connect()
 
+    def on_disconnecting(self):
+        self.on_disconnected()
+
+    def on_heartbeat(self, frame):
+        self.logger.debug('heart-beat')
+
     def on_error(self, frame):
         self.logger.error(frame)
 
