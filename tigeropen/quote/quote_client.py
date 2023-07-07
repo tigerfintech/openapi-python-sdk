@@ -741,7 +741,8 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_option_bars(self, identifiers, begin_time=-1, end_time=4070880000000, period=BarPeriod.DAY, limit=None):
+    def get_option_bars(self, identifiers, begin_time=-1, end_time=4070880000000, period=BarPeriod.DAY, limit=None,
+                        sort_dir=None):
         """
         获取期权日K数据
         :param identifiers: 期权代码列表
@@ -751,6 +752,7 @@ class QuoteClient(TigerOpenClient):
         :param period: 时间间隔. 可选值: DAY("day"), ONE_MINUTE("1min"), FIVE_MINUTES("5min"), HALF_HOUR("30min"),
             ONE_HOUR("60min");
         :param limit: 每个期权的返回k线数量
+        :param sort_dir: tigeropen.common.consts.SortDirection, e.g. SortDirection.DESC
         :return: pandas.DataFrame, 各 column 含义如下：
             time: 毫秒级时间戳
             open: 开盘价
@@ -778,6 +780,7 @@ class QuoteClient(TigerOpenClient):
             param.begin_time = date_str_to_timestamp(begin_time, self._timezone)
             param.end_time = date_str_to_timestamp(end_time, self._timezone)
             param.limit = limit
+            param.sort_dir = get_enum_value(sort_dir)
             contracts.append(param)
         params.contracts = contracts
         request = OpenApiRequest(OPTION_KLINE, biz_model=params)
