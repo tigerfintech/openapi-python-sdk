@@ -232,11 +232,12 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_stock_briefs(self, symbols, lang=None):
+    def get_stock_briefs(self, symbols, include_hour_trading=False, lang=None):
         """
         获取股票实时行情
         :param symbols: 股票代号列表
         :param lang: 语言支持: tigeropen.common.consts.Language:  zh_CN,zh_TW,en_US
+        :param include_hour_trading: 是否包含盘前盘后
         :return: pandas.DataFrame.  各 column 含义如下：
             symbol: 证券代码
             ask_price: 卖一价
@@ -260,6 +261,7 @@ class QuoteClient(TigerOpenClient):
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
+        params.include_hour_trading = include_hour_trading
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
 
         request = OpenApiRequest(QUOTE_REAL_TIME, biz_model=params)
