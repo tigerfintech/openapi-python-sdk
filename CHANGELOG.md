@@ -1,3 +1,7 @@
+## 3.0.3 (2023-07-10)
+### New
+- 股票实时行情接口 `QuoteClient.get_stock_briefs` 增加 `include_hour_trading` 参数, 支持返回盘前盘后数据
+
 ## 3.0.2 (2023-07-07)
 ### New
 - 期权k线接口支持排序方向参数 `sort_dir`
