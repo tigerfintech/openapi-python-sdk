@@ -8,11 +8,9 @@ Created on 2018/10/31
 import pandas as pd
 
 from tigeropen.common.response import TigerResponse
+from tigeropen.common.util import string_utils
 
-COLUMNS = ['symbol', 'ask_price', 'ask_size', 'bid_price', 'bid_size', 'pre_close', 'latest_price', 'latest_time',
-           'volume', 'open', 'high', 'low', 'status']
-BRIEF_FIELD_MAPPINGS = {'askPrice': 'ask_price', 'askSize': 'ask_size', 'bidPrice': 'bid_price', 'bidSize': 'bid_size',
-                        'latestPrice': 'latest_price', 'preClose': 'pre_close', 'latestTime': 'latest_time'}
+HOUR_TRADING_KEY = "hour_trading"
 
 
 class StockBriefsResponse(TigerResponse):
@@ -29,13 +27,10 @@ class StockBriefsResponse(TigerResponse):
         if self.data and isinstance(self.data, list):
             brief_data = []
             for item in self.data:
-                item_values = {}
-                for key, value in item.items():
-                    if value is None:
-                        continue
-                    tag = BRIEF_FIELD_MAPPINGS[key] if key in BRIEF_FIELD_MAPPINGS else key
-                    item_values[tag] = value
-
-                brief_data.append([item_values.get(tag) for tag in COLUMNS])
-
-            self.briefs = pd.DataFrame(brief_data, columns=COLUMNS)
+                item_data = string_utils.camel_to_underline_obj(item)
+                hour_trading = item_data.pop(HOUR_TRADING_KEY, None)
+                if hour_trading:
+                    for k, v in hour_trading.items():
+                        item_data[HOUR_TRADING_KEY + '_' + k] = v
+                brief_data.append(item_data)
+            self.briefs = pd.DataFrame(brief_data)
