@@ -41,6 +41,25 @@ class MarketParams(BaseParams):
         return params
 
 
+class SymbolsParams(MarketParams):
+    def __init__(self):
+        super(SymbolsParams, self).__init__()
+        self._include_otc = None
+
+    @property
+    def include_otc(self):
+        return self._include_otc
+
+    @include_otc.setter
+    def include_otc(self, value):
+        self._include_otc = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.include_otc:
+            params['include_otc'] = self.include_otc
+        return params
+
 class SingleQuoteParams(MarketParams):
     def __init__(self):
         super(SingleQuoteParams, self).__init__()
