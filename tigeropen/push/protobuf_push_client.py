@@ -8,6 +8,7 @@ from itertools import accumulate, zip_longest
 
 from tigeropen.common.consts.push_types import ResponseType
 from tigeropen.common.util.common_utils import get_enum_value
+from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.util.signature_utils import sign_with_rsa
 from tigeropen.common.util.tick_util import get_part_code, get_part_code_name, get_trade_condition_map, \
     get_trade_condition
@@ -27,7 +28,7 @@ else:
 
 
 class ProtobufPushClient(ConnectionListener):
-    def __init__(self, host, port, use_ssl=True, connection_timeout=120, heartbeats=(30 * 1000, 30 * 1000)):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000)):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
@@ -155,6 +156,7 @@ class ProtobufPushClient(ConnectionListener):
                     self.tick_changed(self._convert_tick(frame.body.tradeTickData))
             elif frame.body.dataType == SocketCommon.DataType.OrderStatus:
                 if self.order_changed:
+                    frame.body.orderStatusData.status = get_order_status(frame.body.orderStatusData.status).name
                     self.order_changed(frame.body.orderStatusData)
             elif frame.body.dataType == SocketCommon.DataType.OrderTransaction:
                 if self.transaction_changed:
