@@ -182,19 +182,19 @@ def get_order_status(value):
     :param value:
     :return:
     """
-    if value == -1 or value == 'Initial':
+    if value in (-1, 'Initial', 'NEW'):
         return OrderStatus.NEW
-    elif value == 2 or value == 5 or value == 8 or value == 'Submitted' or value == 'PendingSubmit':
+    elif value in (2, 5, 8, 'Submitted', 'PendingSubmit', 'HELD'):
         return OrderStatus.HELD
-    elif value == 3 or value == 'PendingCancel':
+    elif value in (3, 'PendingCancel', 'PENDING_CANCEL'):
         return OrderStatus.PENDING_CANCEL
-    elif value == 4 or value == 'Cancelled':
+    elif value in (4, 'Cancelled', 'CANCELLED'):
         return OrderStatus.CANCELLED
-    elif value == 6 or value == 'Filled':
+    elif value in (6, 'Filled', 'FILLED'):
         return OrderStatus.FILLED
-    elif value == 7 or value == 'Inactive':
+    elif value in (7, 'Inactive', 'REJECTED'):
         return OrderStatus.REJECTED
-    elif value == -2 or value == 'Invalid':
+    elif value in (-2, 'Invalid', 'EXPIRED'):
         return OrderStatus.EXPIRED
 
     return OrderStatus.PENDING_NEW
