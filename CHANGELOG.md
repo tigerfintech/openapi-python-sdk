@@ -1,3 +1,12 @@
+## 3.0.4 (2023-07-19)
+### New
+- 获取市场股票代码接口 `QuoteClient.get_symbols` 增加参数 `include_otc` 参数，支持返回OTC市场symbol
+
+### Breaking
+- 长链接订单状态回调中，回调数据对象 `tigeropen.push.pb.OrderStatusData_pb2.OrderStatusData` 的 `status` 
+  字段改为 `tigeropen.common.consts.OrderStatus` 枚举名称的字符串，可通过 `OrderStatus[frame.status]` 或
+  `get_order_status(frame.status)` 转换为 `OrderStatus` 枚举
+
 ## 3.0.3 (2023-07-10)
 ### New
 - 股票实时行情接口 `QuoteClient.get_stock_briefs` 增加 `include_hour_trading` 参数, 支持返回盘前盘后数据

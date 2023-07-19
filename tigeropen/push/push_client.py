@@ -10,7 +10,7 @@ from tigeropen.push.stomp_push_client import StompPushClient
 
 
 class PushClient:
-    def __init__(self, host, port, use_ssl=True, connection_timeout=120, heartbeats=(30 * 1000, 30 * 1000),
+    def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000),
                  use_protobuf=True):
         """
         :param host:
