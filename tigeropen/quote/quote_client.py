@@ -41,7 +41,7 @@ from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
-    StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams
+    StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
@@ -134,15 +134,16 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_symbols(self, market=Market.ALL):
+    def get_symbols(self, market=Market.ALL, include_otc=False):
         """
         获取股票代号列表
         :param market: US 美股，HK 港股， CN A股，ALL 所有
         :return: 所有 symbol 的列表，包含退市和不可交易的部分代码. 其中以.开头的代码为指数， 如 .DJI 表示道琼斯指数
         """
-        params = MarketParams()
+        params = SymbolsParams()
         params.market = get_enum_value(market)
         params.lang = get_enum_value(self._lang)
+        params.include_otc = include_otc
         request = OpenApiRequest(ALL_SYMBOLS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
