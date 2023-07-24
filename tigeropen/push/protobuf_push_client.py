@@ -156,7 +156,8 @@ class ProtobufPushClient(ConnectionListener):
                     self.tick_changed(self._convert_tick(frame.body.tradeTickData))
             elif frame.body.dataType == SocketCommon.DataType.OrderStatus:
                 if self.order_changed:
-                    frame.body.orderStatusData.status = get_order_status(frame.body.orderStatusData.status).name
+                    frame.body.orderStatusData.status = get_order_status(frame.body.orderStatusData.status,
+                                                                         frame.body.orderStatusData.filledQuantity).name
                     self.order_changed(frame.body.orderStatusData)
             elif frame.body.dataType == SocketCommon.DataType.OrderTransaction:
                 if self.transaction_changed:
