@@ -122,7 +122,7 @@ class Order:
     def status(self):
         if not self.remaining and self.filled:
             return OrderStatus.FILLED
-        elif self._status == OrderStatus.HELD and self.filled:
+        elif self._status == OrderStatus.HELD and self.is_partially_filled(OrderStatus.HELD, self.filled):
             return OrderStatus.PARTIALLY_FILLED
         else:
             return self._status
@@ -142,6 +142,12 @@ class Order:
             return int(self.quantity) - int(self.filled)
         except:
             return None
+
+    @staticmethod
+    def is_partially_filled(status, filled_quantity):
+        if status == OrderStatus.HELD and filled_quantity:
+            return True
+        return False
 
     def __repr__(self):
         """
