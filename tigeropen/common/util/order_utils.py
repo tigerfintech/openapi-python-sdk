@@ -176,15 +176,19 @@ def combo_order(account, contract_legs, combo_type, action, quantity, order_type
     return Order(account, None, action=action, order_type=order_type, quantity=quantity, limit_price=limit_price,
                  aux_price=aux_price, trailing_percent=trailing_percent, combo_type=combo_type,
                  contract_legs=contract_legs)
-def get_order_status(value):
+
+def get_order_status(value, filled_quantity=0):
     """
     Invalid(-2), Initial(-1), PendingCancel(3), Cancelled(4), Submitted(5), Filled(6), Inactive(7), PendingSubmit(8)
     :param value:
+    :param filled_quantity:
     :return:
     """
     if value in (-1, 'Initial', 'NEW'):
         return OrderStatus.NEW
     elif value in (2, 5, 8, 'Submitted', 'PendingSubmit', 'HELD'):
+        if Order.is_partially_filled(OrderStatus.HELD, filled_quantity):
+            return OrderStatus.PARTIALLY_FILLED
         return OrderStatus.HELD
     elif value in (3, 'PendingCancel', 'PENDING_CANCEL'):
         return OrderStatus.PENDING_CANCEL
