@@ -88,11 +88,6 @@ class Contract:
         self.discounted_time_zone_code = kwargs.get('discounted_time_zone_code')
         self.discounted_start_at = kwargs.get('discounted_start_at')
         self.discounted_end_at = kwargs.get('discounted_end_at')
-        # Funds contract fields
-        self.company_name = kwargs.get('company_name', None)
-        self.sub_type = kwargs.get('sub_type', None)
-        self.dividend_type = kwargs.get('dividend_type', None)
-        self.tiger_vault = kwargs.get('tiger_vault', None)
 
     @property
     def right(self):
