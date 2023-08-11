@@ -1699,7 +1699,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_fund_history_quote(self, symbols, begin_time=None, end_time=None, limit=None):
+    def get_fund_history_quote(self, symbols, begin_time, end_time, limit=None):
         params = MultipleQuoteParams()
         params.symbols = symbols if isinstance(symbols, list) else [symbols]
         params.begin_time = begin_time

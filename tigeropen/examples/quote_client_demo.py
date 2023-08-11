@@ -305,7 +305,7 @@ class TestQuoteClient(unittest.TestCase):
         close = float(result.iloc[0]['close'])
 
     def test_get_fund_history_quote(self):
-        result = openapi_client.get_fund_history_quote(['IE00B11XZ988.USD', 'LU0476943708.HKD'])
+        result = openapi_client.get_fund_history_quote(['LU0476943708.HKD'], begin_time=1691337600000, end_time=1691596800000)
         print(result)
         print(result.loc[result['symbol']=='LU0476943708.HKD'].iloc[0]['nav'])
 
