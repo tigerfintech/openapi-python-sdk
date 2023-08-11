@@ -11,7 +11,7 @@ from tigeropen.common.response import TigerResponse
 class SymbolsResponse(TigerResponse):
     def __init__(self):
         super(SymbolsResponse, self).__init__()
-        self.symbols = []
+        self.result = []
         self._is_success = None
 
     def parse_response_content(self, response_content):
@@ -20,4 +20,4 @@ class SymbolsResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data and isinstance(self.data, list):
-            self.symbols = [symbol for symbol in self.data if symbol]
+            self.result = [symbol for symbol in self.data if symbol]

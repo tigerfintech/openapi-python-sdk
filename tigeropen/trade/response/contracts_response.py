@@ -25,6 +25,8 @@ class ContractsResponse(TigerResponse):
         if self.data:
             if 'items' in self.data:
                 items = self.data['items']
+            elif isinstance(self.data, list):
+                items = self.data
             else:
                 items = [self.data]
             for item in items:
