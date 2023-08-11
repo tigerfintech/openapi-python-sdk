@@ -166,6 +166,14 @@ class PushClient:
     def error_callback(self, value):
         self.client.error_callback = value
 
+    @property
+    def heartbeat_callback(self):
+        return self.client.on_heartbeat
+
+    @heartbeat_callback.setter
+    def heartbeat_callback(self, value):
+        self.client.heartbeat_callback = value
+
     def connect(self, tiger_id, private_key):
         self.client.connect(tiger_id=tiger_id, private_key=private_key)
 

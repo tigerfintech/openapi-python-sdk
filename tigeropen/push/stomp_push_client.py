@@ -107,6 +107,7 @@ class StompPushClient(stomp.ConnectionListener):
         self.subscribe_callback = None
         self.unsubscribe_callback = None
         self.error_callback = None
+        self.heartbeat_callback = None
         self._connection_timeout = connection_timeout
         self._heartbeats = heartbeats
         self.logger = logging.getLogger('tiger_openapi')
@@ -150,6 +151,10 @@ class StompPushClient(stomp.ConnectionListener):
             self.disconnect_callback()
         else:
             self._connect()
+
+    def on_heartbeat(self):
+        if self.heartbeat_callback:
+            self.heartbeat_callback()
 
     def on_message(self, frame):
         """

@@ -21,6 +21,17 @@ def market_order(account, contract, action, quantity):
     return Order(account, contract, action, 'MKT', quantity)
 
 
+def market_order_by_amount(account, contract, action, amount):
+    """
+    按金额的市价单(用于基金)
+    :param account:
+    :param contract:
+    :param action: BUY/SELL
+    :param amount:
+    :return:
+    """
+    return Order(account, contract, action, 'MKT', total_cash_amount=amount)
+
 def limit_order(account, contract, action, quantity, limit_price):
     """
     限价单
