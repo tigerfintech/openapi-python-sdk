@@ -45,6 +45,9 @@ def cash_contract(symbol, currency, local_symbol=None):
     return Contract(symbol, currency, sec_type='CASH', local_symbol=local_symbol)
 
 
+def fund_contract(symbol):
+    return Contract(symbol, sec_type=SecurityType.FUND.value)
+
 def war_contract_by_symbol(symbol, expiry, strike, put_call, local_symbol, multiplier=100, currency='HKD',
                            contract_id=None):
     """港股窝轮"""

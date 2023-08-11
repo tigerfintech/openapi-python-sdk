@@ -54,6 +54,7 @@ class ProtobufPushClient(ConnectionListener):
         self.subscribe_callback = None
         self.unsubscribe_callback = None
         self.error_callback = None
+        self.heartbeat_callback = None
         self._connection_timeout = connection_timeout
         self._heartbeats = heartbeats
         self.logger = logging.getLogger('tiger_openapi')
@@ -107,6 +108,8 @@ class ProtobufPushClient(ConnectionListener):
 
     def on_heartbeat(self, frame):
         self.logger.debug('heart-beat')
+        if self.heartbeat_callback:
+            self.heartbeat_callback(frame)
 
     def on_error(self, frame):
         self.logger.error(frame)
