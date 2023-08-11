@@ -1,3 +1,12 @@
+## 3.0.7 (2023-08-11)
+### New
+- 新增基金相关接口
+  `QuoteClient.get_fund_symbols` 基金代码列表  
+  `QuoteClient.get_fund_quote` 基金行情
+  `QuoteClient.get_fund_history_quote` 基金历史行情
+  `QuoteClient.get_fund_contracts` 基金合约
+- 订单数据推送中新增字段 `totalCashAmount`, `filledCashAmount`
+
 ## 3.0.6 (2023-07-31)
 ### Modify
 - 长链接添加统一异常处理

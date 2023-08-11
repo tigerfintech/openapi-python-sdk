@@ -6,6 +6,7 @@ Created on 2018/10/31
 """
 import logging
 import time
+import unittest
 
 import pandas as pd
 from tigeropen.common.consts import Market, QuoteRight, FinancialReportPeriodType, Valuation, \
@@ -282,6 +283,31 @@ def test_capital_distribution():
     """
     result = openapi_client.get_capital_distribution('JD', market=Market.US)
     print(result)
+
+
+class TestQuoteClient(unittest.TestCase):
+    """测试QuoteClient"""
+
+    def test_get_fund_symbols(self):
+        result = openapi_client.get_fund_symbols()
+        print(result)
+
+    def test_get_fund_contracts(self):
+        result = openapi_client.get_fund_contracts(['IE00B11XZ988.USD', 'LU0476943708.HKD', 'SG9999017602.SGD'])
+        print(result)
+        print(result.iloc[0]['name'])
+
+    def test_get_fund_quote(self):
+        result = openapi_client.get_fund_quote(['IE00B11XZ988.USD', 'LU0476943708.HKD'])
+        print(result)
+        print(result.iloc[0]['close'])
+        # to python type
+        close = float(result.iloc[0]['close'])
+
+    def test_get_fund_history_quote(self):
+        result = openapi_client.get_fund_history_quote(['IE00B11XZ988.USD', 'LU0476943708.HKD'])
+        print(result)
+        print(result.loc[result['symbol']=='LU0476943708.HKD'].iloc[0]['nav'])
 
 
 if __name__ == '__main__':

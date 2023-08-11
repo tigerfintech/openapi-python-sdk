@@ -17,7 +17,7 @@ from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
     HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
-    KLINE_QUOTA
+    KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -44,6 +44,7 @@ from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, Mul
     StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
+from tigeropen.quote.response.fund_contracts_response import FundContractsResponse
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
@@ -51,6 +52,7 @@ from tigeropen.quote.response.future_quote_bar_response import FutureQuoteBarRes
 from tigeropen.quote.response.future_quote_ticks_response import FutureTradeTickResponse
 from tigeropen.quote.response.future_trading_times_response import FutureTradingTimesResponse
 from tigeropen.quote.response.kline_quota_response import KlineQuotaResponse
+from tigeropen.quote.response.market_scanner_response import MarketScannerResponse, MarketScannerTagsResponse
 from tigeropen.quote.response.market_status_response import MarketStatusResponse
 from tigeropen.quote.response.option_briefs_response import OptionBriefsResponse
 from tigeropen.quote.response.option_chains_response import OptionChainsResponse
@@ -63,9 +65,8 @@ from tigeropen.quote.response.quote_delay_briefs_response import DelayBriefsResp
 from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
 from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
-from tigeropen.quote.response.quote_timeline_history_response import QuoteTimelineHistoryResponse
+from tigeropen.quote.response.quote_dataframe_response import QuoteDataframeResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
-from tigeropen.quote.response.market_scanner_response import MarketScannerResponse, MarketScannerTagsResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
 from tigeropen.quote.response.stock_broker_response import StockBrokerResponse
 from tigeropen.quote.response.stock_details_response import StockDetailsResponse
@@ -150,7 +151,7 @@ class QuoteClient(TigerOpenClient):
             response = SymbolsResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.symbols
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
 
@@ -414,10 +415,10 @@ class QuoteClient(TigerOpenClient):
         request = OpenApiRequest(HISTORY_TIMELINE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
-            response = QuoteTimelineHistoryResponse()
+            response = QuoteDataframeResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.timelines
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
 
@@ -1651,6 +1652,64 @@ class QuoteClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = KlineQuotaResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_fund_symbols(self):
+        params = SymbolsParams()
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FUND_ALL_SYMBOLS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = SymbolsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_fund_contracts(self, symbols):
+        params = MultipleQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FUND_CONTRACTS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FundContractsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_fund_quote(self, symbols):
+        params = MultipleQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FUND_QUOTE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = StockBriefsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.briefs
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_fund_history_quote(self, symbols, begin_time=None, end_time=None, limit=None):
+        params = MultipleQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.begin_time = begin_time
+        params.end_time = end_time
+        params.limit = limit
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FUND_HISTORY_QUOTE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = QuoteDataframeResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.result
