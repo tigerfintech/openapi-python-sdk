@@ -17,7 +17,8 @@ from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
     HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
-    KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE
+    KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
+    FINANCIAL_EXCHANGE_RATE
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -29,11 +30,13 @@ from tigeropen.common.request import OpenApiRequest
 from tigeropen.common.util.common_utils import eastern, get_enum_value, date_str_to_timestamp
 from tigeropen.common.util.contract_utils import extract_option_info
 from tigeropen.fundamental.request.model import FinancialDailyParams, FinancialReportParams, CorporateActionParams, \
-    IndustryParams
+    IndustryParams, FinancialExchangeRateParams
 from tigeropen.fundamental.response.corporate_dividend_response import CorporateDividendResponse
 from tigeropen.fundamental.response.corporate_earnings_calendar_response import EarningsCalendarResponse
 from tigeropen.fundamental.response.corporate_split_response import CorporateSplitResponse
+from tigeropen.fundamental.response.dataframe_response import DataframeResponse
 from tigeropen.fundamental.response.financial_daily_response import FinancialDailyResponse
+from tigeropen.fundamental.response.financial_exchange_rate_response import FinancialExchangeRateResponse
 from tigeropen.fundamental.response.financial_report_response import FinancialReportResponse
 from tigeropen.fundamental.response.industry_response import IndustryListResponse, IndustryStocksResponse, \
     StockIndustryResponse
@@ -1306,6 +1309,59 @@ class QuoteClient(TigerOpenClient):
                 return response.financial_report
             else:
                 raise ApiException(response.code, response.message)
+
+    def get_financial_currency(self, symbols, market):
+        """
+        获取财务币种
+        :param symbols: 证券代码列表
+        :param market: 查询的市场. 可选的值为 common.consts.Market 枚举类型, 如 Market.US
+        :return: pandas.DataFrame
+              symbol currency company_currency
+            0   AAPL      USD              USD
+            1   GOOG      USD              USD
+        """
+        params = FinancialReportParams()
+        params.symbols = symbols
+        params.market = get_enum_value(market)
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FINANCIAL_CURRENCY, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = DataframeResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_financial_exchange_rate(self, currency_list, begin_date, end_date=None, timezone=None):
+        """
+        获取货币和美元兑换的汇率（1美元换多少单位其他货币）
+        :param currency_list: 财务币种列表
+        :param begin_date: 起始时间
+        :param end_date: 截止时间
+        :param timezone: 时区
+        :return: pandas.DataFrame
+          currency           date    value
+        0      HKD  1691942400000  7.81728
+        1      USD  1691942400000  1.00000
+        """
+        tz = timezone if timezone else self._timezone
+        params = FinancialExchangeRateParams()
+        params.currency_list = currency_list
+        params.begin_date = date_str_to_timestamp(begin_date, tz)
+        if end_date is None:
+            end_date = begin_date
+        params.end_date = date_str_to_timestamp(end_date, tz)
+        params.timezone = str(tz)
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FINANCIAL_EXCHANGE_RATE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FinancialExchangeRateResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
 
     def get_industry_list(self, industry_level=IndustryLevel.GGROUP):
         """
