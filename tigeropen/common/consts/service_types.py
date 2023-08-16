@@ -100,6 +100,9 @@ FUND_HISTORY_QUOTE = "fund_history_quote"
 FINANCIAL_DAILY = 'financial_daily'
 FINANCIAL_REPORT = 'financial_report'
 CORPORATE_ACTION = 'corporate_action'
+# 换汇
+FINANCIAL_CURRENCY = "financial_currency"
+FINANCIAL_EXCHANGE_RATE = "financial_exchange_rate"
 
 # 行业数据
 INDUSTRY_LIST = 'industry_list'
