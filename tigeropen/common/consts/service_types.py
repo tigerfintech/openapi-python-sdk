@@ -90,10 +90,19 @@ FUTURE_REAL_TIME_QUOTE = "future_real_time_quote"
 FUTURE_TICK = "future_tick"
 FUTURE_TRADING_DATE = "future_trading_date"
 
+# 基金行情
+FUND_ALL_SYMBOLS = "fund_all_symbols"
+FUND_CONTRACTS = "fund_contracts"
+FUND_QUOTE = "fund_quote"
+FUND_HISTORY_QUOTE = "fund_history_quote"
+
 # 公司行动, 财务数据
 FINANCIAL_DAILY = 'financial_daily'
 FINANCIAL_REPORT = 'financial_report'
 CORPORATE_ACTION = 'corporate_action'
+# 换汇
+FINANCIAL_CURRENCY = "financial_currency"
+FINANCIAL_EXCHANGE_RATE = "financial_exchange_rate"
 
 # 行业数据
 INDUSTRY_LIST = 'industry_list'

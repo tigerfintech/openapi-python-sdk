@@ -1,3 +1,45 @@
+## 3.0.8 (2023-08-16)
+### New
+- 添加示例代码
+
+
+## 3.0.7 (2023-08-11)
+### New
+- 新增基金相关接口
+  `QuoteClient.get_fund_symbols` 基金代码列表  
+  `QuoteClient.get_fund_quote` 基金行情
+  `QuoteClient.get_fund_history_quote` 基金历史行情
+  `QuoteClient.get_fund_contracts` 基金合约
+- 订单数据推送中新增字段 `totalCashAmount`, `filledCashAmount`
+- PushClient 可自定义心跳回调方法
+
+## 3.0.6 (2023-07-31)
+### Modify
+- 长链接添加统一异常处理
+
+## 3.0.5 (2023-07-24)
+### Fix
+- 修复长链接订单状态推送时，部分成交状态未转换为对应枚举值的问题
+
+## 3.0.4 (2023-07-19)
+### New
+- 获取市场股票代码接口 `QuoteClient.get_symbols` 增加参数 `include_otc` 参数，支持返回OTC市场symbol
+
+### Breaking
+- 长链接订单状态回调中，回调数据对象 `tigeropen.push.pb.OrderStatusData_pb2.OrderStatusData` 的 `status` 
+  字段改为 `tigeropen.common.consts.OrderStatus` 枚举名称的字符串，可通过 `OrderStatus[frame.status]` 或
+  `get_order_status(frame.status)` 转换为 `OrderStatus` 枚举
+
+## 3.0.3 (2023-07-10)
+### New
+- 股票实时行情接口 `QuoteClient.get_stock_briefs` 增加 `include_hour_trading` 参数, 支持返回盘前盘后数据
+
+## 3.0.2 (2023-07-07)
+### New
+- 期权k线接口支持排序方向参数 `sort_dir`
+### Fix
+- 修复长链接重连问题
+
 ## 3.0.1 (2023-06-21)
 ### New
 - 历史K线额度接口

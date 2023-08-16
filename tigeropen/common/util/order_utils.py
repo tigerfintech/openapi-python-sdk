@@ -21,6 +21,17 @@ def market_order(account, contract, action, quantity):
     return Order(account, contract, action, 'MKT', quantity)
 
 
+def market_order_by_amount(account, contract, action, amount):
+    """
+    按金额的市价单(用于基金)
+    :param account:
+    :param contract:
+    :param action: BUY/SELL
+    :param amount:
+    :return:
+    """
+    return Order(account, contract, action, 'MKT', total_cash_amount=amount)
+
 def limit_order(account, contract, action, quantity, limit_price):
     """
     限价单
@@ -176,25 +187,29 @@ def combo_order(account, contract_legs, combo_type, action, quantity, order_type
     return Order(account, None, action=action, order_type=order_type, quantity=quantity, limit_price=limit_price,
                  aux_price=aux_price, trailing_percent=trailing_percent, combo_type=combo_type,
                  contract_legs=contract_legs)
-def get_order_status(value):
+
+def get_order_status(value, filled_quantity=0):
     """
     Invalid(-2), Initial(-1), PendingCancel(3), Cancelled(4), Submitted(5), Filled(6), Inactive(7), PendingSubmit(8)
     :param value:
+    :param filled_quantity:
     :return:
     """
-    if value == -1 or value == 'Initial':
+    if value in (-1, 'Initial', 'NEW'):
         return OrderStatus.NEW
-    elif value == 2 or value == 5 or value == 8 or value == 'Submitted' or value == 'PendingSubmit':
+    elif value in (2, 5, 8, 'Submitted', 'PendingSubmit', 'HELD'):
+        if Order.is_partially_filled(OrderStatus.HELD, filled_quantity):
+            return OrderStatus.PARTIALLY_FILLED
         return OrderStatus.HELD
-    elif value == 3 or value == 'PendingCancel':
+    elif value in (3, 'PendingCancel', 'PENDING_CANCEL'):
         return OrderStatus.PENDING_CANCEL
-    elif value == 4 or value == 'Cancelled':
+    elif value in (4, 'Cancelled', 'CANCELLED'):
         return OrderStatus.CANCELLED
-    elif value == 6 or value == 'Filled':
+    elif value in (6, 'Filled', 'FILLED'):
         return OrderStatus.FILLED
-    elif value == 7 or value == 'Inactive':
+    elif value in (7, 'Inactive', 'REJECTED'):
         return OrderStatus.REJECTED
-    elif value == -2 or value == 'Invalid':
+    elif value in (-2, 'Invalid', 'EXPIRED'):
         return OrderStatus.EXPIRED
 
     return OrderStatus.PENDING_NEW

@@ -777,6 +777,7 @@ class PlaceModifyOrderParams(BaseParams):
         self.expire_time = None
         self.combo_type = None
         self.contract_legs = None
+        self.total_cash_amount = None
 
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
@@ -840,6 +841,8 @@ class PlaceModifyOrderParams(BaseParams):
             params['user_mark'] = self.user_mark
         if self.expire_time is not None:
             params['expire_time'] = self.expire_time
+        if self.total_cash_amount is not None:
+            params['cash_amount'] = self.total_cash_amount
 
         if self.order_legs:
             if len(self.order_legs) > 2:

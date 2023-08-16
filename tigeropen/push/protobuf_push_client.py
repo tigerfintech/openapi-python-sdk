@@ -8,6 +8,7 @@ from itertools import accumulate, zip_longest
 
 from tigeropen.common.consts.push_types import ResponseType
 from tigeropen.common.util.common_utils import get_enum_value
+from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.util.signature_utils import sign_with_rsa
 from tigeropen.common.util.tick_util import get_part_code, get_part_code_name, get_trade_condition_map, \
     get_trade_condition
@@ -27,7 +28,7 @@ else:
 
 
 class ProtobufPushClient(ConnectionListener):
-    def __init__(self, host, port, use_ssl=True, connection_timeout=120, heartbeats=(30 * 1000, 30 * 1000)):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000)):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
@@ -53,6 +54,7 @@ class ProtobufPushClient(ConnectionListener):
         self.subscribe_callback = None
         self.unsubscribe_callback = None
         self.error_callback = None
+        self.heartbeat_callback = None
         self._connection_timeout = connection_timeout
         self._heartbeats = heartbeats
         self.logger = logging.getLogger('tiger_openapi')
@@ -101,29 +103,47 @@ class ProtobufPushClient(ConnectionListener):
         else:
             self._connect()
 
+    def on_disconnecting(self):
+        self.on_disconnected()
+
+    def on_heartbeat(self, frame):
+        self.logger.debug('heart-beat')
+        if self.heartbeat_callback:
+            self.heartbeat_callback(frame)
+
     def on_error(self, frame):
         self.logger.error(frame)
 
     def on_message(self, frame):
-        if frame.code == ResponseType.GET_SUB_SYMBOLS_END.value:
-            if self.query_subscribed_callback:
-                self.query_subscribed_callback(frame.msg)
-        elif frame.code == ResponseType.GET_SUBSCRIBE_END.value:
-            if self.subscribe_callback:
-                self.subscribe_callback(frame)
-        elif frame.code == ResponseType.GET_CANCEL_SUBSCRIBE_END.value:
-            if self.unsubscribe_callback:
-                self.unsubscribe_callback(frame)
-        elif frame.code == ResponseType.ERROR_END.value:
-            if self.error_callback:
-                self.error_callback(frame)
-        else:
-            if frame.body.dataType == SocketCommon.DataType.Quote:
-                if frame.body.quoteData.type == SocketCommon.QuoteType.BASIC and self.quote_changed:
-                    self.quote_changed(frame.body.quoteData)
-                if frame.body.quoteData.type == SocketCommon.QuoteType.BBO and self.quote_bbo_changed:
-                    self.quote_bbo_changed(frame.body.quoteData)
-                if frame.body.quoteData.type == SocketCommon.QuoteType.ALL:
+        try:
+            if frame.code == ResponseType.GET_SUB_SYMBOLS_END.value:
+                if self.query_subscribed_callback:
+                    self.query_subscribed_callback(frame.msg)
+            elif frame.code == ResponseType.GET_SUBSCRIBE_END.value:
+                if self.subscribe_callback:
+                    self.subscribe_callback(frame)
+            elif frame.code == ResponseType.GET_CANCEL_SUBSCRIBE_END.value:
+                if self.unsubscribe_callback:
+                    self.unsubscribe_callback(frame)
+            elif frame.code == ResponseType.ERROR_END.value:
+                if self.error_callback:
+                    self.error_callback(frame)
+            else:
+                if frame.body.dataType == SocketCommon.DataType.Quote:
+                    if frame.body.quoteData.type == SocketCommon.QuoteType.BASIC and self.quote_changed:
+                        self.quote_changed(frame.body.quoteData)
+                    if frame.body.quoteData.type == SocketCommon.QuoteType.BBO and self.quote_bbo_changed:
+                        self.quote_bbo_changed(frame.body.quoteData)
+                    if frame.body.quoteData.type == SocketCommon.QuoteType.ALL:
+                        if self.quote_changed:
+                            basic_data = convert_to_basic_data(frame.body.quoteData)
+                            if basic_data:
+                                self.quote_changed(basic_data)
+                        if self.quote_bbo_changed:
+                            bbo_data = convert_to_bbo_data(frame.body.quoteData)
+                            if bbo_data:
+                                self.quote_bbo_changed(bbo_data)
+                elif frame.body.dataType in {SocketCommon.DataType.Future, SocketCommon.DataType.Option}:
                     if self.quote_changed:
                         basic_data = convert_to_basic_data(frame.body.quoteData)
                         if basic_data:
@@ -132,41 +152,36 @@ class ProtobufPushClient(ConnectionListener):
                         bbo_data = convert_to_bbo_data(frame.body.quoteData)
                         if bbo_data:
                             self.quote_bbo_changed(bbo_data)
-            elif frame.body.dataType in {SocketCommon.DataType.Future, SocketCommon.DataType.Option}:
-                if self.quote_changed:
-                    basic_data = convert_to_basic_data(frame.body.quoteData)
-                    if basic_data:
-                        self.quote_changed(basic_data)
-                if self.quote_bbo_changed:
-                    bbo_data = convert_to_bbo_data(frame.body.quoteData)
-                    if bbo_data:
-                        self.quote_bbo_changed(bbo_data)
-            elif frame.body.dataType == SocketCommon.DataType.QuoteDepth:
-                if self.quote_depth_changed:
-                    self.quote_depth_changed(frame.body.quoteDepthData)
-            elif frame.body.dataType == SocketCommon.DataType.TradeTick:
-                if self.tick_changed:
-                    self.tick_changed(self._convert_tick(frame.body.tradeTickData))
-            elif frame.body.dataType == SocketCommon.DataType.OrderStatus:
-                if self.order_changed:
-                    self.order_changed(frame.body.orderStatusData)
-            elif frame.body.dataType == SocketCommon.DataType.OrderTransaction:
-                if self.transaction_changed:
-                    self.transaction_changed(frame.body.orderTransactionData)
-            elif frame.body.dataType == SocketCommon.DataType.Asset:
-                if self.asset_changed:
-                    self.asset_changed(frame.body.assetData)
-            elif frame.body.dataType == SocketCommon.DataType.Position:
-                if self.position_changed:
-                    self.position_changed(frame.body.positionData)
-            elif frame.body.dataType == SocketCommon.DataType.StockTop:
-                if self.stock_top_changed:
-                    self.stock_top_changed(frame.body.stockTopData)
-            elif frame.body.dataType == SocketCommon.DataType.OptionTop:
-                if self.option_top_changed:
-                    self.option_top_changed(frame.body.optionTopData)
-            else:
-                self.logger.warning(f'unhandled frame: {frame}')
+                elif frame.body.dataType == SocketCommon.DataType.QuoteDepth:
+                    if self.quote_depth_changed:
+                        self.quote_depth_changed(frame.body.quoteDepthData)
+                elif frame.body.dataType == SocketCommon.DataType.TradeTick:
+                    if self.tick_changed:
+                        self.tick_changed(self._convert_tick(frame.body.tradeTickData))
+                elif frame.body.dataType == SocketCommon.DataType.OrderStatus:
+                    if self.order_changed:
+                        frame.body.orderStatusData.status = get_order_status(frame.body.orderStatusData.status,
+                                                                             frame.body.orderStatusData.filledQuantity).name
+                        self.order_changed(frame.body.orderStatusData)
+                elif frame.body.dataType == SocketCommon.DataType.OrderTransaction:
+                    if self.transaction_changed:
+                        self.transaction_changed(frame.body.orderTransactionData)
+                elif frame.body.dataType == SocketCommon.DataType.Asset:
+                    if self.asset_changed:
+                        self.asset_changed(frame.body.assetData)
+                elif frame.body.dataType == SocketCommon.DataType.Position:
+                    if self.position_changed:
+                        self.position_changed(frame.body.positionData)
+                elif frame.body.dataType == SocketCommon.DataType.StockTop:
+                    if self.stock_top_changed:
+                        self.stock_top_changed(frame.body.stockTopData)
+                elif frame.body.dataType == SocketCommon.DataType.OptionTop:
+                    if self.option_top_changed:
+                        self.option_top_changed(frame.body.optionTopData)
+                else:
+                    self.logger.warning(f'unhandled frame: {frame}')
+        except Exception:
+            self.logger.error(f'error in on_message ', exc_info=True)
 
     def subscribe_asset(self, account=None):
         """

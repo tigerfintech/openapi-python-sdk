@@ -17,7 +17,8 @@ from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
     HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
-    KLINE_QUOTA
+    KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
+    FINANCIAL_EXCHANGE_RATE
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -29,11 +30,13 @@ from tigeropen.common.request import OpenApiRequest
 from tigeropen.common.util.common_utils import eastern, get_enum_value, date_str_to_timestamp
 from tigeropen.common.util.contract_utils import extract_option_info
 from tigeropen.fundamental.request.model import FinancialDailyParams, FinancialReportParams, CorporateActionParams, \
-    IndustryParams
+    IndustryParams, FinancialExchangeRateParams
 from tigeropen.fundamental.response.corporate_dividend_response import CorporateDividendResponse
 from tigeropen.fundamental.response.corporate_earnings_calendar_response import EarningsCalendarResponse
 from tigeropen.fundamental.response.corporate_split_response import CorporateSplitResponse
+from tigeropen.fundamental.response.dataframe_response import DataframeResponse
 from tigeropen.fundamental.response.financial_daily_response import FinancialDailyResponse
+from tigeropen.fundamental.response.financial_exchange_rate_response import FinancialExchangeRateResponse
 from tigeropen.fundamental.response.financial_report_response import FinancialReportResponse
 from tigeropen.fundamental.response.industry_response import IndustryListResponse, IndustryStocksResponse, \
     StockIndustryResponse
@@ -41,9 +44,10 @@ from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
-    StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams
+    StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
+from tigeropen.quote.response.fund_contracts_response import FundContractsResponse
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
@@ -51,6 +55,7 @@ from tigeropen.quote.response.future_quote_bar_response import FutureQuoteBarRes
 from tigeropen.quote.response.future_quote_ticks_response import FutureTradeTickResponse
 from tigeropen.quote.response.future_trading_times_response import FutureTradingTimesResponse
 from tigeropen.quote.response.kline_quota_response import KlineQuotaResponse
+from tigeropen.quote.response.market_scanner_response import MarketScannerResponse, MarketScannerTagsResponse
 from tigeropen.quote.response.market_status_response import MarketStatusResponse
 from tigeropen.quote.response.option_briefs_response import OptionBriefsResponse
 from tigeropen.quote.response.option_chains_response import OptionChainsResponse
@@ -63,9 +68,8 @@ from tigeropen.quote.response.quote_delay_briefs_response import DelayBriefsResp
 from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
 from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
-from tigeropen.quote.response.quote_timeline_history_response import QuoteTimelineHistoryResponse
+from tigeropen.quote.response.quote_dataframe_response import QuoteDataframeResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
-from tigeropen.quote.response.market_scanner_response import MarketScannerResponse, MarketScannerTagsResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
 from tigeropen.quote.response.stock_broker_response import StockBrokerResponse
 from tigeropen.quote.response.stock_details_response import StockDetailsResponse
@@ -134,22 +138,23 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_symbols(self, market=Market.ALL):
+    def get_symbols(self, market=Market.ALL, include_otc=False):
         """
         获取股票代号列表
         :param market: US 美股，HK 港股， CN A股，ALL 所有
         :return: 所有 symbol 的列表，包含退市和不可交易的部分代码. 其中以.开头的代码为指数， 如 .DJI 表示道琼斯指数
         """
-        params = MarketParams()
+        params = SymbolsParams()
         params.market = get_enum_value(market)
         params.lang = get_enum_value(self._lang)
+        params.include_otc = include_otc
         request = OpenApiRequest(ALL_SYMBOLS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
             response = SymbolsResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.symbols
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
 
@@ -232,11 +237,12 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_stock_briefs(self, symbols, lang=None):
+    def get_stock_briefs(self, symbols, include_hour_trading=False, lang=None):
         """
         获取股票实时行情
         :param symbols: 股票代号列表
         :param lang: 语言支持: tigeropen.common.consts.Language:  zh_CN,zh_TW,en_US
+        :param include_hour_trading: 是否包含盘前盘后
         :return: pandas.DataFrame.  各 column 含义如下：
             symbol: 证券代码
             ask_price: 卖一价
@@ -260,6 +266,7 @@ class QuoteClient(TigerOpenClient):
         """
         params = MultipleQuoteParams()
         params.symbols = symbols
+        params.include_hour_trading = include_hour_trading
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
 
         request = OpenApiRequest(QUOTE_REAL_TIME, biz_model=params)
@@ -411,10 +418,10 @@ class QuoteClient(TigerOpenClient):
         request = OpenApiRequest(HISTORY_TIMELINE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
-            response = QuoteTimelineHistoryResponse()
+            response = QuoteDataframeResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.timelines
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
 
@@ -741,7 +748,8 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_option_bars(self, identifiers, begin_time=-1, end_time=4070880000000, period=BarPeriod.DAY, limit=None):
+    def get_option_bars(self, identifiers, begin_time=-1, end_time=4070880000000, period=BarPeriod.DAY, limit=None,
+                        sort_dir=None):
         """
         获取期权日K数据
         :param identifiers: 期权代码列表
@@ -751,6 +759,7 @@ class QuoteClient(TigerOpenClient):
         :param period: 时间间隔. 可选值: DAY("day"), ONE_MINUTE("1min"), FIVE_MINUTES("5min"), HALF_HOUR("30min"),
             ONE_HOUR("60min");
         :param limit: 每个期权的返回k线数量
+        :param sort_dir: tigeropen.common.consts.SortDirection, e.g. SortDirection.DESC
         :return: pandas.DataFrame, 各 column 含义如下：
             time: 毫秒级时间戳
             open: 开盘价
@@ -778,6 +787,7 @@ class QuoteClient(TigerOpenClient):
             param.begin_time = date_str_to_timestamp(begin_time, self._timezone)
             param.end_time = date_str_to_timestamp(end_time, self._timezone)
             param.limit = limit
+            param.sort_dir = get_enum_value(sort_dir)
             contracts.append(param)
         params.contracts = contracts
         request = OpenApiRequest(OPTION_KLINE, biz_model=params)
@@ -1300,6 +1310,59 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
+    def get_financial_currency(self, symbols, market):
+        """
+        获取财务币种
+        :param symbols: 证券代码列表
+        :param market: 查询的市场. 可选的值为 common.consts.Market 枚举类型, 如 Market.US
+        :return: pandas.DataFrame
+              symbol currency company_currency
+            0   AAPL      USD              USD
+            1   GOOG      USD              USD
+        """
+        params = FinancialReportParams()
+        params.symbols = symbols
+        params.market = get_enum_value(market)
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FINANCIAL_CURRENCY, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = DataframeResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_financial_exchange_rate(self, currency_list, begin_date, end_date=None, timezone=None):
+        """
+        获取货币和美元兑换的汇率（1美元换多少单位其他货币）
+        :param currency_list: 财务币种列表
+        :param begin_date: 起始时间
+        :param end_date: 截止时间
+        :param timezone: 时区
+        :return: pandas.DataFrame
+          currency           date    value
+        0      HKD  1691942400000  7.81728
+        1      USD  1691942400000  1.00000
+        """
+        tz = timezone if timezone else self._timezone
+        params = FinancialExchangeRateParams()
+        params.currency_list = currency_list
+        params.begin_date = date_str_to_timestamp(begin_date, tz)
+        if end_date is None:
+            end_date = begin_date
+        params.end_date = date_str_to_timestamp(end_date, tz)
+        params.timezone = str(tz)
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FINANCIAL_EXCHANGE_RATE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FinancialExchangeRateResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+
     def get_industry_list(self, industry_level=IndustryLevel.GGROUP):
         """
         获取行业列表
@@ -1645,6 +1708,64 @@ class QuoteClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = KlineQuotaResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_fund_symbols(self):
+        params = SymbolsParams()
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FUND_ALL_SYMBOLS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = SymbolsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_fund_contracts(self, symbols):
+        params = MultipleQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FUND_CONTRACTS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FundContractsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_fund_quote(self, symbols):
+        params = MultipleQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FUND_QUOTE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = StockBriefsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.briefs
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_fund_history_quote(self, symbols, begin_time, end_time, limit=None):
+        params = MultipleQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.begin_time = begin_time
+        params.end_time = end_time
+        params.limit = limit
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(FUND_HISTORY_QUOTE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = QuoteDataframeResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.result
