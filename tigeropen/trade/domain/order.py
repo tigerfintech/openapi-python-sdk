@@ -18,13 +18,14 @@ class Order:
                  "order_type", "time_in_force", "outside_rth", "order_legs", "algo_params", "algo_strategy",
                  "secret_key", "liquidation", "discount", "attr_desc", "source", 'adjust_limit', 'sub_ids', "user_mark",
                  "update_time", "expire_time", "can_modify", "external_id", "combo_type", "combo_type_desc", 'is_open',
-                 "contract_legs"]
+                 "contract_legs", "filled_scale", "total_cash_amount", "filled_cash_amount",
+                 "refund_cash_amount", "attr_list"]
 
-    def __init__(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
+    def __init__(self, account, contract, action, order_type, quantity=None, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
                  outside_rth=None, filled=0, avg_fill_price=0, commission=None, realized_pnl=None,
                  id=None, order_id=None, parent_id=None, order_time=None, trade_time=None, order_legs=None,
-                 algo_params=None, secret_key=None, **kwargs):
+                 algo_params=None, secret_key=None, total_cash_amount=None, **kwargs):
         """
         - account: 订单所属的账户
         - id: 全局订单 id
@@ -107,6 +108,11 @@ class Order:
         self.combo_type_desc = kwargs.get('combo_type_desc')
         self.is_open = kwargs.get('is_open')
         self.contract_legs = kwargs.get('contract_legs')
+        self.filled_scale = kwargs.get('filled_scale')
+        self.total_cash_amount = total_cash_amount
+        self.filled_cash_amount = kwargs.get('filled_cash_amount')
+        self.refund_cash_amount = kwargs.get('refund_cash_amount')
+        self.attr_list = kwargs.get('attr_list')
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
@@ -122,7 +128,7 @@ class Order:
     def status(self):
         if not self.remaining and self.filled:
             return OrderStatus.FILLED
-        elif self._status == OrderStatus.HELD and self.filled:
+        elif self._status == OrderStatus.HELD and self.is_partially_filled(OrderStatus.HELD, self.filled):
             return OrderStatus.PARTIALLY_FILLED
         else:
             return self._status
@@ -142,6 +148,12 @@ class Order:
             return int(self.quantity) - int(self.filled)
         except:
             return None
+
+    @staticmethod
+    def is_partially_filled(status, filled_quantity):
+        if status == OrderStatus.HELD and filled_quantity:
+            return True
+        return False
 
     def __repr__(self):
         """

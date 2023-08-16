@@ -166,6 +166,63 @@ class FinancialReportParams(BaseParams):
         return params
 
 
+class FinancialExchangeRateParams(BaseParams):
+    def __init__(self):
+        super(FinancialExchangeRateParams, self).__init__()
+        self._currency_list = None
+        self._begin_date = None
+        self._end_date = None
+        self._timezone = None
+
+    @property
+    def currency_list(self):
+        return self._currency_list
+
+    @currency_list.setter
+    def currency_list(self, value):
+        self._currency_list = value
+
+    @property
+    def begin_date(self):
+        return self._begin_date
+
+    @begin_date.setter
+    def begin_date(self, value):
+        self._begin_date = value
+
+    @property
+    def end_date(self):
+        return self._end_date
+
+    @end_date.setter
+    def end_date(self, value):
+        self._end_date = value
+
+    @property
+    def timezone(self):
+        return self._timezone
+
+    @timezone.setter
+    def timezone(self, value):
+        self._timezone = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+
+        if self.currency_list:
+            params['currency_list'] = self.currency_list
+
+        if self.begin_date:
+            params['begin_date'] = self.begin_date
+
+        if self.end_date:
+            params['end_date'] = self.end_date
+
+        if self.timezone:
+            params['timezone'] = self.timezone
+
+        return params
+
 class CorporateActionParams(BaseParams):
     def __init__(self):
         super(CorporateActionParams, self).__init__()

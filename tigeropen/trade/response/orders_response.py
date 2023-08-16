@@ -23,7 +23,10 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params',
                         'userMark': 'user_mark', 'updateTime': 'update_time', 'expireTime': 'expire_time',
                         'canModify': 'can_modify', 'externalId': 'external_id', 'isOpen': 'is_open',
-                        'comboType': 'combo_type', 'comboTypeDesc': 'combo_type_desc'
+                        'comboType': 'combo_type', 'comboTypeDesc': 'combo_type_desc',
+                        'totalCashAmount': 'total_cash_amount', 'filledCashAmount': 'filled_cash_amount',
+                        'refundCashAmount': 'refund_cash_amount', 'filledQuantityScale': 'filled_scale',
+                        'attrList': 'attr_list',
                         }
 
 
@@ -111,6 +114,11 @@ class OrdersResponse(TigerResponse):
         is_open = order_fields.get('is_open')
         combo_type = order_fields.get('combo_type')
         combo_type_desc = order_fields.get('combo_type_desc')
+        filled_scale = order_fields.get('filled_scale')
+        total_cash_amount = order_fields.get('total_cash_amount')
+        filled_cash_amount = order_fields.get('filled_cash_amount')
+        refund_cash_amount = order_fields.get('refund_cash_amount')
+        attr_list = order_fields.get('attr_list')
 
         order = Order(account, contract, action, order_type, quantity, limit_price=limit_price, aux_price=aux_price,
                       trail_stop_price=trail_stop_price, trailing_percent=trailing_percent,
@@ -120,7 +128,8 @@ class OrdersResponse(TigerResponse):
                       algo_params=algo_params, liquidation=liquidation, algo_strategy=algo_strategy, discount=discount,
                       attr_desc=attr_desc, source=source, user_mark=user_mark, expire_time=expire_time,
                       can_modify=can_modify, external_id=external_id, is_open=is_open, combo_type=combo_type,
-                      combo_type_desc=combo_type_desc)
+                      combo_type_desc=combo_type_desc, filled_scale=filled_scale, total_cash_amount=total_cash_amount,
+                      filled_cash_amount=filled_cash_amount, refund_cash_amount=refund_cash_amount,)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:

@@ -10,7 +10,7 @@ from tigeropen.push.stomp_push_client import StompPushClient
 
 
 class PushClient:
-    def __init__(self, host, port, use_ssl=True, connection_timeout=120, heartbeats=(30 * 1000, 30 * 1000),
+    def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000),
                  use_protobuf=True):
         """
         :param host:
@@ -165,6 +165,14 @@ class PushClient:
     @error_callback.setter
     def error_callback(self, value):
         self.client.error_callback = value
+
+    @property
+    def heartbeat_callback(self):
+        return self.client.on_heartbeat
+
+    @heartbeat_callback.setter
+    def heartbeat_callback(self, value):
+        self.client.heartbeat_callback = value
 
     def connect(self, tiger_id, private_key):
         self.client.connect(tiger_id=tiger_id, private_key=private_key)

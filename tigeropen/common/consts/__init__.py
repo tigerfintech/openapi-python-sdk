@@ -48,7 +48,8 @@ class SecurityType(Enum):
     FUT = 'FUT'  # 期货
     FOP = 'FOP'  # 期货期权
     CASH = 'CASH'  # 外汇
-    MLEG = 'MLEG'
+    MLEG = 'MLEG'  # 期权组合
+    FUND = 'FUND' # 基金
 
 @unique
 class SegmentType(Enum):

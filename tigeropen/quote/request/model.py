@@ -41,6 +41,25 @@ class MarketParams(BaseParams):
         return params
 
 
+class SymbolsParams(MarketParams):
+    def __init__(self):
+        super(SymbolsParams, self).__init__()
+        self._include_otc = None
+
+    @property
+    def include_otc(self):
+        return self._include_otc
+
+    @include_otc.setter
+    def include_otc(self, value):
+        self._include_otc = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.include_otc:
+            params['include_otc'] = self.include_otc
+        return params
+
 class SingleQuoteParams(MarketParams):
     def __init__(self):
         super(SingleQuoteParams, self).__init__()
@@ -450,6 +469,7 @@ class SingleOptionQuoteParams(SingleContractParams):
         self._begin_time = None
         self._end_time = None
         self._limit = None
+        self._sort_dir = None
 
     @property
     def period(self):
@@ -483,21 +503,26 @@ class SingleOptionQuoteParams(SingleContractParams):
     def limit(self, value):
         self._limit = value
 
+    @property
+    def sort_dir(self):
+        return self._sort_dir
+
+    @sort_dir.setter
+    def sort_dir(self, value):
+        self._sort_dir = value
+
     def to_openapi_dict(self):
         params = super(SingleOptionQuoteParams, self).to_openapi_dict()
-
         if self.period:
             params['period'] = self.period
-
         if self.begin_time:
             params['begin_time'] = self.begin_time
-
         if self.end_time:
             params['end_time'] = self.end_time
-
         if self.limit:
             params['limit'] = self.limit
-
+        if self.sort_dir:
+            params['sort_dir'] = self.sort_dir
         return params
 
 
