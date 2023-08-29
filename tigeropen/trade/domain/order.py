@@ -113,6 +113,7 @@ class Order:
         self.filled_cash_amount = kwargs.get('filled_cash_amount')
         self.refund_cash_amount = kwargs.get('refund_cash_amount')
         self.attr_list = kwargs.get('attr_list')
+        self.latest_price = kwargs.get('latest_price')
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
