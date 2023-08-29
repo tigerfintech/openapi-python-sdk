@@ -26,7 +26,7 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'comboType': 'combo_type', 'comboTypeDesc': 'combo_type_desc',
                         'totalCashAmount': 'total_cash_amount', 'filledCashAmount': 'filled_cash_amount',
                         'refundCashAmount': 'refund_cash_amount', 'filledQuantityScale': 'filled_scale',
-                        'attrList': 'attr_list',
+                        'attrList': 'attr_list', 'latestPrice': 'latest_price',
                         }
 
 
@@ -129,11 +129,13 @@ class OrdersResponse(TigerResponse):
                       attr_desc=attr_desc, source=source, user_mark=user_mark, expire_time=expire_time,
                       can_modify=can_modify, external_id=external_id, is_open=is_open, combo_type=combo_type,
                       combo_type_desc=combo_type_desc, filled_scale=filled_scale, total_cash_amount=total_cash_amount,
-                      filled_cash_amount=filled_cash_amount, refund_cash_amount=refund_cash_amount,)
+                      filled_cash_amount=filled_cash_amount, refund_cash_amount=refund_cash_amount, attr_list=attr_list)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:
             order.trade_time = order_fields.get('trade_time')
+        if 'latest_price' in order_fields:
+            order.latest_price = order_fields.get('latest_price')
         if 'update_time' in order_fields:
             order.update_time = order_fields.get('update_time')
         if 'reason' in order_fields:
