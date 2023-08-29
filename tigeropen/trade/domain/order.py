@@ -19,7 +19,7 @@ class Order:
                  "secret_key", "liquidation", "discount", "attr_desc", "source", 'adjust_limit', 'sub_ids', "user_mark",
                  "update_time", "expire_time", "can_modify", "external_id", "combo_type", "combo_type_desc", 'is_open',
                  "contract_legs", "filled_scale", "total_cash_amount", "filled_cash_amount",
-                 "refund_cash_amount", "attr_list"]
+                 "refund_cash_amount", "attr_list", "latest_price"]
 
     def __init__(self, account, contract, action, order_type, quantity=None, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
@@ -113,6 +113,7 @@ class Order:
         self.filled_cash_amount = kwargs.get('filled_cash_amount')
         self.refund_cash_amount = kwargs.get('refund_cash_amount')
         self.attr_list = kwargs.get('attr_list')
+        self.latest_price = kwargs.get('latest_price')
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}

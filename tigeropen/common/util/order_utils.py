@@ -195,9 +195,9 @@ def get_order_status(value, filled_quantity=0):
     :param filled_quantity:
     :return:
     """
-    if value in (-1, 'Initial', 'NEW'):
+    if value in (-1, 'Initial', 'NEW', 'New'):
         return OrderStatus.NEW
-    elif value in (2, 5, 8, 'Submitted', 'PendingSubmit', 'HELD'):
+    elif value in (2, 5, 8, 'Submitted', 'PendingSubmit', 'HELD', 'Held'):
         if Order.is_partially_filled(OrderStatus.HELD, filled_quantity):
             return OrderStatus.PARTIALLY_FILLED
         return OrderStatus.HELD
