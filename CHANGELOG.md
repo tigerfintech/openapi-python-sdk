@@ -1,3 +1,7 @@
+# 3.1.0 (2023-10-11)
+### Fix
+- 修复长连接 `subscribe_option_top` 的枚举参数
+
 # 3.0.9 (2023-08-29)
 ### Modify
 - Order 对象补充字段 `latest_price`
