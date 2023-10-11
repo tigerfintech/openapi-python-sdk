@@ -327,7 +327,10 @@ class ProtobufPushClient(ConnectionListener):
         :param indicators: indicator列表
         :return:
         """
-        req = ProtoMessageUtil.build_subscribe_quote_message(symbols=indicators, data_type=SocketCommon.OptionTop,
+        indicator_names = []
+        if indicators:
+            indicator_names = [get_enum_value(indicator) for indicator in indicators]
+        req = ProtoMessageUtil.build_subscribe_quote_message(symbols=indicator_names, data_type=SocketCommon.OptionTop,
                                                              market=market)
         self._connection.send_frame(req)
 
@@ -338,7 +341,10 @@ class ProtobufPushClient(ConnectionListener):
         :param indicators: indicator列表
         :return:
         """
-        req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols=indicators, data_type=SocketCommon.OptionTop,
+        indicator_names = []
+        if indicators:
+            indicator_names = [get_enum_value(indicator) for indicator in indicators]
+        req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols=indicator_names, data_type=SocketCommon.OptionTop,
                                                                market=market)
         self._connection.send_frame(req)
 
