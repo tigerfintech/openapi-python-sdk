@@ -589,6 +589,7 @@ class TradeClient(TigerOpenClient):
             if response.is_success():
                 order.id = response.id
                 order.sub_ids = response.sub_ids
+                order.orders = response.orders
                 if order.order_id is None and response.order_id:
                     order.order_id = response.order_id
                 return response.id

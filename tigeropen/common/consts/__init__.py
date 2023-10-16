@@ -192,6 +192,7 @@ class OrderType(Enum):
     AL = 'AL'  # Auction Limit ，竞价限价单
     TWAP = 'TWAP'  # 'Time Weighted Average Price' 时间加权平均价格算法
     VWAP = 'VWAP'  # 'Volume Weighted Average Price'  成交量加权平均价格算法
+    OCA = 'OCA'
 
 @unique
 class License(Enum):
