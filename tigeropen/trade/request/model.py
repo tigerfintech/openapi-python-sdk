@@ -4,6 +4,7 @@ Created on 2018/10/31
 
 @author: gaoan
 """
+from tigeropen.common.consts import OrderType, SecurityType
 from tigeropen.common.model import BaseParams
 
 
@@ -778,10 +779,10 @@ class PlaceModifyOrderParams(BaseParams):
         self.combo_type = None
         self.contract_legs = None
         self.total_cash_amount = None
+        self.oca_orders = None
 
-    def to_openapi_dict(self):
-        params = super().to_openapi_dict()
-
+    def _parse_contract_param(self):
+        params = dict()
         if self.contract:
             if self.contract.symbol is not None:
                 params['symbol'] = self.contract.symbol
@@ -801,16 +802,25 @@ class PlaceModifyOrderParams(BaseParams):
                 params['right'] = self.contract.put_call
             if self.contract.multiplier is not None:
                 params['multiplier'] = self.contract.multiplier
+
         if self.contract_legs:
             params['contract_legs'] = list()
             for item in self.contract_legs:
                 params['contract_legs'].append(item.to_openapi_dict())
-            params['sec_type'] = 'MLEG'
+            params['sec_type'] = SecurityType.MLEG.value
+
+        return params
+               
+    def _parse_account_param(self):
+        params = dict()
         if self.account:
             params['account'] = self.account
         if self.secret_key:
             params['secret_key'] = self.secret_key
+        return params
 
+    def _parse_common_param(self):
+        params = dict()
         if self.order_id:
             params['order_id'] = self.order_id
         if self.id:
@@ -843,24 +853,29 @@ class PlaceModifyOrderParams(BaseParams):
             params['expire_time'] = self.expire_time
         if self.total_cash_amount is not None:
             params['cash_amount'] = self.total_cash_amount
+        if self.algo_params:
+            params['algo_params'] = [{'tag': item[0], 'value': item[1]} for item in self.algo_params.to_dict().items()]
+        if self.combo_type:
+            params['combo_type'] = self.combo_type
+        return params
 
+    def _parse_leg_param(self):
+        params = dict()
         if self.order_legs:
-            if len(self.order_legs) > 2:
-                raise Exception('2 order legs at most')
             leg_types = set()
             for order_leg in self.order_legs:
                 if order_leg.leg_type == 'PROFIT':
-                    leg_types.add('PROFIT')
-                    params['attach_type'] = 'PROFIT'
+                    leg_types.add(order_leg.leg_type)
+                    params['attach_type'] = order_leg.leg_type
                     if order_leg.price is not None:
                         params['profit_taker_price'] = order_leg.price
                     if order_leg.time_in_force is not None:
                         params['profit_taker_tif'] = order_leg.time_in_force
                     if order_leg.outside_rth is not None:
                         params['profit_taker_rth'] = order_leg.outside_rth
-                if order_leg.leg_type == 'LOSS':
-                    leg_types.add('LOSS')
-                    params['attach_type'] = 'LOSS'
+                elif order_leg.leg_type == 'LOSS':
+                    leg_types.add(order_leg.leg_type)
+                    params['attach_type'] = order_leg.leg_type
                     if order_leg.price is not None:
                         params['stop_loss_price'] = order_leg.price
                     if order_leg.time_in_force is not None:
@@ -871,17 +886,56 @@ class PlaceModifyOrderParams(BaseParams):
                         params['stop_loss_limit_price'] = order_leg.limit_price
                     if order_leg.trailing_percent is not None:
                         params['stop_loss_trailing_percent'] = order_leg.trailing_percent
-                    if order_leg.trailing_percent is not None:
+                    if order_leg.trailing_amount is not None:
                         params['stop_loss_trailing_amount'] = order_leg.trailing_amount
 
             # 括号订单(止盈和止损)
-            if len(leg_types) == 2:
+            if len(leg_types) == 2 and ('LOSS' in leg_types or 'PROFIT' in leg_types):
                 params['attach_type'] = 'BRACKETS'
+        return params
 
-        if self.algo_params:
-            params['algo_params'] = [{'tag': item[0], 'value': item[1]} for item in self.algo_params.to_dict().items()]
-        if self.combo_type:
-            params['combo_type'] = self.combo_type
+    def _parse_oca_param(self):
+        params = dict()
+        contract_params = self._parse_contract_param()
+        params['oca_orders'] = list()
+        account_params = self._parse_account_param()
+        if self.order_legs:
+            for order_leg in self.order_legs:
+                if order_leg.leg_type in ('LMT', 'STP', 'STP_LMT'):
+                    # OCA 订单
+                    oca_params = dict()
+                    oca_params.update(contract_params)
+                    oca_params.update(account_params)
+                    oca_params['order_type'] = order_leg.leg_type
+                    oca_params['action'] = self.action
+                    oca_params['total_quantity'] = order_leg.quantity if order_leg.quantity else self.quantity
+                    if order_leg.price is not None and order_leg.leg_type != 'LMT':
+                        oca_params['aux_price'] = order_leg.price
+                    if order_leg.leg_type in ('LMT', 'STP_LMT'):
+                        oca_params['limit_price'] = order_leg.limit_price if order_leg.limit_price else order_leg.price
+                    if order_leg.time_in_force is not None:
+                        oca_params['time_in_force'] = order_leg.time_in_force
+                    if order_leg.outside_rth is not None:
+                        oca_params['outside_rth'] = order_leg.outside_rth
+                    params['oca_orders'].append(oca_params)
+        return params
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        common_params = self._parse_common_param()
+
+        if self.order_type and self.order_type == OrderType.OCA.value:
+            params.update(self._parse_account_param())
+            params.update(self._parse_oca_param())
+            params.update(common_params)
+            params.pop('order_type', None)
+            params.pop('action', None)
+            params.pop('total_quantity', None)
+        else:
+            params.update(self._parse_account_param())
+            params.update(self._parse_contract_param())
+            params.update(common_params)
+            params.update(self._parse_leg_param())
         return params
 
 

@@ -36,3 +36,6 @@ class OrderIdResponse(TigerResponse):
 
             if 'subIds' in data_json:
                 self.sub_ids = data_json['subIds']
+
+            if 'orders' in data_json:
+                self.orders = data_json['orders']
