@@ -365,7 +365,7 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_timeline(self, symbols, include_hour_trading=False, begin_time=-1, lang=None):
+    def get_timeline(self, symbols, include_hour_trading=False, begin_time=-1, lang=None, **kwargs):
         """
         获取当日分时数据
         :param symbols: 股票代号列表
@@ -387,6 +387,10 @@ class QuoteClient(TigerOpenClient):
         params.include_hour_trading = include_hour_trading
         params.begin_time = begin_time
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        if 'version' in kwargs:
+            params.version = kwargs.get('version')
+        else:
+            params.version = OPEN_API_SERVICE_VERSION_V3
 
         request = OpenApiRequest(TIMELINE, biz_model=params)
         response_content = self.__fetch_data(request)

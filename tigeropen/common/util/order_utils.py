@@ -114,11 +114,11 @@ def auction_market_order(account, contract, action, quantity, time_in_force='DAY
     return Order(account, contract, action, 'AM', quantity, outside_rth=True, time_in_force=time_in_force)
 
 
-def order_leg(leg_type, price, time_in_force='DAY', outside_rth=None, limit_price=None, trailing_percent=None,
+def order_leg(leg_type, price=None, time_in_force='DAY', outside_rth=None, limit_price=None, trailing_percent=None,
               trailing_amount=None):
     """
     附加订单
-    :param leg_type: 附加订单类型. PROFIT 止盈单类型,  LOSS 止损单类型
+    :param leg_type: 附加订单类型. PROFIT 止盈单类型,  LOSS 止损单类型； LMT/STP/STP_LMT 仅OCA订单支持
     :param price: 附加订单价格.
     :param time_in_force: 附加订单有效期. 'DAY'（当日有效）和'GTC'（取消前有效 Good-Til-Canceled).
     :param outside_rth: 附加订单是否允许盘前盘后交易(美股专属). True 允许, False 不允许.
@@ -126,6 +126,8 @@ def order_leg(leg_type, price, time_in_force='DAY', outside_rth=None, limit_pric
     :param trailing_percent: attached trailing stop loss order's trailing percent
     :param trailing_amount: attached trailing stop loss order's trailing amount
     """
+    if leg_type == OrderType.LMT.value and limit_price is None:
+        limit_price = price
     return OrderLeg(leg_type=leg_type, price=price, time_in_force=time_in_force, outside_rth=outside_rth,
                     limit_price=limit_price, trailing_percent=trailing_percent, trailing_amount=trailing_amount)
 
@@ -187,6 +189,9 @@ def combo_order(account, contract_legs, combo_type, action, quantity, order_type
     return Order(account, None, action=action, order_type=order_type, quantity=quantity, limit_price=limit_price,
                  aux_price=aux_price, trailing_percent=trailing_percent, combo_type=combo_type,
                  contract_legs=contract_legs)
+
+def oca_order(account, contract, action, order_legs, quantity=None):
+    return Order(account, contract, action=action, quantity=quantity, order_legs=order_legs, order_type=OrderType.OCA.value)
 
 def get_order_status(value, filled_quantity=0):
     """
