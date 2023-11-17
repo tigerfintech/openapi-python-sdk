@@ -1,3 +1,7 @@
+# 3.1.2 (2023-11-17)
+### New
+- 支持美股期权深度行情订阅
+
 # 3.1.1 (2023-10-18)
 ### New
 - 支持 OCA 订单，通过 `tigeropen.common.util.order_utils.oca_order` 构造
