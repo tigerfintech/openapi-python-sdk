@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&tigeropen/push/pb/QuoteDepthData.proto\x12\x11tigeropen.push.pb\"\xe7\x01\n\x0eQuoteDepthData\x12\x0e\n\x06symbol\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\x04\x12\x38\n\x03\x61sk\x18\x03 \x01(\x0b\x32+.tigeropen.push.pb.QuoteDepthData.OrderBook\x12\x38\n\x03\x62id\x18\x04 \x01(\x0b\x32+.tigeropen.push.pb.QuoteDepthData.OrderBook\x1a>\n\tOrderBook\x12\r\n\x05price\x18\x01 \x03(\x01\x12\x0e\n\x06volume\x18\x02 \x03(\x12\x12\x12\n\norderCount\x18\x03 \x03(\rb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&tigeropen/push/pb/QuoteDepthData.proto\x12\x11tigeropen.push.pb\"\x87\x02\n\x0eQuoteDepthData\x12\x0e\n\x06symbol\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\x04\x12\x38\n\x03\x61sk\x18\x03 \x01(\x0b\x32+.tigeropen.push.pb.QuoteDepthData.OrderBook\x12\x38\n\x03\x62id\x18\x04 \x01(\x0b\x32+.tigeropen.push.pb.QuoteDepthData.OrderBook\x1a^\n\tOrderBook\x12\r\n\x05price\x18\x01 \x03(\x01\x12\x0e\n\x06volume\x18\x02 \x03(\x12\x12\x12\n\norderCount\x18\x03 \x03(\r\x12\x10\n\x08\x65xchange\x18\x04 \x03(\t\x12\x0c\n\x04time\x18\x05 \x03(\x12\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'tigeropen.push.pb.QuoteDepthData_pb2', globals())
@@ -21,7 +21,7 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   _QUOTEDEPTHDATA._serialized_start=62
-  _QUOTEDEPTHDATA._serialized_end=293
+  _QUOTEDEPTHDATA._serialized_end=325
   _QUOTEDEPTHDATA_ORDERBOOK._serialized_start=231
-  _QUOTEDEPTHDATA_ORDERBOOK._serialized_end=293
+  _QUOTEDEPTHDATA_ORDERBOOK._serialized_end=325
 # @@protoc_insertion_point(module_scope)
