@@ -8,14 +8,18 @@ DESCRIPTOR: _descriptor.FileDescriptor
 class QuoteDepthData(_message.Message):
     __slots__ = ["ask", "bid", "symbol", "timestamp"]
     class OrderBook(_message.Message):
-        __slots__ = ["orderCount", "price", "volume"]
+        __slots__ = ["exchange", "orderCount", "price", "time", "volume"]
+        EXCHANGE_FIELD_NUMBER: _ClassVar[int]
         ORDERCOUNT_FIELD_NUMBER: _ClassVar[int]
         PRICE_FIELD_NUMBER: _ClassVar[int]
+        TIME_FIELD_NUMBER: _ClassVar[int]
         VOLUME_FIELD_NUMBER: _ClassVar[int]
+        exchange: _containers.RepeatedScalarFieldContainer[str]
         orderCount: _containers.RepeatedScalarFieldContainer[int]
         price: _containers.RepeatedScalarFieldContainer[float]
+        time: _containers.RepeatedScalarFieldContainer[int]
         volume: _containers.RepeatedScalarFieldContainer[int]
-        def __init__(self, price: _Optional[_Iterable[float]] = ..., volume: _Optional[_Iterable[int]] = ..., orderCount: _Optional[_Iterable[int]] = ...) -> None: ...
+        def __init__(self, price: _Optional[_Iterable[float]] = ..., volume: _Optional[_Iterable[int]] = ..., orderCount: _Optional[_Iterable[int]] = ..., exchange: _Optional[_Iterable[str]] = ..., time: _Optional[_Iterable[int]] = ...) -> None: ...
     ASK_FIELD_NUMBER: _ClassVar[int]
     BID_FIELD_NUMBER: _ClassVar[int]
     SYMBOL_FIELD_NUMBER: _ClassVar[int]
