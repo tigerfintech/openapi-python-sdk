@@ -8,6 +8,8 @@ message QuoteDepthData {
     repeated double price = 1;
     repeated sint64 volume = 2;
     repeated uint32 orderCount = 3; // required when symbol in HK market
+    repeated string exchange = 4; // option exchange
+    repeated sint64 time = 5; // option exchange time
   }
   string symbol = 1;
   uint64 timestamp = 2;
