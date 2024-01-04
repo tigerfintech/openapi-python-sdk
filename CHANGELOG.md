@@ -1,3 +1,10 @@
+# 3.1.3 (2024-01-04)
+### Modify
+- `QuoteClient.get_symbol_names` 支持 OTC
+- `TradeClient.get_prime_assets` 支持 consolidated 参数
+### Fix
+- `QuoteClient.get_market_scanner_tags` multi_tags_fields 不生效的bug
+
 # 3.1.2 (2023-11-17)
 ### New
 - 支持美股期权深度行情订阅
@@ -7,7 +14,7 @@
 - 支持 OCA 订单，通过 `tigeropen.common.util.order_utils.oca_order` 构造
 
 ### Modify
-- `QuoteClieng.get_timeline` 默认调用 3.0 版本api
+- `QuoteClient.get_timeline` 默认调用 3.0 版本api
 
 # 3.1.0 (2023-10-11)
 ### Fix

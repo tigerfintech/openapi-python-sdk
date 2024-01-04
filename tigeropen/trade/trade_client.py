@@ -285,7 +285,7 @@ class TradeClient(TigerOpenClient):
 
         return None
 
-    def get_prime_assets(self, account=None, base_currency=None):
+    def get_prime_assets(self, account=None, base_currency=None, consolidated=True):
         """
         get prime account assets
         :param account:
@@ -297,6 +297,7 @@ class TradeClient(TigerOpenClient):
         params.secret_key = self._secret_key
         params.lang = get_enum_value(self._lang)
         params.base_currency = get_enum_value(base_currency)
+        params.consolidated = consolidated
 
         request = OpenApiRequest(PRIME_ASSETS, biz_model=params)
         response_content = self.__fetch_data(request)
