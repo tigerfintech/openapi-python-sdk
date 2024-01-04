@@ -48,6 +48,7 @@ class AssetParams(BaseParams):
         self._market_value = False
         self._sub_accounts = None
         self._base_currency = None
+        self._consolidated = None
 
     @property
     def account(self):
@@ -97,6 +98,14 @@ class AssetParams(BaseParams):
     def base_currency(self, value):
         self._base_currency = value
 
+    @property
+    def consolidated(self):
+        return self._consolidated
+
+    @consolidated.setter
+    def consolidated(self, value):
+        self._consolidated = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -116,6 +125,9 @@ class AssetParams(BaseParams):
 
         if self.base_currency:
             params['base_currency'] = self.base_currency
+
+        if self.consolidated is not None:
+            params['consolidated'] = self.consolidated
 
         return params
 

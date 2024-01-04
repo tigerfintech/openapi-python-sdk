@@ -25,6 +25,11 @@ class FilterField(Enum):
         return self.field_type + '_Type'
 
 
+    @property
+    def field_request_name(self):
+        return self.field_type + '_' + self.name
+
+
 class StockField(FilterField):
     # 最新价*（精确到小数点后 3 位，超出部分会被舍弃）例如填写[10,20]值区间
     CurPrice = 2, "latestPrice"

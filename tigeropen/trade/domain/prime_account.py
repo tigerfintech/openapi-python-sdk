@@ -58,6 +58,7 @@ class Segment:
         self.buying_power = float('inf')
         self.leverage = float('inf')
         self._currency_assets = dict()
+        self.consolidated_seg_types = list()
 
     @property
     def currency_assets(self):
