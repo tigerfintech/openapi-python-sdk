@@ -984,7 +984,7 @@ class MarketScannerParams(BaseParams):
         if self.page_size is not None:
             params['page_size'] = self.page_size
         if self.multi_tags_fields:
-            params['multi_tag_field_list'] = [f.index for f in self.multi_tags_fields]
+            params['multi_tag_field_list'] = [f.field_request_name for f in self.multi_tags_fields]
         return params
 
 
