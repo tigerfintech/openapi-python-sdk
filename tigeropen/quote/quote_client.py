@@ -142,6 +142,7 @@ class QuoteClient(TigerOpenClient):
         """
         获取股票代号列表
         :param market: US 美股，HK 港股， CN A股，ALL 所有
+        :param include_otc: 是否包含 OTC
         :return: 所有 symbol 的列表，包含退市和不可交易的部分代码. 其中以.开头的代码为指数， 如 .DJI 表示道琼斯指数
         """
         params = SymbolsParams()
@@ -160,16 +161,18 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_symbol_names(self, market=Market.ALL, lang=None):
+    def get_symbol_names(self, market=Market.ALL, lang=None, include_otc=False):
         """
         获取股票代号列表和名称
         :param market: US 美股，HK 港股， CN A股，ALL 所有
         :param lang: 语言支持: zh_CN,zh_TW,en_US
+        :param include_otc: 是否包含 OTC
         :return: list, list 中的每个对象是一个 tuple. tuple 的第一个元素是 symbol，第二个是 name
         """
-        params = MarketParams()
+        params = SymbolsParams()
         params.market = get_enum_value(market)
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        params.include_otc = include_otc
 
         request = OpenApiRequest(ALL_SYMBOL_NAMES, biz_model=params)
         response_content = self.__fetch_data(request)
