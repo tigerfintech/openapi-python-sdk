@@ -6,12 +6,13 @@ Created on 2018/9/20
 """
 
 import base64
-import binascii
 import json
-import logging
-import sys
+from functools import lru_cache
 
-import rsa
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 
 from tigeropen.common.util.string_utils import add_start_end
 
@@ -56,21 +57,42 @@ def fill_public_key_marker(public_key):
     return add_start_end(public_key, "-----BEGIN PUBLIC KEY-----\n", "\n-----END PUBLIC KEY-----")
 
 
-def sign_with_rsa(private_key, sign_content, charset):
+@lru_cache(maxsize=10)
+def load_private_key(private_key):
+    return serialization.load_pem_private_key(
+        fill_private_key_marker(private_key).encode(),
+        password=None,
+        backend=default_backend()
+    )
+
+
+@lru_cache(maxsize=10)
+def load_public_key(public_key):
+    return serialization.load_pem_public_key(
+        fill_public_key_marker(public_key).encode(),
+        backend=default_backend()
+    )
+
+
+def sign_with_rsa(private_key_str, sign_content, charset):
     sign_content = sign_content.encode(charset)
-    try:
-        private_key = rsa.PrivateKey.load_pkcs1(fill_private_key_marker(private_key), format='PEM')
-    except binascii.Error:
-        logging.error("私钥格式错误, 请参考文档进行修改. https://quant.itiger.com/openapi/py-docs/zh-cn/docs/intro/quickstart.html ")
-        sys.exit(1)
+    private_key = load_private_key(private_key_str)
 
-    signature = rsa.sign(sign_content, private_key, 'SHA-1')
+    algorithm = hashes.SHA1()
+    padding_data = padding.PKCS1v15()
 
+    signature = private_key.sign(sign_content, padding_data, algorithm)
     sign = str(base64.b64encode(signature), encoding=charset)
     return sign
 
 
 def verify_with_rsa(public_key, message, sign):
-    public_key = fill_public_key_marker(public_key)
+    public_key = load_public_key(public_key)
     sign = base64.b64decode(sign)
-    return rsa.verify(message, sign, rsa.PublicKey.load_pkcs1_openssl_pem(public_key))
+    padding_data = padding.PKCS1v15()
+    algorithm = hashes.SHA1()
+    try:
+        public_key.verify(sign, message, padding=padding_data, algorithm=algorithm)
+    except Exception as e:
+        raise e
+    return True

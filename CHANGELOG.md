@@ -1,3 +1,38 @@
+# 3.1.5 (2024-01-19)
+### Fix
+- 修复长链接 protobuf 消息帧生成问题导致的无法连接问题
+
+# 3.1.4 (2024-01-19)
+### Modify
+- 优化http请求，复用连接
+- 优化rsa签名
+
+# 3.1.3 (2024-01-04)
+### Modify
+- `QuoteClient.get_symbol_names` 支持 OTC
+- `TradeClient.get_prime_assets` 支持 consolidated 参数
+### Fix
+- `QuoteClient.get_market_scanner_tags` multi_tags_fields 不生效的bug
+
+# 3.1.2 (2023-11-17)
+### New
+- 支持美股期权深度行情订阅
+
+# 3.1.1 (2023-10-18)
+### New
+- 支持 OCA 订单，通过 `tigeropen.common.util.order_utils.oca_order` 构造
+
+### Modify
+- `QuoteClient.get_timeline` 默认调用 3.0 版本api
+
+# 3.1.0 (2023-10-11)
+### Fix
+- 修复长连接 `subscribe_option_top` 的枚举参数
+
+# 3.0.9 (2023-08-29)
+### Modify
+- Order 对象补充字段 `latest_price`
+
 ## 3.0.8 (2023-08-16)
 ### New
 - 添加示例代码

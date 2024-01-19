@@ -52,21 +52,22 @@ PARSING_LEN = 0
 PARSING_MSG = 1
 
 
-def EncodeVarint(msg):
-    value = len(msg)
+def encode_frame(packed_frame):
+    value = len(packed_frame)
+    header_array = []
+
     bits = value & 0x7f
     value >>= 7
-    header_array = []
     while value:
-        header_array.append(0x80 | bits)
+        header_array.append(struct.Struct(">B").pack((0x80 | bits)))
         bits = value & 0x7f
         value >>= 7
-    header_array.append(bits)
-    re = bytes(header_array)
-    return re
+
+    header_array.append(struct.Struct(">B").pack(bits))
+    return b"".join(header_array) + packed_frame
 
 
-def DecodeVarint(buffer):
+def decode_varint(buffer):
     mask = (1 << 32) - 1
     result_type = int
     result = 0
@@ -246,16 +247,8 @@ class BaseTransport(listener.Publisher):
 
         packed_frame = frame.SerializeToString()
         logging.debug("sending frame: %s", MessageToJson(frame))
-        value = len(packed_frame)
-        bits = value & 0x7f
-        value >>= 7
-        while value:
-            self.send(struct.Struct(">B").pack((0x80 | bits)))
-            bits = value & 0x7f
-            value >>= 7
-
-        self.send(struct.Struct(">B").pack(bits))
-        self.send(packed_frame)
+        encoded_frame = encode_frame(packed_frame)
+        self.send(encoded_frame)
 
     def send(self, encoded_frame):
         """
@@ -374,7 +367,7 @@ class BaseTransport(listener.Publisher):
                 if self.__parse_status == PARSING_LEN:
                     self.__frame_buffer += struct.Struct(">B").pack(b)
                     if not (b & 0x80):
-                        self.__frame_len = DecodeVarint(self.__frame_buffer)
+                        self.__frame_len = decode_varint(self.__frame_buffer)
                         self.__parse_status = PARSING_MSG
                         self.__frame_buffer = b""
                         continue

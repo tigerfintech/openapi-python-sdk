@@ -12,3 +12,4 @@ backoff
 jproperties
 protobuf
 google-cloud
+urllib3
