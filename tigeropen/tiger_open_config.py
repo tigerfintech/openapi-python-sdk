@@ -395,7 +395,7 @@ class TigerOpenClientConfig:
         }
         """
         try:
-            result = json.loads(do_get(DOMAIN_GARDEN_ADDRESS, headers=dict(), params=dict(), timeout=1).decode()) \
+            result = json.loads(do_get(DOMAIN_GARDEN_ADDRESS, headers=dict(), params=dict(), timeout=1)) \
                 .get('items')
             if result:
                 for item in result:
