@@ -1,3 +1,8 @@
+# 3.1.4 (2024-01-19)
+### Modify
+- 优化http请求，复用连接
+- 优化rsa签名
+
 # 3.1.3 (2024-01-04)
 ### Modify
 - `QuoteClient.get_symbol_names` 支持 OTC
