@@ -19,7 +19,7 @@ class Order:
                  "secret_key", "liquidation", "discount", "attr_desc", "source", 'adjust_limit', 'sub_ids', "user_mark",
                  "update_time", "expire_time", "can_modify", "external_id", "combo_type", "combo_type_desc", 'is_open',
                  "contract_legs", "filled_scale", "total_cash_amount", "filled_cash_amount",
-                 "refund_cash_amount", "attr_list", "latest_price", "orders"]
+                 "refund_cash_amount", "attr_list", "latest_price", "orders", "gst"]
 
     def __init__(self, account, contract, action, order_type=None, quantity=None, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
@@ -40,6 +40,7 @@ class Order:
         :param filled: 成交数量
         :param avg_fill_price: 包含佣金的平均成交价
         :param commission: 包含佣金, 印花税, 证监会费等系列费用
+        :param gst:
         :param realized_pnl: 实现盈亏
         :param trail_stop_price: 跟踪止损单--触发止损单的价格
         :param limit_price: 限价单价格
@@ -115,6 +116,7 @@ class Order:
         self.attr_list = kwargs.get('attr_list')
         self.latest_price = kwargs.get('latest_price')
         self.orders = kwargs.get('orders')
+        self.gst = kwargs.get('gst')
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
