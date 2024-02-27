@@ -119,6 +119,7 @@ class OrdersResponse(TigerResponse):
         filled_cash_amount = order_fields.get('filled_cash_amount')
         refund_cash_amount = order_fields.get('refund_cash_amount')
         attr_list = order_fields.get('attr_list')
+        gst = order_fields.get('gst')
 
         order = Order(account, contract, action, order_type, quantity, limit_price=limit_price, aux_price=aux_price,
                       trail_stop_price=trail_stop_price, trailing_percent=trailing_percent,
@@ -129,7 +130,8 @@ class OrdersResponse(TigerResponse):
                       attr_desc=attr_desc, source=source, user_mark=user_mark, expire_time=expire_time,
                       can_modify=can_modify, external_id=external_id, is_open=is_open, combo_type=combo_type,
                       combo_type_desc=combo_type_desc, filled_scale=filled_scale, total_cash_amount=total_cash_amount,
-                      filled_cash_amount=filled_cash_amount, refund_cash_amount=refund_cash_amount, attr_list=attr_list)
+                      filled_cash_amount=filled_cash_amount, refund_cash_amount=refund_cash_amount, attr_list=attr_list,
+                      gst=gst)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:
