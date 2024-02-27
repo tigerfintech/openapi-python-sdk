@@ -1,3 +1,7 @@
+# 3.1.6 (2024-02-26)
+### Modify
+- `Order` 及订单推送数据增加字段 `gst`; 订单推送 commissionAndFee 类型由 float 改为 double
+
 # 3.1.5 (2024-01-19)
 ### Fix
 - 修复长链接 protobuf 消息帧生成问题导致的无法连接问题
