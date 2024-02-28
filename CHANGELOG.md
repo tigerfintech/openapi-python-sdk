@@ -1,3 +1,7 @@
+# 3.1.7 (2024-02-28)
+### Fix
+- 订单推送 commissionAndFee 类型由 double 回滚为 float
+
 # 3.1.6 (2024-02-26)
 ### Modify
 - `Order` 及订单推送数据增加字段 `gst`; 订单推送 commissionAndFee 类型由 float 改为 double
