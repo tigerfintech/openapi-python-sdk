@@ -39,7 +39,7 @@ message OrderStatusData {
   string source = 32; // order source(from 'OpenApi', or not)
   string errorMsg = 33; // error message
   string attrDesc = 34; // order description
-  double commissionAndFee = 35; // commission and fee
+  float commissionAndFee = 35; // commission and fee
   uint64 openTime = 36; // timestamp when the order is placed
   uint64 timestamp = 37;
   string userMark = 38;
