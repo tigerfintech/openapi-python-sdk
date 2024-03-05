@@ -127,6 +127,14 @@ class ProtoMessageUtil:
         return cls.build_market_quote_message(market, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
 
     @classmethod
+    def build_subscribe_kline_message(cls, symbols):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.Kline, symbols, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
+
+    @classmethod
+    def build_unsubscribe_kline_message(cls, symbols):
+        return cls.build_quote_message(SocketCommon_pb2.SocketCommon.Kline, symbols, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
+
+    @classmethod
     def build_unsubscribe_market_message(cls, market):
         return cls.build_market_quote_message(market, SocketCommon_pb2.SocketCommon.UNSUBSCRIBE)
 
