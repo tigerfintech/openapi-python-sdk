@@ -2,7 +2,7 @@ syntax = "proto3";
 package tigeropen.push.pb;
 
 message KlineData {
-  int64 barTime = 1;   // bar timestamp.
+  int64 time = 1;   // bar timestamp.
   float open = 2;     // The first transaction price of current minute.
   float high = 3;     // The highest price of current minute.
   float low = 4;      // The lowest price of current minute.
