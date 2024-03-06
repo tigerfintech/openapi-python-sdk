@@ -186,7 +186,7 @@ class ProtobufPushClient(ConnectionListener):
                         self.option_top_changed(frame.body.optionTopData)
                 elif frame.body.dataType == SocketCommon.DataType.Kline:
                     if self.kline_changed:
-                        self.kline_changed(frame.body.KlineData)
+                        self.kline_changed(frame.body.klineData)
                 else:
                     self.logger.warning(f'unhandled frame: {frame}')
         except Exception:
