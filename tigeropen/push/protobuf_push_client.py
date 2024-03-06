@@ -43,6 +43,7 @@ class ProtobufPushClient(ConnectionListener):
         self.quote_bbo_changed = None
         self.quote_depth_changed = None
         self.tick_changed = None
+        self.full_tick_changed = None
         self.asset_changed = None
         self.position_changed = None
         self.order_changed = None
@@ -157,8 +158,12 @@ class ProtobufPushClient(ConnectionListener):
                     if self.quote_depth_changed:
                         self.quote_depth_changed(frame.body.quoteDepthData)
                 elif frame.body.dataType == SocketCommon.DataType.TradeTick:
-                    if self.tick_changed:
-                        self.tick_changed(self._convert_tick(frame.body.tradeTickData))
+                    if frame.body.hasTickData():
+                        if self.full_tick_changed:
+                            self.full_tick_changed(frame.body.tickData)
+                    else:
+                        if self.tick_changed:
+                            self.tick_changed(self._convert_tick(frame.body.tradeTickData))
                 elif frame.body.dataType == SocketCommon.DataType.OrderStatus:
                     if self.order_changed:
                         frame.body.orderStatusData.status = get_order_status(frame.body.orderStatusData.status,
