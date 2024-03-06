@@ -776,6 +776,7 @@ class PlaceModifyOrderParams(BaseParams):
         self.action = None
         self.order_type = None
         self.quantity = None
+        self.quantity_scale = None
         self.limit_price = None
         self.aux_price = None
         self.trail_stop_price = None
@@ -843,6 +844,8 @@ class PlaceModifyOrderParams(BaseParams):
             params['action'] = self.action
         if self.quantity is not None:
             params['total_quantity'] = self.quantity
+        if self.quantity_scale is not None:
+            params['total_quantity_scale'] = self.quantity_scale
         if self.limit_price is not None:
             params['limit_price'] = self.limit_price
         if self.aux_price is not None:

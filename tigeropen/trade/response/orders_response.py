@@ -26,6 +26,7 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'comboType': 'combo_type', 'comboTypeDesc': 'combo_type_desc',
                         'totalCashAmount': 'total_cash_amount', 'filledCashAmount': 'filled_cash_amount',
                         'refundCashAmount': 'refund_cash_amount', 'filledQuantityScale': 'filled_scale',
+                        'totalQuantityScale': 'quantity_scale',
                         'attrList': 'attr_list', 'latestPrice': 'latest_price',
                         }
 
@@ -115,6 +116,7 @@ class OrdersResponse(TigerResponse):
         combo_type = order_fields.get('combo_type')
         combo_type_desc = order_fields.get('combo_type_desc')
         filled_scale = order_fields.get('filled_scale')
+        quantity_scale = order_fields.get('quantity_scale')
         total_cash_amount = order_fields.get('total_cash_amount')
         filled_cash_amount = order_fields.get('filled_cash_amount')
         refund_cash_amount = order_fields.get('refund_cash_amount')
@@ -129,7 +131,8 @@ class OrdersResponse(TigerResponse):
                       algo_params=algo_params, liquidation=liquidation, algo_strategy=algo_strategy, discount=discount,
                       attr_desc=attr_desc, source=source, user_mark=user_mark, expire_time=expire_time,
                       can_modify=can_modify, external_id=external_id, is_open=is_open, combo_type=combo_type,
-                      combo_type_desc=combo_type_desc, filled_scale=filled_scale, total_cash_amount=total_cash_amount,
+                      combo_type_desc=combo_type_desc, filled_scale=filled_scale, quantity_scale=quantity_scale,
+                      total_cash_amount=total_cash_amount,
                       filled_cash_amount=filled_cash_amount, refund_cash_amount=refund_cash_amount, attr_list=attr_list,
                       gst=gst)
         if 'order_time' in order_fields:
