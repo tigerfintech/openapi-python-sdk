@@ -28,7 +28,8 @@ else:
 
 
 class ProtobufPushClient(ConnectionListener):
-    def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000)):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000),
+                 client_config=None):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
@@ -59,6 +60,8 @@ class ProtobufPushClient(ConnectionListener):
         self.heartbeat_callback = None
         self._connection_timeout = connection_timeout
         self._heartbeats = heartbeats
+        self._client_config = client_config
+        self._use_full_tick = self._client_config.use_full_tick if self._client_config else False
         self.logger = logging.getLogger('tiger_openapi')
         _patch_ssl()
 
@@ -85,7 +88,9 @@ class ProtobufPushClient(ConnectionListener):
                 self._connection.set_ssl([(self.host, self.port)])
             con_req = ProtoMessageUtil.build_connect_message(self._tiger_id, self._sign,
                                                              send_interval=self._heartbeats[0],
-                                                             receive_interval=self._heartbeats[1])
+                                                             receive_interval=self._heartbeats[1],
+                                                             use_full_tick=self._use_full_tick
+                                                             )
             self._connection.connect(con_req, wait=True,
                                      )
         except ConnectFailedException as e:
@@ -158,7 +163,7 @@ class ProtobufPushClient(ConnectionListener):
                     if self.quote_depth_changed:
                         self.quote_depth_changed(frame.body.quoteDepthData)
                 elif frame.body.dataType == SocketCommon.DataType.TradeTick:
-                    if frame.body.hasTickData():
+                    if self._use_full_tick:
                         if self.full_tick_changed:
                             self.full_tick_changed(frame.body.tickData)
                     else:

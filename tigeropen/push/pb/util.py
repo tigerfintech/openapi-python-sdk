@@ -45,7 +45,8 @@ class ProtoMessageUtil:
         return response
 
     @classmethod
-    def build_connect_message(cls, tiger_id, sign, version='3', send_interval=0, receive_interval=0):
+    def build_connect_message(cls, tiger_id, sign, version='3', send_interval=0, receive_interval=0,
+                              use_full_tick=False):
         if send_interval < 0 or receive_interval < 0:
             raise ValueError("sendInterval < 0 or receiveInterval < 0")
         request = Request_pb2.Request()
@@ -59,6 +60,7 @@ class ProtoMessageUtil:
         con.sign = sign
         con.sendInterval = send_interval
         con.receiveInterval = receive_interval
+        con.useFullTick = use_full_tick
         request.connect.CopyFrom(con)
         return request
 

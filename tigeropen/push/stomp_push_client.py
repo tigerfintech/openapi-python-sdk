@@ -99,6 +99,7 @@ class StompPushClient(stomp.ConnectionListener):
         self.stock_top_changed = None
         self.option_top_changed = None
         self.kline_changed = None
+        self.full_tick_changed = None
         self.asset_changed = None
         self.position_changed = None
         self.order_changed = None

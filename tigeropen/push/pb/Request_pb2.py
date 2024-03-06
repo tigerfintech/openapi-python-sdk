@@ -15,7 +15,7 @@ from tigeropen.push.pb import SocketCommon_pb2 as tigeropen_dot_push_dot_pb_dot_
 
 from tigeropen.push.pb.SocketCommon_pb2 import *
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1ftigeropen/push/pb/Request.proto\x12\x11tigeropen.push.pb\x1a$tigeropen/push/pb/SocketCommon.proto\"\x8e\x05\n\x07Request\x12\x38\n\x07\x63ommand\x18\x01 \x01(\x0e\x32\'.tigeropen.push.pb.SocketCommon.Command\x12\n\n\x02id\x18\x02 \x01(\r\x12<\n\tsubscribe\x18\x03 \x01(\x0b\x32$.tigeropen.push.pb.Request.SubscribeH\x00\x88\x01\x01\x12\x38\n\x07\x63onnect\x18\x04 \x01(\x0b\x32\".tigeropen.push.pb.Request.ConnectH\x01\x88\x01\x01\x1a\xfc\x01\n\x07\x43onnect\x12\x0f\n\x07tigerId\x18\x01 \x01(\t\x12\x0c\n\x04sign\x18\x02 \x01(\t\x12\x12\n\nsdkVersion\x18\x03 \x01(\t\x12\x1a\n\racceptVersion\x18\x04 \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0csendInterval\x18\x05 \x01(\rH\x01\x88\x01\x01\x12\x1c\n\x0freceiveInterval\x18\x06 \x01(\rH\x02\x88\x01\x01\x12\x1d\n\x10useFullStockTick\x18\x07 \x01(\x08H\x03\x88\x01\x01\x42\x10\n\x0e_acceptVersionB\x0f\n\r_sendIntervalB\x12\n\x10_receiveIntervalB\x13\n\x11_useFullStockTick\x1a\xab\x01\n\tSubscribe\x12:\n\x08\x64\x61taType\x18\x01 \x01(\x0e\x32(.tigeropen.push.pb.SocketCommon.DataType\x12\x14\n\x07symbols\x18\x02 \x01(\tH\x00\x88\x01\x01\x12\x14\n\x07\x61\x63\x63ount\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x13\n\x06market\x18\x04 \x01(\tH\x02\x88\x01\x01\x42\n\n\x08_symbolsB\n\n\x08_accountB\t\n\x07_marketB\x0c\n\n_subscribeB\n\n\x08_connectP\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1ftigeropen/push/pb/Request.proto\x12\x11tigeropen.push.pb\x1a$tigeropen/push/pb/SocketCommon.proto\"\x84\x05\n\x07Request\x12\x38\n\x07\x63ommand\x18\x01 \x01(\x0e\x32\'.tigeropen.push.pb.SocketCommon.Command\x12\n\n\x02id\x18\x02 \x01(\r\x12<\n\tsubscribe\x18\x03 \x01(\x0b\x32$.tigeropen.push.pb.Request.SubscribeH\x00\x88\x01\x01\x12\x38\n\x07\x63onnect\x18\x04 \x01(\x0b\x32\".tigeropen.push.pb.Request.ConnectH\x01\x88\x01\x01\x1a\xf2\x01\n\x07\x43onnect\x12\x0f\n\x07tigerId\x18\x01 \x01(\t\x12\x0c\n\x04sign\x18\x02 \x01(\t\x12\x12\n\nsdkVersion\x18\x03 \x01(\t\x12\x1a\n\racceptVersion\x18\x04 \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0csendInterval\x18\x05 \x01(\rH\x01\x88\x01\x01\x12\x1c\n\x0freceiveInterval\x18\x06 \x01(\rH\x02\x88\x01\x01\x12\x18\n\x0buseFullTick\x18\x07 \x01(\x08H\x03\x88\x01\x01\x42\x10\n\x0e_acceptVersionB\x0f\n\r_sendIntervalB\x12\n\x10_receiveIntervalB\x0e\n\x0c_useFullTick\x1a\xab\x01\n\tSubscribe\x12:\n\x08\x64\x61taType\x18\x01 \x01(\x0e\x32(.tigeropen.push.pb.SocketCommon.DataType\x12\x14\n\x07symbols\x18\x02 \x01(\tH\x00\x88\x01\x01\x12\x14\n\x07\x61\x63\x63ount\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x13\n\x06market\x18\x04 \x01(\tH\x02\x88\x01\x01\x42\n\n\x08_symbolsB\n\n\x08_accountB\t\n\x07_marketB\x0c\n\n_subscribeB\n\n\x08_connectP\x00\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'tigeropen.push.pb.Request_pb2', globals())
@@ -23,9 +23,9 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   _REQUEST._serialized_start=93
-  _REQUEST._serialized_end=747
+  _REQUEST._serialized_end=737
   _REQUEST_CONNECT._serialized_start=295
-  _REQUEST_CONNECT._serialized_end=547
-  _REQUEST_SUBSCRIBE._serialized_start=550
-  _REQUEST_SUBSCRIBE._serialized_end=721
+  _REQUEST_CONNECT._serialized_end=537
+  _REQUEST_SUBSCRIBE._serialized_start=540
+  _REQUEST_SUBSCRIBE._serialized_end=711
 # @@protoc_insertion_point(module_scope)
