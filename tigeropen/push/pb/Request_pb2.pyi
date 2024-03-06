@@ -9,22 +9,22 @@ DESCRIPTOR: _descriptor.FileDescriptor
 class Request(_message.Message):
     __slots__ = ["command", "connect", "id", "subscribe"]
     class Connect(_message.Message):
-        __slots__ = ["acceptVersion", "receiveInterval", "sdkVersion", "sendInterval", "sign", "tigerId", "useFullStockTick"]
+        __slots__ = ["acceptVersion", "receiveInterval", "sdkVersion", "sendInterval", "sign", "tigerId", "useFullTick"]
         ACCEPTVERSION_FIELD_NUMBER: _ClassVar[int]
         RECEIVEINTERVAL_FIELD_NUMBER: _ClassVar[int]
         SDKVERSION_FIELD_NUMBER: _ClassVar[int]
         SENDINTERVAL_FIELD_NUMBER: _ClassVar[int]
         SIGN_FIELD_NUMBER: _ClassVar[int]
         TIGERID_FIELD_NUMBER: _ClassVar[int]
-        USEFULLSTOCKTICK_FIELD_NUMBER: _ClassVar[int]
+        USEFULLTICK_FIELD_NUMBER: _ClassVar[int]
         acceptVersion: str
         receiveInterval: int
         sdkVersion: str
         sendInterval: int
         sign: str
         tigerId: str
-        useFullStockTick: bool
-        def __init__(self, tigerId: _Optional[str] = ..., sign: _Optional[str] = ..., sdkVersion: _Optional[str] = ..., acceptVersion: _Optional[str] = ..., sendInterval: _Optional[int] = ..., receiveInterval: _Optional[int] = ..., useFullStockTick: bool = ...) -> None: ...
+        useFullTick: bool
+        def __init__(self, tigerId: _Optional[str] = ..., sign: _Optional[str] = ..., sdkVersion: _Optional[str] = ..., acceptVersion: _Optional[str] = ..., sendInterval: _Optional[int] = ..., receiveInterval: _Optional[int] = ..., useFullTick: bool = ...) -> None: ...
     class Subscribe(_message.Message):
         __slots__ = ["account", "dataType", "market", "symbols"]
         ACCOUNT_FIELD_NUMBER: _ClassVar[int]

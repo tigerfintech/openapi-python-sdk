@@ -11,7 +11,7 @@ from tigeropen.push.stomp_push_client import StompPushClient
 
 class PushClient:
     def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000),
-                 use_protobuf=True):
+                 use_protobuf=True, client_config=None):
         """
         :param host:
         :param port:
@@ -23,7 +23,7 @@ class PushClient:
         if use_protobuf:
             self.client = ProtobufPushClient(host=host, port=port, use_ssl=use_ssl,
                                              connection_timeout=connection_timeout,
-                                             heartbeats=heartbeats)
+                                             heartbeats=heartbeats, client_config=client_config)
         else:
             self.client = StompPushClient(host=host, port=port, use_ssl=use_ssl, connection_timeout=connection_timeout,
                                           heartbeats=heartbeats)
@@ -100,6 +100,14 @@ class PushClient:
     @kline_changed.setter
     def kline_changed(self, value):
         self.client.kline_changed = value
+
+    @property
+    def full_tick_changed(self):
+        return self.client.full_tick_changed
+
+    @full_tick_changed.setter
+    def full_tick_changed(self, value):
+        self.client.full_tick_changed = value
 
     @property
     def asset_changed(self):
