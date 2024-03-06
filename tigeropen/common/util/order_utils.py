@@ -32,6 +32,7 @@ def market_order_by_amount(account, contract, action, amount):
     """
     return Order(account, contract, action, 'MKT', total_cash_amount=amount)
 
+
 def limit_order(account, contract, action, quantity, limit_price):
     """
     限价单
@@ -150,7 +151,8 @@ def limit_order_with_legs(account, contract, action, quantity, limit_price, orde
     return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, order_legs=order_legs)
 
 
-def algo_order_params(start_time=None, end_time=None, no_take_liq=None, allow_past_end_time=None, participation_rate=None):
+def algo_order_params(start_time=None, end_time=None, no_take_liq=None, allow_past_end_time=None,
+                      participation_rate=None):
     """
     算法订单参数
     :param start_time: 生效开始时间(时间戳 TWAP和VWAP专用)
@@ -183,7 +185,7 @@ def algo_order(account, contract, action, quantity, strategy, algo_params=None, 
 def contract_leg(symbol=None, sec_type=None, expiry=None, strike=None, put_call=None, action=None,
                  ratio=1):
     return ContractLeg(symbol=symbol, sec_type=sec_type, expiry=expiry, strike=strike, put_call=put_call,
-                        action=action, ratio=ratio)
+                       action=action, ratio=ratio)
 
 
 def combo_order(account, contract_legs, combo_type, action, quantity, order_type=OrderType.LMT.value, limit_price=None,
@@ -192,8 +194,11 @@ def combo_order(account, contract_legs, combo_type, action, quantity, order_type
                  aux_price=aux_price, trailing_percent=trailing_percent, combo_type=combo_type,
                  contract_legs=contract_legs)
 
+
 def oca_order(account, contract, action, order_legs, quantity=None):
-    return Order(account, contract, action=action, quantity=quantity, order_legs=order_legs, order_type=OrderType.OCA.value)
+    return Order(account, contract, action=action, quantity=quantity, order_legs=order_legs,
+                 order_type=OrderType.OCA.value)
+
 
 def get_order_status(value, filled_quantity=0):
     """
