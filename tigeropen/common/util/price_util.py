@@ -68,6 +68,9 @@ class PriceUtil:
             elif TickSizeType.OPEN_CLOSED.value == type_:
                 if begin < price <= end:
                     return item
+            elif TickSizeType.CLOSED_OPEN.value == type_:
+                if begin <= price < end:
+                    return item
             elif TickSizeType.CLOSED.value == type_:
                 if begin <= price <= end:
                     return item
