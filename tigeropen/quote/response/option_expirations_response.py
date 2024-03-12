@@ -20,14 +20,13 @@ class OptionExpirationsResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data and isinstance(self.data, list):
-            expiration_items = []
+            self.expirations = pd.DataFrame()
             for item in self.data:
                 symbol = item.get('symbol')
                 dates = item.get('dates')
-                timestamps = item.get('timestamps')
+                item.pop('count', None)
 
                 if symbol and dates:
-                    for date, timestamp in zip(dates, timestamps):
-                        expiration_items.append([symbol, date, timestamp])
-
-            self.expirations = pd.DataFrame(expiration_items, columns=['symbol', 'date', 'timestamp'])
+                    self.expirations = pd.concat([self.expirations, pd.DataFrame(item)]).rename(
+                        columns={'dates': 'date', 'timestamps': 'timestamp',
+                                 'periodTags': 'period_tag'})
