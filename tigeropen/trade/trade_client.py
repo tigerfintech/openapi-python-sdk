@@ -532,6 +532,7 @@ class TradeClient(TigerOpenClient):
         params.order_type = order.order_type
         params.order_id = order.order_id
         params.quantity = order.quantity
+        params.quantity_scale = order.quantity_scale
         params.limit_price = order.limit_price
         params.aux_price = order.aux_price
         params.trail_stop_price = order.trail_stop_price
@@ -564,6 +565,7 @@ class TradeClient(TigerOpenClient):
         params.order_type = order.order_type
         params.order_id = order.order_id
         params.quantity = order.quantity
+        params.quantity_scale = order.quantity_scale
         params.limit_price = order.limit_price
         params.aux_price = order.aux_price
         params.trail_stop_price = order.trail_stop_price
@@ -621,6 +623,7 @@ class TradeClient(TigerOpenClient):
         params.action = order.action
         params.order_type = order.order_type
         params.quantity = quantity if quantity is not None else order.quantity
+        params.quantity_scale = kwargs.get('quantity_scale', order.quantity_scale)
         params.limit_price = limit_price if limit_price is not None else order.limit_price
         params.aux_price = aux_price if aux_price is not None else order.aux_price
         params.trail_stop_price = trail_stop_price if trail_stop_price is not None else order.trail_stop_price

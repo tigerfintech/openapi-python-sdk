@@ -173,6 +173,7 @@ class TickSizeType(Enum):
     CLOSED = 'CLOSED'
     OPEN_CLOSED = 'OPEN_CLOSED'
     OPEN = 'OPEN'
+    CLOSED_OPEN = 'CLOSED_OPEN'
 
 
 @unique

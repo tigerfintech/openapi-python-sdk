@@ -1,3 +1,9 @@
+# 3.1.8 (2024-03-03)
+### Modify
+- `Order` 增加字段 `quantity_scale` 用于碎股下单指定小数数量
+### Fix
+- 处理合约 tick 的 PriceUtil 补充一种枚举类型 CLOSED_OPEN
+
 # 3.1.7 (2024-02-28)
 ### Fix
 - 订单推送 commissionAndFee 类型由 double 回滚为 float
