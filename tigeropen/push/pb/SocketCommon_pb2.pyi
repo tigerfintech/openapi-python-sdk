@@ -23,6 +23,7 @@ class SocketCommon(_message.Message):
     ERROR: SocketCommon.Command
     Future: SocketCommon.DataType
     HEARTBEAT: SocketCommon.Command
+    Kline: SocketCommon.DataType
     MESSAGE: SocketCommon.Command
     None: SocketCommon.QuoteType
     Option: SocketCommon.DataType
