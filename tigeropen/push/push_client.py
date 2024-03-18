@@ -28,7 +28,6 @@ class PushClient:
             self.client = StompPushClient(host=host, port=port, use_ssl=use_ssl, connection_timeout=connection_timeout,
                                           heartbeats=heartbeats)
 
-
     @property
     def subscribed_symbols(self):
         """deprecated, use query_subscribed_callback instead"""
@@ -93,6 +92,14 @@ class PushClient:
     @option_top_changed.setter
     def option_top_changed(self, value):
         self.client.option_top_changed = value
+
+    @property
+    def kline_changed(self):
+        return self.client.kline_changed
+
+    @kline_changed.setter
+    def kline_changed(self, value):
+        self.client.kline_changed = value
 
     @property
     def asset_changed(self):
@@ -328,8 +335,15 @@ class PushClient:
 
     def unsubscribe_stock_top(self, market, indicators=None):
         self.client.unsubscribe_stock_top(get_enum_value(market), indicators)
+
     def subscribe_option_top(self, market, indicators=None):
         self.client.subscribe_option_top(get_enum_value(market), indicators)
 
     def unsubscribe_option_top(self, market, indicators=None):
         self.client.unsubscribe_option_top(get_enum_value(market), indicators)
+
+    def subscribe_kline(self, symbols=None):
+        self.client.subscribe_kline(symbols)
+
+    def unsubscribe_kline(self, symbols=None):
+        self.client.unsubscribe_kline(symbols)

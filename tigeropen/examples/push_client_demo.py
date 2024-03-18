@@ -10,6 +10,7 @@ import pandas as pd
 
 from tigeropen.common.consts import StockRankingIndicator, OptionRankingIndicator
 from tigeropen.push.pb.AssetData_pb2 import AssetData
+from tigeropen.push.pb.KlineData_pb2 import KlineData
 from tigeropen.push.pb.OptionTopData_pb2 import OptionTopData
 from tigeropen.push.pb.OrderStatusData_pb2 import OrderStatusData
 from tigeropen.push.pb.OrderTransactionData_pb2 import OrderTransactionData
@@ -29,7 +30,8 @@ def query_subscribed_callback(data):
     data example:
         {'subscribed_symbols': ['QQQ'], 'limit': 1200, 'used': 1, 'symbol_focus_keys': {'qqq': ['open', 'prev_close', 'low', 'volume', 'latest_price', 'close', 'high']},
          'subscribed_quote_depth_symbols': ['NVDA'], 'quote_depth_limit': 20, 'quote_depth_used': 1,
-         'subscribed_trade_tick_symbols': ['QQQ', 'AMD', '00700'], 'trade_tick_limit': 1200, 'trade_tick_used': 3}
+         'subscribed_trade_tick_symbols': ['QQQ', 'AMD', '00700'], 'trade_tick_limit': 1200, 'trade_tick_used': 3,
+         'kline_limit': 1200, 'kline_used': 0}
     """
     print(f'subscribed data:{data}')
     print(f'subscribed symbols:{data["subscribed_symbols"]}')
@@ -164,11 +166,18 @@ def on_tick_changed(frame: TradeTick):
     """
     print(frame)
 
+
 def on_stock_top_changed(frame: StockTopData):
     print(f'stock top changed: {frame}')
 
+
 def on_option_top_changed(frame: OptionTopData):
     print(f'option top changed: {frame}')
+
+
+def on_kline_changed(frame: KlineData):
+    print(frame)
+
 
 def on_order_changed(frame: OrderStatusData):
     """订单回调
@@ -324,7 +333,8 @@ if __name__ == '__main__':
     push_client.stock_top_changed = on_stock_top_changed
     # 期权榜单回调
     push_client.option_top_changed = on_option_top_changed
-
+    # k线变动回调
+    push_client.kline_changed = on_kline_changed
 
     # 订阅成功与否的回调
     push_client.subscribe_callback = subscribe_callback
@@ -366,6 +376,9 @@ if __name__ == '__main__':
     push_client.subscribe_stock_top("HK", [StockRankingIndicator.Amount, StockRankingIndicator.ChangeRate])
     # 订阅期权榜单数据
     push_client.subscribe_option_top("US", [OptionRankingIndicator.Amount])
+
+    # 订阅k线数据
+    push_client.subscribe_kline(["AAPL", "GOOG"])
 
     time.sleep(600)
     push_client.disconnect()
