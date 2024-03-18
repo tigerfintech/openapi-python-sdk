@@ -98,6 +98,7 @@ class StompPushClient(stomp.ConnectionListener):
         self.tick_changed = None
         self.stock_top_changed = None
         self.option_top_changed = None
+        self.kline_changed = None
         self.asset_changed = None
         self.position_changed = None
         self.order_changed = None
@@ -483,6 +484,12 @@ class StompPushClient(stomp.ConnectionListener):
 
     def unsubscribe_option_top(self, market, indicators):
         raise NotImplementedError('Only protobuf support unsubscribe option top')
+
+    def subscribe_kline(self, symbols):
+        raise NotImplementedError('Only protobuf support subscribe kline')
+
+    def unsubscribe_kline(self, symbols):
+        raise NotImplementedError('Only protobuf support unsubscribe kline')
 
     def _handle_trade_subscribe(self, destination, subscription, account=None, extra_headers=None):
         if extra_headers is None:

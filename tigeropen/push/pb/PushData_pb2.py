@@ -21,6 +21,7 @@ from tigeropen.push.pb import TradeTickData_pb2 as tigeropen_dot_push_dot_pb_dot
 from tigeropen.push.pb import OrderTransactionData_pb2 as tigeropen_dot_push_dot_pb_dot_OrderTransactionData__pb2
 from tigeropen.push.pb import StockTopData_pb2 as tigeropen_dot_push_dot_pb_dot_StockTopData__pb2
 from tigeropen.push.pb import OptionTopData_pb2 as tigeropen_dot_push_dot_pb_dot_OptionTopData__pb2
+from tigeropen.push.pb import KlineData_pb2 as tigeropen_dot_push_dot_pb_dot_KlineData__pb2
 
 from tigeropen.push.pb.SocketCommon_pb2 import *
 from tigeropen.push.pb.OrderStatusData_pb2 import *
@@ -32,14 +33,15 @@ from tigeropen.push.pb.TradeTickData_pb2 import *
 from tigeropen.push.pb.OrderTransactionData_pb2 import *
 from tigeropen.push.pb.StockTopData_pb2 import *
 from tigeropen.push.pb.OptionTopData_pb2 import *
+from tigeropen.push.pb.KlineData_pb2 import *
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n tigeropen/push/pb/PushData.proto\x12\x11tigeropen.push.pb\x1a$tigeropen/push/pb/SocketCommon.proto\x1a\'tigeropen/push/pb/OrderStatusData.proto\x1a$tigeropen/push/pb/PositionData.proto\x1a!tigeropen/push/pb/AssetData.proto\x1a!tigeropen/push/pb/QuoteData.proto\x1a&tigeropen/push/pb/QuoteDepthData.proto\x1a%tigeropen/push/pb/TradeTickData.proto\x1a,tigeropen/push/pb/OrderTransactionData.proto\x1a$tigeropen/push/pb/StockTopData.proto\x1a%tigeropen/push/pb/OptionTopData.proto\"\xe1\x04\n\x08PushData\x12:\n\x08\x64\x61taType\x18\x01 \x01(\x0e\x32(.tigeropen.push.pb.SocketCommon.DataType\x12\x31\n\tquoteData\x18\x02 \x01(\x0b\x32\x1c.tigeropen.push.pb.QuoteDataH\x00\x12;\n\x0equoteDepthData\x18\x03 \x01(\x0b\x32!.tigeropen.push.pb.QuoteDepthDataH\x00\x12\x39\n\rtradeTickData\x18\x04 \x01(\x0b\x32 .tigeropen.push.pb.TradeTickDataH\x00\x12\x37\n\x0cpositionData\x18\x05 \x01(\x0b\x32\x1f.tigeropen.push.pb.PositionDataH\x00\x12\x31\n\tassetData\x18\x06 \x01(\x0b\x32\x1c.tigeropen.push.pb.AssetDataH\x00\x12=\n\x0forderStatusData\x18\x07 \x01(\x0b\x32\".tigeropen.push.pb.OrderStatusDataH\x00\x12G\n\x14orderTransactionData\x18\x08 \x01(\x0b\x32\'.tigeropen.push.pb.OrderTransactionDataH\x00\x12\x37\n\x0cstockTopData\x18\t \x01(\x0b\x32\x1f.tigeropen.push.pb.StockTopDataH\x00\x12\x39\n\roptionTopData\x18\n \x01(\x0b\x32 .tigeropen.push.pb.OptionTopDataH\x00\x42\x06\n\x04\x62odyP\x00P\x01P\x02P\x03P\x04P\x05P\x06P\x07P\x08P\tb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n tigeropen/push/pb/PushData.proto\x12\x11tigeropen.push.pb\x1a$tigeropen/push/pb/SocketCommon.proto\x1a\'tigeropen/push/pb/OrderStatusData.proto\x1a$tigeropen/push/pb/PositionData.proto\x1a!tigeropen/push/pb/AssetData.proto\x1a!tigeropen/push/pb/QuoteData.proto\x1a&tigeropen/push/pb/QuoteDepthData.proto\x1a%tigeropen/push/pb/TradeTickData.proto\x1a,tigeropen/push/pb/OrderTransactionData.proto\x1a$tigeropen/push/pb/StockTopData.proto\x1a%tigeropen/push/pb/OptionTopData.proto\x1a!tigeropen/push/pb/KlineData.proto\"\x94\x05\n\x08PushData\x12:\n\x08\x64\x61taType\x18\x01 \x01(\x0e\x32(.tigeropen.push.pb.SocketCommon.DataType\x12\x31\n\tquoteData\x18\x02 \x01(\x0b\x32\x1c.tigeropen.push.pb.QuoteDataH\x00\x12;\n\x0equoteDepthData\x18\x03 \x01(\x0b\x32!.tigeropen.push.pb.QuoteDepthDataH\x00\x12\x39\n\rtradeTickData\x18\x04 \x01(\x0b\x32 .tigeropen.push.pb.TradeTickDataH\x00\x12\x37\n\x0cpositionData\x18\x05 \x01(\x0b\x32\x1f.tigeropen.push.pb.PositionDataH\x00\x12\x31\n\tassetData\x18\x06 \x01(\x0b\x32\x1c.tigeropen.push.pb.AssetDataH\x00\x12=\n\x0forderStatusData\x18\x07 \x01(\x0b\x32\".tigeropen.push.pb.OrderStatusDataH\x00\x12G\n\x14orderTransactionData\x18\x08 \x01(\x0b\x32\'.tigeropen.push.pb.OrderTransactionDataH\x00\x12\x37\n\x0cstockTopData\x18\t \x01(\x0b\x32\x1f.tigeropen.push.pb.StockTopDataH\x00\x12\x39\n\roptionTopData\x18\n \x01(\x0b\x32 .tigeropen.push.pb.OptionTopDataH\x00\x12\x31\n\tklineData\x18\x0b \x01(\x0b\x32\x1c.tigeropen.push.pb.KlineDataH\x00\x42\x06\n\x04\x62odyP\x00P\x01P\x02P\x03P\x04P\x05P\x06P\x07P\x08P\tP\nb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'tigeropen.push.pb.PushData_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _PUSHDATA._serialized_start=445
-  _PUSHDATA._serialized_end=1054
+  _PUSHDATA._serialized_start=480
+  _PUSHDATA._serialized_end=1140
 # @@protoc_insertion_point(module_scope)
