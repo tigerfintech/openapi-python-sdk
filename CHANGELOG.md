@@ -1,3 +1,10 @@
+# 3.1.9 (2024-03-18)
+### New
+- 长链接分钟k线推送
+### Modify
+- `QuoteClient.get_option_chain` 参数 `option_filter` 默认值优化
+- `QuoteClient.get_symbol_names` 返回增加周期字段
+
 # 3.1.8 (2024-03-12)
 ### Modify
 - `Order` 增加字段 `quantity_scale` 用于碎股下单指定小数数量
