@@ -49,6 +49,7 @@ class ProtobufPushClient(ConnectionListener):
         self.transaction_changed = None
         self.stock_top_changed = None
         self.option_top_changed = None
+        self.kline_changed = None
         self.connect_callback = None
         self.disconnect_callback = None
         self.subscribe_callback = None
@@ -178,6 +179,9 @@ class ProtobufPushClient(ConnectionListener):
                 elif frame.body.dataType == SocketCommon.DataType.OptionTop:
                     if self.option_top_changed:
                         self.option_top_changed(frame.body.optionTopData)
+                elif frame.body.dataType == SocketCommon.DataType.Kline:
+                    if self.kline_changed:
+                        self.kline_changed(frame.body.klineData)
                 else:
                     self.logger.warning(f'unhandled frame: {frame}')
         except Exception:
@@ -378,6 +382,24 @@ class ProtobufPushClient(ConnectionListener):
         :return:
         """
         req = ProtoMessageUtil.build_unsubscribe_depth_quote_message(symbols)
+        self._connection.send_frame(req)
+
+    def subscribe_kline(self, symbols=None):
+        """
+        订阅K线
+        :param symbols:
+        :return:
+        """
+        req = ProtoMessageUtil.build_subscribe_kline_message(symbols)
+        self._connection.send_frame(req)
+
+    def unsubscribe_kline(self, symbols=None):
+        """
+        退订K线
+        :param symbols:
+        :return:
+        """
+        req = ProtoMessageUtil.build_unsubscribe_kline_message(symbols)
         self._connection.send_frame(req)
 
     def subscribe_market(self, market):

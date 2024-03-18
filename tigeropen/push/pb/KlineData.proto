@@ -1,0 +1,16 @@
+syntax = "proto3";
+package tigeropen.push.pb;
+
+message KlineData {
+  int64 time = 1;   // bar timestamp.
+  float open = 2;     // The first transaction price of current minute.
+  float high = 3;     // The highest price of current minute.
+  float low = 4;      // The lowest price of current minute.
+  float close = 5;    // The last transaction price in the current minute
+  float avg = 6;      // The average price of current minute.
+  int64 volume = 7;   // Cumulative trading volume in current minute.
+  int32 count = 8;    // The number of transaction in current minute.
+  string symbol = 9;  // symbol
+  double amount = 10;  // Cumulative turnover in current minute.
+  optional uint64 serverTimestamp = 11;
+}
