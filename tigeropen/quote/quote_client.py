@@ -689,7 +689,11 @@ class QuoteClient(TigerOpenClient):
         else:
             param.expiry = expiry
         params.contracts = [param]
-        params.option_filter = option_filter if option_filter else OptionFilter(**kwargs)
+        if option_filter:
+            params.option_filter = option_filter
+        elif kwargs:
+            params.option_filter = OptionFilter(**kwargs)
+
         params.lang = get_enum_value(self._lang)
         params.version = OPEN_API_SERVICE_VERSION_V3
         request = OpenApiRequest(OPTION_CHAIN, biz_model=params)
