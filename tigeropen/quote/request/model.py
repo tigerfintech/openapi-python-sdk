@@ -809,7 +809,7 @@ class OptionChainParams(BaseParams):
 
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
-        params.update({'option_basic': list(), 'option_filter': dict()})
+        params.update({'option_basic': list()})
 
         if self.contracts:
             for contract in self.contracts:
