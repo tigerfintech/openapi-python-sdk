@@ -1,3 +1,9 @@
+# 3.2.0 (2024-04-02)
+### Modify
+- `QuoteClient.get_option_chain` 增加参数 `return_greek_value`
+### Breaking
+- `TradeClieng.get_managed_accounts` 此前不传 `account` 参数时，会设置默认账户，现改为不设置默认账户
+
 # 3.1.9 (2024-03-18)
 ### New
 - 长链接分钟k线推送
