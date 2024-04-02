@@ -62,7 +62,8 @@ class TradeClient(TigerOpenClient):
             status： 账户状态(New, Funded, Open, Pending, Abandoned, Rejected, Closed, Unknown)
         """
         params = AccountsParams()
-        params.account = account if account else self._account
+        if account:
+            params.account = account
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ACCOUNTS, biz_model=params)
         response_content = self.__fetch_data(request)
