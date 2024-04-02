@@ -1,3 +1,7 @@
+# 3.2.1 (2024-04-09)
+### Fix
+- `QuoteClient.get_option_briefs` 返回补充字段 `change`
+
 # 3.2.0 (2024-04-02)
 ### Modify
 - `QuoteClient.get_option_chain` 增加参数 `return_greek_value`
