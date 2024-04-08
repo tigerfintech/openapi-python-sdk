@@ -1,3 +1,26 @@
+# 3.2.1 (2024-04-09)
+### Fix
+- `QuoteClient.get_option_briefs` 返回补充字段 `change`
+
+# 3.2.0 (2024-04-02)
+### Modify
+- `QuoteClient.get_option_chain` 增加参数 `return_greek_value`
+### Breaking
+- `TradeClieng.get_managed_accounts` 此前不传 `account` 参数时，会设置默认账户，现改为不设置默认账户
+
+# 3.1.9 (2024-03-18)
+### New
+- 长链接分钟k线推送
+### Modify
+- `QuoteClient.get_option_chain` 参数 `option_filter` 默认值优化
+- `QuoteClient.get_symbol_names` 返回增加周期字段
+
+# 3.1.8 (2024-03-12)
+### Modify
+- `Order` 增加字段 `quantity_scale` 用于碎股下单指定小数数量
+### Fix
+- 处理合约 tick 的 PriceUtil 补充一种枚举类型 CLOSED_OPEN
+
 # 3.1.7 (2024-02-28)
 ### Fix
 - 订单推送 commissionAndFee 类型由 double 回滚为 float

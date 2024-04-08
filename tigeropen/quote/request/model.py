@@ -790,6 +790,7 @@ class OptionChainParams(BaseParams):
         super(OptionChainParams, self).__init__()
         self._contracts = None
         self._option_filter = None
+        self._return_greek_value = None
 
     @property
     def contracts(self):
@@ -807,15 +808,25 @@ class OptionChainParams(BaseParams):
     def option_filter(self, value):
         self._option_filter = value
 
+    @property
+    def return_greek_value(self):
+        return self._return_greek_value
+
+    @return_greek_value.setter
+    def return_greek_value(self, value):
+        self._return_greek_value = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
-        params.update({'option_basic': list(), 'option_filter': dict()})
+        params.update({'option_basic': list()})
 
         if self.contracts:
             for contract in self.contracts:
                 params['option_basic'].append(contract.to_openapi_dict())
         if self.option_filter:
             params['option_filter'] = self.option_filter.to_dict()
+        if self.return_greek_value is not None:
+            params['return_greek_value'] = self.return_greek_value
         return params
 
 
