@@ -657,12 +657,13 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_option_chain(self, symbol, expiry, option_filter=None, **kwargs):
+    def get_option_chain(self, symbol, expiry, option_filter=None, return_greek_value=None, **kwargs):
         """
         query option chain with filter
         :param symbol: underlying stock symbol
         :param expiry: expiration date ( like '2021-06-18' or 1560484800000 )
         :param option_filter: option filter conditions, tigeropen.quote.domain.filter.OptionFilter
+        :param return_greek_value: return greek value or not, bool
         :param kwargs: optional. specify option_filter parameters directly without option_filer,
                         like: open_interest_min=100, delta_min=0.1
         :return: pandas.DataFrame，the columns are as follows：
@@ -689,7 +690,11 @@ class QuoteClient(TigerOpenClient):
         else:
             param.expiry = expiry
         params.contracts = [param]
-        params.option_filter = option_filter if option_filter else OptionFilter(**kwargs)
+        if option_filter:
+            params.option_filter = option_filter
+        elif kwargs:
+            params.option_filter = OptionFilter(**kwargs)
+        params.return_greek_value = return_greek_value
         params.lang = get_enum_value(self._lang)
         params.version = OPEN_API_SERVICE_VERSION_V3
         request = OpenApiRequest(OPTION_CHAIN, biz_model=params)
