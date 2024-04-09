@@ -1,3 +1,8 @@
+# 3.2.2 (2024-04-09)
+### New
+- 长链接全量 tick 推送
+- `TradeClient.get_open_orders` `get_filled_orders` 增加 `limit` 参数
+
 # 3.2.1 (2024-04-09)
 ### Fix
 - `QuoteClient.get_option_briefs` 返回补充字段 `change`
