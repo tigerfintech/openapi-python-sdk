@@ -1,0 +1,19 @@
+syntax = "proto3";
+package tigeropen.push.pb;
+
+message TickData {
+  string symbol = 1;
+  repeated Tick ticks = 2;
+  int64 timestamp = 3;
+  string source = 4;  // data source (Optional)
+
+  message Tick {
+    int64 sn = 1;        // The order in which upstream data arrives, for reference only.
+    int64 time = 2;      // Execution time of transaction. 13位的时间戳
+    float price = 3;     // Transaction price.
+    int32 volume = 4;    // Transaction volume.
+    string type = 5;     // buy/sell direction. Active buy(+); Active sell(-); Neutral transaction(*)
+    string cond = 6;     // The trade condition for irregular transaction. (Optional)
+    string partCode = 7; // The market participant reports the transaction. (Optional)
+  }
+}

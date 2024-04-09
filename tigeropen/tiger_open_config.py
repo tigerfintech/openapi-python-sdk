@@ -90,6 +90,8 @@ class TigerOpenClientConfig:
         # 请求读取超时，单位秒，默认15s
         self._timeout = TIMEOUT
         self._sandbox_debug = sandbox_debug
+        # subscribed trade tick data, Whether to use the full version of the tick
+        self.use_full_tick = False
 
         # 老虎证券开放平台公钥
         self._tiger_public_key = TIGER_PUBLIC_KEY
