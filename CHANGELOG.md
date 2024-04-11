@@ -1,3 +1,7 @@
+# 3.2.3 (2024-04-11)
+### Fix
+- `QuoteClient.get_option_expirations` 修复多标的时 pandas 处理列名的问题
+
 # 3.2.2 (2024-04-09)
 ### New
 - 长链接全量 tick 推送
@@ -18,7 +22,7 @@
 - 长链接分钟k线推送
 ### Modify
 - `QuoteClient.get_option_chain` 参数 `option_filter` 默认值优化
-- `QuoteClient.get_symbol_names` 返回增加周期字段
+- `QuoteClient.get_option_expirations` 返回增加周期字段
 
 # 3.1.8 (2024-03-12)
 ### Modify
