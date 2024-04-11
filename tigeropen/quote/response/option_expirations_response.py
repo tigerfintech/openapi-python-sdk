@@ -27,6 +27,8 @@ class OptionExpirationsResponse(TigerResponse):
                 item.pop('count', None)
 
                 if symbol and dates:
-                    self.expirations = pd.concat([self.expirations, pd.DataFrame(item)]).rename(
-                        columns={'dates': 'date', 'timestamps': 'timestamp',
-                                 'periodTags': 'period_tag'})
+                    self.expirations = pd.concat([self.expirations, pd.DataFrame(item)])
+
+            self.expirations.rename(
+                columns={'dates': 'date', 'timestamps': 'timestamp',
+                         'periodTags': 'period_tag'}, inplace=True)
