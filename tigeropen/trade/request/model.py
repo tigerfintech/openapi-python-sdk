@@ -793,6 +793,7 @@ class PlaceModifyOrderParams(BaseParams):
         self.contract_legs = None
         self.total_cash_amount = None
         self.oca_orders = None
+        self.trading_session_type = None
 
     def _parse_contract_param(self):
         params = dict()
@@ -872,6 +873,8 @@ class PlaceModifyOrderParams(BaseParams):
             params['algo_params'] = [{'tag': item[0], 'value': item[1]} for item in self.algo_params.to_dict().items()]
         if self.combo_type:
             params['combo_type'] = self.combo_type
+        if self.trading_session_type:
+            params['trading_session_type'] = self.trading_session_type
         return params
 
     def _parse_leg_param(self):

@@ -28,6 +28,7 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
                         'refundCashAmount': 'refund_cash_amount', 'filledQuantityScale': 'filled_scale',
                         'totalQuantityScale': 'quantity_scale',
                         'attrList': 'attr_list', 'latestPrice': 'latest_price',
+                        'tradingSessionType': 'trading_session_type',
                         }
 
 
@@ -122,6 +123,7 @@ class OrdersResponse(TigerResponse):
         refund_cash_amount = order_fields.get('refund_cash_amount')
         attr_list = order_fields.get('attr_list')
         gst = order_fields.get('gst')
+        trading_session_type = order_fields.get('trading_session_type')
 
         order = Order(account, contract, action, order_type, quantity, limit_price=limit_price, aux_price=aux_price,
                       trail_stop_price=trail_stop_price, trailing_percent=trailing_percent,
@@ -134,7 +136,7 @@ class OrdersResponse(TigerResponse):
                       combo_type_desc=combo_type_desc, filled_scale=filled_scale, quantity_scale=quantity_scale,
                       total_cash_amount=total_cash_amount,
                       filled_cash_amount=filled_cash_amount, refund_cash_amount=refund_cash_amount, attr_list=attr_list,
-                      gst=gst)
+                      gst=gst, trading_session_type=trading_session_type)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:

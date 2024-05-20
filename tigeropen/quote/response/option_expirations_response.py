@@ -32,3 +32,4 @@ class OptionExpirationsResponse(TigerResponse):
             self.expirations.rename(
                 columns={'dates': 'date', 'timestamps': 'timestamp',
                          'periodTags': 'period_tag'}, inplace=True)
+            self.expirations.reset_index(inplace=True, drop=True)
