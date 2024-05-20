@@ -21,7 +21,7 @@ THREAD_LOCAL = threading.local()
 @unique
 class Market(Enum):
     """Enum for market """
-    
+
     ALL = 'ALL'
     US = 'US'  # 美股
     HK = 'HK'  # 港股
@@ -39,7 +39,7 @@ class TradingSession(Enum):
 @unique
 class SecurityType(Enum):
     """Enum for sec_type """
-    
+
     ALL = 'ALL'
     STK = 'STK'  # 股票
     OPT = 'OPT'  # 期权
@@ -49,7 +49,8 @@ class SecurityType(Enum):
     FOP = 'FOP'  # 期货期权
     CASH = 'CASH'  # 外汇
     MLEG = 'MLEG'  # 期权组合
-    FUND = 'FUND' # 基金
+    FUND = 'FUND'  # 基金
+
 
 @unique
 class SegmentType(Enum):
@@ -61,7 +62,7 @@ class SegmentType(Enum):
 @unique
 class Currency(Enum):
     """Enum for currency """
-    
+
     ALL = 'ALL'
     USD = 'USD'  # 美元
     HKD = 'HKD'  # 港币
@@ -195,6 +196,7 @@ class OrderType(Enum):
     VWAP = 'VWAP'  # 'Volume Weighted Average Price'  成交量加权平均价格算法
     OCA = 'OCA'
 
+
 @unique
 class License(Enum):
     TBNZ = 'TBNZ'
@@ -206,6 +208,7 @@ class ServiceType(Enum):
     COMMON = 'COMMON'
     TRADE = 'TRADE'
     QUOTE = 'QUOTE'
+
 
 @unique
 class ComboType(Enum):
@@ -219,6 +222,7 @@ class ComboType(Enum):
     SYNTHETIC = 'SYNTHETIC'
     CUSTOM = 'CUSTOM'
 
+
 class StockRankingIndicator(Enum):
     ChangeRate = "changeRate"
     ChangeRate5Min = "changeRate5Min"
@@ -227,9 +231,15 @@ class StockRankingIndicator(Enum):
     Volume = "volume"  # trade volume
     Amplitude = "amplitude"
 
+
 class OptionRankingIndicator(Enum):
     BigOrder = "bigOrder"
     Volume = "volume"
     Amount = "amount"
     OpenInt = "openInt"
 
+
+@unique
+class TradingSessionType(Enum):
+    OVERNIGHT = 'OVERNIGHT'
+    PRE_RTH_POST = 'PRE_RTH_POST'

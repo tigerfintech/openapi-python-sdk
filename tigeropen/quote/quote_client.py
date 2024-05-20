@@ -1147,7 +1147,7 @@ class QuoteClient(TigerOpenClient):
             limit_down: 跌停价
         """
         params = FutureQuoteParams()
-        params.contract_codes = identifiers
+        params.contract_codes = identifiers# if isinstance(identifiers, list) else [identifiers]
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(FUTURE_REAL_TIME_QUOTE, biz_model=params)
         response_content = self.__fetch_data(request)
