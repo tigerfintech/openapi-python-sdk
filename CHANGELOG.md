@@ -1,3 +1,7 @@
+# 3.2.4 (2024-05-21)
+### Modify
+- 下单支持夜盘参数, 可通过修改订单对象的 `order.trading_session_type` 来设置
+
 # 3.2.3 (2024-04-11)
 ### Fix
 - `QuoteClient.get_option_expirations` 修复多标的时 pandas 处理列名的问题

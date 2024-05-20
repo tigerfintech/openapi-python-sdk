@@ -4,4 +4,4 @@ Created on 2018/9/16
 
 @author: gaoan
 """
-__VERSION__ = '3.2.3'
+__VERSION__ = '3.2.4'
