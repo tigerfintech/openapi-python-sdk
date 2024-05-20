@@ -34,6 +34,8 @@ class TradingSession(Enum):
     PreMarket = 'PreMarket'  # 盘前
     Regular = 'Regular'  # 盘中
     AfterHours = 'AfterHours'  # 盘后
+    OverNight = 'OverNight'  # 夜盘
+
 
 
 @unique
@@ -237,9 +239,3 @@ class OptionRankingIndicator(Enum):
     Volume = "volume"
     Amount = "amount"
     OpenInt = "openInt"
-
-
-@unique
-class TradingSessionType(Enum):
-    OVERNIGHT = 'OVERNIGHT'
-    PRE_RTH_POST = 'PRE_RTH_POST'
