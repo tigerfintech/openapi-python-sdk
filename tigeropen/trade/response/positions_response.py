@@ -19,7 +19,8 @@ POSITION_FIELD_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity'
                            'unrealizedPnlByAverage': 'unrealized_pnl_by_average',
                            'realizedPnlByAverage': 'realized_pnl_by_average',
                            'unrealizedPnlPercent': 'unrealized_pnl_percent',
-                           'unrealizedPnlPercentByAverage': 'unrealized_pnl_percent_by_average'}
+                           'unrealizedPnlPercentByAverage': 'unrealized_pnl_percent_by_average',
+                           'mmPercent': 'mm_percent', 'mmValue': 'mm_value'}
 
 
 class PositionsResponse(TigerResponse):
@@ -78,6 +79,8 @@ class PositionsResponse(TigerResponse):
                     average_cost_by_average = position_fields.get('average_cost_by_average')
                     unrealized_pnl_percent = position_fields.get('unrealized_pnl_percent')
                     unrealized_pnl_percent_by_average = position_fields.get('unrealized_pnl_percent_by_average')
+                    mm_percent = position_fields.get('mm_percent')
+                    mm_value = position_fields.get('mm_value')
                     position = Position(account, contract, quantity, average_cost=average_cost,
                                         market_price=market_price, market_value=market_value,
                                         realized_pnl=realized_pnl, unrealized_pnl=unrealized_pnl,
@@ -86,7 +89,8 @@ class PositionsResponse(TigerResponse):
                                         unrealized_pnl_by_average=unrealized_pnl_by_average,
                                         average_cost_by_average=average_cost_by_average,
                                         unrealized_pnl_percent=unrealized_pnl_percent,
-                                        unrealized_pnl_percent_by_average=unrealized_pnl_percent_by_average)
+                                        unrealized_pnl_percent_by_average=unrealized_pnl_percent_by_average,
+                                        mm_percent=mm_percent, mm_value=mm_value)
                     self.positions.append(position)
 
 
