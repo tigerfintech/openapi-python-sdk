@@ -593,6 +593,7 @@ class TradeClient(TigerOpenClient):
         params.combo_type = get_enum_value(order.combo_type)
         params.contract_legs = order.contract_legs
         params.total_cash_amount = order.total_cash_amount
+        params.trading_session_type = get_enum_value(order.trading_session_type)
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
