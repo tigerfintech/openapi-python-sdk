@@ -1,6 +1,7 @@
-# 3.2.4 (2024-05-21)
+# 3.2.4 (2024-06-05)
 ### Modify
 - 下单支持夜盘参数, 可通过修改订单对象的 `order.trading_session_type` 来设置
+- Position 增加字段 `mm_value`, `mm_percent`
 
 # 3.2.3 (2024-04-11)
 ### Fix
