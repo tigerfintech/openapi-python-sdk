@@ -309,6 +309,9 @@ class TestQuoteClient(unittest.TestCase):
         print(result)
         print(result.loc[result['symbol']=='LU0476943708.HKD'].iloc[0]['nav'])
 
+    def test_get_hk_option_symbols(self):
+        symbols = openapi_client.get_option_symbols()
+        print(symbols)
 
 if __name__ == '__main__':
     with pd.option_context('display.max_rows', None, 'display.max_columns', None):
