@@ -11,14 +11,14 @@ import time
 import pandas as pd
 
 from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3, \
-    OPEN_API_SERVICE_VERSION_V1
+    OPEN_API_SERVICE_VERSION_V1, Language
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
     HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
     KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
-    FINANCIAL_EXCHANGE_RATE
+    FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -44,7 +44,7 @@ from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
-    StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams
+    StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams, OptionContractsParams
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
 from tigeropen.quote.response.fund_contracts_response import FundContractsResponse
@@ -59,9 +59,11 @@ from tigeropen.quote.response.market_scanner_response import MarketScannerRespon
 from tigeropen.quote.response.market_status_response import MarketStatusResponse
 from tigeropen.quote.response.option_briefs_response import OptionBriefsResponse
 from tigeropen.quote.response.option_chains_response import OptionChainsResponse
+from tigeropen.quote.response.option_depth_response import OptionDepthQuoteResponse
 from tigeropen.quote.response.option_expirations_response import OptionExpirationsResponse
 from tigeropen.quote.response.option_quote_bar_response import OptionQuoteBarResponse
 from tigeropen.quote.response.option_quote_ticks_response import OptionTradeTickResponse
+from tigeropen.quote.response.option_symbols_response import OptionSymbolsResponse
 from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
 from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
 from tigeropen.quote.response.quote_delay_briefs_response import DelayBriefsResponse
@@ -633,7 +635,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_option_expirations(self, symbols):
+    def get_option_expirations(self, symbols, market=None):
         """
         返回美股期权的过期日
         :param symbols: 股票代码列表
@@ -642,9 +644,10 @@ class QuoteClient(TigerOpenClient):
             date: 到日期 YYYY-MM-DD 格式的字符串
             timestamp: 到期日，精确到毫秒的时间戳
         """
-        params = MultipleQuoteParams()
+        params = OptionContractsParams()
         params.symbols = symbols
         params.lang = get_enum_value(self._lang)
+        params.market = get_enum_value(market)
         request = OpenApiRequest(OPTION_EXPIRATION, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -657,7 +660,7 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_option_chain(self, symbol, expiry, option_filter=None, return_greek_value=None, **kwargs):
+    def get_option_chain(self, symbol, expiry, option_filter=None, return_greek_value=None, market=None, **kwargs):
         """
         query option chain with filter
         :param symbol: underlying stock symbol
@@ -694,6 +697,8 @@ class QuoteClient(TigerOpenClient):
             params.option_filter = option_filter
         elif kwargs:
             params.option_filter = OptionFilter(**kwargs)
+        if market:
+            params.market = get_enum_value(market)
         params.return_greek_value = return_greek_value
         params.lang = get_enum_value(self._lang)
         params.version = OPEN_API_SERVICE_VERSION_V3
@@ -709,7 +714,7 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_option_briefs(self, identifiers):
+    def get_option_briefs(self, identifiers, market = None):
         """
         获取期权最新行情
         :param identifiers: 期权代码列表
@@ -735,7 +740,7 @@ class QuoteClient(TigerOpenClient):
             rates_bonds: 无风险利率
             volatility: 历史波动率
         """
-        params = MultipleContractParams()
+        params = OptionContractsParams()
         contracts = []
         for identifier in identifiers:
             symbol, expiry, put_call, strike = extract_option_info(identifier)
@@ -747,7 +752,10 @@ class QuoteClient(TigerOpenClient):
             param.put_call = put_call
             param.strike = strike
             contracts.append(param)
-        params.contracts = contracts
+        params.option_basics = contracts
+        if market:
+            params.market = get_enum_value(market)
+        # params.version = OPEN_API_SERVICE_VERSION_V3
         request = OpenApiRequest(OPTION_BRIEF, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -761,7 +769,7 @@ class QuoteClient(TigerOpenClient):
         return None
 
     def get_option_bars(self, identifiers, begin_time=-1, end_time=4070880000000, period=BarPeriod.DAY, limit=None,
-                        sort_dir=None):
+                        sort_dir=None, market=None):
         """
         获取期权日K数据
         :param identifiers: 期权代码列表
@@ -784,7 +792,7 @@ class QuoteClient(TigerOpenClient):
             strike: 行权价
             put_call: 期权方向
         """
-        params = MultipleContractParams()
+        params = OptionContractsParams()
         contracts = []
         for identifier in identifiers:
             symbol, expiry, put_call, strike = extract_option_info(identifier)
@@ -801,7 +809,9 @@ class QuoteClient(TigerOpenClient):
             param.limit = limit
             param.sort_dir = get_enum_value(sort_dir)
             contracts.append(param)
-        params.contracts = contracts
+        params.option_query = contracts
+        if market:
+            params.market = get_enum_value(market)
         request = OpenApiRequest(OPTION_KLINE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -850,6 +860,58 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
         return None
+
+    def get_option_symbols(self, market: Market = Market.HK, lang: Language = Language.en_US):
+        """
+        获取港股期权合约代码
+        :param market: Market
+        :param lang: Language
+        :return: list
+        """
+        params = MarketParams()
+        params.market = get_enum_value(market)
+        params.lang = get_enum_value(lang)
+        request = OpenApiRequest(ALL_HK_OPTION_SYMBOLS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = OptionSymbolsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_option_depth(self, identifiers, market: Market = Market.US):
+        """
+        获取期权深度
+        :param market:
+        :param identifiers: 期权代码列表
+        """
+        params = OptionContractsParams()
+        contracts = []
+        if isinstance(identifiers, str):
+            identifiers = [identifiers]
+        for identifier in identifiers:
+            symbol, expiry, put_call, strike = extract_option_info(identifier)
+            if symbol is None or expiry is None or put_call is None or strike is None:
+                continue
+            param = SingleContractParams()
+            param.symbol = symbol
+            param.expiry = date_str_to_timestamp(expiry, timezone=self._timezone)
+            param.put_call = put_call
+            param.strike = strike
+            contracts.append(param)
+        params.option_basics = contracts
+        params.market = get_enum_value(market)
+        request = OpenApiRequest(OPTION_DEPTH, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = OptionDepthQuoteResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
 
     def get_future_exchanges(self, sec_type=SecurityType.FUT, lang=None):
         """
@@ -942,7 +1004,7 @@ class QuoteClient(TigerOpenClient):
 
     def get_all_future_contracts(self, future_type, lang=None):
         """
-        Query all contracts of a given type
+        Query all option_basics of a given type
         :param future_type: like CL, VIX
         :param lang: language
         :return: same as "get_current_future_contract"
