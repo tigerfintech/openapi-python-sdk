@@ -39,7 +39,7 @@ USER_LICENSE = "user_license"
 合约
 """
 CONTRACT = "contract"
-CONTRACTS = "contracts"
+CONTRACTS = "option_basics"
 QUOTE_CONTRACT = "quote_contract"
 
 """
@@ -71,12 +71,16 @@ WARRANT_FILTER = "warrant_filter"
 WARRANT_REAL_TIME_QUOTE = "warrant_real_time_quote"
 KLINE_QUOTA = "kline_quota"  # 历史k线额度
 
+
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"
 OPTION_CHAIN = "option_chain"
 OPTION_BRIEF = "option_brief"
 OPTION_KLINE = "option_kline"
 OPTION_TRADE_TICK = "option_trade_tick"
+OPTION_DEPTH = "option_depth"
+ALL_HK_OPTION_SYMBOLS = "all_hk_option_symbols"
+
 
 # 期货行情
 FUTURE_EXCHANGE = "future_exchange"

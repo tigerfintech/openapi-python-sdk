@@ -1,3 +1,11 @@
+# 3.2.5 (2024-06-19)
+### New
+- 新增 `QuoteClient.get_option_depth`, `QuoteClient.get_option_symbols`
+### Modify
+- `QuoteClient.get_option_chain` 增加参数 `market`
+- `QuoteClient.get_option_briefs` 增加参数 `market`
+- `QuoteClient.get_option_expirations` 增加参数 `market`
+
 # 3.2.4 (2024-06-05)
 ### Modify
 - 下单支持夜盘参数, 可通过修改订单对象的 `order.trading_session_type` 来设置
