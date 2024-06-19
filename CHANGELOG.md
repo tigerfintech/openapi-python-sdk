@@ -1,4 +1,4 @@
-# 3.2.5 
+# 3.2.5 (2024-06-19)
 ### New
 - 新增 `QuoteClient.get_option_depth`, `QuoteClient.get_option_symbols`
 ### Modify
