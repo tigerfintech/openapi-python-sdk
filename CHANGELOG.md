@@ -1,3 +1,7 @@
+## 3.2.6 (2024-07-03)
+### Fix
+- `QuoteClient.get_option_depth` 修复返回数据处理
+
 # 3.2.5 (2024-06-19)
 ### New
 - 新增 `QuoteClient.get_option_depth`, `QuoteClient.get_option_symbols`
