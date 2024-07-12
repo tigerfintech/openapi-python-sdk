@@ -10,17 +10,7 @@ from tigeropen.trade.domain.contract import Contract
 from tigeropen.trade.domain.position import Position, TradableQuantityItem
 from tigeropen.trade.response import CONTRACT_FIELDS
 
-POSITION_FIELD_MAPPINGS = {'averageCost': 'average_cost', 'position': 'quantity', 'latestPrice': 'market_price',
-                           'marketValue': 'market_value', 'orderType': 'order_type', 'realizedPnl': 'realized_pnl',
-                           'unrealizedPnl': 'unrealized_pnl', 'secType': 'sec_type', 'localSymbol': 'local_symbol',
-                           'originSymbol': 'origin_symbol', 'contractId': 'contract_id', 'identifier': 'identifier',
-                           'salable': 'saleable', 'positionScale': 'position_scale',
-                           'averageCostByAverage': 'average_cost_by_average',
-                           'unrealizedPnlByAverage': 'unrealized_pnl_by_average',
-                           'realizedPnlByAverage': 'realized_pnl_by_average',
-                           'unrealizedPnlPercent': 'unrealized_pnl_percent',
-                           'unrealizedPnlPercentByAverage': 'unrealized_pnl_percent_by_average',
-                           'mmPercent': 'mm_percent', 'mmValue': 'mm_value'}
+POSITION_FIELD_MAPPINGS = {'position': 'quantity', 'latestPrice': 'market_price'}
 
 
 class PositionsResponse(TigerResponse):
@@ -37,12 +27,13 @@ class PositionsResponse(TigerResponse):
         if self.data:
             if 'items' in self.data:
                 for item in self.data['items']:
+
                     contract_fields = {}
                     position_fields = {}
                     for key, value in item.items():
                         if value is None:
                             continue
-                        tag = POSITION_FIELD_MAPPINGS[key] if key in POSITION_FIELD_MAPPINGS else key
+                        tag = POSITION_FIELD_MAPPINGS[key] if key in POSITION_FIELD_MAPPINGS else string_utils.camel_to_underline(key)
                         if tag in CONTRACT_FIELDS:
                             contract_fields[tag] = value
                         else:
@@ -61,36 +52,12 @@ class PositionsResponse(TigerResponse):
                     multiplier = contract_fields.get('multiplier')
                     identifier = contract_fields.get('identifier')
                     market = contract_fields.get('market')
+                    categories = contract_fields.get('categories')
                     contract = Contract(symbol, currency, contract_id=contract_id, sec_type=sec_type,
                                         exchange=exchange, origin_symbol=origin_symbol, local_symbol=local_symbol,
                                         expiry=expiry, strike=strike, put_call=put_call, multiplier=multiplier,
-                                        identifier=identifier, market=market)
-                    account = position_fields.get('account')
-                    quantity = position_fields.get('quantity')
-                    average_cost = position_fields.get('average_cost')
-                    market_price = position_fields.get('market_price')
-                    market_value = position_fields.get('market_value')
-                    realized_pnl = position_fields.get('realized_pnl')
-                    unrealized_pnl = position_fields.get('unrealized_pnl')
-                    saleable = position_fields.get('saleable')
-                    position_scale = position_fields.get('position_scale')
-                    realized_pnl_by_average = position_fields.get('realized_pnl_by_average')
-                    unrealized_pnl_by_average = position_fields.get('unrealized_pnl_by_average')
-                    average_cost_by_average = position_fields.get('average_cost_by_average')
-                    unrealized_pnl_percent = position_fields.get('unrealized_pnl_percent')
-                    unrealized_pnl_percent_by_average = position_fields.get('unrealized_pnl_percent_by_average')
-                    mm_percent = position_fields.get('mm_percent')
-                    mm_value = position_fields.get('mm_value')
-                    position = Position(account, contract, quantity, average_cost=average_cost,
-                                        market_price=market_price, market_value=market_value,
-                                        realized_pnl=realized_pnl, unrealized_pnl=unrealized_pnl,
-                                        saleable=saleable, position_scale=position_scale,
-                                        realized_pnl_by_average=realized_pnl_by_average,
-                                        unrealized_pnl_by_average=unrealized_pnl_by_average,
-                                        average_cost_by_average=average_cost_by_average,
-                                        unrealized_pnl_percent=unrealized_pnl_percent,
-                                        unrealized_pnl_percent_by_average=unrealized_pnl_percent_by_average,
-                                        mm_percent=mm_percent, mm_value=mm_value)
+                                        identifier=identifier, market=market, categories=categories)
+                    position = Position(contract=contract, **position_fields)
                     self.positions.append(position)
 
 

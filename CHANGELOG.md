@@ -1,3 +1,8 @@
+## 3.2.7 (2024-07-12)
+### Fix
+- `TradeClient.get_positions` 新增字段 `position_qty`, `salable_qty`, `today_pnl`, `last_close_price` 等
+
+
 ## 3.2.6 (2024-07-03)
 ### Fix
 - `QuoteClient.get_option_depth` 修复返回数据处理
