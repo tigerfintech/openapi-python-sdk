@@ -38,7 +38,7 @@ class Position:
         self.mm_percent = kwargs.get('mm_percent', None)
         self.position_qty = kwargs.get('position_qty', self.quantity)
         self.salable_qty = kwargs.get('salable_qty', None)
-        self.salable = self.salable_qty  # 兼容之前字段
+        self.salable = self.saleable = self.salable_qty  # 兼容之前字段
         self.today_pnl = kwargs.get('today_pnl', None)
         self.today_pnl_percent = kwargs.get('today_pnl_percent', None)
         self.yesterday_pnl = kwargs.get('yesterday_pnl', None)
