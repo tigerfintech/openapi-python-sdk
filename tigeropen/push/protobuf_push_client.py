@@ -63,7 +63,10 @@ class ProtobufPushClient(ConnectionListener):
         self._client_config = client_config
         self._use_full_tick = self._client_config.use_full_tick if self._client_config else False
         self.logger = logging.getLogger('tiger_openapi')
-        _patch_ssl()
+        try:
+            _patch_ssl()
+        except:
+            pass
 
     def connect(self, tiger_id, private_key):
         self._tiger_id = tiger_id

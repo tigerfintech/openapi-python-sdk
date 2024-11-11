@@ -1,5 +1,10 @@
+## 3.2.8 (2024-11-11)
+### Modify
+- `TradeClient.get_order` 新增参数 `show_charges`, 订单对象 Order 新增 `charges` 返回佣金明细
+- 推送持仓对象 `PositionData` 新增字段 `positionQty`, `salableQty`
+
 ## 3.2.7 (2024-07-12)
-### Fix
+### Modify
 - `TradeClient.get_positions` 新增字段 `position_qty`, `salable_qty`, `today_pnl`, `last_close_price` 等
 
 
