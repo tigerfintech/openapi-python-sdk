@@ -24,4 +24,6 @@ message PositionData {
   string name = 18; // symbol name
   uint64 timestamp = 19;
   optional sint64 saleable = 20; // saleable quantity for Chinese A-share market stocks
+  double positionQty = 21; // total position quantity
+  double salableQty = 22; // saleable quantity
 }
