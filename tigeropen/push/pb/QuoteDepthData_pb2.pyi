@@ -6,26 +6,26 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class QuoteDepthData(_message.Message):
-    __slots__ = ["ask", "bid", "symbol", "timestamp"]
+    __slots__ = ("symbol", "timestamp", "ask", "bid")
     class OrderBook(_message.Message):
-        __slots__ = ["exchange", "orderCount", "price", "time", "volume"]
-        EXCHANGE_FIELD_NUMBER: _ClassVar[int]
-        ORDERCOUNT_FIELD_NUMBER: _ClassVar[int]
+        __slots__ = ("price", "volume", "orderCount", "exchange", "time")
         PRICE_FIELD_NUMBER: _ClassVar[int]
-        TIME_FIELD_NUMBER: _ClassVar[int]
         VOLUME_FIELD_NUMBER: _ClassVar[int]
-        exchange: _containers.RepeatedScalarFieldContainer[str]
-        orderCount: _containers.RepeatedScalarFieldContainer[int]
+        ORDERCOUNT_FIELD_NUMBER: _ClassVar[int]
+        EXCHANGE_FIELD_NUMBER: _ClassVar[int]
+        TIME_FIELD_NUMBER: _ClassVar[int]
         price: _containers.RepeatedScalarFieldContainer[float]
-        time: _containers.RepeatedScalarFieldContainer[int]
         volume: _containers.RepeatedScalarFieldContainer[int]
+        orderCount: _containers.RepeatedScalarFieldContainer[int]
+        exchange: _containers.RepeatedScalarFieldContainer[str]
+        time: _containers.RepeatedScalarFieldContainer[int]
         def __init__(self, price: _Optional[_Iterable[float]] = ..., volume: _Optional[_Iterable[int]] = ..., orderCount: _Optional[_Iterable[int]] = ..., exchange: _Optional[_Iterable[str]] = ..., time: _Optional[_Iterable[int]] = ...) -> None: ...
-    ASK_FIELD_NUMBER: _ClassVar[int]
-    BID_FIELD_NUMBER: _ClassVar[int]
     SYMBOL_FIELD_NUMBER: _ClassVar[int]
     TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
-    ask: QuoteDepthData.OrderBook
-    bid: QuoteDepthData.OrderBook
+    ASK_FIELD_NUMBER: _ClassVar[int]
+    BID_FIELD_NUMBER: _ClassVar[int]
     symbol: str
     timestamp: int
+    ask: QuoteDepthData.OrderBook
+    bid: QuoteDepthData.OrderBook
     def __init__(self, symbol: _Optional[str] = ..., timestamp: _Optional[int] = ..., ask: _Optional[_Union[QuoteDepthData.OrderBook, _Mapping]] = ..., bid: _Optional[_Union[QuoteDepthData.OrderBook, _Mapping]] = ...) -> None: ...

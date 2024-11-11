@@ -8,7 +8,7 @@ from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.order_utils import get_order_status
 from tigeropen.common.util.string_utils import camel_to_underline_obj
 from tigeropen.trade.domain.contract import Contract, OrderContractLeg
-from tigeropen.trade.domain.order import Order, AlgoParams
+from tigeropen.trade.domain.order import Order, AlgoParams, Charge
 from tigeropen.trade.response import CONTRACT_FIELDS
 
 ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderType': 'order_type',
@@ -152,5 +152,7 @@ class OrdersResponse(TigerResponse):
         order.status = status
         if 'legs' in order_fields:
             order.contract_legs = [OrderContractLeg(**camel_to_underline_obj(leg)) for leg in order_fields['legs']]
+        if 'charges' in order_fields:
+            order.charges = [Charge(**camel_to_underline_obj(charge)) for charge in order_fields['charges']]
         return order
 

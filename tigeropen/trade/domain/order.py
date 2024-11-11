@@ -20,7 +20,7 @@ class Order:
                  "update_time", "expire_time", "can_modify", "external_id", "combo_type", "combo_type_desc", 'is_open',
                  "contract_legs", "filled_scale", "total_cash_amount", "filled_cash_amount",
                  "refund_cash_amount", "attr_list", "latest_price", "orders", "gst", "quantity_scale",
-                 "trading_session_type"]
+                 "trading_session_type", "charges"]
 
     def __init__(self, account, contract, action, order_type=None, quantity=None, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
@@ -120,6 +120,7 @@ class Order:
         self.orders = kwargs.get('orders')
         self.gst = kwargs.get('gst')
         self.trading_session_type = kwargs.get('trading_session_type')
+        self.charges = kwargs.get('charges')
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}
@@ -205,6 +206,7 @@ class AlgoParams:
     """
     算法订单参数
     """
+
     def __init__(self, start_time=None, end_time=None, no_take_liq=None, allow_past_end_time=None,
                  participation_rate=None):
         """
@@ -240,12 +242,61 @@ class AlgoParams:
 
     def __repr__(self):
         return "AlgoParams(%s)" % self.to_dict()
-    
+
+
+class ChargeDetail:
+    """
+    type|费用类型：SETTLEMENT_FEE/STAMP_DUTY/TRANSACTION_LEVY/EXCHANGE_FEE/FRC_TRANSACTION_LEVY
+    type_desc|费用类型描述：Settlement Fee(结算费); Stamp Duty（印花税）; Transaction Levy（交易征费）; Exchange Fee（交易所费用）; AFRC Transaction Levy（会计及才会局交易征费）
+    original_amount|费用金额
+    after_discount_amount|抵扣后的费用
+    """
+
+    def __init__(self, type=None, type_desc=None, original_amount=None, after_discount_amount=None):
+        self.type = type
+        self.type_desc = type_desc
+        self.original_amount = original_amount
+        self.after_discount_amount = after_discount_amount
+
+    def to_dict(self):
+        return self.__dict__
+
+    def __repr__(self):
+        return "ChargeDetail(%s)" % self.to_dict()
+
+
+class Charge:
+    """
+    计费项
+    category|费用类别：TIGER/THIRD_PARTY
+    category_desc|费用类别描述：Tiger Charge; Third Parties
+    total|当前类别费用总额
+    details|费用明细。`ChargeDetail`。
+    """
+
+    def __init__(self, category=None, category_desc=None, total=None, details=None):
+        self.category = category
+        self.category_desc = category_desc
+        self.total = total
+        self.details = list()
+        if details and isinstance(details, list):
+            for detail in details:
+                if isinstance(detail, dict):
+                    detail = ChargeDetail(**detail)
+                self.details.append(detail)
+
+    def to_dict(self):
+        return self.__dict__
+
+    def __repr__(self):
+        return "Charge(%s)" % self.to_dict()
+
 
 class Transaction:
     """
     订单成交记录。Transactions of order.
     """
+
     def __init__(self, account=None, order_id=None, contract=None, id_=None, action=None,
                  filled_quantity=None, filled_price=None, filled_amount=None, transacted_at=None):
         self.account = account
