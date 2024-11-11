@@ -113,8 +113,11 @@ class StompPushClient(stomp.ConnectionListener):
         self._connection_timeout = connection_timeout
         self._heartbeats = heartbeats
         self.logger = logging.getLogger('tiger_openapi')
-        _patch_ssl()
-
+        try:
+            _patch_ssl()
+        except:
+            pass
+        
     def _connect(self):
         try:
             if self._stomp_connection:

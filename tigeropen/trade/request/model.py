@@ -398,6 +398,7 @@ class OrderParams(BaseParams):
         self._id = None  # 订单号(全局)
         self._order_id = None  # 订单号(账户维度)
         self._is_brief = None
+        self._show_charges = None
 
     @property
     def account(self):
@@ -439,6 +440,14 @@ class OrderParams(BaseParams):
     def is_brief(self, value):
         self._is_brief = value
 
+    @property
+    def show_charges(self):
+        return self._show_charges
+
+    @show_charges.setter
+    def show_charges(self, value):
+        self._show_charges = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -455,6 +464,9 @@ class OrderParams(BaseParams):
 
         if self.id:
             params['id'] = self.id
+
+        if self.show_charges is not None:
+            params['show_charges'] = self.show_charges
 
         return params
 
@@ -475,6 +487,7 @@ class OrdersParams(BaseParams):
         self._states = None
         self._parent_id = None
         self._sort_by = None
+        self._show_charges = None
 
     @property
     def account(self):
@@ -580,6 +593,14 @@ class OrdersParams(BaseParams):
     def sort_by(self, value):
         self._sort_by = value
 
+    @property
+    def show_charges(self):
+        return self._show_charges
+
+    @show_charges.setter
+    def show_charges(self, value):
+        self._show_charges = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -620,6 +641,9 @@ class OrdersParams(BaseParams):
 
         if self.sort_by:
             params['sort_by'] = self.sort_by
+
+        if self.show_charges is not None:
+            params['show_charges'] = self.show_charges
 
         return params
 

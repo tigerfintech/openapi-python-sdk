@@ -65,6 +65,7 @@ class TradeClient(TigerOpenClient):
         if account:
             params.account = account
         params.lang = get_enum_value(self._lang)
+        params.secret_key = self._secret_key
         request = OpenApiRequest(ACCOUNTS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -447,7 +448,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_order(self, account=None, id=None, order_id=None, is_brief=False):
+    def get_order(self, account=None, id=None, order_id=None, is_brief=False, show_charges=None):
         """
         获取指定订单
         :param account:
@@ -462,6 +463,7 @@ class TradeClient(TigerOpenClient):
         params.id = id
         params.order_id = order_id
         params.is_brief = is_brief
+        params.show_charges = show_charges
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
