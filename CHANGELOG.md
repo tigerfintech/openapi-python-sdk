@@ -1,3 +1,7 @@
+## 3.2.9 (2024-11-25)
+### Fix
+- 修复批量获取合约 `TradeClient.get_contracts` 传参错误
+
 ## 3.2.8 (2024-11-11)
 ### Modify
 - `TradeClient.get_order` 新增参数 `show_charges`, 订单对象 Order 新增 `charges` 返回佣金明细

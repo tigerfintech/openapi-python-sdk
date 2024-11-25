@@ -21,6 +21,7 @@ from tigeropen.push.pb.QuoteDepthData_pb2 import QuoteDepthData
 from tigeropen.push.pb.StockTopData_pb2 import StockTopData
 from tigeropen.push.pb.TradeTickData_pb2 import TradeTickData
 from tigeropen.push.pb.trade_tick import TradeTick
+from tigeropen.common.consts import OrderStatus
 from tigeropen.push.push_client import PushClient
 from tigeropen.examples.client_config import get_client_config
 
@@ -189,6 +190,16 @@ def on_order_changed(frame: OrderStatusData):
 
     """
     print(f'order changed: {frame}')
+    # 忽略部分成交、初始状态、已提交状态的订单
+    if frame.status in [OrderStatus.PARTIALLY_FILLED, OrderStatus.PENDING_NEW, OrderStatus.NEW, OrderStatus.HELD]:
+        print(f'ignore order status {frame.status}, frame: {frame}')
+    # 处理完全成交的订单
+    elif frame.status in [OrderStatus.FILLED]:
+        print(f'order filled, frame: {frame}')
+        # 其他逻辑 todo
+    # 其他，如已取消/被拒绝的订单
+    else:
+        print(f'order status {frame.status}, frame: {frame}')
 
 
 def on_transaction_changed(frame: OrderTransactionData):
