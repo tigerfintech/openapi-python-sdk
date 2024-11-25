@@ -39,7 +39,7 @@ USER_LICENSE = "user_license"
 合约
 """
 CONTRACT = "contract"
-CONTRACTS = "option_basics"
+CONTRACTS = "contracts"
 QUOTE_CONTRACT = "quote_contract"
 
 """
