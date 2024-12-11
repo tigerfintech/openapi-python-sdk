@@ -15,7 +15,7 @@ from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERV
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
-    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
+    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, STOCK_FUNDAMENTAL, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
     KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
     FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH
@@ -1837,6 +1837,20 @@ class QuoteClient(TigerOpenClient):
         params.limit = limit
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(FUND_HISTORY_QUOTE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = QuoteDataframeResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+            
+    def get_stock_fundamental(self, symbols):
+        params = MultipleQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(STOCK_FUNDAMENTAL, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
             response = QuoteDataframeResponse()
