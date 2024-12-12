@@ -1,3 +1,9 @@
+## 3.3.0 (2024-12-12)
+### New
+- `QuoteClient.get_stock_fundamental` 获取股票基础数据, 如 ROE, PB
+### Fix
+- 长连接 `error_callback` 未调用的问题
+
 ## 3.2.9 (2024-11-25)
 ### Fix
 - 修复批量获取合约 `TradeClient.get_contracts` 传参错误
