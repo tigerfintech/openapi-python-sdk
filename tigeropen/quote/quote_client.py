@@ -1846,9 +1846,10 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
             
-    def get_stock_fundamental(self, symbols):
+    def get_stock_fundamental(self, symbols, market):
         params = MultipleQuoteParams()
         params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.market = get_enum_value(market)
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(STOCK_FUNDAMENTAL, biz_model=params)
         response_content = self.__fetch_data(request)
