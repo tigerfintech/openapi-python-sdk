@@ -143,14 +143,14 @@ class TigerOpenClient:
 
         sign = response_content.get('sign')
 
-        # try:
-        #     verify_res = verify_with_rsa(self.__config.tiger_public_key, timestamp.encode('utf-8'),
-        #                                  sign.encode('utf-8'))
-        # except Exception as e:
-        #     raise ResponseException('[' + THREAD_LOCAL.uuid + ']response sign verify failed. ' + str(e) + ' '
-        #                             + response_str)
-        # if not verify_res:
-        #     raise ResponseException('[' + THREAD_LOCAL.uuid + ']response sign verify failed. ' + response_str)
+        try:
+            verify_res = verify_with_rsa(self.__config.tiger_public_key, timestamp.encode('utf-8'),
+                                         sign.encode('utf-8'))
+        except Exception as e:
+            raise ResponseException('[' + THREAD_LOCAL.uuid + ']response sign verify failed. ' + str(e) + ' '
+                                    + response_str)
+        if not verify_res:
+            raise ResponseException('[' + THREAD_LOCAL.uuid + ']response sign verify failed. ' + response_str)
 
         return response_content
 

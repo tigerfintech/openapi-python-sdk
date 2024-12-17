@@ -70,7 +70,7 @@ def get_quote():
     calendar = openapi_client.get_trading_calendar(Market.US, begin_date='2022-07-01', end_date='2022-09-02')
     print(calendar)
 
-    fundamental = openapi_client.get_stock_fundamental(['AAPL', 'GOOG'])
+    fundamental = openapi_client.get_stock_fundamental(['AAPL', 'GOOG'], market=Market.US)
     print(fundamental)
 
 def test_gat_bars_by_page():
