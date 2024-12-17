@@ -58,11 +58,13 @@ DEFAULT_TOKEN_FILE = 'tiger_openapi_token.properties'
 TOKEN_REFRESH_DURATION = 24 * 60 * 60  # seconds
 TOKEN_CHECK_INTERVAL = 5 * 60  # seconds
 
+def fallback_get_mac_address():
+    return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
+
 try:
     from getmac import get_mac_address
 except ImportError:
-    def get_mac_address():
-        return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
+    get_mac_address = fallback_get_mac_address
 
 
 class TigerOpenClientConfig:
@@ -274,10 +276,14 @@ class TigerOpenClientConfig:
         获取mac地址作为device_id
         :return:
         """
+        device_id = None
         try:
-            return get_mac_address()
+            device_id = get_mac_address()
         except:
-            return None
+            pass
+        if not device_id:
+            device_id = fallback_get_mac_address()
+        return device_id
 
     def _get_props_path(self, filename):
         if self.props_path is not None:
