@@ -6,8 +6,7 @@
 import pandas as pd
 
 from tigeropen.common.response import TigerResponse
-
-FIELD_MAPPINGS = {'avgPrice': 'avg_price'}
+from tigeropen.common.util import string_utils
 
 
 class QuoteDataframeResponse(TigerResponse):
@@ -21,10 +20,16 @@ class QuoteDataframeResponse(TigerResponse):
         if 'is_success' in response:
             self._is_success = response['is_success']
 
+        data_items = []
         if self.data and isinstance(self.data, list):
-            data_items = []
             for symbol_item in self.data:
                 df = pd.DataFrame(symbol_item.get('items'))
                 df.insert(0, 'symbol', symbol_item.get('symbol'))
                 data_items.append(df)
-            self.result = pd.concat(data_items).rename(columns=FIELD_MAPPINGS)
+            final_df = pd.concat(data_items)
+        elif isinstance(self.data, dict) and 'items' in self.data:
+            final_df = pd.DataFrame(self.data['items'])
+        else:
+            return
+        field_mapping = {item: string_utils.camel_to_underline(item) for item in final_df.columns}
+        self.result = final_df.rename(columns=field_mapping)

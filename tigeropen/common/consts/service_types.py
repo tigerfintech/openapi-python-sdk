@@ -70,7 +70,7 @@ CAPITAL_FLOW = "capital_flow"  # 股票资金流向
 WARRANT_FILTER = "warrant_filter"
 WARRANT_REAL_TIME_QUOTE = "warrant_real_time_quote"
 KLINE_QUOTA = "kline_quota"  # 历史k线额度
-
+STOCK_FUNDAMENTAL = "stock_fundamental"
 
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"
