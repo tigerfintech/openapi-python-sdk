@@ -122,7 +122,10 @@ class ProtobufPushClient(ConnectionListener):
             self.heartbeat_callback(frame)
 
     def on_error(self, frame):
-        self.logger.error(frame)
+        if self.error_callback:
+            self.error_callback(frame)
+        else:
+            self.logger.error(frame)
 
     def on_message(self, frame):
         try:
