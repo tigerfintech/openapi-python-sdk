@@ -1,4 +1,4 @@
-## 3.3.0 (2024-12-12)
+## 3.3.0 (2024-12-17)
 ### New
 - `QuoteClient.get_stock_fundamental` 获取股票基础数据, 如 ROE, PB
 ### Fix
