@@ -24,7 +24,7 @@ from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
     FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
     FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE, FINANCIAL_DAILY, FINANCIAL_REPORT, CORPORATE_ACTION, \
-    QUOTE_DEPTH, INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL
+    QUOTE_DEPTH, INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL, FUTURE_CONTINUOUS_CONTRACTS
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.common.util.common_utils import eastern, get_enum_value, date_str_to_timestamp
@@ -637,7 +637,7 @@ class QuoteClient(TigerOpenClient):
 
     def get_option_expirations(self, symbols, market=None):
         """
-        返回美股期权的过期日
+        返回美股期���的过期日
         :param symbols: 股票代码列表
         :return: pandas.DataFrame， 各 column 的含义如下：
             symbol: 证券代码
@@ -1040,6 +1040,31 @@ class QuoteClient(TigerOpenClient):
         if response_content:
             response = FutureContractResponse()
             response.parse_response_content(response_content)
+            if response.is_success():
+                return response.contracts
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_future_continuous_contracts(self, type_=None, lang=None):
+        """
+        Get Future Continuous Contracts
+        :param type_:  'CL'
+        :param lang: zh_CN,zh_TW,en_US
+        :return: pandas.DataFrame
+        contract_code  continuous contract_month currency  display_multiplier exchange exchange_code first_notice_date  last_bidding_close_time last_trading_date  min_tick  multiplier     name symbol  trade type
+0        CLmain       False                     USD                   1    NYMEX         NYMEX                                          0                        0.01      1000.0  WTI原油主连     CL   True   CL
+
+        """
+        params = FutureContractParams()
+        params.type = type_
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        
+        request = OpenApiRequest(FUTURE_CONTINUOUS_CONTRACTS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FutureContractResponse()
+            response.parse_response_content(response_content, skip_main=False)
             if response.is_success():
                 return response.contracts
             else:
@@ -1860,3 +1885,5 @@ class QuoteClient(TigerOpenClient):
                 return response.result
             else:
                 raise ApiException(response.code, response.message)
+
+    
