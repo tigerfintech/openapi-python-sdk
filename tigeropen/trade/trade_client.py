@@ -9,7 +9,7 @@ import logging
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency, Language, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
-    PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET, SEGMENT_FUND_AVAILABLE, SEGMENT_FUND_HISTORY, \
+    PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET, SEGMENT_FUND_AVAILABLE, SEGMENT_FUND_HISTORY, TRANSFER_FUND, \
     TRANSFER_SEGMENT_FUND, CANCEL_SEGMENT_FUND, PLACE_FOREX_ORDER, ESTIMATE_TRADABLE_QUANTITY
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import get_enum_value, date_str_to_timestamp
@@ -19,7 +19,7 @@ from tigeropen.tiger_open_config import LANGUAGE
 from tigeropen.trade.domain.order import Order
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
     OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams, SegmentFundParams, \
-    ForexTradeOrderParams, EstimateTradableQuantityModel
+    ForexTradeOrderParams, EstimateTradableQuantityModel, DepositWithdrawHistoryParams
 from tigeropen.trade.response.account_profile_response import ProfilesResponse
 from tigeropen.trade.response.analytics_asset_response import AnalyticsAssetResponse
 from tigeropen.trade.response.assets_response import AssetsResponse
@@ -34,6 +34,7 @@ from tigeropen.trade.response.segment_fund_response import SegmentFundAvailableR
     SegmentFundHistoryResponse, SegmentFundCancelResponse
 from tigeropen.trade.response.segment_fund_response import SegmentFundTransferResponse
 from tigeropen.trade.response.transactions_response import TransactionsResponse
+from tigeropen.trade.response.deposit_withdraw_history_response import DepositWithdrawHistoryResponse
 
 
 class TradeClient(TigerOpenClient):
@@ -895,6 +896,23 @@ class TradeClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+    
+    def get_deposit_withdraw_history(self, seg_type=None):
+        params = DepositWithdrawHistoryParams()
+        params.account = self._account
+        params.secret_key = self._secret_key
+        params.seg_type = get_enum_value(seg_type)
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(TRANSFER_FUND, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = DepositWithdrawHistoryResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.data
             else:
                 raise ApiException(response.code, response.message)
         return None
