@@ -1,3 +1,9 @@
+## 3.3.1 (2024-12-31)
+### New
+- `TradeClient.get_funding_history` 出入金历史查询
+### Mod
+- `QuoteClient.get_bars` 增加 `trade_session` 参数
+
 ## 3.3.0 (2024-12-17)
 ### New
 - `QuoteClient.get_stock_fundamental` 获取股票基础数据, 如 ROE, PB
