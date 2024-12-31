@@ -370,7 +370,7 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_timeline(self, symbols, include_hour_trading=False, begin_time=-1, lang=None, **kwargs):
+    def get_timeline(self, symbols, include_hour_trading=False, begin_time=-1, lang=None, trade_session=None, **kwargs):
         """
         获取当日分时数据
         :param symbols: 股票代号列表
@@ -392,6 +392,7 @@ class QuoteClient(TigerOpenClient):
         params.include_hour_trading = include_hour_trading
         params.begin_time = begin_time
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        params.trade_session = get_enum_value(trade_session)
         if 'version' in kwargs:
             params.version = kwargs.get('version')
         else:
@@ -435,7 +436,7 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_bars(self, symbols, period=BarPeriod.DAY, begin_time=-1, end_time=-1, right=QuoteRight.BR, limit=251,
-                 lang=None, page_token=None):
+                 lang=None, page_token=None, trade_session=None):
         """
         获取K线数据
         :param symbols: 股票代号列表
@@ -465,7 +466,7 @@ class QuoteClient(TigerOpenClient):
         params.limit = limit
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.page_token = page_token if len(params.symbols) == 1 else None
-
+        params.trade_session = get_enum_value(trade_session)
         request = OpenApiRequest(KLINE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -477,7 +478,7 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_bars_by_page(self, symbol, period=BarPeriod.DAY, begin_time=-1, end_time=-1, total=10000, page_size=1000,
-                         right=QuoteRight.BR, time_interval=2, lang=None):
+                         right=QuoteRight.BR, time_interval=2, lang=None, trade_session=None):
         """
         request bats by page
         :param symbol: symbol of stock.
@@ -504,7 +505,7 @@ class QuoteClient(TigerOpenClient):
                 page_size = total - current
             current += page_size
             bars = self.get_bars(symbols=symbol, period=period, begin_time=begin_time, end_time=end_time, right=right,
-                                 limit=page_size, lang=lang, page_token=next_page_token)
+                                 limit=page_size, lang=lang, trade_session=trade_session, page_token=next_page_token)
             if bars.empty:
                 result_df = bars
                 break
