@@ -19,7 +19,7 @@ from tigeropen.tiger_open_config import LANGUAGE
 from tigeropen.trade.domain.order import Order
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
     OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams, SegmentFundParams, \
-    ForexTradeOrderParams, EstimateTradableQuantityModel, DepositWithdrawHistoryParams
+    ForexTradeOrderParams, EstimateTradableQuantityModel, FundingHistoryParams
 from tigeropen.trade.response.account_profile_response import ProfilesResponse
 from tigeropen.trade.response.analytics_asset_response import AnalyticsAssetResponse
 from tigeropen.trade.response.assets_response import AssetsResponse
@@ -901,7 +901,7 @@ class TradeClient(TigerOpenClient):
         return None
     
     def get_funding_history(self, seg_type=None):
-        params = DepositWithdrawHistoryParams()
+        params = FundingHistoryParams()
         params.account = self._account
         params.secret_key = self._secret_key
         params.seg_type = get_enum_value(seg_type)

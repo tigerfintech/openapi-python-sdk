@@ -1441,7 +1441,7 @@ class EstimateTradableQuantityModel(BaseParams):
             params['stop_price'] = self.stop_price
         return params
 
-class DepositWithdrawHistoryParams(BaseParams):
+class FundingHistoryParams(BaseParams):
     def __init__(self):
         super().__init__()
         self._account = None
