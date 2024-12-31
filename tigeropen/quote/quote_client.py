@@ -638,7 +638,7 @@ class QuoteClient(TigerOpenClient):
 
     def get_option_expirations(self, symbols, market=None):
         """
-        返回美股期���的过期日
+        返回美股期权的过期日
         :param symbols: 股票代码列表
         :return: pandas.DataFrame， 各 column 的含义如下：
             symbol: 证券代码
