@@ -8,14 +8,14 @@ from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.string_utils import camel_to_underline
 
 
-class DepositWithdrawHistoryResponse(TigerResponse):
+class FundingHistoryResponse(TigerResponse):
     def __init__(self):
-        super(DepositWithdrawHistoryResponse, self).__init__()
+        super(FundingHistoryResponse, self).__init__()
         self.data = None
         self._is_success = None
 
     def parse_response_content(self, response_content):
-        response = super(DepositWithdrawHistoryResponse, self).parse_response_content(response_content)
+        response = super(FundingHistoryResponse, self).parse_response_content(response_content)
         if 'is_success' in response:
             self._is_success = response['is_success']
 

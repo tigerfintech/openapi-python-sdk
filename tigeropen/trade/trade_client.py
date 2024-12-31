@@ -34,7 +34,7 @@ from tigeropen.trade.response.segment_fund_response import SegmentFundAvailableR
     SegmentFundHistoryResponse, SegmentFundCancelResponse
 from tigeropen.trade.response.segment_fund_response import SegmentFundTransferResponse
 from tigeropen.trade.response.transactions_response import TransactionsResponse
-from tigeropen.trade.response.deposit_withdraw_history_response import DepositWithdrawHistoryResponse
+from tigeropen.trade.response.funding_history_response import FundingHistoryResponse
 
 
 class TradeClient(TigerOpenClient):
@@ -900,7 +900,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
     
-    def get_deposit_withdraw_history(self, seg_type=None):
+    def get_funding_history(self, seg_type=None):
         params = DepositWithdrawHistoryParams()
         params.account = self._account
         params.secret_key = self._secret_key
@@ -909,7 +909,7 @@ class TradeClient(TigerOpenClient):
         request = OpenApiRequest(TRANSFER_FUND, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
-            response = DepositWithdrawHistoryResponse()
+            response = FundingHistoryResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.data
