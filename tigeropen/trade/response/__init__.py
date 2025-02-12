@@ -10,5 +10,5 @@ CONTRACT_FIELDS = set(['symbol', 'market', 'multiplier', 'sec_type', 'currency',
                        'shortable', 'long_initial_margin', 'long_maintenance_margin', 'contract_month', 'identifier',
                        'primary_exchange', 'min_tick', 'trading_class', 'continuous', 'trade', 'tradeable',
                        'last_trading_date', 'first_notice_date', 'last_bidding_close_time', 'shortable_count',
-                       'categories'])
+                       'categories', 'is_etf', 'etf_leverage', 'lot_size'])
 

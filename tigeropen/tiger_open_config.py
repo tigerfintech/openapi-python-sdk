@@ -55,7 +55,7 @@ SANDBOX_TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbm21i11hgAENG
 
 DEFAULT_PROPS_FILE = 'tiger_openapi_config.properties'
 DEFAULT_TOKEN_FILE = 'tiger_openapi_token.properties'
-TOKEN_REFRESH_DURATION = 24 * 60 * 60  # seconds
+TOKEN_REFRESH_DURATION = 0  # seconds
 TOKEN_CHECK_INTERVAL = 5 * 60  # seconds
 
 def fallback_get_mac_address():
