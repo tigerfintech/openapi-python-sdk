@@ -58,6 +58,7 @@ class ProtobufPushClient(ConnectionListener):
         self.unsubscribe_callback = None
         self.error_callback = None
         self.heartbeat_callback = None
+        self.kickout_callback = None
         self._connection_timeout = connection_timeout
         self._heartbeats = heartbeats
         self._client_config = client_config
@@ -122,7 +123,9 @@ class ProtobufPushClient(ConnectionListener):
             self.heartbeat_callback(frame)
 
     def on_error(self, frame):
-        if self.error_callback:
+        if frame.code == 4001 and self.kickout_callback:
+            self.kickout_callback(frame)
+        elif self.error_callback:
             self.error_callback(frame)
         else:
             self.logger.error(frame)
