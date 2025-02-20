@@ -15,7 +15,7 @@ from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERV
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
-    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, STOCK_FUNDAMENTAL, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
+    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, STOCK_FUNDAMENTAL, TRADE_RANK, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
     KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
     FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH
@@ -43,7 +43,7 @@ from tigeropen.fundamental.response.industry_response import IndustryListRespons
 from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
+    SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradeRankParams, TradingCalendarParams, MarketScannerParams, \
     StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams, OptionContractsParams
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
@@ -79,6 +79,7 @@ from tigeropen.quote.response.stock_short_interest_response import ShortInterest
 from tigeropen.quote.response.stock_trade_meta_response import TradeMetaResponse
 from tigeropen.quote.response.symbol_names_response import SymbolNamesResponse
 from tigeropen.quote.response.symbols_response import SymbolsResponse
+from tigeropen.quote.response.trade_rank_response import TradeRankResponse
 from tigeropen.quote.response.trading_calendar_response import TradingCalendarResponse
 from tigeropen.quote.response.warrant_briefs_response import WarrantBriefsResponse
 from tigeropen.quote.response.warrant_filter_response import WarrantFilterResponse
@@ -1881,6 +1882,21 @@ class QuoteClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = QuoteDataframeResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_trade_rank(self, market, limit=20, page=1):
+        params = TradeRankParams()
+        params.market = get_enum_value(market)
+        params.limit = limit
+        params.page = page
+        request = OpenApiRequest(TRADE_RANK, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = TradeRankResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.result
