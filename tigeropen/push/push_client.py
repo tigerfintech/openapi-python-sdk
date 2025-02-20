@@ -182,6 +182,14 @@ class PushClient:
         self.client.error_callback = value
 
     @property
+    def kickout_callback(self):
+        return self.client.kickout_callback
+
+    @kickout_callback.setter
+    def kickout_callback(self, value):
+        self.client.kickout_callback = value
+
+    @property
     def heartbeat_callback(self):
         return self.client.on_heartbeat
 
