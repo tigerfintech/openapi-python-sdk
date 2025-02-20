@@ -488,6 +488,7 @@ class OrdersParams(BaseParams):
         self._parent_id = None
         self._sort_by = None
         self._show_charges = None
+        self._page_token = None
 
     @property
     def account(self):
@@ -601,6 +602,14 @@ class OrdersParams(BaseParams):
     def show_charges(self, value):
         self._show_charges = value
 
+    @property
+    def page_token(self):
+        return self._page_token
+
+    @page_token.setter
+    def page_token(self, value):
+        self._page_token = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -644,6 +653,9 @@ class OrdersParams(BaseParams):
 
         if self.show_charges is not None:
             params['show_charges'] = self.show_charges
+
+        if self.page_token:
+            params['page_token'] = self.page_token
 
         return params
 

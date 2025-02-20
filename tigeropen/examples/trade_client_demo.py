@@ -15,7 +15,7 @@ from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.trade_client import TradeClient
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.request import OpenApiRequest
-from tigeropen.common.consts import Currency, SecurityType
+from tigeropen.common.consts import Currency, SecurityType, OrderSortBy
 from tigeropen.common.util.contract_utils import stock_contract, option_contract_by_symbol, future_contract, \
      war_contract_by_symbol, iopt_contract_by_symbol
 from tigeropen.common.util.order_utils import limit_order, limit_order_with_legs, order_leg, algo_order_params, \
@@ -69,6 +69,30 @@ def get_account_apis():
 
     # get asset history
     openapi_client.get_analytics_asset(start_date='2021-12-01', end_date='2021-12-07')
+
+
+def test_get_orders_by_page():
+    """分页获取订单"""
+    trade_client = TradeClient(client_config)
+    result = list()
+    # 每次返回数量(需 <= 300)
+    limit = 300
+    conditions = {
+        'limit': limit,
+        'start_time': '2024-12-01',
+        'end_time': '2025-02-12',
+        #  返回数据是按照时间逆序，即最新的数据在前。此处按照下单时间 order_time 排序
+        'sort_by': OrderSortBy.LATEST_CREATED,
+    }
+    orders_page = trade_client.get_orders(**conditions)
+    result.extend(orders_page)
+    while len(orders_page) == limit:
+        next_order_time = orders_page[-1].order_time
+        conditions.pop('end_time', None)
+        orders_page = trade_client.get_orders(**conditions, end_time=next_order_time)
+        result.extend(orders_page)
+    print(f'total order size: {len(result)}')
+    return result
 
 
 def trade_apis():

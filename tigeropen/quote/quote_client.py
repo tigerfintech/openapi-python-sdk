@@ -1047,10 +1047,10 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_future_continuous_contracts(self, type_=None, lang=None):
+    def get_future_continuous_contracts(self, future_type=None, lang=None):
         """
         Get Future Continuous Contracts
-        :param type_:  'CL'
+        :param future_type:  'CL'
         :param lang: zh_CN,zh_TW,en_US
         :return: pandas.DataFrame
         contract_code  continuous contract_month currency  display_multiplier exchange exchange_code first_notice_date  last_bidding_close_time last_trading_date  min_tick  multiplier     name symbol  trade type
@@ -1058,7 +1058,7 @@ class QuoteClient(TigerOpenClient):
 
         """
         params = FutureContractParams()
-        params.type = type_
+        params.type = future_type
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         
         request = OpenApiRequest(FUTURE_CONTINUOUS_CONTRACTS, biz_model=params)

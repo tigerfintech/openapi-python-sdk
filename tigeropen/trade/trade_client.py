@@ -321,9 +321,9 @@ class TradeClient(TigerOpenClient):
         :param sec_type:
         :param market:
         :param symbol:
-        :param start_time: 开始时间. 若是时间戳需要精确到毫秒, 为13位整数；
+        :param start_time: 开始时间(闭区间，包含). 若是时间戳需要精确到毫秒, 为13位整数；
                                     或是日期时间格式的字符串，如"2017-01-01"和 "2017-01-01 12:00:00"
-        :param end_time: 截至时间. 格式同 start_time
+        :param end_time: 截至时间(开区间，不包含). 格式同 start_time.
         :param limit: 每次获取订单的数量
         :param is_brief: 是否返回精简的订单数据
         :param states: 订单状态枚举对象列表, 可选, 若传递则按状态筛选
