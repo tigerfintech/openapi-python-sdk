@@ -1487,6 +1487,7 @@ class TradeRankParams(BaseParams):
         self._market = None
         self._limit = None
         self._page = None
+        self._lang = None
 
     @property
     def market(self):
@@ -1512,6 +1513,14 @@ class TradeRankParams(BaseParams):
     def page(self, value):
         self._page = value
 
+    @property
+    def lang(self):
+        return self._lang
+
+    @lang.setter
+    def lang(self, value):
+        self._lang = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.market:
@@ -1520,5 +1529,7 @@ class TradeRankParams(BaseParams):
             params['limit'] = self.limit
         if self.page:
             params['page'] = self.page
+        if self.lang:
+            params['lang'] = self.lang
         return params
     
