@@ -1888,11 +1888,12 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_trade_rank(self, market, limit=20, page=1):
+    def get_trade_rank(self, market, limit=30, page=1, lang=Language.en_US):
         params = TradeRankParams()
         params.market = get_enum_value(market)
         params.limit = limit
         params.page = page
+        params.lang = get_enum_value(lang)
         request = OpenApiRequest(TRADE_RANK, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
