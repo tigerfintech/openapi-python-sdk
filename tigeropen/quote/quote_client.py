@@ -15,7 +15,7 @@ from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERV
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
-    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, STOCK_FUNDAMENTAL, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
+    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, STOCK_FUNDAMENTAL, TRADE_RANK, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
     KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
     FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH
@@ -24,7 +24,8 @@ from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
     FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
     FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE, FINANCIAL_DAILY, FINANCIAL_REPORT, CORPORATE_ACTION, \
-    QUOTE_DEPTH, INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL, FUTURE_CONTINUOUS_CONTRACTS
+    QUOTE_DEPTH, INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL, FUTURE_CONTINUOUS_CONTRACTS, \
+    QUOTE_OVERNIGHT
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.common.util.common_utils import eastern, get_enum_value, date_str_to_timestamp
@@ -79,9 +80,11 @@ from tigeropen.quote.response.stock_short_interest_response import ShortInterest
 from tigeropen.quote.response.stock_trade_meta_response import TradeMetaResponse
 from tigeropen.quote.response.symbol_names_response import SymbolNamesResponse
 from tigeropen.quote.response.symbols_response import SymbolsResponse
+from tigeropen.quote.response.trade_rank_response import TradeRankResponse
 from tigeropen.quote.response.trading_calendar_response import TradingCalendarResponse
 from tigeropen.quote.response.warrant_briefs_response import WarrantBriefsResponse
 from tigeropen.quote.response.warrant_filter_response import WarrantFilterResponse
+from tigeropen.quote.response.quote_overnight_response import QuoteOvernightResponse
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.tiger_open_config import LANGUAGE
 
@@ -1881,6 +1884,34 @@ class QuoteClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = QuoteDataframeResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_trade_rank(self, market, lang=Language.en_US):
+        params = MarketParams()
+        params.market = get_enum_value(market)
+        params.lang = get_enum_value(lang)
+        request = OpenApiRequest(TRADE_RANK, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = TradeRankResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_quote_overnight(self, symbols, lang=Language.en_US):
+        params = MultipleQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.lang = get_enum_value(lang)
+        request = OpenApiRequest(QUOTE_OVERNIGHT, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = QuoteOvernightResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.result

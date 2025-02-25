@@ -34,8 +34,15 @@ class TradingSession(Enum):
     PreMarket = 'PreMarket'  # 盘前
     Regular = 'Regular'  # 盘中
     AfterHours = 'AfterHours'  # 盘后
-    OverNight = 'OverNight'  # 夜盘
+    OverNight = 'OverNight'
 
+
+@unique
+class TradingSessionType(Enum):
+    PRE_RTH_POST = 'PRE_RTH_POST'
+    OVERNIGHT ='OVERNIGHT' # 夜盘
+    RTH = 'RTH' # 盘中
+    FULL ='FULL' # 全时段
 
 
 @unique

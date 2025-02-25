@@ -1,3 +1,9 @@
+## 3.3.3 (2025-03-04)
+### New
+- `QuoteClient.get_quote_overnight` 获取夜盘行情
+### Mod
+- Contract 添加属性 `support_overnight_trading`
+
 ## 3.3.1 (2024-12-31)
 ### New
 - `TradeClient.get_funding_history` 出入金历史查询
