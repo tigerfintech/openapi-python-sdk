@@ -43,7 +43,7 @@ from tigeropen.fundamental.response.industry_response import IndustryListRespons
 from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
-    SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradeRankParams, TradingCalendarParams, MarketScannerParams, \
+    SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
     StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams, OptionContractsParams
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
@@ -1888,11 +1888,9 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_trade_rank(self, market, limit=30, page=1, lang=Language.en_US):
-        params = TradeRankParams()
+    def get_trade_rank(self, market, lang=Language.en_US):
+        params = MarketParams()
         params.market = get_enum_value(market)
-        params.limit = limit
-        params.page = page
         params.lang = get_enum_value(lang)
         request = OpenApiRequest(TRADE_RANK, biz_model=params)
         response_content = self.__fetch_data(request)
