@@ -1,3 +1,93 @@
+## 3.3.2 (2025-02-25)
+### New
+- `QuoteClient.get_trade_rank` 热门交易榜
+### Mod
+- Contract 添加属性 lot_size
+
+## 3.3.1 (2024-12-31)
+### New
+- `TradeClient.get_funding_history` 出入金历史查询
+### Mod
+- `QuoteClient.get_bars` 增加 `trade_session` 参数
+
+## 3.3.0 (2024-12-17)
+### New
+- `QuoteClient.get_stock_fundamental` 获取股票基础数据, 如 ROE, PB
+### Fix
+- 长连接 `error_callback` 未调用的问题
+
+## 3.2.9 (2024-11-25)
+### Fix
+- 修复批量获取合约 `TradeClient.get_contracts` 传参错误
+
+## 3.2.8 (2024-11-11)
+### Modify
+- `TradeClient.get_order` 新增参数 `show_charges`, 订单对象 Order 新增 `charges` 返回佣金明细
+- 综合账户资产增加字段 `uncollected`, `locked_funds`
+- 推送持仓对象 `PositionData` 新增字段 `positionQty`, `salableQty`
+
+## 3.2.7 (2024-07-12)
+### Modify
+- `TradeClient.get_positions` 新增字段 `position_qty`, `salable_qty`, `today_pnl`, `last_close_price` 等
+
+
+## 3.2.6 (2024-07-03)
+### Fix
+- `QuoteClient.get_option_depth` 修复返回数据处理
+
+# 3.2.5 (2024-06-19)
+### New
+- 新增 `QuoteClient.get_option_depth`, `QuoteClient.get_option_symbols`
+### Modify
+- `QuoteClient.get_option_chain` 增加参数 `market`
+- `QuoteClient.get_option_briefs` 增加参数 `market`
+- `QuoteClient.get_option_expirations` 增加参数 `market`
+
+# 3.2.4 (2024-06-05)
+### Modify
+- 下单支持夜盘参数, 可通过修改订单对象的 `order.trading_session_type` 来设置
+- Position 增加字段 `mm_value`, `mm_percent`
+
+# 3.2.3 (2024-04-11)
+### Fix
+- `QuoteClient.get_option_expirations` 修复多标的时 pandas 处理列名的问题
+
+# 3.2.2 (2024-04-09)
+### New
+- 长链接全量 tick 推送
+- `TradeClient.get_open_orders` `get_filled_orders` 增加 `limit` 参数
+
+# 3.2.1 (2024-04-09)
+### Fix
+- `QuoteClient.get_option_briefs` 返回补充字段 `change`
+
+# 3.2.0 (2024-04-02)
+### Modify
+- `QuoteClient.get_option_chain` 增加参数 `return_greek_value`
+### Breaking
+- `TradeClieng.get_managed_accounts` 此前不传 `account` 参数时，会设置默认账户，现改为不设置默认账户
+
+# 3.1.9 (2024-03-18)
+### New
+- 长链接分钟k线推送
+### Modify
+- `QuoteClient.get_option_chain` 参数 `option_filter` 默认值优化
+- `QuoteClient.get_option_expirations` 返回增加周期字段
+
+# 3.1.8 (2024-03-12)
+### Modify
+- `Order` 增加字段 `quantity_scale` 用于碎股下单指定小数数量
+### Fix
+- 处理合约 tick 的 PriceUtil 补充一种枚举类型 CLOSED_OPEN
+
+# 3.1.7 (2024-02-28)
+### Fix
+- 订单推送 commissionAndFee 类型由 double 回滚为 float
+
+# 3.1.6 (2024-02-26)
+### Modify
+- `Order` 及订单推送数据增加字段 `gst`; 订单推送 commissionAndFee 类型由 float 改为 double
+
 # 3.1.5 (2024-01-19)
 ### Fix
 - 修复长链接 protobuf 消息帧生成问题导致的无法连接问题

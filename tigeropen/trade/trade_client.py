@@ -9,7 +9,7 @@ import logging
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency, Language, OPEN_API_SERVICE_VERSION_V3
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
-    PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET, SEGMENT_FUND_AVAILABLE, SEGMENT_FUND_HISTORY, \
+    PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET, SEGMENT_FUND_AVAILABLE, SEGMENT_FUND_HISTORY, TRANSFER_FUND, \
     TRANSFER_SEGMENT_FUND, CANCEL_SEGMENT_FUND, PLACE_FOREX_ORDER, ESTIMATE_TRADABLE_QUANTITY
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import get_enum_value, date_str_to_timestamp
@@ -19,7 +19,7 @@ from tigeropen.tiger_open_config import LANGUAGE
 from tigeropen.trade.domain.order import Order
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
     OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams, SegmentFundParams, \
-    ForexTradeOrderParams, EstimateTradableQuantityModel
+    ForexTradeOrderParams, EstimateTradableQuantityModel, FundingHistoryParams
 from tigeropen.trade.response.account_profile_response import ProfilesResponse
 from tigeropen.trade.response.analytics_asset_response import AnalyticsAssetResponse
 from tigeropen.trade.response.assets_response import AssetsResponse
@@ -34,6 +34,7 @@ from tigeropen.trade.response.segment_fund_response import SegmentFundAvailableR
     SegmentFundHistoryResponse, SegmentFundCancelResponse
 from tigeropen.trade.response.segment_fund_response import SegmentFundTransferResponse
 from tigeropen.trade.response.transactions_response import TransactionsResponse
+from tigeropen.trade.response.funding_history_response import FundingHistoryResponse
 
 
 class TradeClient(TigerOpenClient):
@@ -62,8 +63,10 @@ class TradeClient(TigerOpenClient):
             status： 账户状态(New, Funded, Open, Pending, Abandoned, Rejected, Closed, Unknown)
         """
         params = AccountsParams()
-        params.account = account if account else self._account
+        if account:
+            params.account = account
         params.lang = get_enum_value(self._lang)
+        params.secret_key = self._secret_key
         request = OpenApiRequest(ACCOUNTS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -318,9 +321,9 @@ class TradeClient(TigerOpenClient):
         :param sec_type:
         :param market:
         :param symbol:
-        :param start_time: 开始时间. 若是时间戳需要精确到毫秒, 为13位整数；
+        :param start_time: 开始时间(闭区间，包含). 若是时间戳需要精确到毫秒, 为13位整数；
                                     或是日期时间格式的字符串，如"2017-01-01"和 "2017-01-01 12:00:00"
-        :param end_time: 截至时间. 格式同 start_time
+        :param end_time: 截至时间(开区间，不包含). 格式同 start_time.
         :param limit: 每次获取订单的数量
         :param is_brief: 是否返回精简的订单数据
         :param states: 订单状态枚举对象列表, 可选, 若传递则按状态筛选
@@ -355,7 +358,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_open_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                        end_time=None, parent_id=None, sort_by=None, seg_type=None):
+                        end_time=None, parent_id=None, sort_by=None, seg_type=None, **kwargs):
         """
         获取待成交订单列表. 参数同 get_orders
         :param parent_id: 主订单 order_id
@@ -372,6 +375,9 @@ class TradeClient(TigerOpenClient):
         params.sort_by = get_enum_value(sort_by)
         params.lang = get_enum_value(self._lang)
         params.seg_type = get_enum_value(seg_type)
+        if kwargs:
+            for key, value in kwargs.items():
+                setattr(params, key, value)
         request = OpenApiRequest(ACTIVE_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -384,7 +390,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_cancelled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                             end_time=None, sort_by=None, seg_type=None):
+                             end_time=None, sort_by=None, seg_type=None, **kwargs):
         """
         获取已撤销订单列表. 参数同 get_orders
         """
@@ -399,6 +405,9 @@ class TradeClient(TigerOpenClient):
         params.sort_by = get_enum_value(sort_by)
         params.lang = get_enum_value(self._lang)
         params.seg_type = get_enum_value(seg_type)
+        if kwargs:
+            for key, value in kwargs.items():
+                setattr(params, key, value)
         request = OpenApiRequest(INACTIVE_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -411,7 +420,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_filled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                          end_time=None, sort_by=None, seg_type=None):
+                          end_time=None, sort_by=None, seg_type=None, **kwargs):
         """
         获取已成交订单列表. 参数同 get_orders
         """
@@ -426,6 +435,9 @@ class TradeClient(TigerOpenClient):
         params.sort_by = get_enum_value(sort_by)
         params.lang = get_enum_value(self._lang)
         params.seg_type = get_enum_value(seg_type)
+        if kwargs:
+            for key, value in kwargs.items():
+                setattr(params, key, value)
         request = OpenApiRequest(FILLED_ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -437,7 +449,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_order(self, account=None, id=None, order_id=None, is_brief=False):
+    def get_order(self, account=None, id=None, order_id=None, is_brief=False, show_charges=None):
         """
         获取指定订单
         :param account:
@@ -452,6 +464,7 @@ class TradeClient(TigerOpenClient):
         params.id = id
         params.order_id = order_id
         params.is_brief = is_brief
+        params.show_charges = show_charges
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -532,6 +545,7 @@ class TradeClient(TigerOpenClient):
         params.order_type = order.order_type
         params.order_id = order.order_id
         params.quantity = order.quantity
+        params.quantity_scale = order.quantity_scale
         params.limit_price = order.limit_price
         params.aux_price = order.aux_price
         params.trail_stop_price = order.trail_stop_price
@@ -564,6 +578,7 @@ class TradeClient(TigerOpenClient):
         params.order_type = order.order_type
         params.order_id = order.order_id
         params.quantity = order.quantity
+        params.quantity_scale = order.quantity_scale
         params.limit_price = order.limit_price
         params.aux_price = order.aux_price
         params.trail_stop_price = order.trail_stop_price
@@ -581,6 +596,7 @@ class TradeClient(TigerOpenClient):
         params.combo_type = get_enum_value(order.combo_type)
         params.contract_legs = order.contract_legs
         params.total_cash_amount = order.total_cash_amount
+        params.trading_session_type = get_enum_value(order.trading_session_type)
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -621,6 +637,7 @@ class TradeClient(TigerOpenClient):
         params.action = order.action
         params.order_type = order.order_type
         params.quantity = quantity if quantity is not None else order.quantity
+        params.quantity_scale = kwargs.get('quantity_scale', order.quantity_scale)
         params.limit_price = limit_price if limit_price is not None else order.limit_price
         params.aux_price = aux_price if aux_price is not None else order.aux_price
         params.trail_stop_price = trail_stop_price if trail_stop_price is not None else order.trail_stop_price
@@ -879,6 +896,23 @@ class TradeClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+    
+    def get_funding_history(self, seg_type=None):
+        params = FundingHistoryParams()
+        params.account = self._account
+        params.secret_key = self._secret_key
+        params.seg_type = get_enum_value(seg_type)
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(TRANSFER_FUND, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FundingHistoryResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.data
             else:
                 raise ApiException(response.code, response.message)
         return None

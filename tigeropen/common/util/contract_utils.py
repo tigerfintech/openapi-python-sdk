@@ -5,6 +5,7 @@ Created on 2018/11/1
 @author: gaoan
 """
 import re
+from datetime import datetime
 
 from tigeropen.common.consts import SecurityType
 from tigeropen.trade.domain.contract import Contract
@@ -92,4 +93,8 @@ def get_option_identifier(underlying_symbol, expiry, put_call, strike):
     :return:
     """
     direction = 'C' if put_call == 'C' or put_call == 'CALL' else 'P'
+    if isinstance(expiry, int):
+        expiry = datetime.fromtimestamp(expiry / 1000).strftime('%Y%m%d')
+    if isinstance(strike, str):
+        strike = float(strike)
     return underlying_symbol.ljust(6, ' ') + expiry[2:] + direction + str(int(strike * 1000)).zfill(8)

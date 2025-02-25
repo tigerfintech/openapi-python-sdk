@@ -5,85 +5,87 @@ from typing import ClassVar as _ClassVar, Optional as _Optional
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class OrderStatusData(_message.Message):
-    __slots__ = ["account", "action", "attrDesc", "avgFillPrice", "canCancel", "canModify", "cancelStatus", "commissionAndFee", "currency", "errorMsg", "expiry", "filledCashAmount", "filledQuantity", "filledQuantityScale", "id", "identifier", "isLong", "limitPrice", "liquidation", "market", "multiplier", "name", "openTime", "orderType", "outsideRth", "realizedPnl", "replaceStatus", "right", "secType", "segType", "source", "status", "stopPrice", "strike", "symbol", "timestamp", "totalCashAmount", "totalQuantity", "totalQuantityScale", "userMark"]
-    ACCOUNT_FIELD_NUMBER: _ClassVar[int]
-    ACTION_FIELD_NUMBER: _ClassVar[int]
-    ATTRDESC_FIELD_NUMBER: _ClassVar[int]
-    AVGFILLPRICE_FIELD_NUMBER: _ClassVar[int]
-    CANCANCEL_FIELD_NUMBER: _ClassVar[int]
-    CANCELSTATUS_FIELD_NUMBER: _ClassVar[int]
-    CANMODIFY_FIELD_NUMBER: _ClassVar[int]
-    COMMISSIONANDFEE_FIELD_NUMBER: _ClassVar[int]
-    CURRENCY_FIELD_NUMBER: _ClassVar[int]
-    ERRORMSG_FIELD_NUMBER: _ClassVar[int]
-    EXPIRY_FIELD_NUMBER: _ClassVar[int]
-    FILLEDCASHAMOUNT_FIELD_NUMBER: _ClassVar[int]
-    FILLEDQUANTITYSCALE_FIELD_NUMBER: _ClassVar[int]
-    FILLEDQUANTITY_FIELD_NUMBER: _ClassVar[int]
-    IDENTIFIER_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("id", "account", "symbol", "expiry", "strike", "right", "identifier", "multiplier", "action", "market", "currency", "segType", "secType", "orderType", "isLong", "totalQuantity", "totalQuantityScale", "filledQuantity", "filledQuantityScale", "avgFillPrice", "limitPrice", "stopPrice", "realizedPnl", "status", "replaceStatus", "cancelStatus", "outsideRth", "canModify", "canCancel", "liquidation", "name", "source", "errorMsg", "attrDesc", "commissionAndFee", "openTime", "timestamp", "userMark", "totalCashAmount", "filledCashAmount", "gst")
     ID_FIELD_NUMBER: _ClassVar[int]
-    ISLONG_FIELD_NUMBER: _ClassVar[int]
-    LIMITPRICE_FIELD_NUMBER: _ClassVar[int]
-    LIQUIDATION_FIELD_NUMBER: _ClassVar[int]
-    MARKET_FIELD_NUMBER: _ClassVar[int]
-    MULTIPLIER_FIELD_NUMBER: _ClassVar[int]
-    NAME_FIELD_NUMBER: _ClassVar[int]
-    OPENTIME_FIELD_NUMBER: _ClassVar[int]
-    ORDERTYPE_FIELD_NUMBER: _ClassVar[int]
-    OUTSIDERTH_FIELD_NUMBER: _ClassVar[int]
-    REALIZEDPNL_FIELD_NUMBER: _ClassVar[int]
-    REPLACESTATUS_FIELD_NUMBER: _ClassVar[int]
-    RIGHT_FIELD_NUMBER: _ClassVar[int]
-    SECTYPE_FIELD_NUMBER: _ClassVar[int]
-    SEGTYPE_FIELD_NUMBER: _ClassVar[int]
-    SOURCE_FIELD_NUMBER: _ClassVar[int]
-    STATUS_FIELD_NUMBER: _ClassVar[int]
-    STOPPRICE_FIELD_NUMBER: _ClassVar[int]
-    STRIKE_FIELD_NUMBER: _ClassVar[int]
+    ACCOUNT_FIELD_NUMBER: _ClassVar[int]
     SYMBOL_FIELD_NUMBER: _ClassVar[int]
-    TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
-    TOTALCASHAMOUNT_FIELD_NUMBER: _ClassVar[int]
-    TOTALQUANTITYSCALE_FIELD_NUMBER: _ClassVar[int]
+    EXPIRY_FIELD_NUMBER: _ClassVar[int]
+    STRIKE_FIELD_NUMBER: _ClassVar[int]
+    RIGHT_FIELD_NUMBER: _ClassVar[int]
+    IDENTIFIER_FIELD_NUMBER: _ClassVar[int]
+    MULTIPLIER_FIELD_NUMBER: _ClassVar[int]
+    ACTION_FIELD_NUMBER: _ClassVar[int]
+    MARKET_FIELD_NUMBER: _ClassVar[int]
+    CURRENCY_FIELD_NUMBER: _ClassVar[int]
+    SEGTYPE_FIELD_NUMBER: _ClassVar[int]
+    SECTYPE_FIELD_NUMBER: _ClassVar[int]
+    ORDERTYPE_FIELD_NUMBER: _ClassVar[int]
+    ISLONG_FIELD_NUMBER: _ClassVar[int]
     TOTALQUANTITY_FIELD_NUMBER: _ClassVar[int]
+    TOTALQUANTITYSCALE_FIELD_NUMBER: _ClassVar[int]
+    FILLEDQUANTITY_FIELD_NUMBER: _ClassVar[int]
+    FILLEDQUANTITYSCALE_FIELD_NUMBER: _ClassVar[int]
+    AVGFILLPRICE_FIELD_NUMBER: _ClassVar[int]
+    LIMITPRICE_FIELD_NUMBER: _ClassVar[int]
+    STOPPRICE_FIELD_NUMBER: _ClassVar[int]
+    REALIZEDPNL_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    REPLACESTATUS_FIELD_NUMBER: _ClassVar[int]
+    CANCELSTATUS_FIELD_NUMBER: _ClassVar[int]
+    OUTSIDERTH_FIELD_NUMBER: _ClassVar[int]
+    CANMODIFY_FIELD_NUMBER: _ClassVar[int]
+    CANCANCEL_FIELD_NUMBER: _ClassVar[int]
+    LIQUIDATION_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_FIELD_NUMBER: _ClassVar[int]
+    ERRORMSG_FIELD_NUMBER: _ClassVar[int]
+    ATTRDESC_FIELD_NUMBER: _ClassVar[int]
+    COMMISSIONANDFEE_FIELD_NUMBER: _ClassVar[int]
+    OPENTIME_FIELD_NUMBER: _ClassVar[int]
+    TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
     USERMARK_FIELD_NUMBER: _ClassVar[int]
-    account: str
-    action: str
-    attrDesc: str
-    avgFillPrice: float
-    canCancel: bool
-    canModify: bool
-    cancelStatus: str
-    commissionAndFee: float
-    currency: str
-    errorMsg: str
-    expiry: str
-    filledCashAmount: float
-    filledQuantity: int
-    filledQuantityScale: int
+    TOTALCASHAMOUNT_FIELD_NUMBER: _ClassVar[int]
+    FILLEDCASHAMOUNT_FIELD_NUMBER: _ClassVar[int]
+    GST_FIELD_NUMBER: _ClassVar[int]
     id: int
-    identifier: str
-    isLong: bool
-    limitPrice: float
-    liquidation: bool
-    market: str
-    multiplier: int
-    name: str
-    openTime: int
-    orderType: str
-    outsideRth: bool
-    realizedPnl: float
-    replaceStatus: str
-    right: str
-    secType: str
-    segType: str
-    source: str
-    status: str
-    stopPrice: float
-    strike: str
+    account: str
     symbol: str
-    timestamp: int
-    totalCashAmount: float
+    expiry: str
+    strike: str
+    right: str
+    identifier: str
+    multiplier: int
+    action: str
+    market: str
+    currency: str
+    segType: str
+    secType: str
+    orderType: str
+    isLong: bool
     totalQuantity: int
     totalQuantityScale: int
+    filledQuantity: int
+    filledQuantityScale: int
+    avgFillPrice: float
+    limitPrice: float
+    stopPrice: float
+    realizedPnl: float
+    status: str
+    replaceStatus: str
+    cancelStatus: str
+    outsideRth: bool
+    canModify: bool
+    canCancel: bool
+    liquidation: bool
+    name: str
+    source: str
+    errorMsg: str
+    attrDesc: str
+    commissionAndFee: float
+    openTime: int
+    timestamp: int
     userMark: str
-    def __init__(self, id: _Optional[int] = ..., account: _Optional[str] = ..., symbol: _Optional[str] = ..., expiry: _Optional[str] = ..., strike: _Optional[str] = ..., right: _Optional[str] = ..., identifier: _Optional[str] = ..., multiplier: _Optional[int] = ..., action: _Optional[str] = ..., market: _Optional[str] = ..., currency: _Optional[str] = ..., segType: _Optional[str] = ..., secType: _Optional[str] = ..., orderType: _Optional[str] = ..., isLong: bool = ..., totalQuantity: _Optional[int] = ..., totalQuantityScale: _Optional[int] = ..., filledQuantity: _Optional[int] = ..., filledQuantityScale: _Optional[int] = ..., avgFillPrice: _Optional[float] = ..., limitPrice: _Optional[float] = ..., stopPrice: _Optional[float] = ..., realizedPnl: _Optional[float] = ..., status: _Optional[str] = ..., replaceStatus: _Optional[str] = ..., cancelStatus: _Optional[str] = ..., outsideRth: bool = ..., canModify: bool = ..., canCancel: bool = ..., liquidation: bool = ..., name: _Optional[str] = ..., source: _Optional[str] = ..., errorMsg: _Optional[str] = ..., attrDesc: _Optional[str] = ..., commissionAndFee: _Optional[float] = ..., openTime: _Optional[int] = ..., timestamp: _Optional[int] = ..., userMark: _Optional[str] = ..., totalCashAmount: _Optional[float] = ..., filledCashAmount: _Optional[float] = ...) -> None: ...
+    totalCashAmount: float
+    filledCashAmount: float
+    gst: float
+    def __init__(self, id: _Optional[int] = ..., account: _Optional[str] = ..., symbol: _Optional[str] = ..., expiry: _Optional[str] = ..., strike: _Optional[str] = ..., right: _Optional[str] = ..., identifier: _Optional[str] = ..., multiplier: _Optional[int] = ..., action: _Optional[str] = ..., market: _Optional[str] = ..., currency: _Optional[str] = ..., segType: _Optional[str] = ..., secType: _Optional[str] = ..., orderType: _Optional[str] = ..., isLong: bool = ..., totalQuantity: _Optional[int] = ..., totalQuantityScale: _Optional[int] = ..., filledQuantity: _Optional[int] = ..., filledQuantityScale: _Optional[int] = ..., avgFillPrice: _Optional[float] = ..., limitPrice: _Optional[float] = ..., stopPrice: _Optional[float] = ..., realizedPnl: _Optional[float] = ..., status: _Optional[str] = ..., replaceStatus: _Optional[str] = ..., cancelStatus: _Optional[str] = ..., outsideRth: bool = ..., canModify: bool = ..., canCancel: bool = ..., liquidation: bool = ..., name: _Optional[str] = ..., source: _Optional[str] = ..., errorMsg: _Optional[str] = ..., attrDesc: _Optional[str] = ..., commissionAndFee: _Optional[float] = ..., openTime: _Optional[int] = ..., timestamp: _Optional[int] = ..., userMark: _Optional[str] = ..., totalCashAmount: _Optional[float] = ..., filledCashAmount: _Optional[float] = ..., gst: _Optional[float] = ...) -> None: ...

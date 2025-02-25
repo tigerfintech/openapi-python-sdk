@@ -7,51 +7,38 @@ Created on 2018/10/31
 import pandas as pd
 
 from tigeropen.common.response import TigerResponse
+from tigeropen.common.util import string_utils
 
-COLUMNS = ['contract_code', 'symbol', 'type', 'name', 'contract_month', 'multiplier', 'exchange', 'exchange_code', 'currency',
-           'first_notice_date', 'last_bidding_close_time', 'last_trading_date', 'trade', 'continuous', 'min_tick']
-CONTRACT_FIELD_MAPPINGS = {'contractCode': 'contract_code', 'exchangeCode': 'exchange_code', 'ibCode': 'symbol',
-                           'contractMonth': 'contract_month', 'firstNoticeDate': 'first_notice_date',
-                           'lastBiddingCloseTime': 'last_bidding_close_time', 'lastTradingDate': 'last_trading_date',
-                           'minTick': 'min_tick'}
+CONTRACT_FIELD_MAPPINGS = {'ibCode': 'symbol'}
+MAIN_CONTRACT_CODE_SUFFIX = 'main'
+CONTRACT_CODE_COLUMN = 'contract_code'
 
 
 class FutureContractResponse(TigerResponse):
     def __init__(self):
         super(FutureContractResponse, self).__init__()
-        self.contracts = []
+        self.contracts = pd.DataFrame()
         self._is_success = None
 
-    def parse_response_content(self, response_content):
+    def parse_response_content(self, response_content, skip_main=True):
         response = super(FutureContractResponse, self).parse_response_content(response_content)
         if 'is_success' in response:
             self._is_success = response['is_success']
 
         if self.data:
-            contract_items = []
             if isinstance(self.data, list):
-                for item in self.data:
-                    item_values = self.parse_contract(item)
-                    contract_code = item_values.get('contract_code')
-                    if contract_code is None or contract_code.endswith('main'):
-                        continue
-                    contract_items.append([item_values.get(tag) for tag in COLUMNS])
+                self.contracts = pd.DataFrame(self.data)
             elif isinstance(self.data, dict):
-                item_values = self.parse_contract(self.data)
-                contract_code = item_values.get('contract_code')
-                if contract_code and not contract_code.endswith('main'):
-                    contract_items.append([item_values.get(tag) for tag in COLUMNS])
+                self.contracts = pd.DataFrame([self.data])
 
-            self.contracts = pd.DataFrame(contract_items, columns=COLUMNS)
+            column_map = dict()
+            for key in self.contracts.columns:
+                column_map[key] = CONTRACT_FIELD_MAPPINGS.get(key, string_utils.camel_to_underline(key))
+        
+            self.contracts = self.contracts.rename(columns=column_map)
+            
+            # 重新排列列，将 contract_code 作为第一列，其余列按字母排序
+            remaining_columns = sorted([col for col in self.contracts.columns if col != CONTRACT_CODE_COLUMN])
+            all_columns = [CONTRACT_CODE_COLUMN] + remaining_columns
+            self.contracts = self.contracts.reindex(columns=all_columns)
 
-    @staticmethod
-    def parse_contract(item):
-        item_values = dict()
-        for key, value in item.items():
-            if value is None:
-                continue
-            if key in ('lastBiddingCloseTime', 'firstNoticeDate') and (value == 0 or value == ''):
-                continue
-            tag = CONTRACT_FIELD_MAPPINGS[key] if key in CONTRACT_FIELD_MAPPINGS else key
-            item_values[tag] = value
-        return item_values

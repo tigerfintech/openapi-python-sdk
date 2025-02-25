@@ -28,7 +28,8 @@ else:
 
 
 class ProtobufPushClient(ConnectionListener):
-    def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000)):
+    def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000),
+                 client_config=None):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
@@ -43,22 +44,30 @@ class ProtobufPushClient(ConnectionListener):
         self.quote_bbo_changed = None
         self.quote_depth_changed = None
         self.tick_changed = None
+        self.full_tick_changed = None
         self.asset_changed = None
         self.position_changed = None
         self.order_changed = None
         self.transaction_changed = None
         self.stock_top_changed = None
         self.option_top_changed = None
+        self.kline_changed = None
         self.connect_callback = None
         self.disconnect_callback = None
         self.subscribe_callback = None
         self.unsubscribe_callback = None
         self.error_callback = None
         self.heartbeat_callback = None
+        self.kickout_callback = None
         self._connection_timeout = connection_timeout
         self._heartbeats = heartbeats
+        self._client_config = client_config
+        self._use_full_tick = self._client_config.use_full_tick if self._client_config else False
         self.logger = logging.getLogger('tiger_openapi')
-        _patch_ssl()
+        try:
+            _patch_ssl()
+        except:
+            pass
 
     def connect(self, tiger_id, private_key):
         self._tiger_id = tiger_id
@@ -83,7 +92,9 @@ class ProtobufPushClient(ConnectionListener):
                 self._connection.set_ssl([(self.host, self.port)])
             con_req = ProtoMessageUtil.build_connect_message(self._tiger_id, self._sign,
                                                              send_interval=self._heartbeats[0],
-                                                             receive_interval=self._heartbeats[1])
+                                                             receive_interval=self._heartbeats[1],
+                                                             use_full_tick=self._use_full_tick
+                                                             )
             self._connection.connect(con_req, wait=True,
                                      )
         except ConnectFailedException as e:
@@ -112,7 +123,12 @@ class ProtobufPushClient(ConnectionListener):
             self.heartbeat_callback(frame)
 
     def on_error(self, frame):
-        self.logger.error(frame)
+        if frame.code == 4001 and self.kickout_callback:
+            self.kickout_callback(frame)
+        elif self.error_callback:
+            self.error_callback(frame)
+        else:
+            self.logger.error(frame)
 
     def on_message(self, frame):
         try:
@@ -156,8 +172,12 @@ class ProtobufPushClient(ConnectionListener):
                     if self.quote_depth_changed:
                         self.quote_depth_changed(frame.body.quoteDepthData)
                 elif frame.body.dataType == SocketCommon.DataType.TradeTick:
-                    if self.tick_changed:
-                        self.tick_changed(self._convert_tick(frame.body.tradeTickData))
+                    if self._use_full_tick:
+                        if self.full_tick_changed:
+                            self.full_tick_changed(frame.body.tickData)
+                    else:
+                        if self.tick_changed:
+                            self.tick_changed(self._convert_tick(frame.body.tradeTickData))
                 elif frame.body.dataType == SocketCommon.DataType.OrderStatus:
                     if self.order_changed:
                         frame.body.orderStatusData.status = get_order_status(frame.body.orderStatusData.status,
@@ -178,6 +198,9 @@ class ProtobufPushClient(ConnectionListener):
                 elif frame.body.dataType == SocketCommon.DataType.OptionTop:
                     if self.option_top_changed:
                         self.option_top_changed(frame.body.optionTopData)
+                elif frame.body.dataType == SocketCommon.DataType.Kline:
+                    if self.kline_changed:
+                        self.kline_changed(frame.body.klineData)
                 else:
                     self.logger.warning(f'unhandled frame: {frame}')
         except Exception:
@@ -378,6 +401,24 @@ class ProtobufPushClient(ConnectionListener):
         :return:
         """
         req = ProtoMessageUtil.build_unsubscribe_depth_quote_message(symbols)
+        self._connection.send_frame(req)
+
+    def subscribe_kline(self, symbols=None):
+        """
+        订阅K线
+        :param symbols:
+        :return:
+        """
+        req = ProtoMessageUtil.build_subscribe_kline_message(symbols)
+        self._connection.send_frame(req)
+
+    def unsubscribe_kline(self, symbols=None):
+        """
+        退订K线
+        :param symbols:
+        :return:
+        """
+        req = ProtoMessageUtil.build_unsubscribe_kline_message(symbols)
         self._connection.send_frame(req)
 
     def subscribe_market(self, market):

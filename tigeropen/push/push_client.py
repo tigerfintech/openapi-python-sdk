@@ -11,7 +11,7 @@ from tigeropen.push.stomp_push_client import StompPushClient
 
 class PushClient:
     def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000),
-                 use_protobuf=True):
+                 use_protobuf=True, client_config=None):
         """
         :param host:
         :param port:
@@ -23,11 +23,10 @@ class PushClient:
         if use_protobuf:
             self.client = ProtobufPushClient(host=host, port=port, use_ssl=use_ssl,
                                              connection_timeout=connection_timeout,
-                                             heartbeats=heartbeats)
+                                             heartbeats=heartbeats, client_config=client_config)
         else:
             self.client = StompPushClient(host=host, port=port, use_ssl=use_ssl, connection_timeout=connection_timeout,
                                           heartbeats=heartbeats)
-
 
     @property
     def subscribed_symbols(self):
@@ -93,6 +92,22 @@ class PushClient:
     @option_top_changed.setter
     def option_top_changed(self, value):
         self.client.option_top_changed = value
+
+    @property
+    def kline_changed(self):
+        return self.client.kline_changed
+
+    @kline_changed.setter
+    def kline_changed(self, value):
+        self.client.kline_changed = value
+
+    @property
+    def full_tick_changed(self):
+        return self.client.full_tick_changed
+
+    @full_tick_changed.setter
+    def full_tick_changed(self, value):
+        self.client.full_tick_changed = value
 
     @property
     def asset_changed(self):
@@ -165,6 +180,14 @@ class PushClient:
     @error_callback.setter
     def error_callback(self, value):
         self.client.error_callback = value
+
+    @property
+    def kickout_callback(self):
+        return self.client.kickout_callback
+
+    @kickout_callback.setter
+    def kickout_callback(self, value):
+        self.client.kickout_callback = value
 
     @property
     def heartbeat_callback(self):
@@ -328,8 +351,15 @@ class PushClient:
 
     def unsubscribe_stock_top(self, market, indicators=None):
         self.client.unsubscribe_stock_top(get_enum_value(market), indicators)
+
     def subscribe_option_top(self, market, indicators=None):
         self.client.subscribe_option_top(get_enum_value(market), indicators)
 
     def unsubscribe_option_top(self, market, indicators=None):
         self.client.unsubscribe_option_top(get_enum_value(market), indicators)
+
+    def subscribe_kline(self, symbols=None):
+        self.client.subscribe_kline(symbols)
+
+    def unsubscribe_kline(self, symbols=None):
+        self.client.unsubscribe_kline(symbols)

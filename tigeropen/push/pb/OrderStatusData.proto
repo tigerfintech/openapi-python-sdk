@@ -45,4 +45,5 @@ message OrderStatusData {
   string userMark = 38;
   double totalCashAmount = 39;
   double filledCashAmount = 40;
+  double gst = 41;
 }
