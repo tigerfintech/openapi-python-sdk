@@ -1479,3 +1479,4 @@ class KlineQuotaParams(BaseParams):
         if self.with_details is not None:
             params['with_details'] = self.with_details
         return params
+    
