@@ -55,14 +55,16 @@ SANDBOX_TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbm21i11hgAENG
 
 DEFAULT_PROPS_FILE = 'tiger_openapi_config.properties'
 DEFAULT_TOKEN_FILE = 'tiger_openapi_token.properties'
-TOKEN_REFRESH_DURATION = 24 * 60 * 60  # seconds
+TOKEN_REFRESH_DURATION = 0  # seconds
 TOKEN_CHECK_INTERVAL = 5 * 60  # seconds
+
+def fallback_get_mac_address():
+    return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
 
 try:
     from getmac import get_mac_address
 except ImportError:
-    def get_mac_address():
-        return ':'.join(("%012x" % uuid.getnode())[i:i + 2] for i in range(0, 12, 2))
+    get_mac_address = fallback_get_mac_address
 
 
 class TigerOpenClientConfig:
@@ -90,6 +92,8 @@ class TigerOpenClientConfig:
         # 请求读取超时，单位秒，默认15s
         self._timeout = TIMEOUT
         self._sandbox_debug = sandbox_debug
+        # subscribed trade tick data, Whether to use the full version of the tick
+        self.use_full_tick = False
 
         # 老虎证券开放平台公钥
         self._tiger_public_key = TIGER_PUBLIC_KEY
@@ -272,10 +276,14 @@ class TigerOpenClientConfig:
         获取mac地址作为device_id
         :return:
         """
+        device_id = None
         try:
-            return get_mac_address()
+            device_id = get_mac_address()
         except:
-            return None
+            pass
+        if not device_id:
+            device_id = fallback_get_mac_address()
+        return device_id
 
     def _get_props_path(self, filename):
         if self.props_path is not None:

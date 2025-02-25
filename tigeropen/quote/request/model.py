@@ -60,6 +60,7 @@ class SymbolsParams(MarketParams):
             params['include_otc'] = self.include_otc
         return params
 
+
 class SingleQuoteParams(MarketParams):
     def __init__(self):
         super(SingleQuoteParams, self).__init__()
@@ -549,6 +550,63 @@ class MultipleContractParams(BaseParams):
         return params
 
 
+class OptionContractsParams(BaseParams):
+    def __init__(self):
+        super(OptionContractsParams, self).__init__()
+        self._option_basics = None  # list of SingleQuoteParams
+        self._option_query = None
+        self._symbols = None
+        self._market = None
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
+    @property
+    def option_basics(self):
+        return self._option_basics
+
+    @option_basics.setter
+    def option_basics(self, value):
+        self._option_basics = value
+
+    @property
+    def symbols(self):
+        return self._symbols
+
+    @symbols.setter
+    def symbols(self, value):
+        self._symbols = value
+
+    @property
+    def option_query(self):
+        return self._option_query
+
+    @option_query.setter
+    def option_query(self, value):
+        self._option_query = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.market:
+            params['market'] = self.market
+        if self.symbols:
+            params['symbols'] = self.symbols
+        if self.option_basics:
+            params['option_basic'] = []
+            for contract in self.option_basics:
+                params['option_basic'].append(contract.to_openapi_dict())
+        if self.option_query:
+            params['option_query'] = []
+            for contract in self.option_query:
+                params['option_query'].append(contract.to_openapi_dict())
+        return params
+
+
 class FutureExchangeParams(BaseParams):
     def __init__(self):
         super(FutureExchangeParams, self).__init__()
@@ -790,6 +848,8 @@ class OptionChainParams(BaseParams):
         super(OptionChainParams, self).__init__()
         self._contracts = None
         self._option_filter = None
+        self._return_greek_value = None
+        self._market = None
 
     @property
     def contracts(self):
@@ -807,15 +867,35 @@ class OptionChainParams(BaseParams):
     def option_filter(self, value):
         self._option_filter = value
 
+    @property
+    def return_greek_value(self):
+        return self._return_greek_value
+
+    @return_greek_value.setter
+    def return_greek_value(self, value):
+        self._return_greek_value = value
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
-        params.update({'option_basic': list(), 'option_filter': dict()})
+        params.update({'option_basic': list()})
 
         if self.contracts:
             for contract in self.contracts:
                 params['option_basic'].append(contract.to_openapi_dict())
         if self.option_filter:
             params['option_filter'] = self.option_filter.to_dict()
+        if self.return_greek_value is not None:
+            params['return_greek_value'] = self.return_greek_value
+        if self.market:
+            params['market'] = self.market
         return params
 
 
@@ -876,6 +956,7 @@ class MarketScannerParams(BaseParams):
         self._page = None
         self._page_size = None
         self._multi_tags_fields = None
+
     @property
     def market(self):
         return self._market
@@ -1379,6 +1460,7 @@ class WarrantFilterParams(BaseParams):
             params['implied_volatility'] = self.convert_range_param(self.implied_volatility)
         return params
 
+
 class KlineQuotaParams(BaseParams):
     def __init__(self):
         super().__init__()
@@ -1397,3 +1479,4 @@ class KlineQuotaParams(BaseParams):
         if self.with_details is not None:
             params['with_details'] = self.with_details
         return params
+    

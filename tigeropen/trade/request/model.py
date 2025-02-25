@@ -398,6 +398,7 @@ class OrderParams(BaseParams):
         self._id = None  # 订单号(全局)
         self._order_id = None  # 订单号(账户维度)
         self._is_brief = None
+        self._show_charges = None
 
     @property
     def account(self):
@@ -439,6 +440,14 @@ class OrderParams(BaseParams):
     def is_brief(self, value):
         self._is_brief = value
 
+    @property
+    def show_charges(self):
+        return self._show_charges
+
+    @show_charges.setter
+    def show_charges(self, value):
+        self._show_charges = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -455,6 +464,9 @@ class OrderParams(BaseParams):
 
         if self.id:
             params['id'] = self.id
+
+        if self.show_charges is not None:
+            params['show_charges'] = self.show_charges
 
         return params
 
@@ -475,6 +487,8 @@ class OrdersParams(BaseParams):
         self._states = None
         self._parent_id = None
         self._sort_by = None
+        self._show_charges = None
+        self._page_token = None
 
     @property
     def account(self):
@@ -580,6 +594,22 @@ class OrdersParams(BaseParams):
     def sort_by(self, value):
         self._sort_by = value
 
+    @property
+    def show_charges(self):
+        return self._show_charges
+
+    @show_charges.setter
+    def show_charges(self, value):
+        self._show_charges = value
+
+    @property
+    def page_token(self):
+        return self._page_token
+
+    @page_token.setter
+    def page_token(self, value):
+        self._page_token = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -620,6 +650,12 @@ class OrdersParams(BaseParams):
 
         if self.sort_by:
             params['sort_by'] = self.sort_by
+
+        if self.show_charges is not None:
+            params['show_charges'] = self.show_charges
+
+        if self.page_token:
+            params['page_token'] = self.page_token
 
         return params
 
@@ -776,6 +812,7 @@ class PlaceModifyOrderParams(BaseParams):
         self.action = None
         self.order_type = None
         self.quantity = None
+        self.quantity_scale = None
         self.limit_price = None
         self.aux_price = None
         self.trail_stop_price = None
@@ -792,6 +829,7 @@ class PlaceModifyOrderParams(BaseParams):
         self.contract_legs = None
         self.total_cash_amount = None
         self.oca_orders = None
+        self.trading_session_type = None
 
     def _parse_contract_param(self):
         params = dict()
@@ -843,6 +881,8 @@ class PlaceModifyOrderParams(BaseParams):
             params['action'] = self.action
         if self.quantity is not None:
             params['total_quantity'] = self.quantity
+        if self.quantity_scale is not None:
+            params['total_quantity_scale'] = self.quantity_scale
         if self.limit_price is not None:
             params['limit_price'] = self.limit_price
         if self.aux_price is not None:
@@ -869,6 +909,8 @@ class PlaceModifyOrderParams(BaseParams):
             params['algo_params'] = [{'tag': item[0], 'value': item[1]} for item in self.algo_params.to_dict().items()]
         if self.combo_type:
             params['combo_type'] = self.combo_type
+        if self.trading_session_type:
+            params['trading_session_type'] = self.trading_session_type
         return params
 
     def _parse_leg_param(self):
@@ -1409,4 +1451,45 @@ class EstimateTradableQuantityModel(BaseParams):
             params['limit_price'] = self.limit_price
         if self.stop_price:
             params['stop_price'] = self.stop_price
+        return params
+
+class FundingHistoryParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._account = None
+        self._secret_key = None
+        self._seg_type = None
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def seg_type(self):
+        return self._seg_type
+
+    @seg_type.setter
+    def seg_type(self, value):
+        self._seg_type = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.account:
+            params['account'] = self.account
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+        if self.seg_type:
+            params['seg_type'] = self.seg_type
         return params

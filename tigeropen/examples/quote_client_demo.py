@@ -70,6 +70,8 @@ def get_quote():
     calendar = openapi_client.get_trading_calendar(Market.US, begin_date='2022-07-01', end_date='2022-09-02')
     print(calendar)
 
+    fundamental = openapi_client.get_stock_fundamental(['AAPL', 'GOOG'], market=Market.US)
+    print(fundamental)
 
 def test_gat_bars_by_page():
     bars = openapi_client.get_bars_by_page(['AAPL'], period=BarPeriod.DAY,
@@ -309,6 +311,9 @@ class TestQuoteClient(unittest.TestCase):
         print(result)
         print(result.loc[result['symbol']=='LU0476943708.HKD'].iloc[0]['nav'])
 
+    def test_get_hk_option_symbols(self):
+        symbols = openapi_client.get_option_symbols()
+        print(symbols)
 
 if __name__ == '__main__':
     with pd.option_context('display.max_rows', None, 'display.max_columns', None):

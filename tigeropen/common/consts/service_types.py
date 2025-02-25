@@ -32,6 +32,7 @@ TRANSFER_SEGMENT_FUND = "transfer_segment_fund"
 CANCEL_SEGMENT_FUND = "cancel_segment_fund"
 PLACE_FOREX_ORDER = "place_forex_order"
 ESTIMATE_TRADABLE_QUANTITY = "estimate_tradable_quantity"
+TRANSFER_FUND = "transfer_fund"
 
 USER_LICENSE = "user_license"
 
@@ -70,6 +71,8 @@ CAPITAL_FLOW = "capital_flow"  # 股票资金流向
 WARRANT_FILTER = "warrant_filter"
 WARRANT_REAL_TIME_QUOTE = "warrant_real_time_quote"
 KLINE_QUOTA = "kline_quota"  # 历史k线额度
+STOCK_FUNDAMENTAL = "stock_fundamental"
+TRADE_RANK = "trade_rank"
 
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"
@@ -77,6 +80,9 @@ OPTION_CHAIN = "option_chain"
 OPTION_BRIEF = "option_brief"
 OPTION_KLINE = "option_kline"
 OPTION_TRADE_TICK = "option_trade_tick"
+OPTION_DEPTH = "option_depth"
+ALL_HK_OPTION_SYMBOLS = "all_hk_option_symbols"
+
 
 # 期货行情
 FUTURE_EXCHANGE = "future_exchange"
