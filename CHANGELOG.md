@@ -1,3 +1,9 @@
+## 3.3.2 (2025-02-25)
+### New
+- `QuoteClient.get_trade_rank` 热门交易榜
+### Mod
+- Contract 添加属性 lot_size
+
 ## 3.3.1 (2024-12-31)
 ### New
 - `TradeClient.get_funding_history` 出入金历史查询
