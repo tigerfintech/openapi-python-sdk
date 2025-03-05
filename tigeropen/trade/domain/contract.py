@@ -90,6 +90,7 @@ class Contract:
         self.discounted_end_at = kwargs.get('discounted_end_at')
         self.categories = kwargs.get('categories')
         self.lot_size = kwargs.get('lot_size')
+        self.support_overnight_trading = kwargs.get('support_overnight_trading')
 
     @property
     def right(self):

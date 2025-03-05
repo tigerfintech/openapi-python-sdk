@@ -24,7 +24,8 @@ from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
     FUTURE_TRADING_DATE, QUOTE_SHORTABLE_STOCKS, FUTURE_REAL_TIME_QUOTE, \
     FUTURE_CURRENT_CONTRACT, QUOTE_REAL_TIME, QUOTE_STOCK_TRADE, FINANCIAL_DAILY, FINANCIAL_REPORT, CORPORATE_ACTION, \
-    QUOTE_DEPTH, INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL, FUTURE_CONTINUOUS_CONTRACTS
+    QUOTE_DEPTH, INDUSTRY_LIST, INDUSTRY_STOCKS, STOCK_INDUSTRY, STOCK_DETAIL, FUTURE_CONTINUOUS_CONTRACTS, \
+    QUOTE_OVERNIGHT
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.common.util.common_utils import eastern, get_enum_value, date_str_to_timestamp
@@ -83,6 +84,7 @@ from tigeropen.quote.response.trade_rank_response import TradeRankResponse
 from tigeropen.quote.response.trading_calendar_response import TradingCalendarResponse
 from tigeropen.quote.response.warrant_briefs_response import WarrantBriefsResponse
 from tigeropen.quote.response.warrant_filter_response import WarrantFilterResponse
+from tigeropen.quote.response.quote_overnight_response import QuoteOvernightResponse
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.tiger_open_config import LANGUAGE
 
@@ -1896,6 +1898,20 @@ class QuoteClient(TigerOpenClient):
         response_content = self.__fetch_data(request)
         if response_content:
             response = TradeRankResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_quote_overnight(self, symbols, lang=Language.en_US):
+        params = MultipleQuoteParams()
+        params.symbols = symbols if isinstance(symbols, list) else [symbols]
+        params.lang = get_enum_value(lang)
+        request = OpenApiRequest(QUOTE_OVERNIGHT, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = QuoteOvernightResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.result
