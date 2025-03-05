@@ -1,8 +1,15 @@
-## 3.3.3 (2025-03-04)
+## 3.3.3 (2025-03-05)
 ### New
 - `QuoteClient.get_quote_overnight` 获取夜盘行情
 ### Mod
 - Contract 添加属性 `support_overnight_trading`
+
+
+## 3.3.2 (2025-02-25)
+### New
+- `QuoteClient.get_trade_rank` 热门交易榜
+### Mod
+- Contract 添加属性 lot_size
 
 ## 3.3.1 (2024-12-31)
 ### New
