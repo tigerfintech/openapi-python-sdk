@@ -145,6 +145,7 @@ class PositionParams(BaseParams):
         self._expiry = None
         self._strike = None
         self._right = None
+        self._asset_quote_type = None
 
     @property
     def account(self):
@@ -226,6 +227,14 @@ class PositionParams(BaseParams):
     def right(self, value):
         self._right = value
 
+    @property
+    def asset_quote_type(self):
+        return self._asset_quote_type
+
+    @asset_quote_type.setter
+    def asset_quote_type(self, value):
+        self._asset_quote_type = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -257,6 +266,9 @@ class PositionParams(BaseParams):
 
         if self.right:
             params['right'] = self.right
+
+        if self.asset_quote_type:
+            params['asset_quote_type'] = self.asset_quote_type
 
         return params
 

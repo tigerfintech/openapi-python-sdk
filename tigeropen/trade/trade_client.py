@@ -192,7 +192,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_positions(self, account=None, sec_type=SecurityType.STK, currency=Currency.ALL, market=Market.ALL,
-                      symbol=None, sub_accounts=None, expiry=None, strike=None, put_call=None):
+                      symbol=None, sub_accounts=None, expiry=None, strike=None, put_call=None, asset_quote_type=None):
         """
         获取持仓数据
         :param account:
@@ -201,6 +201,7 @@ class TradeClient(TigerOpenClient):
         :param market:
         :param symbol:
         :param sub_accounts:
+        :param asset_quote_type: 资产行情模式
         :return: 由 Position 对象构成的列表. Position 对象有如下属性:
             account: 所属账户
             contract: 合约对象
@@ -225,6 +226,8 @@ class TradeClient(TigerOpenClient):
             params.strike = strike
         if put_call:
             params.right = put_call
+        if asset_quote_type:
+            params.asset_quote_type = get_enum_value(asset_quote_type)
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(POSITIONS, biz_model=params)
         response_content = self.__fetch_data(request)
