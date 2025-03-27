@@ -63,10 +63,10 @@ class StockField(FilterField):
     FloatMarketVal = 16, "floatMarketCap"
     # 总市值*  MarketVal  shares * 当前价格
     MarketValue = 17, "marketValue"
-    # 盘前涨跌幅   (curPrice-盘前左收）自己计算 最新价-close / close
-    preHourTradingChangeRate = 18, "preHourTradingChangeRate"
-    # 盘后涨跌幅 自己计算
-    postHourTradingChangeRate = 19, "postHourTradingChangeRate"
+    # 盘前涨跌幅   (curPrice-盘前左收）自己计算 最新价-close / close. Deprecated, use preChangeRate instead
+    # preHourTradingChangeRate = 18, "preHourTradingChangeRate"
+    # 盘后涨跌幅 自己计算. Deprecated, use postChangeRate instead
+    # postHourTradingChangeRate = 19, "postHourTradingChangeRate"
     # 每股收益 滚动市盈率 TTM=过去12个月  Last Twelve Month  通过hermes获取 eps
     ttm_Eps = 20, "ttmEps"
     # 量比*（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
@@ -145,6 +145,26 @@ class StockField(FilterField):
     ETF_HoldingCount = 62, "etfHoldingCount"
     # 净利润 不带周期 */
     Net_Income = 63, "netIncomeVal"
+    # 当前涨跌额
+    current_ChangeVal = 64, "curChangeVal"
+    # 价格更新时间戳
+    Timestamp = 65, "Timestamp"
+    # 总OI
+    totalOI = 66, "totalOI"
+    # 看涨看跌OI比例
+    putCallOiRatio = 67, "putCallOiRatio"
+    # 看涨看跌成交量比例
+    putCallVolRatio = 68, "putCallVolRatio"
+    # 总成交量
+    totalVol = 69, "totalVol"
+    # 隐含波动率
+    ivRatio = 70, "ivRatio"
+    # 隐含波动率百分位
+    ivPercentile = 71, "ivPercentile"
+    # 历史波动率
+    hvRatio = 72, "hvRatio"
+    # 历史波动率百分位
+    hvPercentile = 73, "hvPercentile"
 
 class AccumulateField(FilterField):
     # 涨跌幅*（精确到小数点后 3 位，超出部分会被舍弃）例如填写 [0.005,0.01] 值区间
@@ -193,8 +213,8 @@ class AccumulateField(FilterField):
     CashFromFinancing = 24, "cash4Finance"
     # 资产负债率
     TotalLiabilitiesToTotalAssets = 25, "allLiabAndAssets"
-    # 经营现金流同比增长率; （T期CFO-T-1期CFO）/T-1期CFO *100%
-    CashFromOps_yearOnYear_Ratio = 26, "cash4OpsYearOnYearRatio"
+    # 经营现金流同比增长率; （T期CFO-T-1期CFO）/T-1期CFO *100%. Deprecated
+    # CashFromOps_yearOnYear_Ratio = 26, "cash4OpsYearOnYearRatio"
     # 净资产收益率ROE同比增长率  （T期ROE-T-1期ROE）/T-1期ROE *100%
     ROE_yearOnYear_Ratio = 27, "netIncomeYearOnYearRatio"
     # 营业利润占比
@@ -384,6 +404,9 @@ class MultiTagField(FilterField):
     Market_Name = 21, "marketName"
     # 一级行业级别, 需要传递具体sectorId
     One_Sectors_Level = 22, "oneSectorsLevel"
+    # 财报时间
+    Earning_Time = 23, "earnTime"
+    isContra = 24, "contra"
 
 class FieldBelongType(Enum):
     """选股排序字段对应的filter类别
