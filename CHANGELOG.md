@@ -1,3 +1,7 @@
+## 3.3.4
+### `TradeClient.get_aggregate_assets`
+
+
 ## 3.3.3 (2025-03-05)
 ### New
 - `QuoteClient.get_quote_overnight` 获取夜盘行情
