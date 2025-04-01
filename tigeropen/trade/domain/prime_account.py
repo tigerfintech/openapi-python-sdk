@@ -125,6 +125,8 @@ class AggregateAsset:
         self.intraday_risk_ratio = float('inf')
         # 总市值
         self.gross_position_value = float('inf')
+        # 股票持仓市值
+        self.stock_market_value = float('inf')
         # 期权市值
         self.option_market_value = float('inf')
         # 期货市值

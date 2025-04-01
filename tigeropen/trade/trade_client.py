@@ -6,7 +6,8 @@ Created on 2018/9/20
 """
 import logging
 
-from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency, Language, OPEN_API_SERVICE_VERSION_V3
+from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency, Language, OPEN_API_SERVICE_VERSION_V3, \
+    SegmentType
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
     PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET, SEGMENT_FUND_AVAILABLE, SEGMENT_FUND_HISTORY, \
@@ -318,7 +319,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_aggregate_assets(self, account=None, base_currency=None, seg_type=None):
+    def get_aggregate_assets(self, account=None, seg_type=SegmentType.SEC, base_currency=None):
         params = AggregateAssetParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
@@ -331,7 +332,7 @@ class TradeClient(TigerOpenClient):
             response = AggregateAssetsResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.data
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
 
