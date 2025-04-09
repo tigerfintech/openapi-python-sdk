@@ -99,3 +99,56 @@ class CurrencyAsset:
 
     def __repr__(self):
         return MODEL_REPR.format(self.__class__.__name__, self.__dict__)
+
+
+class AggregateAsset:
+    """
+    """
+    def __init__(self):
+        # 基础币种
+        self.currency = None
+        # 现金余额
+        self.cash_balance = float('inf')
+        # 现金余额包括在途
+        self.cash_balance_with_in_transit = float('inf')
+        # 具有借贷价值资产
+        self.equity_with_loan = float('inf')
+        # 净清算价值
+        self.net_liquidation = float('inf')
+        # 初始保证金
+        self.init_margin = float('inf')
+        # 维持保证金
+        self.maintain_margin = float('inf')
+        # 外汇保证金
+        self.trade_currency_margin = float('inf')
+        # 日内风险度
+        self.intraday_risk_ratio = float('inf')
+        # 总市值
+        self.gross_position_value = float('inf')
+        # 股票持仓市值
+        self.stock_market_value = float('inf')
+        # 期权市值
+        self.option_market_value = float('inf')
+        # 可用剩余资产
+        self.cash_available_for_trade = float('inf')
+        # 可用现金值
+        self.available_cash = float('inf')
+        # 已锁定的剩余资产
+        self.locked_funds = float('inf')
+        # 锁定现金值
+        self.locked_cash = float('inf')
+        # 引用额度
+        self.credit_limit = float('inf')
+        # ee 剩余资产
+        self.excess_equity = float('inf')
+        # el 剩余流动资产
+        self.excess_liquidity = float('inf')
+
+    @staticmethod
+    def from_dict(d):
+        aggregate_asset = AggregateAsset()
+        aggregate_asset.__dict__.update(d)
+        return aggregate_asset
+
+    def __repr__(self):
+        return MODEL_REPR.format(self.__class__.__name__, self.__dict__)

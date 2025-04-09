@@ -131,6 +131,50 @@ class AssetParams(BaseParams):
 
         return params
 
+class AggregateAssetParams(BaseParams):
+    def __init__(self):
+        super(AggregateAssetParams, self).__init__()
+        self._account = None
+        self._secret_key = None
+        self._seg_type = False
+        self._base_currency = None
+
+    @property
+    def account(self):
+        return self._account
+    @account.setter
+    def account(self, value):
+        self._account = value
+    @property
+    def secret_key(self):
+        return self._secret_key
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+    @property
+    def seg_type(self):
+        return self._seg_type
+    @seg_type.setter
+    def seg_type(self, value):
+        self._seg_type = value
+    @property
+    def base_currency(self):
+        return self._base_currency
+    @base_currency.setter
+    def base_currency(self, value):
+        self._base_currency = value 
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.account:
+            params['account'] = self.account
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+        if self.seg_type:
+            params['seg_type'] = self.seg_type
+        if self.base_currency:
+            params['base_currency'] = self.base_currency
+        return params
 
 class PositionParams(BaseParams):
     def __init__(self):
