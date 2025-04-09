@@ -66,6 +66,7 @@ class SegmentType(Enum):
     ALL = 'ALL'
     SEC = 'SEC'
     FUT = 'FUT'
+    FUND = 'FUND'
 
 
 @unique
