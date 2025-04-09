@@ -11,14 +11,15 @@ import time
 import pandas as pd
 
 from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3, \
-    OPEN_API_SERVICE_VERSION_V1, Language
+    OPEN_API_SERVICE_VERSION_V1, Language, SortDirection
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
-    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, STOCK_FUNDAMENTAL, TRADE_RANK, TRADING_CALENDAR, FUTURE_CONTRACTS, MARKET_SCANNER, \
+    HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, STOCK_FUNDAMENTAL, TRADE_RANK, TRADING_CALENDAR, \
+    FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
     KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
-    FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH
+    FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH, BROKER_HOLD
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -45,7 +46,9 @@ from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
-    StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams, OptionContractsParams
+    StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams, OptionContractsParams, \
+    BrokerHoldParams
+from tigeropen.quote.response.broker_hold_response import BrokerHoldResponse
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
 from tigeropen.quote.response.fund_contracts_response import FundContractsResponse
@@ -1688,6 +1691,27 @@ class QuoteClient(TigerOpenClient):
                 return response.result
             else:
                 raise ApiException(response.code, response.message)
+
+    def get_broker_hold(self, market=Market.HK, order_by='marketValue', direction=SortDirection.ASC, limit=50,
+                        page=0, lang=None):
+        """获取港股实时经纪队列数据"""
+        params = BrokerHoldParams()
+        params.market = get_enum_value(market)
+        params.order_by = order_by
+        params.direction = get_enum_value(direction.name)
+        params.limit = limit
+        params.page = page
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        request = OpenApiRequest(BROKER_HOLD, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = BrokerHoldResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+                
 
     def get_capital_flow(self, symbol, market, period, begin_time=-1, end_time=-1, limit=200, lang=None):
         """Get capital net inflow Data, including different time periods, such as daily, weekly, monthly, etc.
