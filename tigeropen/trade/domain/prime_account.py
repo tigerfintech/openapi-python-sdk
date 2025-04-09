@@ -129,8 +129,6 @@ class AggregateAsset:
         self.stock_market_value = float('inf')
         # 期权市值
         self.option_market_value = float('inf')
-        # 期货市值
-        self.futures_market_value = float('inf')
         # 可用剩余资产
         self.cash_available_for_trade = float('inf')
         # 可用现金值

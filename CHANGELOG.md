@@ -1,6 +1,8 @@
-## 3.3.4
-### `TradeClient.get_aggregate_assets`
-
+## 3.3.4 (2025-04-09)
+### New
+- `TradeClient.get_aggregate_assets`
+### Mod
+- 选股器字段更新
 
 ## 3.3.3 (2025-03-05)
 ### New
