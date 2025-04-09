@@ -1099,6 +1099,60 @@ class StockBrokerParams(BaseParams):
             params['limit'] = self.limit
         return params
 
+class BrokerHoldParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._market = None
+        self._page = None
+        self._limit = None
+        self._order_by = None
+        self._direction = None
+
+    @property
+    def market(self):
+        return self._market
+    @market.setter
+    def market(self, value):
+        self._market = value
+    @property
+    def page(self):
+        return self._page
+    @page.setter
+    def page(self, value):
+        self._page = value
+    @property
+    def limit(self):
+        return self._limit  
+    @limit.setter   
+    def limit(self, value): 
+        self._limit = value
+    @property
+    def order_by(self):
+        return self._order_by
+    @order_by.setter
+    def order_by(self, value):
+        self._order_by = value
+    @property
+    def direction(self):
+        return self._direction
+    @direction.setter
+    def direction(self, value):
+        self._direction = value
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()  
+        if self.market:
+            params['market'] = self.market
+        if self.page is not None and self.page >= 0:
+            params['page'] = self.page
+        if self.limit:
+            params['limit'] = self.limit
+        if self.order_by:
+            params['order_by'] = self.order_by
+        if self.direction:
+            params['direction'] = self.direction
+        return params
+
+
 
 class CapitalParams(BaseParams):
     def __init__(self):
