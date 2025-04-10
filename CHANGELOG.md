@@ -1,3 +1,7 @@
+## 3.3.5 (2025-04-11)
+### New
+- `QuoteClient.get_broker_hold` 经纪商市值
+
 ## 3.3.4 (2025-04-09)
 ### New
 - `TradeClient.get_aggregate_assets`
