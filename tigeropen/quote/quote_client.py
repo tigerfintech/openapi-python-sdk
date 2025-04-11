@@ -1692,7 +1692,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_broker_hold(self, market=Market.HK, order_by='marketValue', direction=SortDirection.ASC, limit=50,
+    def get_broker_hold(self, market=Market.HK, order_by='marketValue', direction=SortDirection.DESC, limit=50,
                         page=0, lang=None):
         """获取港股实时经纪队列数据"""
         params = BrokerHoldParams()
