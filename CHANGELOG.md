@@ -1,3 +1,8 @@
+## 3.3.6 (2025-04-23)
+### New
+- `TradeClient.get_fund_details` 资金明细
+
+
 ## 3.3.5 (2025-04-11)
 ### New
 - `QuoteClient.get_broker_hold` 经纪商市值
