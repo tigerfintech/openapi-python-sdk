@@ -230,15 +230,15 @@ def test_market_scanner():
                 base_filter1_value = item[base_filter1]
                 accumulate_filter_value = item[accumulate_filter]
                 print(
-                    f'page:{result.page}, symbol:{symbol}, base_filter1 value:{base_filter1_value}, accumulate_filter value:{accumulate_filter_value}')
+                    f'page:{result.startt}, symbol:{symbol}, base_filter1 value:{base_filter1_value}, accumulate_filter value:{accumulate_filter_value}')
             print(f'current page symbols:{result.symbols}')
             scanner_result_symbols.update(result.symbols)
         time.sleep(1)
         # 处理分页
-        if result.page >= result.total_page - 1:
+        if result.startt >= result.total_page - 1:
             is_last_page = True
         else:
-            begin_page = result.page + 1
+            begin_page = result.startt + 1
 
     print(f'scanned symbols:{scanner_result_symbols}')
 

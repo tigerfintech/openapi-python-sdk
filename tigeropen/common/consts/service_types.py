@@ -34,6 +34,7 @@ PLACE_FOREX_ORDER = "place_forex_order"
 ESTIMATE_TRADABLE_QUANTITY = "estimate_tradable_quantity"
 TRANSFER_FUND = "transfer_fund"
 AGGREGATE_ASSETS = "aggregate_assets"
+FUND_DETAILS = "fund_details"
 
 USER_LICENSE = "user_license"
 
