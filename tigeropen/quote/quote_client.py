@@ -667,13 +667,16 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_option_chain(self, symbol, expiry, option_filter=None, return_greek_value=None, market=None, **kwargs):
+    def get_option_chain(self, symbol, expiry, option_filter=None, return_greek_value=None, market=None, timezone=None,
+                         **kwargs):
         """
         query option chain with filter
         :param symbol: underlying stock symbol
         :param expiry: expiration date ( like '2021-06-18' or 1560484800000 )
         :param option_filter: option filter conditions, tigeropen.quote.domain.filter.OptionFilter
         :param return_greek_value: return greek value or not, bool
+        :param market:
+        :param timezone: Default US/Eastern, when querying non-U.S. stock options, you need to specify the time zone
         :param kwargs: optional. specify option_filter parameters directly without option_filer,
                         like: open_interest_min=100, delta_min=0.1
         :return: pandas.DataFrame，the columns are as follows：
@@ -696,7 +699,7 @@ class QuoteClient(TigerOpenClient):
         param = SingleContractParams()
         param.symbol = symbol
         if isinstance(expiry, str) and re.match('[0-9]{4}-[0-9]{2}-[0-9]{2}', expiry):
-            param.expiry = date_str_to_timestamp(expiry, self._timezone)
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(market, timezone))
         else:
             param.expiry = expiry
         params.contracts = [param]
@@ -721,7 +724,7 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_option_briefs(self, identifiers, market = None):
+    def get_option_briefs(self, identifiers, market = None, timezone=None):
         """
         获取期权最新行情
         :param identifiers: 期权代码列表
@@ -755,7 +758,7 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleContractParams()
             param.symbol = symbol
-            param.expiry = date_str_to_timestamp(expiry, self._timezone)
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(market, timezone))
             param.put_call = put_call
             param.strike = strike
             contracts.append(param)
@@ -776,7 +779,7 @@ class QuoteClient(TigerOpenClient):
         return None
 
     def get_option_bars(self, identifiers, begin_time=-1, end_time=4070880000000, period=BarPeriod.DAY, limit=None,
-                        sort_dir=None, market=None):
+                        sort_dir=None, market=None, timezone=None):
         """
         获取期权日K数据
         :param identifiers: 期权代码列表
@@ -807,12 +810,12 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleOptionQuoteParams()
             param.symbol = symbol
-            param.expiry = date_str_to_timestamp(expiry, self._timezone)
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(market, timezone))
             param.put_call = put_call
             param.strike = strike
             param.period = get_enum_value(period)
-            param.begin_time = date_str_to_timestamp(begin_time, self._timezone)
-            param.end_time = date_str_to_timestamp(end_time, self._timezone)
+            param.begin_time = date_str_to_timestamp(begin_time, self._parse_timezone(market, timezone))
+            param.end_time = date_str_to_timestamp(end_time, self._parse_timezone(market, timezone))
             param.limit = limit
             param.sort_dir = get_enum_value(sort_dir)
             contracts.append(param)
@@ -829,7 +832,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_option_trade_ticks(self, identifiers):
+    def get_option_trade_ticks(self, identifiers, timezone=None):
         """
         获取期权逐笔成交
         :param identifiers: 期权代码列表
@@ -850,7 +853,7 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleContractParams()
             param.symbol = symbol
-            param.expiry = date_str_to_timestamp(expiry, timezone=self._timezone)
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(None, timezone))
             param.put_call = put_call
             param.strike = strike
             contracts.append(param)
@@ -888,7 +891,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_option_depth(self, identifiers, market: Market = Market.US):
+    def get_option_depth(self, identifiers, market: Market = Market.US, timezone=None):
         """
         获取期权深度
         :param market:
@@ -904,7 +907,7 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleContractParams()
             param.symbol = symbol
-            param.expiry = date_str_to_timestamp(expiry, timezone=self._timezone)
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(market, timezone))
             param.put_call = put_call
             param.strike = strike
             contracts.append(param)
@@ -1942,4 +1945,15 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    
+
+    def _parse_timezone(self, market = None, timezone=None):
+        if timezone:
+            return timezone
+        if market:
+            if Market.HK.name == get_enum_value(market):
+                return 'Asia/Hong_Kong'
+            if Market.US.name == get_enum_value(market):
+                return 'US/Eastern'
+            if Market.CN.name == get_enum_value(market):
+                return 'Asia/Shanghai'
+        return self._timezone
