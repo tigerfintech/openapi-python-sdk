@@ -1797,7 +1797,7 @@ class QuoteClient(TigerOpenClient):
         params = WarrantFilterParams()
         params.lang = get_enum_value(self._lang)
         params.symbol = symbol or (filter_params.symbol if filter_params else None)
-        params.page = page or (filter_params.page if filter_params else None)
+        params.page = page or (filter_params.startt if filter_params else None)
         params.page_size = page_size or (filter_params.page_size if filter_params else None)
         params.sort_field_name = sort_field_name or (filter_params.sort_field_name if filter_params else None)
         params.sort_dir = get_enum_value(sort_dir or (filter_params.sort_dir if filter_params else None))
