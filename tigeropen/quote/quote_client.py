@@ -30,7 +30,7 @@ from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.common.util.common_utils import eastern, get_enum_value, date_str_to_timestamp
-from tigeropen.common.util.contract_utils import extract_option_info
+from tigeropen.common.util.contract_utils import extract_option_info, is_hk_option_underlying_symbol
 from tigeropen.fundamental.request.model import FinancialDailyParams, FinancialReportParams, CorporateActionParams, \
     IndustryParams, FinancialExchangeRateParams
 from tigeropen.fundamental.response.corporate_dividend_response import CorporateDividendResponse
@@ -698,6 +698,8 @@ class QuoteClient(TigerOpenClient):
         params = OptionChainParams()
         param = SingleContractParams()
         param.symbol = symbol
+        if market is None and is_hk_option_underlying_symbol(symbol):
+            market = Market.HK
         if isinstance(expiry, str) and re.match('[0-9]{4}-[0-9]{2}-[0-9]{2}', expiry):
             param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone, market))
         else:
@@ -724,7 +726,7 @@ class QuoteClient(TigerOpenClient):
 
         return None
 
-    def get_option_briefs(self, identifiers, market = None, timezone=None):
+    def get_option_briefs(self, identifiers, market = None, timezone = None):
         """
         获取期权最新行情
         :param identifiers: 期权代码列表
@@ -756,6 +758,8 @@ class QuoteClient(TigerOpenClient):
             symbol, expiry, put_call, strike = extract_option_info(identifier)
             if symbol is None or expiry is None or put_call is None or strike is None:
                 continue
+            if market is None and is_hk_option_underlying_symbol(symbol):
+                market = Market.HK
             param = SingleContractParams()
             param.symbol = symbol
             param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone, market))
@@ -810,6 +814,8 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleOptionQuoteParams()
             param.symbol = symbol
+            if market is None and is_hk_option_underlying_symbol(symbol):
+                market = Market.HK
             param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone, market))
             param.put_call = put_call
             param.strike = strike
@@ -853,7 +859,11 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleContractParams()
             param.symbol = symbol
-            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone))
+            if is_hk_option_underlying_symbol(symbol):
+                market = Market.HK
+            else:
+                market = None
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone, market))
             param.put_call = put_call
             param.strike = strike
             contracts.append(param)
@@ -905,6 +915,8 @@ class QuoteClient(TigerOpenClient):
             symbol, expiry, put_call, strike = extract_option_info(identifier)
             if symbol is None or expiry is None or put_call is None or strike is None:
                 continue
+            if market is None and is_hk_option_underlying_symbol(symbol):
+                market = Market.HK
             param = SingleContractParams()
             param.symbol = symbol
             param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone, market))
