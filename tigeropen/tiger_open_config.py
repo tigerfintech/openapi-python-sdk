@@ -118,10 +118,11 @@ class TigerOpenClientConfig:
         self.domain_conf = dict()
         self.enable_dynamic_domain = enable_dynamic_domain
         if self._sandbox_debug:
-            self._tiger_public_key = SANDBOX_TIGER_PUBLIC_KEY
-            self._server_url = SANDBOX_SERVER_URL
-            self._quote_server_url = SANDBOX_SERVER_URL
-            self._socket_host_port = SANDBOX_SOCKET_HOST_PORT
+            raise NotImplementedError('Sandbox debug mode is deprecated, please set to False')
+            # self._tiger_public_key = SANDBOX_TIGER_PUBLIC_KEY
+            # self._server_url = SANDBOX_SERVER_URL
+            # self._quote_server_url = SANDBOX_SERVER_URL
+            # self._socket_host_port = SANDBOX_SOCKET_HOST_PORT
         if self.enable_dynamic_domain:
             self.domain_conf = self.query_domains()
             self.refresh_server_info()
