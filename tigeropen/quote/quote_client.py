@@ -699,7 +699,7 @@ class QuoteClient(TigerOpenClient):
         param = SingleContractParams()
         param.symbol = symbol
         if isinstance(expiry, str) and re.match('[0-9]{4}-[0-9]{2}-[0-9]{2}', expiry):
-            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(market, timezone))
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone, market))
         else:
             param.expiry = expiry
         params.contracts = [param]
@@ -758,7 +758,7 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleContractParams()
             param.symbol = symbol
-            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(market, timezone))
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone, market))
             param.put_call = put_call
             param.strike = strike
             contracts.append(param)
@@ -810,12 +810,12 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleOptionQuoteParams()
             param.symbol = symbol
-            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(market, timezone))
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone, market))
             param.put_call = put_call
             param.strike = strike
             param.period = get_enum_value(period)
-            param.begin_time = date_str_to_timestamp(begin_time, self._parse_timezone(market, timezone))
-            param.end_time = date_str_to_timestamp(end_time, self._parse_timezone(market, timezone))
+            param.begin_time = date_str_to_timestamp(begin_time, self._parse_timezone(timezone, market))
+            param.end_time = date_str_to_timestamp(end_time, self._parse_timezone(timezone, market))
             param.limit = limit
             param.sort_dir = get_enum_value(sort_dir)
             contracts.append(param)
@@ -853,7 +853,7 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleContractParams()
             param.symbol = symbol
-            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(None, timezone))
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone))
             param.put_call = put_call
             param.strike = strike
             contracts.append(param)
@@ -907,7 +907,7 @@ class QuoteClient(TigerOpenClient):
                 continue
             param = SingleContractParams()
             param.symbol = symbol
-            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(market, timezone))
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone, market))
             param.put_call = put_call
             param.strike = strike
             contracts.append(param)
@@ -1110,7 +1110,7 @@ class QuoteClient(TigerOpenClient):
         return None
 
     def get_future_bars(self, identifiers, period=BarPeriod.DAY, begin_time=-1, end_time=-1, limit=1000,
-                        page_token=None):
+                        page_token=None, timezone=None):
         """
         获取期货K线数据
         :param identifiers: 期货代码列表
@@ -1135,7 +1135,7 @@ class QuoteClient(TigerOpenClient):
         params = FutureQuoteParams()
         params.contract_codes = identifiers if isinstance(identifiers, list) else [identifiers]
         params.period = get_enum_value(period)
-        params.begin_time = date_str_to_timestamp(begin_time, self._timezone)
+        params.begin_time = date_str_to_timestamp(begin_time, self._parse_timezone(timezone))
         params.end_time = end_time
         params.limit = limit
         params.page_token = page_token if len(params.contract_codes) == 1 else None
@@ -1256,7 +1256,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_corporate_split(self, symbols, market, begin_date, end_date):
+    def get_corporate_split(self, symbols, market, begin_date, end_date, timezone=None):
         """
         获取公司拆合股数据
         :param symbols: 证券代码列表
@@ -1278,8 +1278,8 @@ class QuoteClient(TigerOpenClient):
         params.action_type = CorporateActionType.SPLIT.value
         params.symbols = symbols
         params.market = get_enum_value(market)
-        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
-        params.end_date = date_str_to_timestamp(end_date, self._timezone)
+        params.begin_date = date_str_to_timestamp(begin_date, self._parse_timezone(timezone))
+        params.end_date = date_str_to_timestamp(end_date, self._parse_timezone(timezone))
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(CORPORATE_ACTION, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -1291,7 +1291,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_corporate_dividend(self, symbols, market, begin_date, end_date):
+    def get_corporate_dividend(self, symbols, market, begin_date, end_date, timezone=None):
         """
         获取公司派息数据
         :param symbols: 证券代码列表
@@ -1315,8 +1315,8 @@ class QuoteClient(TigerOpenClient):
         params.action_type = CorporateActionType.DIVIDEND.value
         params.symbols = symbols
         params.market = get_enum_value(market)
-        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
-        params.end_date = date_str_to_timestamp(end_date, self._timezone)
+        params.begin_date = date_str_to_timestamp(begin_date, self._parse_timezone(timezone))
+        params.end_date = date_str_to_timestamp(end_date, self._parse_timezone(timezone))
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(CORPORATE_ACTION, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -1328,7 +1328,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_corporate_earnings_calendar(self, market, begin_date, end_date):
+    def get_corporate_earnings_calendar(self, market, begin_date, end_date, timezone=None):
         """
         获取公司财报日历
         :param market:
@@ -1339,8 +1339,8 @@ class QuoteClient(TigerOpenClient):
         params = CorporateActionParams()
         params.action_type = CorporateActionType.EARNINGS_CALENDAR.value
         params.market = get_enum_value(market)
-        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
-        params.end_date = date_str_to_timestamp(end_date, self._timezone)
+        params.begin_date = date_str_to_timestamp(begin_date, self._parse_timezone(timezone))
+        params.end_date = date_str_to_timestamp(end_date, self._parse_timezone(timezone))
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(CORPORATE_ACTION, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -1352,7 +1352,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_financial_daily(self, symbols, market, fields, begin_date, end_date):
+    def get_financial_daily(self, symbols, market, fields, begin_date, end_date, timezone=None):
         """
         获取日级的财务数据
         :param symbols: 证券代码列表
@@ -1370,8 +1370,8 @@ class QuoteClient(TigerOpenClient):
         params.symbols = symbols
         params.market = get_enum_value(market)
         params.fields = [get_enum_value(field) for field in fields]
-        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
-        params.end_date = date_str_to_timestamp(end_date, self._timezone)
+        params.begin_date = date_str_to_timestamp(begin_date, self._parse_timezone(timezone))
+        params.end_date = date_str_to_timestamp(end_date, self._parse_timezone(timezone))
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(FINANCIAL_DAILY, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -1383,7 +1383,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_financial_report(self, symbols, market, fields, period_type, begin_date=None, end_date=None):
+    def get_financial_report(self, symbols, market, fields, period_type, begin_date=None, end_date=None, timezone=None):
         """
         获取财报数据
         :param symbols:
@@ -1407,8 +1407,8 @@ class QuoteClient(TigerOpenClient):
         params.fields = [get_enum_value(field) for field in fields]
         params.period_type = get_enum_value(period_type)
         params.lang = get_enum_value(self._lang)
-        params.begin_date = date_str_to_timestamp(begin_date, self._timezone)
-        params.end_date = date_str_to_timestamp(end_date, self._timezone)
+        params.begin_date = date_str_to_timestamp(begin_date, self._parse_timezone(timezone))
+        params.end_date = date_str_to_timestamp(end_date, self._parse_timezone(timezone))
         request = OpenApiRequest(FINANCIAL_REPORT, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -1455,7 +1455,7 @@ class QuoteClient(TigerOpenClient):
         0      HKD  1691942400000  7.81728
         1      USD  1691942400000  1.00000
         """
-        tz = timezone if timezone else self._timezone
+        tz = self._parse_timezone(timezone)
         params = FinancialExchangeRateParams()
         params.currency_list = currency_list
         params.begin_date = date_str_to_timestamp(begin_date, tz)
@@ -1946,7 +1946,7 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
 
-    def _parse_timezone(self, market = None, timezone=None):
+    def _parse_timezone(self, timezone=None, market=None):
         if timezone:
             return timezone
         if market:
