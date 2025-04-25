@@ -943,7 +943,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_fund_details(self, seg_types, account=None, fund_type=None, currency=None,
-                         start=0, limit=50, start_date=None, end_date=None, secret_key=None,
+                         start=0, limit=None, start_date=None, end_date=None, secret_key=None,
                          lang=None):
         params = FundDetailsParams()
         params.account = account if account else self._account
