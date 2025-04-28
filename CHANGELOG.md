@@ -1,7 +1,9 @@
-## 3.3.6 (2025-04-23)
+## 3.3.6 (2025-04-28)
 ### New
 - `TradeClient.get_fund_details` 资金明细
-
+- `QuoteClient` 期权相关接口支持时区参数
+### Mod
+= 废弃 sandbox_config 配置
 
 ## 3.3.5 (2025-04-11)
 ### New
