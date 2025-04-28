@@ -1794,10 +1794,10 @@ class QuoteClient(TigerOpenClient):
         :param filter_params: tigeropen.quote.request.model.WarrantFilterParams
         :return:
         """
-        params = WarrantFilterParams()
+        params: WarrantFilterParams = WarrantFilterParams()
         params.lang = get_enum_value(self._lang)
         params.symbol = symbol or (filter_params.symbol if filter_params else None)
-        params.page = page or (filter_params.start if filter_params else None)
+        params.page = page or (filter_params.page if filter_params else None)
         params.page_size = page_size or (filter_params.page_size if filter_params else None)
         params.sort_field_name = sort_field_name or (filter_params.sort_field_name if filter_params else None)
         params.sort_dir = get_enum_value(sort_dir or (filter_params.sort_dir if filter_params else None))
