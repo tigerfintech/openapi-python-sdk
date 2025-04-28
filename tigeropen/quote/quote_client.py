@@ -1794,7 +1794,7 @@ class QuoteClient(TigerOpenClient):
         :param filter_params: tigeropen.quote.request.model.WarrantFilterParams
         :return:
         """
-        params = WarrantFilterParams()
+        params: WarrantFilterParams = WarrantFilterParams()
         params.lang = get_enum_value(self._lang)
         params.symbol = symbol or (filter_params.symbol if filter_params else None)
         params.page = page or (filter_params.page if filter_params else None)
