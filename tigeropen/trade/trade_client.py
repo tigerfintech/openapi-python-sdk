@@ -954,7 +954,7 @@ class TradeClient(TigerOpenClient):
             params.seg_types = seg_types_params
         params.fund_type = get_enum_value(fund_type)
         params.currency = get_enum_value(currency)
-        params.startt = start
+        params.start = start
         params.limit = limit
         params.start_date = start_date
         params.end_date = end_date
