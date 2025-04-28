@@ -1620,11 +1620,11 @@ class FundDetailsParams(BaseParams):
         self._end_date = value
 
     @property
-    def startt(self):
+    def start(self):
         return self._start
 
-    @startt.setter
-    def startt(self, value):
+    @start.setter
+    def start(self, value):
         self._start = value
 
     @property
