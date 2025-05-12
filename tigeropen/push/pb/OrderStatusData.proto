@@ -46,4 +46,5 @@ message OrderStatusData {
   double totalCashAmount = 39;
   double filledCashAmount = 40;
   double gst = 41;
+  repeated string attrList = 42;
 }
