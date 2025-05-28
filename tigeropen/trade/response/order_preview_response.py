@@ -1,11 +1,5 @@
 from tigeropen.common.response import TigerResponse
-
-PREVIEW_ORDER_FIELD_MAPPING = {"initMarginBefore": "init_margin_before", "commissionCurrency": "commission_currency",
-                               "maintMargin": "maint_margin", "equityWithLoan": "equity_with_loan",
-                               "minCommission": "min_commission", "maintMarginBefore": "maint_margin_before",
-                               "initMargin": "init_margin", "equityWithLoanBefore": "equity_with_loan_before",
-                               "marginCurrency": "margin_currency", "maxCommission": "max_commission",
-                               "warningText": "warning_text"}
+from tigeropen.common.util.string_utils import camel_to_underline_obj
 
 
 class PreviewOrderResponse(TigerResponse):
@@ -20,7 +14,4 @@ class PreviewOrderResponse(TigerResponse):
             self._is_success = response['is_success']
 
         if self.data:
-            for key, value in self.data.items():
-                field = PREVIEW_ORDER_FIELD_MAPPING.get(key, key)
-                self.preview_order[field] = value
-
+            self.preview_order = camel_to_underline_obj(self.data)

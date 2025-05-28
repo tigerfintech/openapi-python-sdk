@@ -578,8 +578,18 @@ class TradeClient(TigerOpenClient):
         params.percent_offset = order.percent_offset
         params.time_in_force = order.time_in_force
         params.outside_rth = order.outside_rth
+        params.order_legs = order.order_legs
+        params.algo_params = order.algo_params
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
+        params.adjust_limit = order.adjust_limit
+        params.user_mark = order.user_mark
+        params.expire_time = order.expire_time
         params.lang = get_enum_value(self._lang)
+        params.combo_type = get_enum_value(order.combo_type)
+        params.contract_legs = order.contract_legs
+        params.total_cash_amount = order.total_cash_amount
+        params.trading_session_type = get_enum_value(order.trading_session_type)
+
         request = OpenApiRequest(PREVIEW_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
