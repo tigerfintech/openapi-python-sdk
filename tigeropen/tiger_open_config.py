@@ -14,26 +14,31 @@ import uuid
 from jproperties import Properties
 from pytz import timezone
 from tigeropen import __VERSION__
-from tigeropen.common.consts import Language, ServiceType
+from tigeropen.common.consts import Language, ServiceType, License
 from tigeropen.common.util.account_util import AccountUtil
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.util.signature_utils import read_private_key
 from tigeropen.common.util.web_utils import do_get
 
 DEFAULT_DOMAIN = 'openapi.tigerfintech.com'
+DEFAULT_US_DOMAIN = 'openapi.tradeup.com'
 DEFAULT_SANDBOX_DOMAIN = 'openapi-sandbox.tigerfintech.com'
-DOMAIN_GARDEN_ADDRESS = 'https://cg.play-analytics.com/'
+DOMAIN_GARDEN_ADDRESS = 'https://cg.play-analytics.com'
 
 HTTPS_PROTOCAL = 'https://'
 SSL_PROTOCAL = 'ssl'
 GATEWAY_SUFFIX = '/gateway'
 DOMAIN_SEPARATOR = '-'
 
-# 老虎证券开放平台网关地址
+# 网关地址
 SERVER_URL = HTTPS_PROTOCAL + DEFAULT_DOMAIN + GATEWAY_SUFFIX
-# 老虎证券开放平台 socket 连接域名端口
+# socket 域名端口
 SOCKET_HOST_PORT = (SSL_PROTOCAL, DEFAULT_DOMAIN, 9883)
-# 老虎证券开放平台公钥
+# US 网关地址
+US_SERVER_URL = HTTPS_PROTOCAL + DEFAULT_US_DOMAIN + GATEWAY_SUFFIX
+# US socket 域名端口
+US_SOCKET_HOST_PORT = (SSL_PROTOCAL, DEFAULT_US_DOMAIN, 9983)
+# 开放平台公钥
 TIGER_PUBLIC_KEY = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDNF3G8SoEcCZh2rshUbayDgLLrj6rKgzNMxDL2HS' \
                    'nKcB0+GPOsndqSv+a4IBu9+I3fyBp5hkyMMG2+AXugd9pMpy6VxJxlNjhX1MYbNTZJUT4nudki4uh+LM' \
                    'OkIBHOceGNXjgB+cXqmlUnjlqha/HgboeHSnSgpM3dKSJQlIOsDwIDAQAB'
@@ -126,6 +131,11 @@ class TigerOpenClientConfig:
         if self.enable_dynamic_domain:
             self.domain_conf = self.query_domains()
             self.refresh_server_info()
+        elif self.is_us():
+            self.server_url = US_SERVER_URL
+            self.quote_server_url = US_SERVER_URL
+            self.socket_host_port = US_SOCKET_HOST_PORT
+
         self.inited = False
 
     @property
@@ -404,7 +414,10 @@ class TigerOpenClientConfig:
         }
         """
         try:
-            result = json.loads(do_get(DOMAIN_GARDEN_ADDRESS, headers=dict(), params=dict(), timeout=1)) \
+            url = DOMAIN_GARDEN_ADDRESS
+            if self.is_us():
+                url += '?appName=tradeup'
+            result = json.loads(do_get(url, headers=dict(), params=dict(), timeout=1)) \
                 .get('items')
             if result:
                 for item in result:
@@ -440,6 +453,9 @@ class TigerOpenClientConfig:
     @property
     def sdk_version(self):
         return __VERSION__
+
+    def is_us(self):
+        return self.license and License.TBUS.value == get_enum_value(self.license)
 
 
 def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, sign_type=None, timeout=None,

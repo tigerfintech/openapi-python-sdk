@@ -211,6 +211,9 @@ class OrderType(Enum):
 class License(Enum):
     TBNZ = 'TBNZ'
     TBSG = 'TBSG'
+    TBHK = 'TBHK'
+    TBAU = 'TBAU'
+    TBUS = 'TBUS'
 
 
 @unique
