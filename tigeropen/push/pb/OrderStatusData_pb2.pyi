@@ -6,7 +6,7 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Optional as _Op
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class OrderStatusData(_message.Message):
-    __slots__ = ("id", "account", "symbol", "expiry", "strike", "right", "identifier", "multiplier", "action", "market", "currency", "segType", "secType", "orderType", "isLong", "totalQuantity", "totalQuantityScale", "filledQuantity", "filledQuantityScale", "avgFillPrice", "limitPrice", "stopPrice", "realizedPnl", "status", "replaceStatus", "cancelStatus", "outsideRth", "canModify", "canCancel", "liquidation", "name", "source", "errorMsg", "attrDesc", "commissionAndFee", "openTime", "timestamp", "userMark", "totalCashAmount", "filledCashAmount", "gst", "attrList")
+    __slots__ = ("id", "account", "symbol", "expiry", "strike", "right", "identifier", "multiplier", "action", "market", "currency", "segType", "secType", "orderType", "isLong", "totalQuantity", "totalQuantityScale", "filledQuantity", "filledQuantityScale", "avgFillPrice", "limitPrice", "stopPrice", "realizedPnl", "status", "replaceStatus", "cancelStatus", "outsideRth", "canModify", "canCancel", "liquidation", "name", "source", "errorMsg", "attrDesc", "commissionAndFee", "openTime", "timestamp", "userMark", "totalCashAmount", "filledCashAmount", "gst", "attrList", "timeInForce")
     ID_FIELD_NUMBER: _ClassVar[int]
     ACCOUNT_FIELD_NUMBER: _ClassVar[int]
     SYMBOL_FIELD_NUMBER: _ClassVar[int]
@@ -49,6 +49,7 @@ class OrderStatusData(_message.Message):
     FILLEDCASHAMOUNT_FIELD_NUMBER: _ClassVar[int]
     GST_FIELD_NUMBER: _ClassVar[int]
     ATTRLIST_FIELD_NUMBER: _ClassVar[int]
+    TIMEINFORCE_FIELD_NUMBER: _ClassVar[int]
     id: int
     account: str
     symbol: str
@@ -91,4 +92,5 @@ class OrderStatusData(_message.Message):
     filledCashAmount: float
     gst: float
     attrList: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, id: _Optional[int] = ..., account: _Optional[str] = ..., symbol: _Optional[str] = ..., expiry: _Optional[str] = ..., strike: _Optional[str] = ..., right: _Optional[str] = ..., identifier: _Optional[str] = ..., multiplier: _Optional[int] = ..., action: _Optional[str] = ..., market: _Optional[str] = ..., currency: _Optional[str] = ..., segType: _Optional[str] = ..., secType: _Optional[str] = ..., orderType: _Optional[str] = ..., isLong: bool = ..., totalQuantity: _Optional[int] = ..., totalQuantityScale: _Optional[int] = ..., filledQuantity: _Optional[int] = ..., filledQuantityScale: _Optional[int] = ..., avgFillPrice: _Optional[float] = ..., limitPrice: _Optional[float] = ..., stopPrice: _Optional[float] = ..., realizedPnl: _Optional[float] = ..., status: _Optional[str] = ..., replaceStatus: _Optional[str] = ..., cancelStatus: _Optional[str] = ..., outsideRth: bool = ..., canModify: bool = ..., canCancel: bool = ..., liquidation: bool = ..., name: _Optional[str] = ..., source: _Optional[str] = ..., errorMsg: _Optional[str] = ..., attrDesc: _Optional[str] = ..., commissionAndFee: _Optional[float] = ..., openTime: _Optional[int] = ..., timestamp: _Optional[int] = ..., userMark: _Optional[str] = ..., totalCashAmount: _Optional[float] = ..., filledCashAmount: _Optional[float] = ..., gst: _Optional[float] = ..., attrList: _Optional[_Iterable[str]] = ...) -> None: ...
+    timeInForce: str
+    def __init__(self, id: _Optional[int] = ..., account: _Optional[str] = ..., symbol: _Optional[str] = ..., expiry: _Optional[str] = ..., strike: _Optional[str] = ..., right: _Optional[str] = ..., identifier: _Optional[str] = ..., multiplier: _Optional[int] = ..., action: _Optional[str] = ..., market: _Optional[str] = ..., currency: _Optional[str] = ..., segType: _Optional[str] = ..., secType: _Optional[str] = ..., orderType: _Optional[str] = ..., isLong: bool = ..., totalQuantity: _Optional[int] = ..., totalQuantityScale: _Optional[int] = ..., filledQuantity: _Optional[int] = ..., filledQuantityScale: _Optional[int] = ..., avgFillPrice: _Optional[float] = ..., limitPrice: _Optional[float] = ..., stopPrice: _Optional[float] = ..., realizedPnl: _Optional[float] = ..., status: _Optional[str] = ..., replaceStatus: _Optional[str] = ..., cancelStatus: _Optional[str] = ..., outsideRth: bool = ..., canModify: bool = ..., canCancel: bool = ..., liquidation: bool = ..., name: _Optional[str] = ..., source: _Optional[str] = ..., errorMsg: _Optional[str] = ..., attrDesc: _Optional[str] = ..., commissionAndFee: _Optional[float] = ..., openTime: _Optional[int] = ..., timestamp: _Optional[int] = ..., userMark: _Optional[str] = ..., totalCashAmount: _Optional[float] = ..., filledCashAmount: _Optional[float] = ..., gst: _Optional[float] = ..., attrList: _Optional[_Iterable[str]] = ..., timeInForce: _Optional[str] = ...) -> None: ...
