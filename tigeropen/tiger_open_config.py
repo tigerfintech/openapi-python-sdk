@@ -47,7 +47,7 @@ SIGN_TYPE = 'RSA'
 # 请求字符集
 CHARSET = 'UTF-8'
 # 语言
-LANGUAGE = Language.zh_CN
+LANGUAGE = Language.en_US
 # 请求超时时间, 单位秒, 默认15s
 TIMEOUT = 15
 
