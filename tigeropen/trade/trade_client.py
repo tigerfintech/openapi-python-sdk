@@ -58,7 +58,7 @@ class TradeClient(TigerOpenClient):
             self._secret_key = None
             self._timezone = None
 
-    def get_managed_accounts(self, account=None):
+    def get_managed_accounts(self, account=None, lang=None):
         """
         获取管理的账号列表
         :param account:
@@ -70,7 +70,7 @@ class TradeClient(TigerOpenClient):
         params = AccountsParams()
         if account:
             params.account = account
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.secret_key = self._secret_key
         request = OpenApiRequest(ACCOUNTS, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -83,7 +83,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_contracts(self, symbol, sec_type=SecurityType.STK, currency=None, exchange=None):
+    def get_contracts(self, symbol, sec_type=SecurityType.STK, currency=None, exchange=None, lang=None):
         """
         批量获取合约
         :param symbol:
@@ -99,7 +99,7 @@ class TradeClient(TigerOpenClient):
         params.sec_type = get_enum_value(sec_type)
         params.currency = get_enum_value(currency)
         params.exchange = exchange
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         request = OpenApiRequest(CONTRACTS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -113,7 +113,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_contract(self, symbol, sec_type=SecurityType.STK, currency=None, exchange=None, expiry=None, strike=None,
-                     put_call=None):
+                     put_call=None, lang=None):
         """
         获取合约
         :param symbol:
@@ -147,7 +147,7 @@ class TradeClient(TigerOpenClient):
         params.symbol = symbol
         params.sec_type = get_enum_value(sec_type)
         params.currency = get_enum_value(currency)
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.version = OPEN_API_SERVICE_VERSION_V3
         if expiry:
             params.expiry = expiry
@@ -197,7 +197,8 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_positions(self, account=None, sec_type=SecurityType.STK, currency=Currency.ALL, market=Market.ALL,
-                      symbol=None, sub_accounts=None, expiry=None, strike=None, put_call=None, asset_quote_type=None):
+                      symbol=None, sub_accounts=None, expiry=None, strike=None, put_call=None, asset_quote_type=None,
+                      lang=None):
         """
         获取持仓数据
         :param account:
@@ -233,7 +234,7 @@ class TradeClient(TigerOpenClient):
             params.right = put_call
         if asset_quote_type:
             params.asset_quote_type = get_enum_value(asset_quote_type)
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         request = OpenApiRequest(POSITIONS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -296,7 +297,7 @@ class TradeClient(TigerOpenClient):
 
         return None
 
-    def get_prime_assets(self, account=None, base_currency=None, consolidated=True):
+    def get_prime_assets(self, account=None, base_currency=None, consolidated=True, lang=None):
         """
         get prime account assets
         :param account:
@@ -306,7 +307,7 @@ class TradeClient(TigerOpenClient):
         params = AssetParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.base_currency = get_enum_value(base_currency)
         params.consolidated = consolidated
 
@@ -339,7 +340,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None, end_time=None,
-                   limit=100, is_brief=False, states=None, sort_by=None, seg_type=None):
+                   limit=100, is_brief=False, states=None, sort_by=None, seg_type=None, lang=None):
         """
         获取订单列表
         :param account:
@@ -369,7 +370,7 @@ class TradeClient(TigerOpenClient):
         params.is_brief = is_brief
         params.states = [get_enum_value(state) for state in states] if states else None
         params.sort_by = get_enum_value(sort_by)
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.seg_type = get_enum_value(seg_type)
         request = OpenApiRequest(ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -383,7 +384,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_open_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                        end_time=None, parent_id=None, sort_by=None, seg_type=None, **kwargs):
+                        end_time=None, parent_id=None, sort_by=None, seg_type=None, lang=None, **kwargs):
         """
         获取待成交订单列表. 参数同 get_orders
         :param parent_id: 主订单 order_id
@@ -398,7 +399,7 @@ class TradeClient(TigerOpenClient):
         params.end_date = date_str_to_timestamp(end_time, self._timezone)
         params.parent_id = parent_id
         params.sort_by = get_enum_value(sort_by)
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.seg_type = get_enum_value(seg_type)
         if kwargs:
             for key, value in kwargs.items():
@@ -415,7 +416,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_cancelled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                             end_time=None, sort_by=None, seg_type=None, **kwargs):
+                             end_time=None, sort_by=None, seg_type=None, lang=None, **kwargs):
         """
         获取已撤销订单列表. 参数同 get_orders
         """
@@ -428,7 +429,7 @@ class TradeClient(TigerOpenClient):
         params.start_date = date_str_to_timestamp(start_time, self._timezone)
         params.end_date = date_str_to_timestamp(end_time, self._timezone)
         params.sort_by = get_enum_value(sort_by)
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.seg_type = get_enum_value(seg_type)
         if kwargs:
             for key, value in kwargs.items():
@@ -445,7 +446,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_filled_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None,
-                          end_time=None, sort_by=None, seg_type=None, **kwargs):
+                          end_time=None, sort_by=None, seg_type=None, lang=None, **kwargs):
         """
         获取已成交订单列表. 参数同 get_orders
         """
@@ -458,7 +459,7 @@ class TradeClient(TigerOpenClient):
         params.start_date = date_str_to_timestamp(start_time, self._timezone)
         params.end_date = date_str_to_timestamp(end_time, self._timezone)
         params.sort_by = get_enum_value(sort_by)
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.seg_type = get_enum_value(seg_type)
         if kwargs:
             for key, value in kwargs.items():
@@ -474,7 +475,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_order(self, account=None, id=None, order_id=None, is_brief=False, show_charges=None):
+    def get_order(self, account=None, id=None, order_id=None, is_brief=False, show_charges=None, lang=None):
         """
         获取指定订单
         :param account:
@@ -490,7 +491,7 @@ class TradeClient(TigerOpenClient):
         params.order_id = order_id
         params.is_brief = is_brief
         params.show_charges = show_charges
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         request = OpenApiRequest(ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -504,7 +505,7 @@ class TradeClient(TigerOpenClient):
 
     def create_order(self, account, contract, action, order_type, quantity, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
-                     outside_rth=None, order_legs=None, algo_params=None, **kwargs):
+                     outside_rth=None, order_legs=None, algo_params=None, lang=None, **kwargs):
         """
         创建订单对象.
         :param account:
@@ -525,7 +526,7 @@ class TradeClient(TigerOpenClient):
         params = AccountsParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         request = OpenApiRequest(ORDER_NO, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -544,7 +545,7 @@ class TradeClient(TigerOpenClient):
 
         return None
 
-    def preview_order(self, order):
+    def preview_order(self, order, lang=None):
         """
         预览订单
         :param order:  Order 对象
@@ -584,7 +585,7 @@ class TradeClient(TigerOpenClient):
         params.adjust_limit = order.adjust_limit
         params.user_mark = order.user_mark
         params.expire_time = order.expire_time
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.combo_type = get_enum_value(order.combo_type)
         params.contract_legs = order.contract_legs
         params.total_cash_amount = order.total_cash_amount
@@ -600,7 +601,7 @@ class TradeClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def place_order(self, order):
+    def place_order(self, order, lang=None):
         """
         下单
         :param order:  Order 对象
@@ -627,7 +628,7 @@ class TradeClient(TigerOpenClient):
         params.adjust_limit = order.adjust_limit
         params.user_mark = order.user_mark
         params.expire_time = order.expire_time
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.combo_type = get_enum_value(order.combo_type)
         params.contract_legs = order.contract_legs
         params.total_cash_amount = order.total_cash_amount
@@ -650,7 +651,7 @@ class TradeClient(TigerOpenClient):
 
     def modify_order(self, order, quantity=None, limit_price=None, aux_price=None,
                      trail_stop_price=None, trailing_percent=None, percent_offset=None,
-                     time_in_force=None, outside_rth=None, **kwargs):
+                     time_in_force=None, outside_rth=None, lang=None, **kwargs):
         """
         修改订单
         :param order:
@@ -685,7 +686,7 @@ class TradeClient(TigerOpenClient):
         params.outside_rth = outside_rth if outside_rth is not None else order.outside_rth
         params.secret_key = order.secret_key if order.secret_key else self._secret_key
         params.adjust_limit = kwargs.get('adjust_limit', order.adjust_limit)
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         request = OpenApiRequest(MODIFY_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -721,7 +722,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_transactions(self, account=None, order_id=None, symbol=None, sec_type=None, start_time=None, end_time=None,
-                         limit=100, expiry=None, strike=None, put_call=None):
+                         limit=100, expiry=None, strike=None, put_call=None, lang=None):
         """
         query order transactions, only prime accounts are supported.
         :param account: account id. If not passed, the default account is used
@@ -748,7 +749,7 @@ class TradeClient(TigerOpenClient):
         params.expiry = expiry
         params.strike = strike
         params.right = put_call
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         request = OpenApiRequest(ORDER_TRANSACTIONS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -761,7 +762,7 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_analytics_asset(self, account=None, start_date=None, end_date=None, seg_type=None, currency=None,
-                            sub_account=None):
+                            sub_account=None, lang=None):
         """
         get analytics of history asset
         :param account:
@@ -780,7 +781,7 @@ class TradeClient(TigerOpenClient):
         params.end_date = end_date
         params.currency = get_enum_value(currency)
         params.sub_account = sub_account
-        params.lang = get_enum_value(self._lang)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         request = OpenApiRequest(ANALYTICS_ASSET, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:

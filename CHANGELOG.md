@@ -1,3 +1,10 @@
+## 3.4.0 (2025-06-17)
+### New
+- `QuoteClient.get_bars` 增加 `date` 参数，用于查询历史分钟K线
+- 一部分接口增加 `lang` 参数，支持指定语言
+### Mod
+- `TigerOpenClientConfig` 配置里默认语言改为英文
+
 ## 3.3.9 (2025-06-12)
 ### New
 - 订单回调增加属性 `timeInForce`
