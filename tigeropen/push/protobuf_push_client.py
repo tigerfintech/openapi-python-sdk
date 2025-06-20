@@ -213,6 +213,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.Asset, account)
         self._connection.send_frame(req)
+        return req.id
 
     def unsubscribe_asset(self, account=None):
         """
@@ -221,6 +222,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_unsubscribe_trade_message(SocketCommon.DataType.Asset, account)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_position(self, account=None):
         """
@@ -229,6 +231,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.Position, account)
         self._connection.send_frame(req)
+        return req.id
 
     def unsubscribe_position(self, account=None):
         """
@@ -237,6 +240,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_unsubscribe_trade_message(SocketCommon.DataType.Position, account)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_order(self, account=''):
         """
@@ -245,6 +249,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.OrderStatus, account)
         self._connection.send_frame(req)
+        return req.id
 
     def unsubscribe_order(self, account=None):
         """
@@ -253,6 +258,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_unsubscribe_trade_message(SocketCommon.DataType.OrderStatus, account)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_transaction(self, account=None):
         """
@@ -261,6 +267,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.OrderTransaction, account)
         self._connection.send_frame(req)
+        return req.id
 
     def unsubscribe_transaction(self, account=None):
         """
@@ -269,6 +276,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_unsubscribe_trade_message(SocketCommon.DataType.OrderTransaction, account)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_quote(self, symbols):
         """
@@ -278,6 +286,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_subscribe_quote_message(symbols)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_tick(self, symbols):
         """
@@ -287,6 +296,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_subscribe_tick_quote_message(symbols)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_depth_quote(self, symbols):
         """
@@ -296,6 +306,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_subscribe_depth_quote_message(symbols)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_option(self, symbols):
         """
@@ -305,6 +316,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_subscribe_quote_message(symbols)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_future(self, symbols):
         """
@@ -314,6 +326,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_subscribe_quote_message(symbols, data_type=SocketCommon.Future)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_stock_top(self, market, indicators):
         """
@@ -328,6 +341,7 @@ class ProtobufPushClient(ConnectionListener):
         req = ProtoMessageUtil.build_subscribe_quote_message(symbols=indicator_names, data_type=SocketCommon.StockTop,
                                                              market=market)
         self._connection.send_frame(req)
+        return req.id
 
     def unsubscribe_stock_top(self, market, indicators):
         """
@@ -342,6 +356,7 @@ class ProtobufPushClient(ConnectionListener):
         req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols=indicator_names, data_type=SocketCommon.StockTop,
                                                                market=market)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_option_top(self, market, indicators):
         """
@@ -356,6 +371,7 @@ class ProtobufPushClient(ConnectionListener):
         req = ProtoMessageUtil.build_subscribe_quote_message(symbols=indicator_names, data_type=SocketCommon.OptionTop,
                                                              market=market)
         self._connection.send_frame(req)
+        return req.id
 
     def unsubscribe_option_top(self, market, indicators):
         """
@@ -370,6 +386,7 @@ class ProtobufPushClient(ConnectionListener):
         req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols=indicator_names, data_type=SocketCommon.OptionTop,
                                                                market=market)
         self._connection.send_frame(req)
+        return req.id
 
     def query_subscribed_quote(self):
         """
@@ -378,6 +395,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_subscribe_query_message()
         self._connection.send_frame(req)
+        return req.id
 
     def unsubscribe_quote(self, symbols=None):
         """
@@ -386,6 +404,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols)
         self._connection.send_frame(req)
+        return req.id
 
     def unsubscribe_tick(self, symbols=None):
         """
@@ -394,6 +413,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_unsubscribe_tick_quote_message(symbols)
         self._connection.send_frame(req)
+        return req.id
 
     def unsubscribe_depth_quote(self, symbols=None):
         """
@@ -402,6 +422,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_unsubscribe_depth_quote_message(symbols)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_kline(self, symbols=None):
         """
@@ -411,6 +432,7 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_subscribe_kline_message(symbols)
         self._connection.send_frame(req)
+        return req.id
 
     def unsubscribe_kline(self, symbols=None):
         """
@@ -420,14 +442,17 @@ class ProtobufPushClient(ConnectionListener):
         """
         req = ProtoMessageUtil.build_unsubscribe_kline_message(symbols)
         self._connection.send_frame(req)
+        return req.id
 
     def subscribe_market(self, market):
         req = ProtoMessageUtil.build_subscribe_market_message(market)
         self._connection.send_frame(req)
+        return req.id
 
     def unsubscribe_market(self, market):
         req = ProtoMessageUtil.build_unsubscribe_market_message(market)
         self._connection.send_frame(req)
+        return req.id
 
     def _convert_tick(self, data: TradeTickData):
         symbol = data.symbol

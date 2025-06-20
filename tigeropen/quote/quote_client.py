@@ -442,7 +442,7 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_bars(self, symbols, period=BarPeriod.DAY, begin_time=-1, end_time=-1, right=QuoteRight.BR, limit=251,
-                 lang=None, page_token=None, trade_session=None):
+                 lang=None, page_token=None, trade_session=None, date=None):
         """
         获取K线数据
         :param symbols: 股票代号列表
@@ -454,6 +454,7 @@ class QuoteClient(TigerOpenClient):
         :param limit: 数量限制
         :param lang: 语言支持: zh_CN,zh_TW,en_US
         :param page_token: the token of next page. only supported when exactly one symbol
+        :param date: format: yyyyMMdd
         :return: pandas.DataFrame 对象，各 column 的含义如下；
             time: 毫秒时间戳
             open: Bar 的开盘价
@@ -473,6 +474,7 @@ class QuoteClient(TigerOpenClient):
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.page_token = page_token if len(params.symbols) == 1 else None
         params.trade_session = get_enum_value(trade_session)
+        params.date = str(date).replace('-', '').replace('/', '') if date else None
         request = OpenApiRequest(KLINE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
