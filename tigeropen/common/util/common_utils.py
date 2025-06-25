@@ -9,6 +9,8 @@ from enum import Enum
 import delorean
 import pytz
 
+from tigeropen.common.consts import Market
+
 eastern = pytz.timezone('US/Eastern')
 china = pytz.timezone('Asia/Shanghai')
 hongkong = pytz.timezone('Asia/Hong_Kong')
@@ -43,3 +45,9 @@ def date_str_to_timestamp(dt, timezone):
         pass
     return dt
 
+def get_tz_by_market(market: Market):
+    if Market.HK == market:
+        return hongkong
+    elif Market.CH == market:
+        return china
+    return eastern

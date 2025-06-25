@@ -86,6 +86,7 @@ OPTION_KLINE = "option_kline"
 OPTION_TRADE_TICK = "option_trade_tick"
 OPTION_DEPTH = "option_depth"
 ALL_HK_OPTION_SYMBOLS = "all_hk_option_symbols"
+OPTION_TIMELINE = "option_timeline"
 
 
 # 期货行情
