@@ -938,7 +938,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_option_timeline(self, identifiers, market: Market, begin_time, timezone=None):
+    def get_option_timeline(self, identifiers, market: Market, begin_time=None, timezone=None):
         params = OptionContractsParams()
         contracts = []
         for identifier in identifiers:
