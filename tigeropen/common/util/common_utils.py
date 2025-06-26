@@ -48,6 +48,6 @@ def date_str_to_timestamp(dt, timezone):
 def get_tz_by_market(market: Market):
     if Market.HK == market:
         return hongkong
-    elif Market.CH == market:
+    elif Market.CN == market:
         return china
     return eastern
