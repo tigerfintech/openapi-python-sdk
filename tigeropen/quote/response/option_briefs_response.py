@@ -6,9 +6,10 @@ Created on 2018/10/31
 """
 import pandas as pd
 
+from tigeropen.common.consts import Market
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.common_utils import eastern
-from tigeropen.common.util.contract_utils import get_option_identifier
+from tigeropen.common.util.common_utils import get_tz_by_market
+from tigeropen.common.util.contract_utils import get_option_identifier, is_hk_option_underlying_symbol
 
 COLUMNS = ['identifier', 'symbol', 'expiry', 'strike', 'put_call', 'multiplier', 'ask_price', 'ask_size', 'bid_price',
            'bid_size', 'pre_close', 'latest_price', 'latest_time', 'volume', 'open_interest', 'open', 'high', 'low',
@@ -46,7 +47,11 @@ class OptionBriefsResponse(TigerResponse):
                     expiry = item_values.get('expiry')
                     strike = float(item_values.get('strike'))
                     put_call = item_values.get('right')
-                    expiry = pd.Timestamp(expiry, unit='ms', tzinfo=eastern).date().strftime("%Y%m%d")
+                    if is_hk_option_underlying_symbol(underlying_symbol):
+                        tz = get_tz_by_market(Market.HK)
+                    else:
+                        tz = get_tz_by_market(Market.US)
+                    expiry = pd.Timestamp(expiry, unit='ms', tzinfo=tz).date().strftime("%Y%m%d")
                     item_values['identifier'] = get_option_identifier(underlying_symbol, expiry, put_call, strike)
 
                 brief_data.append([item_values.get(tag) for tag in COLUMNS])
