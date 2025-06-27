@@ -1,3 +1,8 @@
+## 3.4.1 (2025-06-26)
+### New
+- `QuoteClient.get_option_timeline` 期权分时接口
+- Contract 添加属性 `support_fractional_share`
+
 ## 3.4.0 (2025-06-17)
 ### New
 - `QuoteClient.get_bars` 增加 `date` 参数，用于查询历史分钟K线
