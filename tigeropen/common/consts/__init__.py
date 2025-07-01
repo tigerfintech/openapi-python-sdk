@@ -43,6 +43,9 @@ class TradingSessionType(Enum):
     OVERNIGHT ='OVERNIGHT' # 夜盘
     RTH = 'RTH' # 盘中
     FULL ='FULL' # 全时段
+    HK_AUC = 'HK_AUC'
+    HK_CTS = 'HK_CTS'
+    HK_AUC_CTS ='HK_AUC_CTS'
 
 
 @unique
