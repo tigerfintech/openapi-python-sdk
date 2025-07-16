@@ -9,9 +9,11 @@ FIELD_MAPPINGS = {'account_id': 'account', 'right': 'put_call'}
 
 
 class TransactionsResponse(TigerResponse):
-    def __init__(self):
+    def __init__(self, page_token=None):
         super(TransactionsResponse, self).__init__()
-        self.transactions = []
+        self.result = []
+        self.next_page_token = None
+        self._page_token = page_token
         self._is_success = None
 
     def parse_response_content(self, response_content):
@@ -23,7 +25,8 @@ class TransactionsResponse(TigerResponse):
             for item in self.data.get('items', list()):
                 trans = self._parse_transactions(string_utils.camel_to_underline_obj(item))
                 if trans:
-                    self.transactions.append(trans)
+                    self.result.append(trans)
+            self.next_page_token = self.data.get('nextPageToken')
 
     def _parse_transactions(self, item_dict):
         trans = Transaction()
@@ -36,3 +39,6 @@ class TransactionsResponse(TigerResponse):
                 setattr(trans, map_k, v)
         trans.contract = contract
         return trans
+
+    def __str__(self):
+        return f'<{self.__class__.__name__}: result: {self.result}, next_page_token: {self.next_page_token}>'
