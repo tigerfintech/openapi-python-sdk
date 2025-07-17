@@ -1295,7 +1295,7 @@ class QuoteClient(TigerOpenClient):
             response = FutureBriefsResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.briefs
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
 
