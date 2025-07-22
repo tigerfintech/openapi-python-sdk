@@ -31,6 +31,7 @@ class Market(Enum):
 
 @unique
 class TradingSession(Enum):
+    All = 'All'
     PreMarket = 'PreMarket'  # 盘前
     Regular = 'Regular'  # 盘中
     AfterHours = 'AfterHours'  # 盘后
