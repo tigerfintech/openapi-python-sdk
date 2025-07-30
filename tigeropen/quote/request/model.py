@@ -956,6 +956,7 @@ class MarketScannerParams(BaseParams):
         self._page = None
         self._page_size = None
         self._multi_tags_fields = None
+        self._cursor_id = None
 
     @property
     def market(self):
@@ -1029,6 +1030,14 @@ class MarketScannerParams(BaseParams):
     def multi_tags_fields(self, value):
         self._multi_tags_fields = value
 
+    @property
+    def cursor_id(self):
+        return self._cursor_id
+
+    @cursor_id.setter
+    def cursor_id(self, value):
+        self._cursor_id = value
+
     def to_openapi_dict(self):
         """
         example
@@ -1064,6 +1073,8 @@ class MarketScannerParams(BaseParams):
             params['page'] = self.page
         if self.page_size is not None:
             params['page_size'] = self.page_size
+        if self.cursor_id is not None:
+            params['cursor_id'] = self.cursor_id
         if self.multi_tags_fields:
             params['multi_tag_field_list'] = [f.field_request_name for f in self.multi_tags_fields]
         return params
