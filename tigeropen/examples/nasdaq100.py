@@ -58,9 +58,9 @@ LOT_SIZE = "lot_size"
 PRIVATE_KEY_PATH = "your private key path"
 TIGER_ID = "your tiger id"
 ACCOUNT = "your account"
-client_config = get_client_config(private_key_path=PRIVATE_KEY_PATH, tiger_id=TIGER_ID, account=ACCOUNT)
-quote_client = QuoteClient(client_config, logger=client_logger)
-trade_client = TradeClient(client_config, logger=client_logger)
+_client_config = get_client_config(private_key_path=PRIVATE_KEY_PATH, tiger_id=TIGER_ID, account=ACCOUNT)
+quote_client = QuoteClient(_client_config, logger=client_logger)
+trade_client = TradeClient(_client_config, logger=client_logger)
 
 
 def request(symbols, method, **kwargs):
