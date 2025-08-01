@@ -1586,7 +1586,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def market_scanner(self, market=Market.US, filters=None, sort_field_data=None, page=0, page_size=100):
+    def market_scanner(self, market=Market.US, filters=None, sort_field_data=None, page=0, page_size=100, cursor_id=None):
         """
         screen stocks
         :param market: tigeropen.common.consts.Market
@@ -1617,6 +1617,7 @@ class QuoteClient(TigerOpenClient):
             params.sort_field_data = sort_field_data
         params.page = page
         params.page_size = page_size
+        params.cursor_id = cursor_id
         request = OpenApiRequest(MARKET_SCANNER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
