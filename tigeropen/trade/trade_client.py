@@ -340,7 +340,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_orders(self, account=None, sec_type=None, market=Market.ALL, symbol=None, start_time=None, end_time=None,
-                   limit=100, is_brief=False, states=None, sort_by=None, seg_type=None, lang=None):
+                   limit=100, is_brief=False, states=None, sort_by=None, seg_type=None, lang=None, page_token=None):
         """
         获取订单列表
         :param account:
@@ -372,13 +372,17 @@ class TradeClient(TigerOpenClient):
         params.sort_by = get_enum_value(sort_by)
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         params.seg_type = get_enum_value(seg_type)
+        params.page_token = page_token
         request = OpenApiRequest(ORDERS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
             response = OrdersResponse()
             response.parse_response_content(response_content, secret_key=params.secret_key)
             if response.is_success():
-                return response.orders
+                if page_token is not None:
+                    return response
+                else:
+                    return response.result
             else:
                 raise ApiException(response.code, response.message)
         return None
@@ -410,7 +414,7 @@ class TradeClient(TigerOpenClient):
             response = OrdersResponse()
             response.parse_response_content(response_content, secret_key=params.secret_key)
             if response.is_success():
-                return response.orders
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
         return None
@@ -440,7 +444,7 @@ class TradeClient(TigerOpenClient):
             response = OrdersResponse()
             response.parse_response_content(response_content, secret_key=params.secret_key)
             if response.is_success():
-                return response.orders
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
         return None
@@ -470,7 +474,7 @@ class TradeClient(TigerOpenClient):
             response = OrdersResponse()
             response.parse_response_content(response_content, secret_key=params.secret_key)
             if response.is_success():
-                return response.orders
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
         return None
@@ -498,7 +502,7 @@ class TradeClient(TigerOpenClient):
             response = OrdersResponse()
             response.parse_response_content(response_content, secret_key=params.secret_key)
             if response.is_success():
-                return response.orders[0] if len(response.orders) == 1 else None
+                return response.result[0] if len(response.result) == 1 else None
             else:
                 raise ApiException(response.code, response.message)
         return None
@@ -722,7 +726,7 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_transactions(self, account=None, order_id=None, symbol=None, sec_type=None, start_time=None, end_time=None,
-                         limit=100, expiry=None, strike=None, put_call=None, lang=None):
+                         limit=100, expiry=None, strike=None, put_call=None, lang=None, page_token=None):
         """
         query order transactions, only prime accounts are supported.
         :param account: account id. If not passed, the default account is used
@@ -749,6 +753,7 @@ class TradeClient(TigerOpenClient):
         params.expiry = expiry
         params.strike = strike
         params.right = put_call
+        params.page_token = page_token
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
         request = OpenApiRequest(ORDER_TRANSACTIONS, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -756,7 +761,9 @@ class TradeClient(TigerOpenClient):
             response = TransactionsResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.transactions
+                if page_token is not None:
+                    return response
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
         return None

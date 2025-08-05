@@ -1,3 +1,25 @@
+## 3.4.4 (2025-07-31)
+### New
+选股器支持分页 cursor_id 参数
+
+## 3.4.3 (2025-07-22)
+### Fix
+下单返回 orders 属性处理
+
+## 3.4.2 (2025-07-18)
+### New
+订单工具函数支持 time_in_force 参数
+QuoteClient 期货合约接口增加字段 合约规模 product_worth，交割方式 delivery_mode，合约类型 product_type
+QuoteClient 期货实时行情接口增加字段 `open_interest_change`
+
+### Breaking
+订单/成交记录支持 page token;
+
+## 3.4.1 (2025-06-26)
+### New
+- `QuoteClient.get_option_timeline` 期权分时接口
+- Contract 添加属性 `support_fractional_share`
+
 ## 3.4.0 (2025-06-17)
 ### New
 - `QuoteClient.get_bars` 增加 `date` 参数，用于查询历史分钟K线
