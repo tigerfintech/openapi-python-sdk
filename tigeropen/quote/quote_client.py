@@ -19,7 +19,7 @@ from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_D
     FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
     KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
-    FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH, BROKER_HOLD
+    FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH, BROKER_HOLD, OPTION_TIMELINE
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -68,6 +68,7 @@ from tigeropen.quote.response.option_expirations_response import OptionExpiratio
 from tigeropen.quote.response.option_quote_bar_response import OptionQuoteBarResponse
 from tigeropen.quote.response.option_quote_ticks_response import OptionTradeTickResponse
 from tigeropen.quote.response.option_symbols_response import OptionSymbolsResponse
+from tigeropen.quote.response.option_timeline_response import OptionTimelineResponse
 from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
 from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
 from tigeropen.quote.response.quote_delay_briefs_response import DelayBriefsResponse
@@ -937,6 +938,34 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
+    def get_option_timeline(self, identifiers, market: Market, begin_time=None, timezone=None):
+        params = OptionContractsParams()
+        contracts = []
+        for identifier in identifiers:
+            symbol, expiry, put_call, strike = extract_option_info(identifier)
+            if symbol is None or expiry is None or put_call is None or strike is None:
+                continue
+            param = SingleOptionQuoteParams()
+            param.symbol = symbol
+            param.expiry = date_str_to_timestamp(expiry, self._parse_timezone(timezone, market))
+            param.put_call = put_call
+            param.strike = strike
+            param.begin_time = date_str_to_timestamp(begin_time, self._parse_timezone(timezone, market))
+            contracts.append(param)
+        params.option_query = contracts
+        if market:
+            params.market = get_enum_value(market)
+        request = OpenApiRequest(OPTION_TIMELINE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = OptionTimelineResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+
     def get_future_exchanges(self, sec_type=SecurityType.FUT, lang=None):
         """
         获取期货交易所列表
@@ -1266,7 +1295,7 @@ class QuoteClient(TigerOpenClient):
             response = FutureBriefsResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.briefs
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
 
@@ -1557,7 +1586,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def market_scanner(self, market=Market.US, filters=None, sort_field_data=None, page=0, page_size=100):
+    def market_scanner(self, market=Market.US, filters=None, sort_field_data=None, page=0, page_size=100, cursor_id=None):
         """
         screen stocks
         :param market: tigeropen.common.consts.Market
@@ -1588,6 +1617,7 @@ class QuoteClient(TigerOpenClient):
             params.sort_field_data = sort_field_data
         params.page = page
         params.page_size = page_size
+        params.cursor_id = cursor_id
         request = OpenApiRequest(MARKET_SCANNER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:

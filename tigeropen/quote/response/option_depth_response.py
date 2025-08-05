@@ -30,8 +30,8 @@ class OptionDepthQuoteResponse(TigerResponse):
         strike = item.get('strike', '')
         right = item.get('right', '')
         identifier = get_option_identifier(symbol, expiry, right, strike)
-        asks = [(v['price'], v.get('volume', 0), v['timestamp'], v['code']) for v in item.get('ask', [])]
-        bids = [(v['price'], v.get('volume', 0), v['timestamp'], v['code']) for v in item.get('bid', [])]
+        asks = [(v['price'], v.get('volume', 0), v.get('timestamp', 0), v.get('code')) for v in item.get('ask', [])]
+        bids = [(v['price'], v.get('volume', 0), v.get('timestamp', 0), v.get('code')) for v in item.get('bid', [])]
         return {'identifier': identifier, 'asks': asks, 'bids': bids}
 
 

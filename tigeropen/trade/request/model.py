@@ -730,6 +730,7 @@ class TransactionsParams(BaseParams):
         self._start_date = None
         self._end_date = None
         self._limit = None
+        self._page_token = None
 
     @property
     def account(self):
@@ -819,6 +820,14 @@ class TransactionsParams(BaseParams):
     def right(self, value):
         self._right = value
 
+    @property
+    def page_token(self):
+        return self._page_token
+
+    @page_token.setter
+    def page_token(self, value):
+        self._page_token = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -853,6 +862,9 @@ class TransactionsParams(BaseParams):
 
         if self.right:
             params['right'] = self.right
+
+        if self.page_token:
+            params['page_token'] = self.page_token
 
         return params
 
