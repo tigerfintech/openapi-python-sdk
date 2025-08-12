@@ -1,3 +1,6 @@
+import os
+os.sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+
 from mcp.server.fastmcp import FastMCP
 from tigeropen.tiger_open_config import get_client_config, TigerOpenClientConfig
 from tigeropen.quote.quote_client import QuoteClient
@@ -7,12 +10,12 @@ from typing import List, Optional, Dict, Any, Union
 import pandas as pd
 
 # --- TigerOpen API Configuration ---
-client_config = TigerOpenClientConfig(props_path='../../../../openapi_test/prod_20150899/')
+client_config = TigerOpenClientConfig(props_path='/Users/sukai/Documents/tigerbrokers/openapi/openapi-python-sdk/tests/.config/prod_20150899')
 quote_client = QuoteClient(client_config)
 trade_client = TradeClient(client_config)
 
 # Create an MCP server
-mcp = FastMCP("TigerOpenSDK")
+mcp = FastMCP("TigerOpenSDK", port=9000)
 
 # 工具函数：用于序列化各种对象和处理 DataFrame
 def serialize_object(obj):
@@ -284,7 +287,9 @@ def get_assets(account: Optional[str] = None, segment: bool = False, market_valu
 def get_positions(account: Optional[str] = None, sec_type: str = SecurityType.STK.value, 
                   currency: str = Currency.ALL.value, market: str = Market.ALL.value, 
                   symbol: Optional[str] = None) -> Any:
-    """获取账户持仓情况"""
+    """获取账户持仓情况.
+    account: 账户ID, 如果未提供则使用默认账户
+    """
     try:
         active_account = account if account else client_config.account
         positions = trade_client.get_positions(account=active_account,
@@ -298,7 +303,9 @@ def get_positions(account: Optional[str] = None, sec_type: str = SecurityType.ST
 
 @mcp.tool()
 def get_prime_assets(account: Optional[str] = None, base_currency: Optional[str] = None, consolidated: bool = True) -> Any:
-    """获取Prime账户资产信息"""
+    """获取Prime账户资产信息
+    account: 账户ID, 如果未提供则使用默认账户
+    """
     base_currency_param = Currency(base_currency) if base_currency else None
     return handle_api_response(trade_client.get_prime_assets, account, base_currency_param, consolidated)
 
@@ -340,31 +347,121 @@ def place_order(symbol: str, action: str, order_type: str, quantity: int,
                 currency: str = Currency.USD.value, 
                 limit_price: Optional[float] = None,
                 time_in_force: Optional[str] = None,
-                outside_rth: Optional[bool] = None) -> Any:
-    """下单"""
+                outside_rth: Optional[bool] = None,
+                aux_price: Optional[float] = None,
+                trailing_percent: Optional[float] = None,
+                adjust_limit: Optional[float] = None,
+                user_mark: Optional[str] = None) -> Any:
+    """下单交易
+    
+    Args:
+        symbol: 股票代码，如 'AAPL'
+        action: 交易方向 'BUY'/'SELL'
+        order_type: 订单类型 'MKT'/'LMT'/'STP'/'STP_LMT'/'TRAIL' 等
+        quantity: 订单数量
+        account: 账户ID，如果不提供则使用默认账户
+        sec_type: 合约类型，默认为股票 'STK'
+        currency: 货币类型，默认为美元 'USD'
+        limit_price: 限价单价格，当 order_type 为 'LMT' 或 'STP_LMT' 时必填
+        time_in_force: 订单有效期，'DAY'(当日有效)或'GTC'(取消前有效)，默认为'DAY'
+        outside_rth: 是否允许盘前盘后交易(美股专属)
+        aux_price: 止损触发价格，当 order_type 为 'STP'/'STP_LMT' 时必填，当 order_type 为 'TRAIL' 时为跟踪额
+        trailing_percent: 跟踪止损单止损百分比，当 order_type 为 'TRAIL' 时与 aux_price 二选一
+        adjust_limit: 价格微调幅度，用于自动调整到合法价位
+        user_mark: 下单备注信息
+    """
+    # 检查必填参数
     if not all([symbol, action, order_type, quantity]):
         return {"error": 'Missing required fields: symbol, action, order_type, quantity'}
 
+    # 根据订单类型验证必要参数
+    if order_type == 'LMT' or order_type == 'STP_LMT':
+        if limit_price is None:
+            return {"error": f'{order_type} order requires limit_price parameter'}
+    
+    if order_type == 'STP' or order_type == 'STP_LMT':
+        if aux_price is None:
+            return {"error": f'{order_type} order requires aux_price parameter'}
+    
+    if order_type == 'TRAIL':
+        if aux_price is None and trailing_percent is None:
+            return {"error": 'TRAIL order requires either aux_price or trailing_percent parameter'}
+
     try:
+        # 导入订单工具类和合约工具类
+        from tigeropen.common.util.contract_utils import stock_contract
+        from tigeropen.common.util.order_utils import (
+            limit_order, market_order, stop_order, stop_limit_order, trail_order
+        )
+        
+        # 设置账户，如果未提供则使用默认账户
         active_account = account if account else client_config.account
-        contract = trade_client.get_contract(symbol, sec_type=SecurityType(sec_type), currency=Currency(currency))
+        
+        # 使用合约工具类创建合约
+        contract = stock_contract(symbol=symbol, currency=currency)
+        if sec_type != SecurityType.STK.value:
+            # 如果不是股票，则使用get_contract获取合约
+            contract = trade_client.get_contract(symbol, sec_type=SecurityType(sec_type), currency=Currency(currency))
+        
         if not contract:
             return {"error": f'Contract not found for {symbol}'}
 
-        order = trade_client.create_order(
-            active_account, contract, action, order_type, quantity, 
-            limit_price=limit_price, 
-            time_in_force=time_in_force,
-            outside_rth=outside_rth
-        )
-        trade_client.place_order(order)
+        # 根据订单类型使用不同的订单构造方法
+        order = None
+        kwargs = {
+            'account': active_account,
+            'contract': contract,
+            'action': action,
+            'quantity': quantity,
+            'time_in_force': time_in_force,
+            'outside_rth': outside_rth,
+            'adjust_limit': adjust_limit
+        }
+        
+        # 过滤掉None值
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        
+        if order_type == 'MKT':
+            order = market_order(**kwargs)
+        elif order_type == 'LMT':
+            order = limit_order(**kwargs, limit_price=limit_price)
+        elif order_type == 'STP':
+            order = stop_order(**kwargs, aux_price=aux_price)
+        elif order_type == 'STP_LMT':
+            order = stop_limit_order(**kwargs, limit_price=limit_price, aux_price=aux_price)
+        elif order_type == 'TRAIL':
+            trail_kwargs = kwargs.copy()
+            if trailing_percent is not None:
+                trail_kwargs['trailing_percent'] = trailing_percent
+            elif aux_price is not None:
+                trail_kwargs['aux_price'] = aux_price
+            order = trail_order(**trail_kwargs)
+        else:
+            return {"error": f"Unsupported order type: {order_type}"}
+        
+        # 设置用户备注
+        if user_mark:
+            order.user_mark = user_mark
+
+        # 下单
+        order_id = trade_client.place_order(order)
         
         # 序列化订单对象
-        order_details = order.__dict__.copy()
+        if hasattr(order, 'to_dict'):
+            order_details = order.to_dict()
+        else:
+            # 兼容没有 to_dict 方法的情况
+            order_details = order.__dict__.copy()
+
+        # 确保状态和合约信息被正确序列化
         if hasattr(order, 'status') and order.status:
-             order_details['status'] = order.status.value 
+            order_details['status'] = order.status.value 
         if hasattr(order, 'contract') and order.contract:
             order_details['contract'] = order.contract.__dict__
+        
+        # 添加订单ID
+        order_details['order_id'] = order_id
+        
         return order_details
 
     except Exception as e:
@@ -375,20 +472,106 @@ def preview_order(symbol: str, action: str, order_type: str, quantity: int,
                   account: Optional[str] = None,
                   sec_type: str = SecurityType.STK.value,
                   currency: str = Currency.USD.value,
-                  limit_price: Optional[float] = None) -> Any:
-    """预览订单（不实际下单，用于查看订单佣金和保证金信息）"""
+                  limit_price: Optional[float] = None,
+                  aux_price: Optional[float] = None,
+                  trailing_percent: Optional[float] = None,
+                  time_in_force: Optional[str] = None,
+                  outside_rth: Optional[bool] = None) -> Any:
+    """预览订单（不实际下单，用于查看订单佣金和保证金信息）
+    
+    Args:
+        symbol: 股票代码，如 'AAPL'
+        action: 交易方向 'BUY'/'SELL'
+        order_type: 订单类型 'MKT'/'LMT'/'STP'/'STP_LMT'/'TRAIL' 等
+        quantity: 订单数量
+        account: 账户ID，如果不提供则使用默认账户
+        sec_type: 合约类型，默认为股票 'STK'
+        currency: 货币类型，默认为美元 'USD'
+        limit_price: 限价单价格，当 order_type 为 'LMT' 或 'STP_LMT' 时必填
+        aux_price: 止损触发价格，当 order_type 为 'STP'/'STP_LMT' 时必填，当 order_type 为 'TRAIL' 时为跟踪额
+        trailing_percent: 跟踪止损单止损百分比，当 order_type 为 'TRAIL' 时与 aux_price 二选一
+        time_in_force: 订单有效期，'DAY'(当日有效)或'GTC'(取消前有效)，默认为'DAY'
+        outside_rth: 是否允许盘前盘后交易(美股专属)
+    
+    Returns:
+        预览订单结果，包含佣金、保证金等信息
+    """
+    # 检查必填参数
+    if not all([symbol, action, order_type, quantity]):
+        return {"error": 'Missing required fields: symbol, action, order_type, quantity'}
+
+    # 根据订单类型验证必要参数
+    if order_type == 'LMT' or order_type == 'STP_LMT':
+        if limit_price is None:
+            return {"error": f'{order_type} order requires limit_price parameter'}
+    
+    if order_type == 'STP' or order_type == 'STP_LMT':
+        if aux_price is None:
+            return {"error": f'{order_type} order requires aux_price parameter'}
+    
+    if order_type == 'TRAIL':
+        if aux_price is None and trailing_percent is None:
+            return {"error": 'TRAIL order requires either aux_price or trailing_percent parameter'}
+    
     try:
+        # 导入订单工具类和合约工具类
+        from tigeropen.common.util.contract_utils import stock_contract
+        from tigeropen.common.util.order_utils import (
+            limit_order, market_order, stop_order, stop_limit_order, trail_order
+        )
+        
         active_account = account if account else client_config.account
-        contract = trade_client.get_contract(symbol, sec_type=SecurityType(sec_type), currency=Currency(currency))
+        
+        # 使用合约工具类创建合约
+        contract = stock_contract(symbol=symbol, currency=currency)
+        if sec_type != SecurityType.STK.value:
+            # 如果不是股票，则使用get_contract获取合约
+            contract = trade_client.get_contract(symbol, sec_type=SecurityType(sec_type), currency=Currency(currency))
+            
         if not contract:
             return {"error": f'Contract not found for {symbol}'}
         
-        order = trade_client.create_order(
-            active_account, contract, action, order_type, quantity, 
-            limit_price=limit_price
-        )
-        preview = trade_client.preview_order(order)
-        return preview
+        # 根据订单类型使用不同的订单构造方法
+        order = None
+        kwargs = {
+            'account': active_account,
+            'contract': contract,
+            'action': action,
+            'quantity': quantity,
+            'time_in_force': time_in_force,
+            'outside_rth': outside_rth
+        }
+        
+        # 过滤掉None值
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        
+        if order_type == 'MKT':
+            order = market_order(**kwargs)
+        elif order_type == 'LMT':
+            order = limit_order(**kwargs, limit_price=limit_price)
+        elif order_type == 'STP':
+            order = stop_order(**kwargs, aux_price=aux_price)
+        elif order_type == 'STP_LMT':
+            order = stop_limit_order(**kwargs, limit_price=limit_price, aux_price=aux_price)
+        elif order_type == 'TRAIL':
+            trail_kwargs = kwargs.copy()
+            if trailing_percent is not None:
+                trail_kwargs['trailing_percent'] = trailing_percent
+            elif aux_price is not None:
+                trail_kwargs['aux_price'] = aux_price
+            order = trail_order(**trail_kwargs)
+        else:
+            return {"error": f"Unsupported order type: {order_type}"}
+        
+        # 预览订单
+        preview_result = trade_client.preview_order(order)
+        
+        # 如果preview_result不是字典类型，则将其转换为字典
+        if hasattr(preview_result, '__dict__'):
+            return preview_result.__dict__
+        else:
+            return preview_result
+            
     except Exception as e:
         return {"error": str(e)}
 
@@ -456,15 +639,9 @@ def get_funding_history(seg_type: Optional[str] = None) -> Any:
     seg_type_param = SegmentType(seg_type) if seg_type else None
     return handle_api_response(trade_client.get_funding_history, seg_type_param)
 
-# To run this MCP server:
-# 1. Make sure you have mcp installed: pip install "mcp[cli]"
-# 2. Configure your TigerOpen API credentials in this file (client_config variable).
-# 3. Run from your terminal in this directory: mcp dev server.py
-#
-# if __name__ == '__main__':
-#     # This part is typically handled by `mcp dev` or `mcp run`
-#     # For direct execution if needed, though `mcp` CLI is preferred:
-#     # from mcp.server.runner import run_server
-#     # run_server(mcp, host="127.0.0.1", port=5000)
-#     print("To run this MCP server, use the command: mcp dev server.py")
-#     print("Ensure your TigerOpen API credentials are configured in server.py")
+if __name__ == '__main__':
+
+    # mcp.run('streamable-http')
+    mcp.run('stdio')
+    print("To run this MCP server, use the command: mcp dev server.py")
+    print("Ensure your TigerOpen API credentials are configured in server.py")
