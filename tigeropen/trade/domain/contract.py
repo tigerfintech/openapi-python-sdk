@@ -104,8 +104,11 @@ class Contract:
         else:
             return '%s/%s/%s' % (identifier, self.sec_type, self.currency)
 
+    def to_dict(self):
+        return self.__dict__
+
     def to_str(self):
-        return str(self.__dict__)
+        return str(self.to_dict())
 
     def is_cn_stock(self):
         """

@@ -458,7 +458,7 @@ class TigerOpenClientConfig:
         return self.license and License.TBUS.value == get_enum_value(self.license)
 
 
-def get_client_config(private_key_path, tiger_id, account, sandbox_debug=False, sign_type=None, timeout=None,
+def get_client_config(private_key_path=None, tiger_id=None, account=None, sandbox_debug=False, sign_type=None, timeout=None,
                       language=None, charset=None, server_url=None, socket_host_port=None, secret_key=None,
                       enable_dynamic_domain=True, timezone=None, license=None, props_path=None):
     """
