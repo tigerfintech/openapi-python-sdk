@@ -154,7 +154,7 @@ class ScannerResultItem:
 
 
 class ScannerResult:
-    def __init__(self, page, page_size, total_page, total_count, items):
+    def __init__(self, page, page_size, total_page, total_count, items, cursor_id=None):
         """
         {'page': 0, 'total_page': 668, 'total_count': 6678, 'page_size': 10,
         'items': [
@@ -175,6 +175,7 @@ class ScannerResult:
         self.total_page = total_page
         self.total_count = total_count
         self.page_size = page_size
+        self.cursor_id = cursor_id
         self.items = list()
         self.symbols = list()
         self._build_items(items)
