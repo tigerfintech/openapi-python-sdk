@@ -25,6 +25,7 @@ class MarketScannerResponse(TigerResponse):
                                         page_size=data.get('page_size'),
                                         total_page=data.get('total_page'),
                                         total_count=data.get('total_count'),
+                                        cursor_id=data.get('cursor_id'),
                                         items=data.get('items'))
         return self.result
 

@@ -2366,8 +2366,9 @@ class QuoteClient(TigerOpenClient):
                        filters: Optional[List['StockFilter']] = None,
                        sort_field_data: Optional[Union['SortFilterData',
                                                        Dict[str, Any]]] = None,
-                       page: int = 0,
-                       page_size: int = 100) -> 'ScannerResult':
+                       page: Optional[int] = 0,
+                       page_size: Optional[int] = 100,
+                       cursor_id: Optional[str] = None) -> 'ScannerResult':
         """
         Screen stocks with filtering conditions and sort options. 按条件筛选和排序股票
 
@@ -2434,6 +2435,7 @@ class QuoteClient(TigerOpenClient):
             params.sort_field_data = sort_field_data
         params.page = page
         params.page_size = page_size
+        params.cursor_id = cursor_id
         request = OpenApiRequest(MARKET_SCANNER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
