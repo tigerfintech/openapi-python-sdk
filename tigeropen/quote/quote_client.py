@@ -7,23 +7,17 @@ Created on 2018/10/31
 import logging
 import re
 import time
+from typing import Optional, Union, List
 
 import pandas as pd
-from typing import Optional, Union, List, Dict, Any, TYPE_CHECKING
 
 from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3, \
-    OPEN_API_SERVICE_VERSION_V1, Language, SortDirection, TradingSession, Valuation, \
-    Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, \
+    OPEN_API_SERVICE_VERSION_V1, Language, SortDirection, TradingSession, Income, Balance, CashFlow, BalanceSheetRatio, \
+    Growth, Leverage, Profitability, \
     FinancialReportPeriodType, CapitalPeriod
-from tigeropen.common.consts.fundamental_fields import Field
-
-if TYPE_CHECKING:
-    from tigeropen.quote.domain.filter import SortFilterData, StockFilter
-    from tigeropen.quote.domain.capital_distribution import CapitalDistribution
-    from tigeropen.quote.domain.scanner_result import ScannerResult
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.filter_fields import FieldBelongType
-from tigeropen.quote.domain.stock_broker import StockBroker
+from tigeropen.common.consts.fundamental_fields import Field
 from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_DELAY, GET_QUOTE_PERMISSION, \
     HISTORY_TIMELINE, FUTURE_CONTRACT_BY_CONTRACT_CODE, STOCK_FUNDAMENTAL, TRADE_RANK, TRADING_CALENDAR, \
     FUTURE_CONTRACTS, MARKET_SCANNER, \
@@ -52,9 +46,11 @@ from tigeropen.fundamental.response.financial_exchange_rate_response import Fina
 from tigeropen.fundamental.response.financial_report_response import FinancialReportResponse
 from tigeropen.fundamental.response.industry_response import IndustryListResponse, IndustryStocksResponse, \
     StockIndustryResponse
-from tigeropen.quote.domain.filter import OptionFilter
+from tigeropen.quote.domain.capital_distribution import CapitalDistribution
+from tigeropen.quote.domain.filter import SortFilterData, StockFilter, OptionFilter, ScannerResult
 from tigeropen.quote.domain.market_status import MarketStatus
 from tigeropen.quote.domain.quote_brief import QuoteBrief
+from tigeropen.quote.domain.stock_broker import StockBroker
 from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, MultipleContractParams, \
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
@@ -83,11 +79,12 @@ from tigeropen.quote.response.option_symbols_response import OptionSymbolsRespon
 from tigeropen.quote.response.option_timeline_response import OptionTimelineResponse
 from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
 from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
+from tigeropen.quote.response.quote_dataframe_response import QuoteDataframeResponse
 from tigeropen.quote.response.quote_delay_briefs_response import DelayBriefsResponse
 from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
 from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
+from tigeropen.quote.response.quote_overnight_response import QuoteOvernightResponse
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
-from tigeropen.quote.response.quote_dataframe_response import QuoteDataframeResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
 from tigeropen.quote.response.stock_broker_response import StockBrokerResponse
@@ -100,7 +97,6 @@ from tigeropen.quote.response.trade_rank_response import TradeRankResponse
 from tigeropen.quote.response.trading_calendar_response import TradingCalendarResponse
 from tigeropen.quote.response.warrant_briefs_response import WarrantBriefsResponse
 from tigeropen.quote.response.warrant_filter_response import WarrantFilterResponse
-from tigeropen.quote.response.quote_overnight_response import QuoteOvernightResponse
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.tiger_open_config import LANGUAGE
 
@@ -169,7 +165,7 @@ class QuoteClient(TigerOpenClient):
                 return response.markets
             else:
                 raise ApiException(response.code, response.message)
-        return None
+        return list()
 
     def get_symbols(self,
                     market: Optional[Union[Market, str]] = Market.ALL,
@@ -263,7 +259,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-        return None
+        return pd.DataFrame()
 
     def get_briefs(
             self,
@@ -550,11 +546,11 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_timeline_history(
-        self,
-        symbols: list[str],
-        date: str,
-        right: Optional[Union[QuoteRight,
-                              str]] = QuoteRight.BR) -> pd.DataFrame:
+            self,
+            symbols: list[str],
+            date: str,
+            right: Optional[Union[QuoteRight,
+            str]] = QuoteRight.BR) -> pd.DataFrame:
         """
         Get historical timeline data. 获取历史分时数据
 
@@ -688,9 +684,11 @@ class QuoteClient(TigerOpenClient):
         :param end_time: time of the latest bar, excluded. k线数据的结束时间，不包含
         :param total: Total bars number. K线数据的总条数
         :param page_size: Bars number of each request. 每次请求的K线数据条数
-        :param right: Quote right. 复权方式. Available values: QuoteRight.BR (前复权), QuoteRight.NR (不复权)
+        :param right: Quote right. 复权方式. Available values: `QuoteRight.BR` (前复权), `QuoteRight.NR` (不复权)
         :param time_interval: Time interval between requests. 请求之间的时间间隔
         :param lang: 语言
+        :param trade_session: Trading session, e.g., TradingSession.PreMarket, TradingSession.Regular, TradingSession.AfterHours.
+                          交易时段，例如 TradingSession.PreMarket（盘前），TradingSession.Regular（盘中），TradingSession.AfterHours（盘后）
         :return: pandas.DataFrame with columns:
             - symbol: Stock symbol. 股票代码
             - time: Timestamp. 毫秒时间戳
@@ -743,7 +741,7 @@ class QuoteClient(TigerOpenClient):
     def get_trade_ticks(self,
                         symbols: Union[str, list[str]],
                         trade_session: Optional[Union[TradingSession,
-                                                      str]] = None,
+                        str]] = None,
                         begin_index: Optional[int] = None,
                         end_index: Optional[int] = None,
                         limit: Optional[int] = None,
@@ -1080,7 +1078,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-        return None
+        return pd.DataFrame()
 
     def get_option_bars(self,
                         identifiers: list[str],
@@ -1222,7 +1220,7 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-        return None
+        return pd.DataFrame()
 
     def get_option_symbols(
             self,
@@ -1425,7 +1423,7 @@ class QuoteClient(TigerOpenClient):
                 return response.exchanges
             else:
                 raise ApiException(response.code, response.message)
-        return None
+        return pd.DataFrame()
 
     def get_future_contracts(
             self,
@@ -1480,7 +1478,7 @@ class QuoteClient(TigerOpenClient):
                 return response.contracts
             else:
                 raise ApiException(response.code, response.message)
-        return None
+        return pd.DataFrame()
 
     def get_current_future_contract(
             self,
@@ -1531,7 +1529,7 @@ class QuoteClient(TigerOpenClient):
                 return response.contracts
             else:
                 raise ApiException(response.code, response.message)
-        return None
+        return pd.DataFrame()
 
     def get_all_future_contracts(
             self,
@@ -1583,7 +1581,7 @@ class QuoteClient(TigerOpenClient):
                 return response.contracts
             else:
                 raise ApiException(response.code, response.message)
-        return None
+        return pd.DataFrame()
 
     def get_future_contract(
             self,
@@ -1635,7 +1633,7 @@ class QuoteClient(TigerOpenClient):
                 return response.contracts
             else:
                 raise ApiException(response.code, response.message)
-        return None
+        return pd.DataFrame()
 
     def get_future_continuous_contracts(
             self,
@@ -1686,7 +1684,7 @@ class QuoteClient(TigerOpenClient):
                 return response.contracts
             else:
                 raise ApiException(response.code, response.message)
-        return None
+        return pd.DataFrame()
 
     def get_future_trading_times(
             self,
@@ -1724,7 +1722,7 @@ class QuoteClient(TigerOpenClient):
                 return response.trading_times
             else:
                 raise ApiException(response.code, response.message)
-        return None
+        return pd.DataFrame()
 
     def get_future_bars(self,
                         identifiers: Union[str, list[str]],
@@ -2023,13 +2021,14 @@ class QuoteClient(TigerOpenClient):
         :param begin_date: 起始时间. 若是时间戳需要精确到毫秒, 为13位整数;
                                     或是日期时间格式的字符串, 如 "2019-01-01" 或 "2019-01-01 12:00:00"
         :param end_date: 截止时间. 格式同 begin_date
+        :param timezone: 时区
         :return: pandas.DataFrame, 各 column 的含义如下:
             symbol: 证券代码
             action_type: 固定为 "DIVIDEND"
             amount: 分红金额
             currency: 分红货币类型
             announced_date: 公告日期
-            excute_date: 除权除息日
+            execute_date: 除权除息日
             record_date: 股权登记日
             pay_date: 现金到账日
             market: 所属市场
@@ -2064,6 +2063,7 @@ class QuoteClient(TigerOpenClient):
         :param market:
         :param begin_date: 起始时间
         :param end_date: 截止时间
+        :param timezone: 时区
         :return:
         """
         params = CorporateActionParams()
@@ -2138,7 +2138,8 @@ class QuoteClient(TigerOpenClient):
     def get_financial_report(self,
                              symbols: Union[str, list[str]],
                              market: Union[Market, str],
-                             fields: list[Union[Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, str]],
+                             fields: list[Union[
+                                 Income, Balance, CashFlow, BalanceSheetRatio, Growth, Leverage, Profitability, str]],
                              period_type: Union[FinancialReportPeriodType, str],
                              begin_date: Optional[Union[int, str]] = None,
                              end_date: Optional[Union[int, str]] = None,
@@ -2318,8 +2319,8 @@ class QuoteClient(TigerOpenClient):
         :param industry: 行业 id
         :param market: 市场枚举类型
         :return: 公司信息列表.
-            如 [{'symbol': 'A', 'company_name': 'A', 'market': 'US', 'industry_list': [{...}, {...},..]},
-               {'symbol': 'B', 'company_name': 'B', 'market': 'US', 'industry_list': [{...}, {...},..]},
+            如 [{'symbol': 'A', 'company_name': 'A', 'market': 'US', 'industry_list': [{...}, {...},...]},
+               {'symbol': 'B', 'company_name': 'B', 'market': 'US', 'industry_list': [{...}, {...},...]},
                ...]
         """
         params = IndustryParams()
@@ -2363,12 +2364,11 @@ class QuoteClient(TigerOpenClient):
 
     def market_scanner(self,
                        market: Optional[Union[Market, str]] = Market.US,
-                       filters: Optional[List['StockFilter']] = None,
-                       sort_field_data: Optional[Union['SortFilterData',
-                                                       Dict[str, Any]]] = None,
+                       filters: Optional[List[StockFilter]] = None,
+                       sort_field_data: Optional[SortFilterData] = None,
                        page: Optional[int] = 0,
                        page_size: Optional[int] = 100,
-                       cursor_id: Optional[str] = None) -> 'ScannerResult':
+                       cursor_id: Optional[str] = None) -> ScannerResult:
         """
         Screen stocks with filtering conditions and sort options. 按条件筛选和排序股票
 
@@ -2377,6 +2377,7 @@ class QuoteClient(TigerOpenClient):
         :param sort_field_data: Sort field data. 排序字段数据. tigeropen.quote.domain.filter.SortFilterData object
         :param page: Page number, starting from 0. 页码，从0开始
         :param page_size: Number of items per page. 每页记录数
+        :param cursor_id: Cursor ID for pagination. 分页的游标ID
         :return: ScannerResult object containing page info, result items and symbols
         
         The returned ScannerResult contains these fields:
@@ -2551,7 +2552,7 @@ class QuoteClient(TigerOpenClient):
             limit: int = 40,
             lang: Optional[Union[Language, str]] = None) -> StockBroker:
         """
-        Get stock broker information. 获取股票经纪商信息
+        Get stockbroker information. 获取股票经纪商信息
 
         :param symbol: Stock symbol. 股票代码
         :param limit: The maximum number of brokers to return at each price level. Default is 40.
@@ -2740,9 +2741,9 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_capital_distribution(self,
-                               symbol: str,
-                               market: Union[Market, str],
-                               lang: Optional[Union[Language, str]] = None) -> 'CapitalDistribution':
+                                 symbol: str,
+                                 market: Union[Market, str],
+                                 lang: Optional[Union[Language, str]] = None) -> 'CapitalDistribution':
         """
         Get capital distribution data for a stock. 获取股票资金分布数据
         
@@ -2818,6 +2819,10 @@ class QuoteClient(TigerOpenClient):
                            sort_dir=None,
                            filter_params=None):
         """
+        :param symbol:
+        :param page:
+        :param page_size:
+        :param sort_field_name:
         :param sort_dir: tigeropen.common.consts.SortDirection, e.g. SortDirection.DESC
         :param filter_params: tigeropen.quote.request.model.WarrantFilterParams
         :return:
