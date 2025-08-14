@@ -44,10 +44,10 @@ class QuoteBrief:
         self.low_price = None  # 最低价
         self.change = None  # 涨跌额
 
-        self.bid_price = None  # 卖盘价
-        self.bid_size = None  # 卖盘数量
-        self.ask_price = None  # 买盘价
-        self.ask_size = None  # 买盘数量
+        self.bid_price = None  # 买盘价
+        self.bid_size = None  # 买盘数量
+        self.ask_price = None  # 卖盘价
+        self.ask_size = None  # 卖盘数量
 
         self.halted = None  # 是否停牌 0: 正常,3: 停牌,4: 退市
         self.delay = None  # 延时分钟
