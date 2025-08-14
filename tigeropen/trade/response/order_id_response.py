@@ -30,6 +30,8 @@ class OrderIdResponse(TigerResponse):
             
             if 'orderId' in data_json:
                 self.order_id = data_json['orderId']
+            elif 'order_id' in data_json:
+                self.order_id = data_json['order_id']
 
             if 'id' in data_json:
                 self.id = data_json['id']
