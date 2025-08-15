@@ -400,7 +400,7 @@ class TradeClient(TigerOpenClient):
             segments: Dictionary of Segment objects keyed by category. 按类别分类的 Segment 对象字典：
                 'S': Stock segment. 股票分部
                 'C': Commodity futures segment. 商品期货分部
-                'F': Financial futures segment. 金融期货分部
+                'F': Financial futures segment.
             
             Each Segment object contains:
             每个 Segment 对象包含：
@@ -1075,18 +1075,18 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_transactions(self,
-                         account=None,
-                         order_id=None,
-                         symbol=None,
-                         sec_type=None,
-                         start_time=None,
-                         end_time=None,
-                         limit=100,
-                         expiry=None,
-                         strike=None,
-                         put_call=None,
-                         lang=None,
-                         page_token=None):
+                         account: Optional[str]=None,
+                         order_id: Optional[int]=None,
+                         symbol: Optional[str]=None,
+                         sec_type: Optional[Union[SecurityType, str]]=None,
+                         start_time: Optional[str]=None,
+                         end_time: Optional[str]=None,
+                         limit: int=100,
+                         expiry: Optional[str]=None,
+                         strike: Optional[float]=None,
+                         put_call: Optional[str]=None,
+                         lang: Optional[Union[Language, str]]=None,
+                         page_token: Optional[str]=None):
         """
         query order transactions, only prime accounts are supported.
         :param account: account id. If not passed, the default account is used
@@ -1130,17 +1130,17 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_analytics_asset(self,
-                            account=None,
-                            start_date=None,
-                            end_date=None,
-                            seg_type=None,
-                            currency=None,
-                            sub_account=None,
-                            lang=None):
+                            account: Optional[str]=None,
+                            start_date: Optional[str]=None,
+                            end_date: Optional[str]=None,
+                            seg_type: Optional[Union[SegmentType, str]]=None,
+                            currency: Optional[Union[Currency, str]]=None,
+                            sub_account: Optional[str]=None,
+                            lang: Optional[Union[Language, str]]=None):
         """
         get analytics of history asset
         :param account:
-        :param start_date: date str. format yyyyMMdd, like '2021-12-01'
+        :param start_date: date str. format yyyy-MM-dd, like '2021-12-01'
         :param end_date: date_str.
         :param seg_type: tigeropen.common.consts.SegmentType, like SegmentType.SEC
         :param currency: tigeropen.common.consts.Currency, like Currency.USD

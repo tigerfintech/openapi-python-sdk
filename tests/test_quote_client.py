@@ -94,7 +94,7 @@ class TestQuoteClient(unittest.TestCase):
                 self.assertIn(item.trading_status, ['NOT_YET_OPEN', 'TRADING'])
                 self.assertTrue(isinstance(item.open_time, datetime))
         else:
-            result = self.client.get_market_status()
+            result = self.client.get_market_status(market=Market.US)
             logger.debug(f"Market Status: {result}")
 
     def test_get_symbol_names(self):
@@ -572,9 +572,9 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(last_row['low'], 224.76)
             self.assertEqual(last_row['volume'], 61806132)
         else:
-            result = self.client.get_bars(symbols=['AAPL'],
+            result = self.client.get_bars(symbols=['AAPL', 'MSFT'],
                                           period=BarPeriod.DAY,
-                                          limit=5,
+                                          limit=10,
                                           page_token='')
             logger.debug(f"Bars (real):\n {result}")
 

@@ -20,3 +20,11 @@ P_SDK_VERSION_PREFIX = "python-"
 COMMON_PARAM_KEYS = {P_TIGER_ID, P_METHOD, P_CHARSET, P_SIGN_TYPE, P_SIGN, P_TIMESTAMP, P_VERSION, P_NOTIFY_URL,
                      P_DEVICE_ID}
 P_BIZ_CONTENT = "biz_content"
+TIGER_ID = "tiger_id"
+ACCOUNT = "account"
+SECRET_KEY = "secret_key"
+LICENSE = "license"
+PRIVATE_KEY = "private_key"
+TOKEN = "token"
+ENV = "env"
+DATA = "data"
