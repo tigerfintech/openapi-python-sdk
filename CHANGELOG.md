@@ -1,3 +1,76 @@
+## 3.4.5 (2025-08-22)
+### New
+- `QuoteClient.get_future_depth` 获取期货深度行情
+- QuoteClient 的 `get_depth_quote`, `get_trade_ticks`, `get_timeline`, `get_timeline_history`, `get_bars` 支持 `trade_session` 指定查询夜盘数据
+- MCP Server beta version pre-release
+
+## 3.4.4 (2025-07-31)
+### New
+选股器支持分页 cursor_id 参数
+
+## 3.4.3 (2025-07-22)
+### Fix
+下单返回 orders 属性处理
+
+## 3.4.2 (2025-07-18)
+### New
+订单工具函数支持 time_in_force 参数
+QuoteClient 期货合约接口增加字段 合约规模 product_worth，交割方式 delivery_mode，合约类型 product_type
+QuoteClient 期货实时行情接口增加字段 `open_interest_change`
+
+### Breaking
+订单/成交记录支持 page token;
+
+## 3.4.1 (2025-06-26)
+### New
+- `QuoteClient.get_option_timeline` 期权分时接口
+- Contract 添加属性 `support_fractional_share`
+
+## 3.4.0 (2025-06-17)
+### New
+- `QuoteClient.get_bars` 增加 `date` 参数，用于查询历史分钟K线
+- 一部分接口增加 `lang` 参数，支持指定语言
+### Mod
+- `TigerOpenClientConfig` 配置里默认语言改为英文
+
+## 3.3.9 (2025-06-12)
+### New
+- 订单回调增加属性 `timeInForce`
+
+## 3.3.8 (2025-05-29)
+### New
+- 支持 TBUS 牌照配置
+- 支持订单预览
+
+## 3.3.7 (2025-05-12)
+### New
+- 订单回调添加属性 `attrList`
+- `QuoteClient` 各订阅方法返回订阅id
+
+## 3.3.6 (2025-04-28)
+### New
+- `TradeClient.get_fund_details` 资金明细
+- `QuoteClient` 期权相关接口支持时区参数
+### Mod
+- 废弃 sandbox_config 配置
+
+## 3.3.5 (2025-04-11)
+### New
+- `QuoteClient.get_broker_hold` 经纪商市值
+
+## 3.3.4 (2025-04-09)
+### New
+- `TradeClient.get_aggregate_assets`
+### Mod
+- 选股器字段更新
+
+## 3.3.3 (2025-03-05)
+### New
+- `QuoteClient.get_quote_overnight` 获取夜盘行情
+### Mod
+- Contract 添加属性 `support_overnight_trading`
+
+
 ## 3.3.2 (2025-02-25)
 ### New
 - `QuoteClient.get_trade_rank` 热门交易榜

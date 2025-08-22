@@ -1,0 +1,3 @@
+"""
+Tiger MCP Server package
+"""

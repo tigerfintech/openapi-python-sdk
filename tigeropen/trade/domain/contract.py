@@ -90,6 +90,8 @@ class Contract:
         self.discounted_end_at = kwargs.get('discounted_end_at')
         self.categories = kwargs.get('categories')
         self.lot_size = kwargs.get('lot_size')
+        self.support_overnight_trading = kwargs.get('support_overnight_trading')
+        self.support_fractional_share =kwargs.get('support_fractional_share')
 
     @property
     def right(self):
@@ -102,8 +104,11 @@ class Contract:
         else:
             return '%s/%s/%s' % (identifier, self.sec_type, self.currency)
 
+    def to_dict(self):
+        return self.__dict__
+
     def to_str(self):
-        return str(self.__dict__)
+        return str(self.to_dict())
 
     def is_cn_stock(self):
         """

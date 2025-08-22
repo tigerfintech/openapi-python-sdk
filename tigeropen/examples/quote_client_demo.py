@@ -25,8 +25,8 @@ logging.basicConfig(level=logging.INFO,
                     filemode='a', )
 logger = logging.getLogger('TigerOpenApi')
 
-client_config = get_client_config()
-openapi_client = QuoteClient(client_config, logger=logger)
+_demo_config = get_client_config()
+openapi_client = QuoteClient(_demo_config, logger=logger)
 
 
 def get_quote():

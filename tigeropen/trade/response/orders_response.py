@@ -33,9 +33,11 @@ ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderTy
 
 
 class OrdersResponse(TigerResponse):
-    def __init__(self):
+    def __init__(self, page_token=None):
         super(OrdersResponse, self).__init__()
-        self.orders = []
+        self.result = []
+        self.next_page_token = None
+        self._page_token = page_token
         self._is_success = None
 
     def parse_response_content(self, response_content, secret_key=None):
@@ -48,11 +50,12 @@ class OrdersResponse(TigerResponse):
                 for item in self.data['items']:
                     order = OrdersResponse.parse_order(item, secret_key)
                     if order:
-                        self.orders.append(order)
+                        self.result.append(order)
+                self.next_page_token = self.data.get('nextPageToken')
             elif 'symbol' in self.data:
                 order = OrdersResponse.parse_order(self.data, secret_key)
                 if order:
-                    self.orders.append(order)
+                    self.result.append(order)
 
     @staticmethod
     def parse_order(item, secret_key=None):
@@ -156,3 +159,5 @@ class OrdersResponse(TigerResponse):
             order.charges = [Charge(**camel_to_underline_obj(charge)) for charge in order_fields['charges']]
         return order
 
+    def __str__(self):
+        return f'<{self.__class__.__name__}: result: {self.result}, next_page_token: {self.next_page_token}>'

@@ -33,6 +33,8 @@ CANCEL_SEGMENT_FUND = "cancel_segment_fund"
 PLACE_FOREX_ORDER = "place_forex_order"
 ESTIMATE_TRADABLE_QUANTITY = "estimate_tradable_quantity"
 TRANSFER_FUND = "transfer_fund"
+AGGREGATE_ASSETS = "aggregate_assets"
+FUND_DETAILS = "fund_details"
 
 USER_LICENSE = "user_license"
 
@@ -66,6 +68,7 @@ MARKET_SCANNER_TAGS = "market_scanner_tags"
 GET_QUOTE_PERMISSION = "get_quote_permission"
 TRADING_CALENDAR = "trading_calendar"
 STOCK_BROKER = "stock_broker"  # 港股股票实时经纪队列
+BROKER_HOLD = "broker_hold"
 CAPITAL_DISTRIBUTION = "capital_distribution"  # 股票当日资金分布
 CAPITAL_FLOW = "capital_flow"  # 股票资金流向
 WARRANT_FILTER = "warrant_filter"
@@ -73,6 +76,7 @@ WARRANT_REAL_TIME_QUOTE = "warrant_real_time_quote"
 KLINE_QUOTA = "kline_quota"  # 历史k线额度
 STOCK_FUNDAMENTAL = "stock_fundamental"
 TRADE_RANK = "trade_rank"
+QUOTE_OVERNIGHT = "quote_overnight"
 
 # 期权行情
 OPTION_EXPIRATION = "option_expiration"
@@ -82,6 +86,7 @@ OPTION_KLINE = "option_kline"
 OPTION_TRADE_TICK = "option_trade_tick"
 OPTION_DEPTH = "option_depth"
 ALL_HK_OPTION_SYMBOLS = "all_hk_option_symbols"
+OPTION_TIMELINE = "option_timeline"
 
 
 # 期货行情
@@ -95,6 +100,7 @@ FUTURE_KLINE = "future_kline"
 FUTURE_REAL_TIME_QUOTE = "future_real_time_quote"
 FUTURE_TICK = "future_tick"
 FUTURE_TRADING_DATE = "future_trading_date"
+FUTURE_DEPTH = "future_depth"
 
 # 基金行情
 FUND_ALL_SYMBOLS = "fund_all_symbols"
