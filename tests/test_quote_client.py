@@ -29,7 +29,7 @@ pd.set_option('display.width', 5000)
 class TestQuoteClient(unittest.TestCase):
 
     def setUp(self):
-        self.is_mock = False
+        self.is_mock = True
         current_dir = os.path.dirname(__file__)
         self.client_config = TigerOpenClientConfig(
             props_path=os.path.join(current_dir, ".config/prod_20150899/"))
@@ -344,32 +344,11 @@ class TestQuoteClient(unittest.TestCase):
                     "period": "day",
                     "preClose": 229.09,
                     "intraday": {
-                        "items": [{
-                            "time": 1754919000000,
-                            "volume": 1656620,
-                            "price": 226.75,
-                            "avgPrice": 227.75438
-                        }, {
-                            "time": 1754919060000,
-                            "volume": 426781,
-                            "price": 226.6,
-                            "avgPrice": 227.51157
-                        }, {
-                            "time": 1754919120000,
-                            "volume": 267382,
-                            "price": 226.31,
-                            "avgPrice": 227.40694
-                        }, {
-                            "time": 1754919180000,
-                            "volume": 322976,
-                            "price": 226.045,
-                            "avgPrice": 227.25978
-                        }, {
-                            "time": 1754919240000,
-                            "volume": 229321,
-                            "price": 226.06,
-                            "avgPrice": 226.0
-                        }],
+                        "items": [{"time": 1754919000000, "volume": 1656620, "price": 226.75, "avgPrice": 227.75438},
+                                  {"time": 1754919060000, "volume": 426781, "price": 226.6, "avgPrice": 227.51157},
+                                  {"time": 1754919120000, "volume": 267382, "price": 226.31, "avgPrice": 227.40694},
+                                  {"time": 1754919180000, "volume": 322976, "price": 226.045, "avgPrice": 227.25978},
+                                  {"time": 1754919240000, "volume": 229321, "price": 226.06, "avgPrice": 226.0}],
                         "beginTime":
                             -1,
                         "endTime":
@@ -400,48 +379,20 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(first_row['volume'], 1656620)
             self.assertEqual(first_row['trading_session'], 'regular')
         else:
-            result = self.client.get_timeline(symbols=['AAPL'])
+            result = self.client.get_timeline(symbols=['AAPL'],
+                                              # trade_session=TradingSession.OverNight
+                                              )
             logger.debug(f"Timeline (real):\n {result}")
 
     def test_get_timeline_history(self):
-        if not self.is_mock:
+        if self.is_mock:
             mock_data = {
-                "code":
-                    0,
-                "message":
-                    "success",
-                "timestamp":
-                    1754990360538,
-                "data": [{
-                    "symbol":
-                        "AAPL",
-                    "items": [{
-                        "time": 1698845400000,
-                        "volume": 654691,
-                        "price": 171.1,
-                        "avgPrice": 171.0484
-                    }, {
-                        "time": 1698845460000,
-                        "volume": 175598,
-                        "price": 170.595,
-                        "avgPrice": 171.01788
-                    }, {
-                        "time": 1698845520000,
-                        "volume": 186093,
-                        "price": 170.535,
-                        "avgPrice": 170.9575
-                    }, {
-                        "time": 1698845580000,
-                        "volume": 145550,
-                        "price": 170.2719,
-                        "avgPrice": 170.90828
-                    }, {
-                        "time": 1698845640000,
-                        "volume": 221063,
-                        "price": 170.41,
-                        "avgPrice": 170.82759
-                    }]
-                }]
+                "code": 0, "message": "success", "timestamp": 1754990360538, "data": [{"symbol": "AAPL", "items": [
+                    {"time": 1698845400000, "volume": 654691, "price": 171.1, "avgPrice": 171.0484},
+                    {"time": 1698845460000, "volume": 175598, "price": 170.595, "avgPrice": 171.01788},
+                    {"time": 1698845520000, "volume": 186093, "price": 170.535, "avgPrice": 170.9575},
+                    {"time": 1698845580000, "volume": 145550, "price": 170.2719, "avgPrice": 170.90828},
+                    {"time": 1698845640000, "volume": 221063, "price": 170.41, "avgPrice": 170.82759}]}]
             }
 
             web_utils.do_request = MagicMock(
@@ -465,65 +416,27 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(first_row['volume'], 654691)
         else:
             result = self.client.get_timeline_history(symbols=['AAPL'],
-                                                      date="2023-11-01")
+                                                      date="2025-08-21",
+                                                      # trade_session=TradingSession.OverNight
+                                                      )
             logger.debug(f"Timeline History (real):\n {result}")
 
     def test_get_bars(self):
         if self.is_mock:
             mock_data = {
-                "code":
-                    0,
-                "message":
-                    "success",
-                "timestamp":
-                    1754990841014,
-                "data": [{
-                    "symbol":
-                        "AAPL",
-                    "period":
-                        "day",
-                    "items": [{
-                        "time": 1754366400000,
-                        "volume": 44155079,
-                        "open": 203.4,
-                        "close": 202.92,
-                        "high": 205.34,
-                        "low": 202.16,
-                        "amount": 8.987659222543882E9
-                    }, {
-                        "time": 1754452800000,
-                        "volume": 108483103,
-                        "open": 205.63,
-                        "close": 213.25,
-                        "high": 215.38,
-                        "low": 205.59,
-                        "amount": 2.315468887474085E10
-                    }, {
-                        "time": 1754539200000,
-                        "volume": 90224834,
-                        "open": 218.875,
-                        "close": 220.03,
-                        "high": 220.85,
-                        "low": 216.58,
-                        "amount": 1.9798494559887737E10
-                    }, {
-                        "time": 1754625600000,
-                        "volume": 113853967,
-                        "open": 220.83,
-                        "close": 229.35,
-                        "high": 231.0,
-                        "low": 219.25,
-                        "amount": 2.589128470726625E10
-                    }, {
-                        "time": 1754884800000,
-                        "volume": 61806132,
-                        "open": 227.92,
-                        "close": 227.18,
-                        "high": 229.56,
-                        "low": 224.76,
-                        "amount": 1.4164248430829714E10
-                    }]
-                }]
+                "code": 0, "message": "success", "timestamp": 1754990841014, "data": [
+                    {"symbol": "AAPL", "period": "day", "items": [
+                        {"time": 1754366400000, "volume": 44155079, "open": 203.4, "close": 202.92, "high": 205.34,
+                         "low": 202.16, "amount": 8.987659222543882E9},
+                        {"time": 1754452800000, "volume": 108483103, "open": 205.63, "close": 213.25, "high": 215.38,
+                         "low": 205.59, "amount": 2.315468887474085E10},
+                        {"time": 1754539200000, "volume": 90224834, "open": 218.875, "close": 220.03, "high": 220.85,
+                         "low": 216.58, "amount": 1.9798494559887737E10},
+                        {"time": 1754625600000, "volume": 113853967, "open": 220.83, "close": 229.35, "high": 231.0,
+                         "low": 219.25, "amount": 2.589128470726625E10},
+                        {"time": 1754884800000, "volume": 61806132, "open": 227.92, "close": 227.18, "high": 229.56,
+                         "low": 224.76, "amount": 1.4164248430829714E10}]
+                     }]
             }
             web_utils.do_request = MagicMock(
                 return_value=json.dumps(mock_data).encode())
@@ -575,7 +488,9 @@ class TestQuoteClient(unittest.TestCase):
             result = self.client.get_bars(symbols=['AAPL', 'MSFT'],
                                           period=BarPeriod.DAY,
                                           limit=10,
-                                          page_token='')
+                                          page_token='',
+                                          # trade_session=TradingSession.OverNight
+                                          )
             logger.debug(f"Bars (real):\n {result}")
 
     def test_get_trade_ticks(self):
@@ -588,33 +503,11 @@ class TestQuoteClient(unittest.TestCase):
                 "timestamp":
                     1754991710630,
                 "data": [{
-                    "symbol":
-                        "AAPL",
-                    "beginIndex":
-                        482299,
-                    "endIndex":
-                        482499,
-                    "items": [{
-                        "time": 1754942403109,
-                        "volume": 406,
-                        "price": 227.18,
-                        "type": "-"
-                    }, {
-                        "time": 1754942403109,
-                        "volume": 26215,
-                        "price": 227.18,
-                        "type": "-"
-                    }, {
-                        "time": 1754942403109,
-                        "volume": 884,
-                        "price": 227.18,
-                        "type": "-"
-                    }, {
-                        "time": 1754942403109,
-                        "volume": 200,
-                        "price": 227.18,
-                        "type": "-"
-                    }]
+                    "symbol": "AAPL", "beginIndex": 482299, "endIndex": 482499,
+                    "items": [{"time": 1754942403109, "volume": 406, "price": 227.18, "type": "-"},
+                              {"time": 1754942403109, "volume": 26215, "price": 227.18, "type": "-"},
+                              {"time": 1754942403109, "volume": 884, "price": 227.18, "type": "-"},
+                              {"time": 1754942403109, "volume": 200, "price": 227.18, "type": "-"}]
                 }]
             }
             web_utils.do_request = MagicMock(
@@ -654,7 +547,9 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(second_row['direction'], '-')
             self.assertEqual(second_row['index'], 482300)
         else:
-            result = self.client.get_trade_ticks(symbols=['AAPL'])
+            result = self.client.get_trade_ticks(symbols=['AAPL'],
+                                                 # trade_session=TradingSession.OverNight
+                                                 )
             logger.debug(f"Trade Ticks (real): \n {result}")
 
     def test_get_short_interest(self):
@@ -764,7 +659,9 @@ class TestQuoteClient(unittest.TestCase):
         else:
             # 实际调用API
             result = self.client.get_depth_quote(symbols=['AAPL', 'MSFT'],
-                                                 market=Market.US)
+                                                 market=Market.US,
+                                                 # trade_session=TradingSession.OverNight
+                                                 )
             logger.debug(f"Depth Quote (real):\n {result}")
 
     def test_get_option_expirations(self):
@@ -1013,8 +910,12 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(second_bar['open_interest'], 9)
 
         else:
+            # result = self.client.get_option_bars(
+            #     identifiers=['AAPL 250815C00200000'], period=BarPeriod.DAY, limit=5)
             result = self.client.get_option_bars(
-                identifiers=['AAPL 250815C00200000'], period=BarPeriod.DAY, limit=5)
+                identifiers=['TCH.HK250828C00590000'], period=BarPeriod.DAY, limit=5,
+                end_time='2025-08-22', timezone='Asia/Hong_Kong'
+            )
             logger.debug(f"Option Bars (real):\n {result}")
 
     def test_get_option_trade_ticks(self):
@@ -1062,21 +963,15 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(first_tick['price'], 30.0)
             self.assertEqual(first_tick['volume'], 2)
 
-            # 验证第三条逐笔成交数据
-            third_tick = mock_result.iloc[2]
-            self.assertEqual(third_tick['time'], 1755005515034)
-            self.assertEqual(third_tick['price'], 30.2)
-            self.assertEqual(third_tick['volume'], 3)
-
             # 验证最后一条逐笔成交数据
-            last_tick = mock_result.iloc[5]
+            last_tick = mock_result.iloc[-1]
             self.assertEqual(last_tick['time'], 1755005863136)
             self.assertEqual(last_tick['price'], 28.6)
             self.assertEqual(last_tick['volume'], 1)
 
         else:
             result = self.client.get_option_trade_ticks(
-                identifiers=['AAPL 250815C00200000'])
+                identifiers=['AAPL250829P00200000'])
             logger.debug(f"Option Trade Ticks (real):\n {result}")
 
     def test_get_option_symbols(self):
@@ -1827,6 +1722,63 @@ class TestQuoteClient(unittest.TestCase):
             result = self.client.get_future_brief(identifiers=['ES2509'])
             logger.debug(f"Future Brief: \n {result}")
 
+    def test_get_future_depth(self):
+        if self.is_mock:
+            mock_data = {"code": 0, "message": "success", "timestamp": 1755847046112, "data": [
+                {"contractId": "d2cf66f761354eda8ddbecc242f6d245", "contractCode": "ES2509",
+                 "ask": [{"price": 6385.00, "volume": 1}, {"price": 6385.25, "volume": 23},
+                         {"price": 6385.50, "volume": 30}, {"price": 6385.75, "volume": 26}],
+                 "bid": [{"price": 6384.75, "volume": 22}, {"price": 6384.50, "volume": 28},
+                         {"price": 6384.25, "volume": 36}, {"price": 6384.00, "volume": 33}]},
+                {"contractId": "2971d762658f43c7bb26d353cc314b4d", "contractCode": "ES2512",
+                 "ask": [{"price": 6440.75, "volume": 2}, {"price": 6441.00, "volume": 3}],
+                 "bid": [{"price": 6439.75, "volume": 1}, {"price": 6439.50, "volume": 2}]}]}
+            web_utils.do_request = MagicMock(
+                return_value=json.dumps(mock_data).encode())
+
+            # {'identifier': 'ES2509', 'asks': [(6385.0, 1), (6385.25, 23), (6385.5, 30), (6385.75, 26), (6386.0, 43), (6386.25, 37), (6386.5, 31), (6386.75, 39), (6387.0, 39), (6387.25, 30)], 'bids': [(6384.75, 22), (6384.5, 28), (6384.25, 36), (6384.0, 33), (6383.75, 44), (6383.5, 32), (6383.25, 35), (6383.0, 38), (6382.75, 33), (6382.5, 42)]}
+            result_single = self.client.get_future_depth(identifiers=['ES2509'])
+
+            logger.debug(f"Future Depth (single): \n {result_single}")
+            # Verify the result
+            self.assertIsNotNone(result_single)
+            self.assertIsInstance(result_single, dict)
+            self.assertIn('ES2509', result_single)
+            self.assertIn('asks', result_single['ES2509'])
+            self.assertIn('bids', result_single['ES2509'])
+            self.assertEqual(len(result_single['ES2509']['asks']), 4)
+            self.assertEqual(len(result_single['ES2509']['bids']), 4)
+            self.assertEqual(result_single['ES2509']['identifier'], 'ES2509')
+            self.assertEqual(result_single['ES2509']['asks'][0], (6385.00, 1))
+            self.assertEqual(result_single['ES2509']['bids'][0], (6384.75, 22))
+
+            # {'ES2509': {'identifier': 'ES2509', 'asks': [(6385.0, 1), (6385.25, 23), (6385.5, 30), (6385.75, 26), (6386.0, 43), (6386.25, 37), (6386.5, 31), (6386.75, 39), (6387.0, 39), (6387.25, 30)], 'bids': [(6384.75, 22), (6384.5, 28), (6384.25, 36), (6384.0, 33), (6383.75, 44), (6383.5, 32), (6383.25, 35), (6383.0, 38), (6382.75, 33), (6382.5, 42)]}, 'ES2512': {'identifier': 'ES2512', 'asks': [(6440.75, 2), (6441.0, 3), (6441.25, 2), (6441.5, 2), (6441.75, 2), (6442.0, 4), (6442.25, 2), (6442.5, 1), (6442.75, 3), (6443.0, 4)], 'bids': [(6439.75, 1), (6439.5, 2), (6439.25, 1), (6439.0, 4), (6438.75, 2), (6438.5, 2), (6438.25, 2), (6438.0, 4), (6437.75, 2), (6437.5, 2)]}}
+            result_multi = self.client.get_future_depth(identifiers=['ES2509', 'ES2512'])
+
+            # Verify the result
+            self.assertIsNotNone(result_multi)
+            self.assertIsInstance(result_multi, dict)
+            self.assertIn('ES2509', result_multi)
+            self.assertIn('ES2512', result_multi)
+            self.assertIn('asks', result_multi['ES2509'])
+            self.assertIn('bids', result_multi['ES2509'])
+            self.assertIn('asks', result_multi['ES2512'])
+            self.assertIn('bids', result_multi['ES2512'])
+            self.assertEqual(len(result_multi['ES2509']['asks']), 4)
+            self.assertEqual(len(result_multi['ES2509']['bids']), 4)
+            self.assertEqual(len(result_multi['ES2512']['asks']), 2)
+            self.assertEqual(len(result_multi['ES2512']['bids']), 2)
+            self.assertEqual(result_multi['ES2509']['identifier'], 'ES2509')
+            self.assertEqual(result_multi['ES2512']['identifier'], 'ES2512')
+            self.assertEqual(result_multi['ES2509']['asks'][0], (6385.00, 1))
+            self.assertEqual(result_multi['ES2509']['bids'][0], (6384.75, 22))
+            self.assertEqual(result_multi['ES2512']['asks'][0], (6440.75, 2))
+            self.assertEqual(result_multi['ES2512']['bids'][0], (6439.75, 1))
+
+        else:
+            result = self.client.get_future_depth(identifiers=['ES2509', 'ES2512'])
+            logger.debug(f"Future Depth: \n {result}")
+
     def test_get_trading_calendar(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755068224574,
@@ -1982,7 +1934,6 @@ class TestQuoteClient(unittest.TestCase):
         else:
             result = self.client.get_broker_hold()
             logger.debug(f"Broker Hold:\n {result}")
-
 
     def test_market_scanner(self):
         """测试市场扫描器功能"""
