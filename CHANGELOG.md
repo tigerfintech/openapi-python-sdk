@@ -2,6 +2,7 @@
 ### New
 - `QuoteClient.get_future_depth` 获取期货深度行情
 - QuoteClient 的 `get_depth_quote`, `get_trade_ticks`, `get_timeline`, `get_timeline_history`, `get_bars` 支持 `trade_session` 指定查询夜盘数据
+- MCP Server beta version pre-release
 
 ## 3.4.4 (2025-07-31)
 ### New
