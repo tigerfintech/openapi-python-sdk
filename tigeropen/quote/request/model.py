@@ -817,6 +817,7 @@ class DepthQuoteParams(BaseParams):
         super(DepthQuoteParams, self).__init__()
         self._symbols = None
         self._market = None
+        self._trade_session = None
 
     @property
     def symbols(self):
@@ -834,12 +835,22 @@ class DepthQuoteParams(BaseParams):
     def market(self, value):
         self._market = value
 
+    @property
+    def trade_session(self):
+        return self._trade_session
+
+    @trade_session.setter
+    def trade_session(self, value):
+        self._trade_session = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.symbols:
             params['symbols'] = self.symbols
         if self.market:
             params['market'] = self.market
+        if self.trade_session:
+            params['trade_session'] = self.trade_session
         return params
 
 

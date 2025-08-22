@@ -1,3 +1,8 @@
+## 3.4.5 (2025-08-22)
+### New
+- `QuoteClient.get_future_depth` 获取期货深度行情
+- QuoteClient 的 `get_depth_quote`, `get_trade_ticks`, `get_timeline`, `get_timeline_history`, `get_bars` 支持 `trade_session` 指定查询夜盘数据
+
 ## 3.4.4 (2025-07-31)
 ### New
 选股器支持分页 cursor_id 参数
