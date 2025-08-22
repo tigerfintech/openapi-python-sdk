@@ -27,13 +27,13 @@ logging.basicConfig(level=logging.INFO,
                     filemode='a', )
 logger = logging.getLogger('TigerOpenApi')
 
-client_config = get_client_config(private_key_path='your private key file path',
-                                  tiger_id='your tiger id',
-                                  account='your account')
+_demo_config = get_client_config(private_key_path='your private key file path',
+                                 tiger_id='your tiger id',
+                                 account='your account')
 
 
 def get_contract_apis():
-    openapi_client = TradeClient(client_config, logger=logger)
+    openapi_client = TradeClient(_demo_config, logger=logger)
     contract = openapi_client.get_contracts('AAPL')[0]
     print(contract)
     contract = openapi_client.get_contract('AAPL', SecurityType.STK, currency=Currency.USD)
@@ -43,7 +43,7 @@ def get_contract_apis():
     print(contracts)
 
 def get_account_apis():
-    openapi_client = TradeClient(client_config, logger=logger)
+    openapi_client = TradeClient(_demo_config, logger=logger)
     openapi_client.get_managed_accounts()
     # 获取订单
     openapi_client.get_orders()
@@ -73,7 +73,7 @@ def get_account_apis():
 
 def test_get_orders_by_page():
     """分页获取订单"""
-    trade_client = TradeClient(client_config)
+    trade_client = TradeClient(_demo_config)
     result = list()
     # 每次返回数量(需 <= 300)
     limit = 300
@@ -96,8 +96,8 @@ def test_get_orders_by_page():
 
 
 def trade_apis():
-    account = client_config.account
-    openapi_client = TradeClient(client_config, logger=logger)
+    account = _demo_config.account
+    openapi_client = TradeClient(_demo_config, logger=logger)
 
     # 通过请求获取合约
     contract = openapi_client.get_contracts('AAPL')[0]
@@ -159,8 +159,8 @@ def trade_apis():
 
 
 def algo_order_demo():
-    account = client_config.account
-    openapi_client = TradeClient(client_config, logger=logger)
+    account = _demo_config.account
+    openapi_client = TradeClient(_demo_config, logger=logger)
     contract = stock_contract(symbol='AAPL', currency='USD')
     params = algo_order_params(start_time=1686147201000, end_time=1686150801000, no_take_liq=True,
                                allow_past_end_time=True, participation_rate=0.1)
@@ -175,9 +175,9 @@ def get_account_info():
     :return:
     """
     from tigeropen.common.consts.service_types import ACCOUNTS
-    openapi_client = TigerOpenClient(client_config)
+    openapi_client = TigerOpenClient(_demo_config)
     account = AccountsParams()
-    account.account = client_config.account
+    account.account = _demo_config.account
     request = OpenApiRequest(method=ACCOUNTS, biz_model=account)
 
     response_content = None
@@ -197,7 +197,7 @@ def get_account_info():
 
 
 class TestTradeClient(unittest.TestCase):
-    trade_client = TradeClient(client_config)
+    trade_client = TradeClient(_demo_config)
 
     def test_transfer_segment_fund(self):
         """资金划转"""

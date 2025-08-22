@@ -817,6 +817,7 @@ class DepthQuoteParams(BaseParams):
         super(DepthQuoteParams, self).__init__()
         self._symbols = None
         self._market = None
+        self._trade_session = None
 
     @property
     def symbols(self):
@@ -834,12 +835,22 @@ class DepthQuoteParams(BaseParams):
     def market(self, value):
         self._market = value
 
+    @property
+    def trade_session(self):
+        return self._trade_session
+
+    @trade_session.setter
+    def trade_session(self, value):
+        self._trade_session = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.symbols:
             params['symbols'] = self.symbols
         if self.market:
             params['market'] = self.market
+        if self.trade_session:
+            params['trade_session'] = self.trade_session
         return params
 
 
@@ -956,6 +967,7 @@ class MarketScannerParams(BaseParams):
         self._page = None
         self._page_size = None
         self._multi_tags_fields = None
+        self._cursor_id = None
 
     @property
     def market(self):
@@ -1029,6 +1041,14 @@ class MarketScannerParams(BaseParams):
     def multi_tags_fields(self, value):
         self._multi_tags_fields = value
 
+    @property
+    def cursor_id(self):
+        return self._cursor_id
+
+    @cursor_id.setter
+    def cursor_id(self, value):
+        self._cursor_id = value
+
     def to_openapi_dict(self):
         """
         example
@@ -1064,6 +1084,8 @@ class MarketScannerParams(BaseParams):
             params['page'] = self.page
         if self.page_size is not None:
             params['page_size'] = self.page_size
+        if self.cursor_id is not None:
+            params['cursor_id'] = self.cursor_id
         if self.multi_tags_fields:
             params['multi_tag_field_list'] = [f.field_request_name for f in self.multi_tags_fields]
         return params
@@ -1098,6 +1120,60 @@ class StockBrokerParams(BaseParams):
         if self.limit:
             params['limit'] = self.limit
         return params
+
+class BrokerHoldParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._market = None
+        self._page = None
+        self._limit = None
+        self._order_by = None
+        self._direction = None
+
+    @property
+    def market(self):
+        return self._market
+    @market.setter
+    def market(self, value):
+        self._market = value
+    @property
+    def page(self):
+        return self._page
+    @page.setter
+    def page(self, value):
+        self._page = value
+    @property
+    def limit(self):
+        return self._limit  
+    @limit.setter   
+    def limit(self, value): 
+        self._limit = value
+    @property
+    def order_by(self):
+        return self._order_by
+    @order_by.setter
+    def order_by(self, value):
+        self._order_by = value
+    @property
+    def direction(self):
+        return self._direction
+    @direction.setter
+    def direction(self, value):
+        self._direction = value
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()  
+        if self.market:
+            params['market'] = self.market
+        if self.page is not None and self.page >= 0:
+            params['page'] = self.page
+        if self.limit:
+            params['limit'] = self.limit
+        if self.order_by:
+            params['order_by'] = self.order_by
+        if self.direction:
+            params['direction'] = self.direction
+        return params
+
 
 
 class CapitalParams(BaseParams):

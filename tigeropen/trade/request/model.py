@@ -131,6 +131,50 @@ class AssetParams(BaseParams):
 
         return params
 
+class AggregateAssetParams(BaseParams):
+    def __init__(self):
+        super(AggregateAssetParams, self).__init__()
+        self._account = None
+        self._secret_key = None
+        self._seg_type = False
+        self._base_currency = None
+
+    @property
+    def account(self):
+        return self._account
+    @account.setter
+    def account(self, value):
+        self._account = value
+    @property
+    def secret_key(self):
+        return self._secret_key
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+    @property
+    def seg_type(self):
+        return self._seg_type
+    @seg_type.setter
+    def seg_type(self, value):
+        self._seg_type = value
+    @property
+    def base_currency(self):
+        return self._base_currency
+    @base_currency.setter
+    def base_currency(self, value):
+        self._base_currency = value 
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.account:
+            params['account'] = self.account
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+        if self.seg_type:
+            params['seg_type'] = self.seg_type
+        if self.base_currency:
+            params['base_currency'] = self.base_currency
+        return params
 
 class PositionParams(BaseParams):
     def __init__(self):
@@ -145,6 +189,7 @@ class PositionParams(BaseParams):
         self._expiry = None
         self._strike = None
         self._right = None
+        self._asset_quote_type = None
 
     @property
     def account(self):
@@ -226,6 +271,14 @@ class PositionParams(BaseParams):
     def right(self, value):
         self._right = value
 
+    @property
+    def asset_quote_type(self):
+        return self._asset_quote_type
+
+    @asset_quote_type.setter
+    def asset_quote_type(self, value):
+        self._asset_quote_type = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -257,6 +310,9 @@ class PositionParams(BaseParams):
 
         if self.right:
             params['right'] = self.right
+
+        if self.asset_quote_type:
+            params['asset_quote_type'] = self.asset_quote_type
 
         return params
 
@@ -674,6 +730,7 @@ class TransactionsParams(BaseParams):
         self._start_date = None
         self._end_date = None
         self._limit = None
+        self._page_token = None
 
     @property
     def account(self):
@@ -763,6 +820,14 @@ class TransactionsParams(BaseParams):
     def right(self, value):
         self._right = value
 
+    @property
+    def page_token(self):
+        return self._page_token
+
+    @page_token.setter
+    def page_token(self, value):
+        self._page_token = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -797,6 +862,9 @@ class TransactionsParams(BaseParams):
 
         if self.right:
             params['right'] = self.right
+
+        if self.page_token:
+            params['page_token'] = self.page_token
 
         return params
 
@@ -1492,4 +1560,111 @@ class FundingHistoryParams(BaseParams):
             params['secret_key'] = self.secret_key
         if self.seg_type:
             params['seg_type'] = self.seg_type
+        return params
+
+class FundDetailsParams(BaseParams):
+    def __init__(self):
+        super().__init__()
+        self._account = None
+        self._secret_key = None
+        self._seg_types = None
+        self._fund_type = None
+        self._currency = None
+        self._start_date = None
+        self._end_date = None
+        self._start = None
+        self._limit = None
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def seg_types(self):
+        return self._seg_types
+
+    @seg_types.setter
+    def seg_types(self, value):
+        self._seg_types = value
+
+    @property
+    def fund_type(self):
+        return self._fund_type
+
+    @fund_type.setter
+    def fund_type(self, value):
+        self._fund_type = value
+
+    @property
+    def currency(self):
+        return self._currency
+
+    @currency.setter
+    def currency(self, value):
+        self._currency = value
+
+    @property
+    def start_date(self):
+        return self._start_date
+
+    @start_date.setter
+    def start_date(self, value):
+        self._start_date = value
+
+    @property
+    def end_date(self):
+        return self._end_date
+
+    @end_date.setter
+    def end_date(self, value):
+        self._end_date = value
+
+    @property
+    def start(self):
+        return self._start
+
+    @start.setter
+    def start(self, value):
+        self._start = value
+
+    @property
+    def limit(self):
+        return self._limit
+
+    @limit.setter
+    def limit(self, value):
+        self._limit = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.account:
+            params['account'] = self.account
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+        if self.seg_types:
+            params['seg_types'] = self.seg_types
+        if self.fund_type:
+            params['fund_type'] = self.fund_type
+        if self.currency:
+            params['currency'] = self.currency
+        if self.start_date:
+            params['start_date'] = self.start_date
+        if self.end_date:
+            params['end_date'] = self.end_date
+        if self._start is not None:
+            params['start'] = self._start
+        if self._limit:
+            params['limit'] = self._limit
         return params

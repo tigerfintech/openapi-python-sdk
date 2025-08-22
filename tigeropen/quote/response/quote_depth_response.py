@@ -17,14 +17,14 @@ class DepthQuoteResponse(TigerResponse):
             if len(self.data) == 1:
                 item = self.data[0]
                 symbol = item.get('symbol')
-                asks = [(v['price'], v['volume'], v['count']) for v in item.get('asks', [])]
-                bids = [(v['price'], v['volume'], v['count']) for v in item.get('bids', [])]
+                asks = [(v.get('price'), v.get('volume'), v.get('count')) for v in item.get('asks', [])]
+                bids = [(v.get('price'), v.get('volume'), v.get('count')) for v in item.get('bids', [])]
                 self.order_book = {'symbol': symbol, 'asks': asks, 'bids': bids}
             else:
                 for item in self.data:
                     symbol = item.get('symbol')
-                    asks = [(v['price'], v['volume'], v['count']) for v in item.get('asks', [])]
-                    bids = [(v['price'], v['volume'], v['count']) for v in item.get('bids', [])]
+                    asks = [(v.get('price'), v.get('volume'), v.get('count')) for v in item.get('asks', [])]
+                    bids = [(v.get('price'), v.get('volume'), v.get('count')) for v in item.get('bids', [])]
                     self.order_book[symbol] = {'symbol': symbol, 'asks': asks, 'bids': bids}
             return self.order_book
 

@@ -98,3 +98,7 @@ def get_option_identifier(underlying_symbol, expiry, put_call, strike):
     if isinstance(strike, str):
         strike = float(strike)
     return underlying_symbol.ljust(6, ' ') + expiry[2:] + direction + str(int(strike * 1000)).zfill(8)
+
+
+def is_hk_option_underlying_symbol(underlying_symbol):
+    return underlying_symbol and underlying_symbol.endswith('.HK')

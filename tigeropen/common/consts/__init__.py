@@ -31,11 +31,22 @@ class Market(Enum):
 
 @unique
 class TradingSession(Enum):
+    All = 'All'
     PreMarket = 'PreMarket'  # 盘前
     Regular = 'Regular'  # 盘中
     AfterHours = 'AfterHours'  # 盘后
-    OverNight = 'OverNight'  # 夜盘
+    OverNight = 'OverNight'
 
+
+@unique
+class TradingSessionType(Enum):
+    PRE_RTH_POST = 'PRE_RTH_POST'
+    OVERNIGHT ='OVERNIGHT' # 夜盘
+    RTH = 'RTH' # 盘中
+    FULL ='FULL' # 全时段
+    HK_AUC = 'HK_AUC'
+    HK_CTS = 'HK_CTS'
+    HK_AUC_CTS ='HK_AUC_CTS'
 
 
 @unique
@@ -59,6 +70,7 @@ class SegmentType(Enum):
     ALL = 'ALL'
     SEC = 'SEC'
     FUT = 'FUT'
+    FUND = 'FUND'
 
 
 @unique
@@ -203,6 +215,9 @@ class OrderType(Enum):
 class License(Enum):
     TBNZ = 'TBNZ'
     TBSG = 'TBSG'
+    TBHK = 'TBHK'
+    TBAU = 'TBAU'
+    TBUS = 'TBUS'
 
 
 @unique
@@ -239,3 +254,11 @@ class OptionRankingIndicator(Enum):
     Volume = "volume"
     Amount = "amount"
     OpenInt = "openInt"
+
+class AssetQuoteType(Enum):
+    # Includes pre-market, intra-day, and after-hours trading data. For night session, the closing price of the previous after-hours trading is used for calculation.
+    ETH = "ETH"
+    # Only intra-day trading data. For pre-market, after-hours, and night session, the intra-day closing price is used for calculation.
+    RTH = "RTH"
+    # Includes night session trading data. For night session, the night session trading data is used for calculation.
+    OVERNIGHT = "OVERNIGHT"

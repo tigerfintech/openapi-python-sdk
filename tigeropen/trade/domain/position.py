@@ -48,14 +48,8 @@ class Position:
         self.is_level0_price = kwargs.get('is_level0_price', None)
 
     def __repr__(self):
-        template = "contract: {contract}, quantity: {quantity}, average_cost: {average_cost}, " \
-                   "market_price: {market_price}"
-        return template.format(
-            contract=self.contract,
-            quantity=self.quantity,
-            average_cost=self.average_cost,
-            market_price=self.market_price
-        )
+        return f"Position({self.__dict__})"
+
     
     def __str__(self):
         return self.__repr__()

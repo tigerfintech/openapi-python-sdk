@@ -6,9 +6,10 @@ Created on 2018/10/31
 """
 import pandas as pd
 
+from tigeropen.common.consts import Market
 from tigeropen.common.response import TigerResponse
-from tigeropen.common.util.common_utils import eastern
-from tigeropen.common.util.contract_utils import get_option_identifier
+from tigeropen.common.util.common_utils import get_tz_by_market
+from tigeropen.common.util.contract_utils import get_option_identifier, is_hk_option_underlying_symbol
 
 COLUMNS = ['identifier', 'symbol', 'expiry', 'put_call', 'strike', 'time', 'open', 'high', 'low', 'close', 'volume',
            'open_interest']
@@ -38,7 +39,11 @@ class OptionQuoteBarResponse(TigerResponse):
                     put_call = put_call.upper()
 
                 if not identifier:
-                    expiration = pd.Timestamp(expiry, unit='ms', tzinfo=eastern).date().strftime("%Y%m%d")
+                    if is_hk_option_underlying_symbol(underlying_symbol):
+                        tz = get_tz_by_market(Market.HK)
+                    else:
+                        tz = get_tz_by_market(Market.US)
+                    expiration = pd.Timestamp(expiry, unit='ms', tzinfo=tz).date().strftime("%Y%m%d")
                     identifier = get_option_identifier(underlying_symbol, expiration, put_call, strike)
 
                 if 'items' in symbol_item:
