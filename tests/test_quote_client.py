@@ -344,7 +344,11 @@ class TestQuoteClient(unittest.TestCase):
                     "period": "day",
                     "preClose": 229.09,
                     "intraday": {
-                        "items": [{"time": 1754919000000, "volume": 1656620, "price": 226.75, "avgPrice": 227.75438}, {"time": 1754919060000, "volume": 426781, "price": 226.6, "avgPrice": 227.51157}, {"time": 1754919120000, "volume": 267382, "price": 226.31, "avgPrice": 227.40694}, {"time": 1754919180000, "volume": 322976, "price": 226.045, "avgPrice": 227.25978}, {"time": 1754919240000, "volume": 229321, "price": 226.06, "avgPrice": 226.0}],
+                        "items": [{"time": 1754919000000, "volume": 1656620, "price": 226.75, "avgPrice": 227.75438},
+                                  {"time": 1754919060000, "volume": 426781, "price": 226.6, "avgPrice": 227.51157},
+                                  {"time": 1754919120000, "volume": 267382, "price": 226.31, "avgPrice": 227.40694},
+                                  {"time": 1754919180000, "volume": 322976, "price": 226.045, "avgPrice": 227.25978},
+                                  {"time": 1754919240000, "volume": 229321, "price": 226.06, "avgPrice": 226.0}],
                         "beginTime":
                             -1,
                         "endTime":
@@ -420,8 +424,19 @@ class TestQuoteClient(unittest.TestCase):
     def test_get_bars(self):
         if self.is_mock:
             mock_data = {
-                "code": 0, "message": "success", "timestamp": 1754990841014, "data": [{"symbol": "AAPL", "period": "day", "items": [{"time": 1754366400000, "volume": 44155079, "open": 203.4, "close": 202.92, "high": 205.34, "low": 202.16, "amount": 8.987659222543882E9}, {"time": 1754452800000, "volume": 108483103, "open": 205.63, "close": 213.25, "high": 215.38, "low": 205.59, "amount": 2.315468887474085E10}, {"time": 1754539200000, "volume": 90224834, "open": 218.875, "close": 220.03, "high": 220.85, "low": 216.58, "amount": 1.9798494559887737E10}, {"time": 1754625600000, "volume": 113853967, "open": 220.83, "close": 229.35, "high": 231.0, "low": 219.25, "amount": 2.589128470726625E10}, {"time": 1754884800000, "volume": 61806132, "open": 227.92, "close": 227.18, "high": 229.56, "low": 224.76, "amount": 1.4164248430829714E10}]
-                }]
+                "code": 0, "message": "success", "timestamp": 1754990841014, "data": [
+                    {"symbol": "AAPL", "period": "day", "items": [
+                        {"time": 1754366400000, "volume": 44155079, "open": 203.4, "close": 202.92, "high": 205.34,
+                         "low": 202.16, "amount": 8.987659222543882E9},
+                        {"time": 1754452800000, "volume": 108483103, "open": 205.63, "close": 213.25, "high": 215.38,
+                         "low": 205.59, "amount": 2.315468887474085E10},
+                        {"time": 1754539200000, "volume": 90224834, "open": 218.875, "close": 220.03, "high": 220.85,
+                         "low": 216.58, "amount": 1.9798494559887737E10},
+                        {"time": 1754625600000, "volume": 113853967, "open": 220.83, "close": 229.35, "high": 231.0,
+                         "low": 219.25, "amount": 2.589128470726625E10},
+                        {"time": 1754884800000, "volume": 61806132, "open": 227.92, "close": 227.18, "high": 229.56,
+                         "low": 224.76, "amount": 1.4164248430829714E10}]
+                     }]
             }
             web_utils.do_request = MagicMock(
                 return_value=json.dumps(mock_data).encode())
@@ -489,7 +504,10 @@ class TestQuoteClient(unittest.TestCase):
                     1754991710630,
                 "data": [{
                     "symbol": "AAPL", "beginIndex": 482299, "endIndex": 482499,
-                    "items": [{"time": 1754942403109, "volume": 406, "price": 227.18, "type": "-"}, {"time": 1754942403109, "volume": 26215, "price": 227.18, "type": "-"}, {"time": 1754942403109, "volume": 884, "price": 227.18, "type": "-"}, {"time": 1754942403109, "volume": 200, "price": 227.18, "type": "-"}]
+                    "items": [{"time": 1754942403109, "volume": 406, "price": 227.18, "type": "-"},
+                              {"time": 1754942403109, "volume": 26215, "price": 227.18, "type": "-"},
+                              {"time": 1754942403109, "volume": 884, "price": 227.18, "type": "-"},
+                              {"time": 1754942403109, "volume": 200, "price": 227.18, "type": "-"}]
                 }]
             }
             web_utils.do_request = MagicMock(
