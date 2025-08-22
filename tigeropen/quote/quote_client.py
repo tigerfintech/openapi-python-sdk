@@ -23,7 +23,7 @@ from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_D
     FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
     KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
-    FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH, BROKER_HOLD, OPTION_TIMELINE
+    FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH, BROKER_HOLD, OPTION_TIMELINE, FUTURE_DEPTH
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -62,6 +62,7 @@ from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
 from tigeropen.quote.response.fund_contracts_response import FundContractsResponse
 from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
+from tigeropen.quote.response.future_depth_response import FutureDepthResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
 from tigeropen.quote.response.future_quote_bar_response import FutureQuoteBarResponse
 from tigeropen.quote.response.future_quote_ticks_response import FutureTradeTickResponse
@@ -507,7 +508,7 @@ class QuoteClient(TigerOpenClient):
         :param begin_time: Start time, 13-digit timestamp (int) or datetime string (str), default -1 for all today.
                           开始时间, 13位时间戳或日期字符串, -1 表示当天全部
         :param lang: Language, zh_CN/zh_TW/en_US. Default from config. 语言
-        :param trade_session: Trading session, e.g. "pre_market", "regular", "after_hours". 交易时段，可选
+        :param trade_session: Trading session, e.g. TradingSession.Regular, TradingSession.OverNight. 交易时段，可选
         :param kwargs: Other optional params, e.g. version. 其他可选参数
         :return: pandas.DataFrame with columns:
             - symbol: stock symbol 股票代码
@@ -549,14 +550,15 @@ class QuoteClient(TigerOpenClient):
         self,
         symbols: list[str],
         date: str,
-        right: Optional[Union[QuoteRight,
-                              str]] = QuoteRight.BR) -> pd.DataFrame:
+        right: Optional[Union[QuoteRight, str]] = QuoteRight.BR,
+        trade_session: Optional[Union[TradingSession, str]] = None) -> pd.DataFrame:
         """
         Get historical timeline data. 获取历史分时数据
 
         :param symbols: List of stock symbols, e.g. ["AAPL", "BABA"]. 股票代码列表
         :param date: Date of timeline in yyyy-MM-dd format, like "2022-04-12". 日期，格式为 yyyy-MM-dd
         :param right: Quote right. QuoteRight.BR: before right, QuoteRight.NR: no right. 复权方式
+        :param trade_session: Trading session, e.g. TradingSession.Regular, TradingSession.OverNight. 交易时段，可选
         :return: pandas.DataFrame with columns:
             - symbol: stock symbol 股票代码
             - time: timestamp in ms 毫秒时间戳
@@ -575,6 +577,7 @@ class QuoteClient(TigerOpenClient):
         params.symbols = self._format_to_list(symbols)
         params.date = date
         params.right = get_enum_value(right)
+        params.trade_session = get_enum_value(trade_session)
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(HISTORY_TIMELINE, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -618,7 +621,7 @@ class QuoteClient(TigerOpenClient):
         :param limit: Number limit. 数量限制
         :param lang: Language. 语言. Available options: zh_CN/zh_TW/en_US
         :param page_token: The token of next page. Only supported when exactly one symbol. 下一页的令牌，仅当请求一个股票时支持
-        :param trade_session: Trading session. 交易时段
+        :param trade_session: Trading session. 交易时段. 夜盘传 TradingSession.OverNight
         :param date: Date in format yyyyMMdd. 日期，格式为 yyyyMMdd
         :return: pandas.DataFrame with columns:
             - symbol: stock symbol. 股票代码
@@ -752,7 +755,7 @@ class QuoteClient(TigerOpenClient):
 
         :param symbols: Stock symbols list or a single symbol string. 股票代号列表或单个股票代码
         :param trade_session: Trading session, e.g., TradingSession.PreMarket, TradingSession.Regular, TradingSession.AfterHours.
-                            交易时段，例如 TradingSession.PreMarket（盘前），TradingSession.Regular（盘中），TradingSession.AfterHours（盘后）
+                            交易时段，例如 TradingSession.PreMarket（盘前），TradingSession.Regular（盘中），TradingSession.OverNight（夜盘）
         :param begin_index: Start index. 开始索引
         :param end_index: End index. 结束索引
         :param limit: Number limit. 数量限制
@@ -831,12 +834,13 @@ class QuoteClient(TigerOpenClient):
         return None
 
     def get_depth_quote(self, symbols: Union[str, list[str]],
-                        market: Union[Market, str]) -> dict:
+                        market: Union[Market, str], trade_session: Optional[Union[TradingSession, str]] = None) -> dict:
         """
         Get market depth (order book). 获取深度行情数据（订单簿）
         
         :param symbols: Stock symbols list or a single symbol string. 股票代码列表或单个股票代码
         :param market: Market. 市场类型. Available values: US/HK/CN, from tigeropen.common.consts.Market
+        :param trade_session: Trading session. 交易时段. e.g., TradingSession.PreMarket, TradingSession.Regular, TradingSession.AfterHours.
         :return: Dictionary with symbols as keys and order book data as values. 以股票代码为键，订单簿数据为值的字典
             Each item in asks and bids list means (price, volume, order count):
             asks 和 bids 列表中的每项数据含义为 (委托价格, 委托数量, 委托订单数):
@@ -874,6 +878,7 @@ class QuoteClient(TigerOpenClient):
         params = DepthQuoteParams()
         params.symbols = self._format_to_list(symbols)
         params.market = get_enum_value(market)
+        params.trade_session = get_enum_value(trade_session)
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(QUOTE_DEPTH, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -1961,6 +1966,39 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
+    def get_future_depth(self, identifiers: Union[str, list[str]],
+                         lang: Optional[Union[Language, str]] = None) -> pd.DataFrame:
+        """
+        Get future depth data. 获取期货深度数据
+
+        :param identifiers: Future contract code list or a single contract code. 期货合约代码列表或单个合约代码
+        :param lang: Language. 语言. Available options: zh_CN/zh_TW/en_US
+        :return: pandas.DataFrame. The columns are as follows:
+            identifier: Future contract code. 期货合约代码
+            ask_price: Ask price. 卖价
+            ask_size: Ask size. 卖量
+            bid_price: Bid price. 买价
+            bid_size: Bid size. 买量
+
+        :return example:
+           identifier  ask_price  ask_size  bid_price  bid_size
+        0     ES2509     6469.5       11     6469.5       14
+        """
+        params = FutureQuoteParams()
+        params.contract_codes = self._format_to_list(identifiers)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(
+            self._lang)
+        request = OpenApiRequest(FUTURE_DEPTH, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FutureDepthResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+
     def get_corporate_split(self,
                             symbols: Union[str, list[str]],
                             market: Union[Market, str],
@@ -2518,15 +2556,15 @@ class QuoteClient(TigerOpenClient):
         Get trading calendar for a specific market. 获取特定市场的交易日历
 
         :param market: Market. 市场. common.consts.Market, like Market.US
-        :param begin_date: Begin date. 开始日期. Format: 'yyyy-MM-dd' or timestamp in milliseconds
+        :param begin_date: Begin date, included. 开始日期, 包含. Format: 'yyyy-MM-dd' or timestamp in milliseconds
                          格式：'yyyy-MM-dd' 或毫秒时间戳
-        :param end_date: End date. 结束日期. Format: 'yyyy-MM-dd' or timestamp in milliseconds
+        :param end_date: End date, not included. 结束日期, 不包含. Format: 'yyyy-MM-dd' or timestamp in milliseconds
                        格式：'yyyy-MM-dd' 或毫秒时间戳
         :return: List of trading calendar days. Each day is a dictionary with the following keys:
                 交易日历日期列表，每个日期是具有以下键的字典：
             date: Trading date string (format: 'yyyy-MM-dd'). 交易日期字符串（格式：'yyyy-MM-dd'）
             type: Trading type. 交易类型. 'TRADING' for trading day, 'NON_TRADING' for non-trading day
-                 'TRADING'表示交易日，'NON_TRADING'表示非交易日
+                 'TRADING' 表示交易日，'NON_TRADING'表示非交易日
 
         :return example:
         [
