@@ -2,9 +2,11 @@
 import functools
 import os
 import re
+from datetime import datetime
 from typing import Optional, Any, Union
 
 import pandas as pd
+from docutils.nodes import description
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
@@ -114,16 +116,22 @@ class QuoteApi:
             market: Market = Field(..., description="Market. 市场. US/HK/CN"),
             begin_date: Optional[str] = Field(
                 None,
-                description="Start date in YYYY-MM-DD format. 开始日期",
+                description="Start date in YYYY-MM-DD format, included. 开始日期",
                 pattern=r"^\d{4}-\d{2}-\d{2}$"),
             end_date: Optional[str] = Field(
                 None,
-                description="End date in YYYY-MM-DD format. 结束日期",
+                description="End date in YYYY-MM-DD format, excluded, must later than begin_date. 结束日期",
                 pattern=r"^\d{4}-\d{2}-\d{2}$")) -> Any:
         """
         Get trading calendar
         获取交易日历
         """
+        begin_dt = datetime.strptime(begin_date, '%Y-%m-%d') if begin_date else None
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d') if end_date else None
+        if begin_dt and end_dt and begin_dt >= end_dt:
+            raise ValueError(
+                "end_date must be later than begin_date, if provided both."
+            )
         return QuoteApi.quote_client.get_trading_calendar(
             market, begin_date, end_date)
 
@@ -394,7 +402,8 @@ class QuoteApi:
     @ApiHelper.handle_result
     def get_bars(symbols: Union[str, list[str]],
                  sec_type: Union[SecurityType, str],
-                 period: str = BarPeriod.DAY.value,
+                 period: str = Field(None, description="Bar period. K线周期. Available values: day/week/month/year/1min/3min/5min/10min/15min/30min/60min",
+                                     pattern= r'^(day|week|month|year|1min|3min|5min|10min|15min|30min|60min)$'),
                  limit: Optional[int] = 251,
                  right: str = QuoteRight.BR.value,
                  begin_time: Union[int, str] = -1,
@@ -405,7 +414,33 @@ class QuoteApi:
         """
         Get k-line data
         获取K线数据
+
+        :param period   DAY = 'day'  # 日K
+                        WEEK = 'week'  # 周K
+                        MONTH = 'month'  # 月K
+                        YEAR = 'year'  # 年K
+                        ONE_MINUTE = '1min'  # 1分钟
+                        THREE_MINUTES = '3min'  # 3分钟
+                        FIVE_MINUTES = '5min'  # 5分钟
+                        TEN_MINUTES = '10min'  # 10分钟
+                        FIFTEEN_MINUTES = '15min'  # 15分钟
+                        HALF_HOUR = '30min'  # 30分钟
+                        ONE_HOUR = '60min'  # 60分钟
         """
+        # check symbols
+        symbols = symbols if isinstance(symbols, list) else [symbols]
+        option_count = 0
+        for symbol in symbols:
+            if len(symbol) > 6 and re.match(r'(\w+(?:\.\w+)?)\s*(\d{6})([CP])(\d+)', symbol, re.M):
+                option_count += 1
+        if option_count == len(symbols):
+            sec_type = SecurityType.OPT.value
+        elif option_count > 0:
+            return {
+                "error":
+                "Mixing Options and Stocks in symbols is not supported. Please separate them."
+            }
+
         if sec_type.upper() == "OPT":
             return QuoteApi.quote_client.get_option_bars(identifiers=symbols,
                                                          begin_time=begin_time,
@@ -626,115 +661,6 @@ class QuoteApi:
         """
         return QuoteApi.quote_client.get_option_symbols(market=market)
 
-    # @staticmethod
-    # @server.tool()
-    # @ApiHelper.handle_result
-    # def get_future_exchanges(sec_type: str = SecurityType.FUT.value,
-    #                          lang: Optional[str] = None) -> Any:
-    #     """
-    #     Get future exchanges list.
-    #     获取期货交易所列表
-    #     """
-    #     return QuoteApi.quote_client.get_future_exchanges(sec_type=sec_type,
-    #                                                       lang=lang)
-
-    # @staticmethod
-    # @server.tool()
-    # @ApiHelper.handle_result
-    # def get_future_contracts(exchange: str, lang: Optional[str] = None) -> Any:
-    #     """
-    #     Get Future contracts of an exchange
-    #     获取交易所下的合约
-    #     """
-    #     return QuoteApi.quote_client.get_future_contracts(exchange, lang=lang)
-
-    # @staticmethod
-    # @server.tool()
-    # @ApiHelper.handle_result
-    # def get_current_future_contract(future_type: str,
-    #                                 lang: Optional[str] = None) -> Any:
-    #     """
-    #     Get current contract of a future type.
-    #     获取当前期货主力合约
-    #     """
-    #     return QuoteApi.quote_client.get_current_future_contract(future_type,
-    #                                                              lang=lang)
-
-    # @staticmethod
-    # @server.tool()
-    # @ApiHelper.handle_result
-    # def get_all_future_contracts(future_type: str,
-    #                              lang: Optional[str] = None) -> Any:
-    #     """
-    #     Get all future contracts of a given type.
-    #     获取某期货类型的所有合约
-    #     """
-    #     return QuoteApi.quote_client.get_all_future_contracts(future_type,
-    #                                                           lang=lang)
-
-    # @staticmethod
-    # @server.tool()
-    # @ApiHelper.handle_result
-    # def get_future_contract(contract_code: str,
-    #                         lang: Optional[str] = None) -> Any:
-    #     """
-    #     Get future contract details by contract code.
-    #     通过合约代码获取期货合约详情
-    #     """
-    #     return QuoteApi.quote_client.get_future_contract(contract_code,
-    #                                                      lang=lang)
-
-    # @staticmethod
-    # @server.tool()
-    # @ApiHelper.handle_result
-    # def get_future_continuous_contracts(future_type: str,
-    #                                     lang: Optional[str] = None) -> Any:
-    #     """
-    #     Get continuous contracts of a Future type
-    #     获取期货连续合约
-    #     """
-    #     return QuoteApi.quote_client.get_future_continuous_contracts(
-    #         future_type, lang=lang)
-
-    # @staticmethod
-    # @server.tool()
-    # @ApiHelper.handle_result
-    # def get_future_trading_times(
-    #         identifier: str,
-    #         trading_date: Optional[Union[int, str]] = None) -> Any:
-    #     """
-    #     Get future trading times.
-    #     获取期货交易时间段
-    #     """
-    #     return QuoteApi.quote_client.get_future_trading_times(
-    #         identifier, trading_date=trading_date)
-
-    # @staticmethod
-    # @server.tool()
-    # @ApiHelper.handle_result
-    # def get_market_scanner_tags(market: str = Market.US.value,
-    #                             tag_fields: Optional[list[str]] = None) -> Any:
-    #     """
-    #     Get market scanner tags
-    #     获取选股器标签
-
-    #     :param market: Market. 市场. US/HK/CN
-    #     :param tag_fields: List of multi tag fields. 多标签字段列表。例如: ["Concept", "Industry"]
-    #     :return: Market scanner tags
-    #     """
-    #     from tigeropen.common.consts.filter_fields import MultiTagField
-
-    #     multi_tag_fields = None
-    #     if tag_fields:
-    #         multi_tag_fields = []
-    #         for field_name in tag_fields:
-    #             field = getattr(MultiTagField, field_name, None)
-    #             if field:
-    #                 multi_tag_fields.append(field)
-
-    #     return QuoteApi.quote_client.get_market_scanner_tags(
-    #         market=market, tag_fields=multi_tag_fields)
-
 
 class TradeApi:
     """交易API类
@@ -866,7 +792,7 @@ class TradeApi:
     ) -> Any:
         """
         Get estimate tradable quantity
-        获取可交易数量
+        获取可交易数量. 参数构造与下单一致.
         """
         order = TradeApi._prepare_order(
             action=action,
