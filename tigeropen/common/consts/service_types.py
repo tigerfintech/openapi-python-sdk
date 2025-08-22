@@ -100,6 +100,7 @@ FUTURE_KLINE = "future_kline"
 FUTURE_REAL_TIME_QUOTE = "future_real_time_quote"
 FUTURE_TICK = "future_tick"
 FUTURE_TRADING_DATE = "future_trading_date"
+FUTURE_DEPTH = "future_depth"
 
 # 基金行情
 FUND_ALL_SYMBOLS = "fund_all_symbols"

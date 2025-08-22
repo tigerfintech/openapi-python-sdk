@@ -15,10 +15,19 @@ from jproperties import Properties
 from pytz import timezone
 from tigeropen import __VERSION__
 from tigeropen.common.consts import Language, ServiceType, License
+from tigeropen.common.consts.params import ACCOUNT, LICENSE, PRIVATE_KEY, TIGER_ID, ENV, DATA, TOKEN, SECRET_KEY
 from tigeropen.common.util.account_util import AccountUtil
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.util.signature_utils import read_private_key
 from tigeropen.common.util.web_utils import do_get
+
+# 环境变量前缀
+ENV_PREFIX = 'TIGEROPEN_'
+TIGEROPEN_TIGER_ID = ENV_PREFIX + 'TIGER_ID'
+TIGEROPEN_ACCOUNT = ENV_PREFIX + 'ACCOUNT'
+TIGEROPEN_SECRET_KEY = ENV_PREFIX + 'SECRET_KEY'
+TIGEROPEN_PRIVATE_KEY = ENV_PREFIX + 'PRIVATE_KEY'
+TIGEROPEN_PROPS_PATH = ENV_PREFIX + 'PROPS_PATH'
 
 DEFAULT_DOMAIN = 'openapi.tigerfintech.com'
 DEFAULT_US_DOMAIN = 'openapi.tradeup.com'
@@ -73,7 +82,7 @@ except ImportError:
 
 
 class TigerOpenClientConfig:
-    def __init__(self, sandbox_debug=None, enable_dynamic_domain=True, props_path='.'):
+    def __init__(self, sandbox_debug=None, enable_dynamic_domain=True, props_path=None):
         # 开发者应用id
         self._tiger_id = ''
         # 授权账户
@@ -108,15 +117,24 @@ class TigerOpenClientConfig:
         self._socket_host_port = SOCKET_HOST_PORT
 
         self._device_id = self.__get_device_id()
+        self._token = None
 
         self.log_level = None
         self.log_path = None
         self.retry_max_time = 60
         self.retry_max_tries = 5
-        self.props_path = props_path
+        
         # token 刷新间隔周期， 单位秒
         self._token_refresh_duration = TOKEN_REFRESH_DURATION
         self.token_check_interval = TOKEN_CHECK_INTERVAL
+
+        self.props_path = None
+        # 优先从环境变量加载配置
+        self._load_env_vars()
+        if not self.props_path and props_path:
+            self.props_path = props_path
+        if not self.props_path:
+            self.props_path = '.'
         self._load_props()
         self._token = self.load_token()
 
@@ -124,18 +142,13 @@ class TigerOpenClientConfig:
         self.enable_dynamic_domain = enable_dynamic_domain
         if self._sandbox_debug:
             raise NotImplementedError('Sandbox debug mode is deprecated, please set to False')
-            # self._tiger_public_key = SANDBOX_TIGER_PUBLIC_KEY
-            # self._server_url = SANDBOX_SERVER_URL
-            # self._quote_server_url = SANDBOX_SERVER_URL
-            # self._socket_host_port = SANDBOX_SOCKET_HOST_PORT
-        if self.enable_dynamic_domain:
-            self.domain_conf = self.query_domains()
-            self.refresh_server_info()
-        elif self.is_us():
+        if self.is_us():
             self.server_url = US_SERVER_URL
             self.quote_server_url = US_SERVER_URL
             self.socket_host_port = US_SOCKET_HOST_PORT
-
+        if self.enable_dynamic_domain:
+            self.domain_conf = self.query_domains()
+            self.refresh_server_info()
         self.inited = False
 
     @property
@@ -290,7 +303,7 @@ class TigerOpenClientConfig:
         device_id = None
         try:
             device_id = get_mac_address()
-        except:
+        except Exception:
             pass
         if not device_id:
             device_id = fallback_get_mac_address()
@@ -306,7 +319,37 @@ class TigerOpenClientConfig:
             return full_path
         return None
 
+    def _load_env_vars(self):
+        """
+        从环境变量加载配置
+        """
+        # 读取 props_path
+        if os.environ.get(TIGEROPEN_PROPS_PATH):
+            self.props_path = os.environ.get(TIGEROPEN_PROPS_PATH)
+
+        # 读取核心配置
+        if not self.tiger_id and os.environ.get(TIGEROPEN_TIGER_ID):
+            self.tiger_id = os.environ.get(TIGEROPEN_TIGER_ID)
+
+        if not self.private_key and os.environ.get(TIGEROPEN_PRIVATE_KEY):
+            private_key_content = os.environ.get(TIGEROPEN_PRIVATE_KEY)
+            # 检查是否是文件路径
+            if os.path.exists(private_key_content):
+                self.private_key = read_private_key(private_key_content)
+            else:
+                self.private_key = private_key_content
+
+        if not self.account and os.environ.get(TIGEROPEN_ACCOUNT):
+            self.account = os.environ.get(TIGEROPEN_ACCOUNT)
+
+        if not self.secret_key and os.environ.get(TIGEROPEN_SECRET_KEY):
+            self.secret_key = os.environ.get(TIGEROPEN_SECRET_KEY)
+
     def _load_props(self):
+        """
+        从配置文件读取配置
+        """
+        # 从配置文件读取剩余配置或未在环境变量中指定的配置
         full_path = self._get_props_path(DEFAULT_PROPS_FILE)
         if full_path and os.path.exists(full_path):
             try:
@@ -314,16 +357,22 @@ class TigerOpenClientConfig:
                 with open(full_path, "rb") as f:
                     p.load(f, "utf-8")
                     if not self.tiger_id:
-                        self.tiger_id = getattr(p.get('tiger_id'), 'data', '')
+                        self.tiger_id = getattr(p.get(TIGER_ID), DATA, '')
                     if not self.private_key:
-                        self.private_key = getattr(p.get('private_key_pk1'), 'data', '')
+                        self.private_key = getattr(p.get(f'{PRIVATE_KEY}_pk1'), DATA, '')
+                        if not self.private_key:
+                            self.private_key = getattr(p.get(f'{PRIVATE_KEY}_pk8'), DATA, '')
                     if not self.account:
-                        self.account = getattr(p.get('account'), 'data', '')
+                        self.account = getattr(p.get(ACCOUNT), DATA, '')
                     if not self.license:
-                        self.license = getattr(p.get('license'), 'data', '')
+                        self.license = getattr(p.get(LICENSE), DATA, '')
                     if not self._sandbox_debug:
-                        is_sandbox_env = getattr(p.get('env'), 'data', '').upper() == 'SANDBOX'
+                        is_sandbox_env = getattr(p.get(ENV), DATA, '').upper() == 'SANDBOX'
                         self._sandbox_debug = is_sandbox_env
+                    if not self.secret_key:
+                        self.secret_key = getattr(p.get(SECRET_KEY), DATA, '')
+                    if not self._token:
+                        self._token = getattr(p.get(TOKEN), DATA, '')
             except Exception as e:
                 logging.error(e, exc_info=True)
 
@@ -337,7 +386,7 @@ class TigerOpenClientConfig:
                 p = Properties()
                 with open(full_path, "rb") as f:
                     p.load(f, "utf-8")
-                    return getattr(p.get('token'), 'data', '')
+                    return getattr(p.get(TOKEN), DATA, '')
             except Exception as e:
                 logging.error(e, exc_info=True)
 
@@ -424,7 +473,7 @@ class TigerOpenClientConfig:
                     conf = item.get('openapi-sandbox', dict()) if self._sandbox_debug else item.get('openapi', dict())
                     if conf:
                         return conf
-        except:
+        except Exception:
             pass
 
     def _get_domain_by_type(self, service_type, license, is_paper=False):
@@ -477,7 +526,16 @@ def get_client_config(private_key_path=None, tiger_id=None, account=None, sandbo
     :param enable_dynamic_domain: 是否初始化时拉取服务域名
     :param timezone:
     :param license: account license, like TBSG/TBNZ
+    :param props_path: 配置文件路径, 可以是文件夹路径或文件路径. 优先级: 参数值 > 环境变量TIGEROPEN_PROPS_PATH > 默认值'.'
     :return:
+    
+    注意: 配置的优先级为：参数值 > 环境变量 > 配置文件
+    可使用的环境变量包括：
+    - TIGEROPEN_TIGER_ID: 开发者应用ID
+    - TIGEROPEN_ACCOUNT: 授权账户
+    - TIGEROPEN_PRIVATE_KEY: 私钥内容或私钥文件路径
+    - TIGEROPEN_SECRET_KEY: 机构交易员专有密钥
+    - TIGEROPEN_PROPS_PATH: 配置文件路径
     """
     config = TigerOpenClientConfig(sandbox_debug=sandbox_debug, enable_dynamic_domain=enable_dynamic_domain,
                                    props_path=props_path)
