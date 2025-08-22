@@ -21,7 +21,7 @@ setup(
     long_description_content_type='text/markdown',
     packages=find_packages(exclude=["tests"]),
     author='TigerBrokers',
-    author_email='openapi@tigerbrokers.com',
+    author_email='openapi@itiger.com',
     license='Apache License v2',
     package_data={'': ['*.*']},
     url='https://github.com/tigerbrokers/openapi-python-sdk',
@@ -37,5 +37,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
     ],
 )
