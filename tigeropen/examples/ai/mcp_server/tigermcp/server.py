@@ -6,11 +6,10 @@ from datetime import datetime
 from typing import Optional, Any, Union
 
 import pandas as pd
-from docutils.nodes import description
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
-from tigeropen.common.consts import Market, SecurityType, Currency, BarPeriod, QuoteRight, \
+from tigeropen.common.consts import Market, SecurityType, Currency, QuoteRight, \
     OrderType
 from tigeropen.common.consts import SortDirection
 from tigeropen.common.consts.filter_fields import (
@@ -28,6 +27,10 @@ from tigeropen.quote.domain.filter import StockFilter, SortFilterData, ScannerRe
 from tigeropen.quote.quote_client import QuoteClient
 from tigeropen.tiger_open_config import TigerOpenClientConfig
 from tigeropen.trade.trade_client import TradeClient
+
+from tigeropen import __VERSION__ as TIGEROPEN_SDK_VERSION
+from tigermcp.version import __VERSION__ as TIGERMCP_VERSION
+
 
 _client_config = TigerOpenClientConfig()
 
@@ -83,6 +86,13 @@ class ApiHelper:
 def hello() -> Any:
     return {"message": "TigerOpen MCP Server is running!"}
 
+@server.tool(title="mcp server info", description=f"MCP Server Version: {TIGERMCP_VERSION}, Tigeropen Version: {TIGEROPEN_SDK_VERSION}, Read Only Mode: {_read_only_mode}")
+def server_info() -> Any:
+    return {
+        "mcp_version": TIGERMCP_VERSION,
+        "sdk_version": TIGEROPEN_SDK_VERSION,
+        "read_only_mode": _read_only_mode
+    }
 
 class QuoteApi:
     quote_client = QuoteClient(_client_config)
@@ -248,13 +258,13 @@ class QuoteApi:
                     period_str = filter_item.get('accumulate_period')
                     accumulate_period = getattr(
                         AccumulatePeriod, period_str) if hasattr(
-                            AccumulatePeriod, period_str) else None
+                        AccumulatePeriod, period_str) else None
 
                 elif field_type == 'FinancialField' and 'financial_period' in filter_item:
                     period_str = filter_item.get('financial_period')
                     financial_period = getattr(
                         FinancialPeriod, period_str) if hasattr(
-                            FinancialPeriod, period_str) else None
+                        FinancialPeriod, period_str) else None
 
                 elif field_type == 'MultiTagField' and 'tag_list' in filter_item:
                     tag_list = filter_item.get('tag_list')
@@ -311,17 +321,17 @@ class QuoteApi:
     @server.tool()
     @ApiHelper.handle_result
     def get_realtime_quote(
-        symbols: list[str],
-        sec_type: Union[SecurityType,
-                        str] = Field(...,
-                                     description="Security type. STK/OPT/FUT",
-                                     pattern=r'^(STK|OPT|FUT)$'),
-        include_hour_trading: bool = False,
-        market: Optional[str] = Field(None, description="Market. US/HK"),
-        timezone: Optional[str] = Field(
-            None,
-            description=
-            "Timezone of Options expiry, US/Easter or Asia/Hone_Kong")
+            symbols: list[str] = Field(..., description="List of symbols. e.g. Stock: 'AAPL', '00700'; Option: 'AAPL  250829C00150000', 'TCH.HK 230616C00550000'; Future: 'CL2509'"),
+            sec_type: Union[SecurityType,
+            str] = Field(...,
+                         description="Security type. STK/OPT/FUT",
+                         pattern=r'^(STK|OPT|FUT)$'),
+            include_hour_trading: bool = False,
+            market: Optional[str] = Field(None, description="Market. US/HK"),
+            timezone: Optional[str] = Field(
+                None,
+                description=
+                "Timezone of Options expiry, US/Easter or Asia/Hone_Kong")
     ) -> Any:
         """
         Get realtime quotes
@@ -329,8 +339,8 @@ class QuoteApi:
         """
         # check sec_type
         if sec_type.upper() not in [
-                SecurityType.STK.value, SecurityType.OPT.value,
-                SecurityType.FUT.value
+            SecurityType.STK.value, SecurityType.OPT.value,
+            SecurityType.FUT.value
         ]:
             raise ValueError(
                 f"Invalid security type: {sec_type}, must be one of {SecurityType.STK.value}, {SecurityType.OPT.value}, {SecurityType.FUT.value}"
@@ -352,14 +362,20 @@ class QuoteApi:
     @staticmethod
     @server.tool()
     @ApiHelper.handle_result
-    def get_depth_quote(symbols: Union[str, list[str]],
-                        sec_type: Union[SecurityType, str],
-                        market: Union[Market, str],
+    def get_depth_quote(symbols: Union[str, list[str]] = Field(..., description="List of symbols. e.g. Stock: 'AAPL', '00700'; US Option: 'AAPL  250829C00150000', HK Option: 'TCH.HK 230616C00550000'"),
+                        sec_type: Union[SecurityType, str] = Field(..., description="Security type. STK/OPT. All symbols must be in the same sec_type", pattern=r'^(STK|OPT)$'),
+                        market: Union[Market, str] = Field(..., description="Market. US/HK, All symbols must be in the same market.", pattern=r'^(US|HK)$'),
                         timezone: Optional[str] = None) -> Any:
         """
         Get depth quotes (order book)
         获取深度行情
         """
+        if sec_type.upper() not in [
+            SecurityType.STK.value, SecurityType.OPT.value
+        ]:
+            raise ValueError(
+                f"Invalid security type: {sec_type}, must be one of {SecurityType.STK.value}, {SecurityType.OPT.value}"
+            )
         if SecurityType.OPT.value == sec_type.upper():
             return QuoteApi.quote_client.get_option_depth(identifiers=symbols,
                                                           market=market,
@@ -370,17 +386,24 @@ class QuoteApi:
     @staticmethod
     @server.tool()
     @ApiHelper.handle_result
-    def get_trade_ticks(symbols: Union[str, list[str]],
-                        sec_type: Union[SecurityType, str],
+    def get_trade_ticks(symbols: Union[str, list[str]] = Field(..., description="List of symbols. e.g. Stock: 'AAPL', '00700'; US Option: 'AAPL  250829C00150000'; HK Option: 'TCH.HK 230616C00550000'; Future: 'CL2509'"),
+                        sec_type: Union[SecurityType, str] = Field(..., description="Security type. STK/OPT/FUT", pattern=r'^(STK|OPT|FUT)$'),
                         trade_session: Optional[str] = None,
                         begin_index: Optional[int] = None,
                         end_index: Optional[int] = None,
                         limit: Optional[int] = None,
-                        timezone: Optional[str] = None) -> Any:
+                        timezone: Optional[str] = Field(None, description="Timezone, US/Eastern or Asia/Hong_Kong")) -> Any:
         """
         Get trade ticks (detailed transaction data).
         获取逐笔成交数据
         """
+        if sec_type.upper() not in [
+            SecurityType.STK.value, SecurityType.OPT.value,
+            SecurityType.FUT.value
+        ]:
+            raise ValueError(
+                f"Invalid security type: {sec_type}, must be one of {SecurityType.STK.value}, {SecurityType.OPT.value}, {SecurityType.FUT.value}"
+            )
         if SecurityType.OPT.value == sec_type.upper():
             return QuoteApi.quote_client.get_option_trade_ticks(
                 identifiers=symbols, timezone=timezone)
@@ -400,16 +423,17 @@ class QuoteApi:
     @staticmethod
     @server.tool()
     @ApiHelper.handle_result
-    def get_bars(symbols: Union[str, list[str]],
-                 sec_type: Union[SecurityType, str],
-                 period: str = Field(None, description="Bar period. K线周期. Available values: day/week/month/year/1min/3min/5min/10min/15min/30min/60min",
-                                     pattern= r'^(day|week|month|year|1min|3min|5min|10min|15min|30min|60min)$'),
+    def get_bars(symbols: Union[str, list[str]] = Field(..., description="List of symbols. e.g. Stock: 'AAPL', '00700'; US Option: 'AAPL  250829C00150000'; HK Option: 'TCH.HK 230616C00550000'; Future: 'CL2509'"),
+                 sec_type: Union[SecurityType, str] = Field(..., description="Security type. STK/OPT/FUT. All symbols must be in the same sec_type", pattern=r'^(STK|OPT|FUT)$'),
+                 period: str = Field(None,
+                                     description="Bar period. K线周期. Available values: day/week/month/year/1min/3min/5min/10min/15min/30min/60min",
+                                     pattern=r'^(day|week|month|year|1min|3min|5min|10min|15min|30min|60min)$'),
                  limit: Optional[int] = 251,
                  right: str = QuoteRight.BR.value,
-                 begin_time: Union[int, str] = -1,
-                 end_time: Union[int, str] = -1,
+                 begin_time: Union[int, str] = Field(-1, description="Begin time date string 'YYYY-MM-DD HH:MM:SS' or timestamp in milliseconds. 开始时间"),
+                 end_time: Union[int, str] = Field(-1, description="End time date string 'YYYY-MM-DD HH:MM:SS' or timestamp in milliseconds. 结束时间"),
                  trade_session: Optional[str] = None,
-                 market: Optional[str] = None,
+                 market: Optional[str] = Field(None, description="Market. US/HK. All symbols must be in the same market."),
                  timezone: Optional[str] = None) -> Any:
         """
         Get k-line data
@@ -427,6 +451,13 @@ class QuoteApi:
                         HALF_HOUR = '30min'  # 30分钟
                         ONE_HOUR = '60min'  # 60分钟
         """
+        if sec_type.upper() not in [
+            SecurityType.STK.value, SecurityType.OPT.value,
+            SecurityType.FUT.value
+        ]:
+            raise ValueError(
+                f"Invalid security type: {sec_type}, must be one of {SecurityType.STK.value}, {SecurityType.OPT.value}, {SecurityType.FUT.value}"
+            )
         # check symbols
         symbols = symbols if isinstance(symbols, list) else [symbols]
         option_count = 0
@@ -438,7 +469,7 @@ class QuoteApi:
         elif option_count > 0:
             return {
                 "error":
-                "Mixing Options and Stocks in symbols is not supported. Please separate them."
+                    "Mixing Options and Stocks in symbols is not supported. Please separate them."
             }
 
         if sec_type.upper() == "OPT":
@@ -477,12 +508,12 @@ class QuoteApi:
     @staticmethod
     @server.tool()
     @ApiHelper.handle_result
-    def get_timeline(symbols: Union[str, list[str]],
-                     sec_type: Union[SecurityType, str],
-                     begin_time: Union[int, str] = -1,
-                     trade_session: Optional[str] = None,
-                     market: Optional[str] = None,
-                     timezone: Optional[str] = None,
+    def get_timeline(symbols: Union[str, list[str]] = Field(..., description="List of symbols. e.g. Stock: 'AAPL', '00700'; US Option: 'AAPL  250829C00150000'; HK Option: 'TCH.HK 230616C00550000'; Future: 'CL2509'"),
+                     sec_type: Union[SecurityType, str] = Field(..., description="Security type. STK/OPT/FUT", pattern=r'^(STK|OPT|FUT)$'),
+                     begin_time: Union[int, str] = Field(-1, description="Begin time date string 'YYYY-MM-DD HH:MM:SS' or timestamp in milliseconds. 开始时间"),
+                     trade_session: Optional[str] = Field(None, description="Trade session. Available values: PreMarket/Regular/AfterHours/OverNight"),
+                     market: Optional[str] = Field(None, description="Market. Available US/HK. All symbols must be in the same market."),
+                     timezone: Optional[str] = Field(None, description="Timezone of Options expiry, US/Easter or Asia/Hone_Kong. All symbols must be in the same timezone."),
                      include_hour_trading: bool = False,
                      date: Optional[str] = None,
                      right: str = QuoteRight.BR.value) -> Any:
@@ -490,6 +521,12 @@ class QuoteApi:
         Get timeline data
         获取分时数据
         """
+        if sec_type.upper() not in [
+            SecurityType.STK.value, SecurityType.OPT.value
+        ]:
+            raise ValueError(
+                f"Invalid security type: {sec_type}, must be one of {SecurityType.STK.value}, {SecurityType.OPT.value}"
+            )
         # 根据合约类型选择不同的API调用
         if sec_type.upper() == "OPT":
             return QuoteApi.quote_client.get_option_timeline(
@@ -554,31 +591,12 @@ class QuoteApi:
                                                       limit=limit,
                                                       lang=lang)
 
-    @staticmethod
-    @server.tool()
-    @ApiHelper.handle_result
-    def get_broker_hold(market: str = Market.HK.value,
-                        order_by: str = 'marketValue',
-                        direction: str = SortDirection.DESC.value,
-                        limit: int = 50,
-                        page: int = 0,
-                        lang: Optional[str] = None) -> Any:
-        """
-        Get broker hold data
-        获取经纪商持仓数据
-        """
-
-        return QuoteApi.quote_client.get_broker_hold(market=market,
-                                                     order_by=order_by,
-                                                     direction=direction,
-                                                     limit=limit,
-                                                     page=page,
-                                                     lang=lang)
 
     @staticmethod
     @server.tool(description='Get option expiration dates')
     @ApiHelper.handle_result
-    def get_option_expirations(symbols: list[str],
+    def get_option_expirations(symbols: list[str] = Field(..., description="List of option underlying symbols. e.g. US Option: 'AAPL'; HK Option: 'TCH.HK'."
+                                                                           "if symbol in \\d{5} then need to call get_hk_option_symbols first to convert format (e.g., 00700 = TCH.HK)"),
                                market: Optional[str] = None) -> Any:
         """
         Get option expiration dates
@@ -596,20 +614,20 @@ class QuoteApi:
     @server.tool(description='Get option chain data')
     @ApiHelper.handle_result
     def get_option_chain(
-        symbol: str,
-        expiry: Union[str, int] = Field(
-            ...,
-            description=
-            "Expiration date in 'YYYY-MM-DD' format or timestamp in milliseconds. e.g. 2021-06-18 or 1560484800000"
-        ),
-        option_filter: Optional[dict] = None,
-        return_greek_value: Optional[bool] = None,
-        market: Optional[str] = None,
-        timezone: Optional[str] = Field(
-            ...,
-            description=
-            "Timezone for the option chain data, if symbol in \d{5} then timezone is Asia/Hong_Kong"
-        )
+            symbol: str = Field(..., description="Option underlying symbol. e.g. US Option: 'AAPL'; HK Option: 'TCH.HK'. if symbol in \\d{5} like 00700, then need to call get_hk_option_symbols first to convert format (e.g., 00700 = TCH.HK)"),
+            expiry: Union[str, int] = Field(
+                ...,
+                description=
+                "Expiration date in 'YYYY-MM-DD' format or timestamp in milliseconds. e.g. 2021-06-18 or 1560484800000"
+            ),
+            option_filter: Optional[dict] = None,
+            return_greek_value: Optional[bool] = None,
+            market: Optional[str] = None,
+            timezone: Optional[str] = Field(
+                ...,
+                description=
+                "Timezone for the option chain data, if symbol in \d{5} then timezone is Asia/Hong_Kong"
+            )
     ) -> Any:
         """
         Get option chain data
@@ -746,7 +764,7 @@ class TradeApi:
             if not all([symbol, expiry, strike, put_call]):
                 return {
                     "error":
-                    'Missing required fields for option contract: symbol, expiry, strike, put_call'
+                        'Missing required fields for option contract: symbol, expiry, strike, put_call'
                 }
             if put_call.upper() in ['C', 'CALL']:
                 put_call = 'CALL'
@@ -767,29 +785,29 @@ class TradeApi:
     @server.tool(description="Get estimated tradable quantity")
     @ApiHelper.handle_result
     def get_estimate_tradable_quantity(action: str,
-                    order_type: str,
-                    quantity: int,
-                    sec_type: Union[SecurityType, str],
-                    symbol: Optional[str] = None,
-                    currency: Optional[str] = Currency.USD.value,
-                    limit_price: Optional[float] = None,
-                    time_in_force: Optional[str] = None,
-                    outside_rth: Optional[bool] = None,
-                    aux_price: Optional[float] = None,
-                    trailing_percent: Optional[float] = None,
-                    expire_time: Optional[str] = None,
-                    user_mark: Optional[str] = None,
-                    combo_type: Optional[str] = None,
-                    contract_legs: Optional[list[dict]] = None,
-                    expiry: Optional[str] = None,
-                    strike: Optional[float] = None,
-                    put_call: Optional[str] = None,
-                    trading_session_type: Optional[str] = None,
-                    start_time: Optional[int] = None,
-                    end_time: Optional[int] = None,
-                    seg_type: Optional[str] = None
+                                       order_type: str,
+                                       quantity: int,
+                                       sec_type: Union[SecurityType, str],
+                                       symbol: Optional[str] = None,
+                                       currency: Optional[str] = Currency.USD.value,
+                                       limit_price: Optional[float] = None,
+                                       time_in_force: Optional[str] = None,
+                                       outside_rth: Optional[bool] = None,
+                                       aux_price: Optional[float] = None,
+                                       trailing_percent: Optional[float] = None,
+                                       expire_time: Optional[str] = None,
+                                       user_mark: Optional[str] = None,
+                                       combo_type: Optional[str] = None,
+                                       contract_legs: Optional[list[dict]] = None,
+                                       expiry: Optional[str] = None,
+                                       strike: Optional[float] = None,
+                                       put_call: Optional[str] = None,
+                                       trading_session_type: Optional[str] = None,
+                                       start_time: Optional[int] = None,
+                                       end_time: Optional[int] = None,
+                                       seg_type: Optional[str] = None
 
-    ) -> Any:
+                                       ) -> Any:
         """
         Get estimate tradable quantity
         获取可交易数量. 参数构造与下单一致.
@@ -819,15 +837,14 @@ class TradeApi:
         )
         return TradeApi.trade_client.get_estimate_tradable_quantity(order=order, seg_type=seg_type)
 
-
     @staticmethod
-    @server.tool()
+    @server.tool(description="Place order 下单")
     @ApiHelper.handle_result
-    def place_order(action: str,
-                    order_type: str,
-                    quantity: int,
-                    sec_type: Union[SecurityType, str],
-                    symbol: Optional[str] = None,
+    def place_order(action: str = Field(..., description="Order action. BUY/SELL", pattern=r'^(BUY|SELL)$'),
+                    order_type: str = Field(..., description="Order type. MKT/LMT/STP/STP_LMT", pattern=r'^(MKT|LMT|STP|STP_LMT)$'),
+                    quantity: int = Field(..., description="Order quantity. Must be a positive integer.", gt=0),
+                    sec_type: Union[SecurityType, str] = Field(..., description="Security type. STK/OPT/FUT", pattern=r'^(STK|OPT|FUT)$'),
+                    symbol: Optional[str] = Field(None, description="Contract symbol. e.g. 'AAPL', '00700', 'CL2509'. If sec_type is OPT, expiry/strike/put_call also must be provided."),
                     currency: Optional[str] = Currency.USD.value,
                     limit_price: Optional[float] = None,
                     time_in_force: Optional[str] = None,
@@ -838,9 +855,9 @@ class TradeApi:
                     user_mark: Optional[str] = None,
                     combo_type: Optional[str] = None,
                     contract_legs: Optional[list[dict]] = None,
-                    expiry: Optional[str] = None,
-                    strike: Optional[float] = None,
-                    put_call: Optional[str] = None,
+                    expiry: Optional[str] = Field(None, description="Option expiry date in 'YYYYMMDD' format, like '20250826'. If sec_type is OPT, this field must be provided.", pattern=r'^\d{4}\d{2}\d{2}$'),
+                    strike: Optional[float] = Field(None, description="Option strike price. If sec_type is OPT, this field must be provided."),
+                    put_call: Optional[str] = Field(None, description="PUT/CALL. If sec_type is OPT, this field must be provided."),
                     trading_session_type: Optional[str] = None,
                     start_time: Optional[int] = None,
                     end_time: Optional[int] = None) -> Any:
@@ -892,15 +909,15 @@ class TradeApi:
     @server.tool()
     @ApiHelper.handle_result
     def modify_order(
-        id: str,
-        quantity: Optional[Union[int, float]] = None,
-        limit_price: Optional[float] = None,
-        aux_price: Optional[float] = None,
-        trailing_percent: Optional[float] = None,
-        time_in_force: Optional[str] = None,
-        outside_rth: Optional[bool] = None,
-        expire_time: Optional[str] = None,
-        user_mark: Optional[str] = None,
+            id: str,
+            quantity: Optional[Union[int, float]] = None,
+            limit_price: Optional[float] = None,
+            aux_price: Optional[float] = None,
+            trailing_percent: Optional[float] = None,
+            time_in_force: Optional[str] = None,
+            outside_rth: Optional[bool] = None,
+            expire_time: Optional[str] = None,
+            user_mark: Optional[str] = None,
     ) -> Any:
         """
         Modify order
@@ -942,30 +959,30 @@ class TradeApi:
         )
 
     @staticmethod
-    @server.tool()
+    @server.tool(description="Preview order 预览订单")
     @ApiHelper.handle_result
     def preview_order(
-        action: str,
-        order_type: str,
-        quantity: int,
-        sec_type: Union[SecurityType, str],
-        symbol: Optional[str] = None,
-        currency: Optional[str] = Currency.USD.value,
-        limit_price: Optional[float] = None,
-        time_in_force: Optional[str] = None,
-        outside_rth: Optional[bool] = None,
-        aux_price: Optional[float] = None,
-        trailing_percent: Optional[float] = None,
-        expire_time: Optional[str] = None,
-        user_mark: Optional[str] = None,
-        combo_type: Optional[str] = None,
-        contract_legs: Optional[list[dict]] = None,
-        expiry: Optional[str] = None,
-        strike: Optional[float] = None,
-        put_call: Optional[str] = None,
-        trading_session_type: Optional[str] = None,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
+            action: str,
+            order_type: str,
+            quantity: int,
+            sec_type: Union[SecurityType, str],
+            symbol: Optional[str] = None,
+            currency: Optional[str] = Currency.USD.value,
+            limit_price: Optional[float] = None,
+            time_in_force: Optional[str] = None,
+            outside_rth: Optional[bool] = None,
+            aux_price: Optional[float] = None,
+            trailing_percent: Optional[float] = None,
+            expire_time: Optional[str] = None,
+            user_mark: Optional[str] = None,
+            combo_type: Optional[str] = None,
+            contract_legs: Optional[list[dict]] = None,
+            expiry: Optional[str] = None,
+            strike: Optional[float] = None,
+            put_call: Optional[str] = None,
+            trading_session_type: Optional[str] = None,
+            start_time: Optional[int] = None,
+            end_time: Optional[int] = None,
     ) -> Any:
         """
         Preview order
@@ -1003,16 +1020,18 @@ class TradeApi:
         return preview_result
 
     @staticmethod
-    @server.tool()
+    @server.tool(description="Get orders 订单列表")
     @ApiHelper.handle_result
     def get_orders(symbol: Optional[str] = None,
-                   sec_type: Optional[str] = None,
+                   sec_type: Optional[str] = Field(None,
+                                                   description="Security type filter, available values are: STK 股票/OPT 期权/FUT 期货"),
                    market: str = Market.ALL.value,
                    start_time: Optional[str] = None,
                    end_time: Optional[str] = None,
                    limit: int = 100,
                    is_brief: bool = False,
-                   states: Optional[list[str]] = Field(None, description="Order status filter, available values are: Filled 已成交/Cancelled 已取消/Submitted 已提交,未成交")) -> Any:
+                   states: Optional[list[str]] = Field(None,
+                                                       description="Order status filter, available values are: Filled 已成交/Cancelled 已取消/Submitted 已提交,未成交")) -> Any:
         """
         Get orders
         获取订单列表
@@ -1027,9 +1046,9 @@ class TradeApi:
                                                 states=states)
 
     @staticmethod
-    @server.tool()
+    @server.tool(description="Get order 订单详情")
     @ApiHelper.handle_result
-    def get_order(id: str) -> Any:
+    def get_order(id: str = Field(..., description='Order.id, a multi bit number, like 38000878710423552')) -> Any:
         """
         Get order
         获取订单详情
@@ -1047,7 +1066,7 @@ class TradeApi:
     @staticmethod
     @server.tool()
     @ApiHelper.handle_result
-    def cancel_order(id: str) -> Any:
+    def cancel_order(id: str = Field(..., description='Order.id, like 38000878710423552')) -> Any:
         """
         Cancel order
         撤销订单
@@ -1070,20 +1089,20 @@ class TradeApi:
     @server.tool(description="Get transactions 订单成交记录")
     @ApiHelper.handle_result
     def get_transactions(
-        order_id: Optional[str] = None,
-        symbol: Optional[str] = None,
-        sec_type: Optional[Union[SecurityType, str]] = None,
-        start_time: Optional[int] = Field(
-            ..., description="Start time in milliseconds"),
-        end_time: Optional[int] = Field(
-            ..., description="End time in milliseconds"),
-        expiry: Optional[str] = None,
-        strike: Optional[float] = None,
-        put_call: Optional[str] = None,
-        max_items: int = Field(
-            0,
-            description=
-            "Maximum number of items to return. 0 means all available items"),
+            order_id: Optional[str] = None,
+            symbol: Optional[str] = None,
+            sec_type: Optional[Union[SecurityType, str]] = None,
+            start_time: Optional[int] = Field(
+                ..., description="Start time in milliseconds"),
+            end_time: Optional[int] = Field(
+                ..., description="End time in milliseconds"),
+            expiry: Optional[str] = None,
+            strike: Optional[float] = None,
+            put_call: Optional[str] = None,
+            max_items: int = Field(
+                0,
+                description=
+                "Maximum number of items to return. 0 means all available items"),
     ) -> Any:
         """
         Get transactions
@@ -1190,7 +1209,7 @@ class TradeApi:
             if not all([symbol, expiry, strike, put_call]):
                 return {
                     "error":
-                    'Missing required fields for option contract: symbol, expiry, strike, put_call'
+                        'Missing required fields for option contract: symbol, expiry, strike, put_call'
                 }
             if put_call.upper() in ['C', 'CALL']:
                 put_call = 'CALL'
@@ -1287,7 +1306,7 @@ class TradeApi:
             if 'start_time' not in kwargs or 'end_time' not in kwargs:
                 return {
                     "error":
-                    "TWAP and VWAP orders require start_time and end_time parameters"
+                        "TWAP and VWAP orders require start_time and end_time parameters"
                 }
 
             algo_params = algo_order_params(
