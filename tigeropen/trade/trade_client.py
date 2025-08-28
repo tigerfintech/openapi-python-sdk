@@ -143,7 +143,7 @@ class TradeClient(TigerOpenClient):
         :param sec_type: Security type. 合约类型. From tigeropen.common.consts.SecurityType (e.g., STK, OPT, FUT)
         :param currency: Currency. 币种. From tigeropen.common.consts.Currency (e.g., USD, HKD, CNH)
         :param exchange: Exchange. 交易所 (e.g., NASDAQ, SEHK, SSE)
-        :param expiry: Expiry date for futures/options (format: yyyyMMdd). 合约到期日(期货/期权)，格式：yyyyMMdd
+        :param expiry: Expiry date for Pptions (format: yyyyMMdd). 期权合约到期日，格式：yyyyMMdd
         :param strike: Strike price for options. 期权行权价
         :param put_call: Option type (CALL/PUT). 期权类型（看涨/看跌）
         :param lang: Language. 语言. Available options: zh_CN/zh_TW/en_US
@@ -1079,8 +1079,8 @@ class TradeClient(TigerOpenClient):
                          order_id: Optional[int]=None,
                          symbol: Optional[str]=None,
                          sec_type: Optional[Union[SecurityType, str]]=None,
-                         start_time: Optional[str]=None,
-                         end_time: Optional[str]=None,
+                         start_time: Optional[int]=None,
+                         end_time: Optional[int]=None,
                          limit: int=100,
                          expiry: Optional[str]=None,
                          strike: Optional[float]=None,
