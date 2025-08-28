@@ -53,10 +53,13 @@ class PositionsResponse(TigerResponse):
                     identifier = contract_fields.get('identifier')
                     market = contract_fields.get('market')
                     categories = contract_fields.get('categories')
+                    name = contract_fields.get('name')
+                    underlying_contract_name = contract_fields.get('underlying_contract_name')
                     contract = Contract(symbol, currency, contract_id=contract_id, sec_type=sec_type,
                                         exchange=exchange, origin_symbol=origin_symbol, local_symbol=local_symbol,
                                         expiry=expiry, strike=strike, put_call=put_call, multiplier=multiplier,
-                                        identifier=identifier, market=market, categories=categories)
+                                        identifier=identifier, market=market, categories=categories, name=name,
+                                        underlying_contract_name=underlying_contract_name)
                     position = Position(contract=contract, **position_fields)
                     self.positions.append(position)
 

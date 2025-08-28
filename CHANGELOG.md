@@ -1,3 +1,9 @@
+## 3.4.6 (2025-08-28)
+### New
+- `TradeClient.get_positions` 持仓合约增加字段 `name`, `underlying_contract_name`
+### Modify
+- MCP Server optimization
+
 ## 3.4.5 (2025-08-22)
 ### New
 - `QuoteClient.get_future_depth` 获取期货深度行情
