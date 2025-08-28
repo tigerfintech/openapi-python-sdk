@@ -24,7 +24,7 @@ setup(
     license='Apache License v2',
     python_requires=">=3.9",
     install_requires=[
-        "tigeropen>=3.4.5",
+        "tigeropen>=3.4.6",
         "mcp[cli]>=1.13.0",
     ],
     entry_points={
