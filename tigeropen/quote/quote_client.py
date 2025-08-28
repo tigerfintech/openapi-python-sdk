@@ -496,8 +496,8 @@ class QuoteClient(TigerOpenClient):
                      symbols: list[str],
                      include_hour_trading: bool = False,
                      begin_time: Optional[Union[int, str]] = -1,
-                     lang: Optional[Union[str, None]] = None,
-                     trade_session: Optional[Union[str, None]] = None,
+                     lang: Optional[Union[str, Language]] = None,
+                     trade_session: Optional[Union[str, TradingSession]] = None,
                      **kwargs) -> pd.DataFrame:
         """
         Get intraday timeline data. 获取当日分时数据，支持盘前盘后
@@ -1967,22 +1967,56 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_future_depth(self, identifiers: Union[str, list[str]],
-                         lang: Optional[Union[Language, str]] = None) -> pd.DataFrame:
+                         lang: Optional[Union[Language, str]] = None) -> dict:
         """
         Get future depth data. 获取期货深度数据
 
         :param identifiers: Future contract code list or a single contract code. 期货合约代码列表或单个合约代码
         :param lang: Language. 语言. Available options: zh_CN/zh_TW/en_US
-        :return: pandas.DataFrame. The columns are as follows:
-            identifier: Future contract code. 期货合约代码
-            ask_price: Ask price. 卖价
-            ask_size: Ask size. 卖量
-            bid_price: Bid price. 买价
-            bid_size: Bid size. 买量
+        :return:
+        if single identifier:
+        {
+            "identifier": "CL2509",
+            "asks": [
+                {"price": 63.07, "size": 10},
+                {"price": 63.08, "size": 5},
+                ...
+            ],
+            "bids": [
+                {"price": 63.06, "size": 7},
+                {"price": 63.05, "size": 12},
+                ...
+            ]
+        }
 
-        :return example:
-           identifier  ask_price  ask_size  bid_price  bid_size
-        0     ES2509     6469.5       11     6469.5       14
+        if multiple identifiers:
+        {
+            "CL2509": {
+                "asks": [
+                    {"price": 63.07, "size": 10},
+                    {"price": 63.08, "size": 5},
+                    ...
+                ],
+                "bids": [
+                    {"price": 63.06, "size": 7},
+                    {"price": 63.05, "size": 12},
+                    ...
+                ]
+            },
+            "ES2509": {
+                "asks": [
+                    {"price": 6469.5, "size": 11},
+                    {"price": 6469.75, "size": 14},
+                    ...
+                ],
+                "bids": [
+                    {"price": 6469.25, "size": 8},
+                    {"price": 6469.0, "size": 10},
+                    ...
+                ]
+            }
+        }
+
         """
         params = FutureQuoteParams()
         params.contract_codes = self._format_to_list(identifiers)
@@ -2710,7 +2744,7 @@ class QuoteClient(TigerOpenClient):
         params = BrokerHoldParams()
         params.market = get_enum_value(market)
         params.order_by = order_by
-        params.direction = get_enum_value(direction.name)
+        params.direction = get_enum_value(direction)
         params.limit = limit
         params.page = page
         params.lang = get_enum_value(lang) if lang else get_enum_value(

@@ -5,10 +5,11 @@ from setuptools import setup, find_packages
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
+from tigermcp.version import __VERSION__
 
 setup(
     name="tigermcp",
-    version="0.1.0",
+    version=__VERSION__,
     author='TigerBrokers',
     author_email='openapi@itiger.com',
     description="Tiger Broker API MCP Server",
@@ -23,7 +24,7 @@ setup(
     license='Apache License v2',
     python_requires=">=3.9",
     install_requires=[
-        "tigeropen>=3.4.5",
+        "tigeropen>=3.4.6",
         "mcp[cli]>=1.13.0",
     ],
     entry_points={

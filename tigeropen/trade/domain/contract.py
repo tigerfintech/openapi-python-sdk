@@ -92,6 +92,7 @@ class Contract:
         self.lot_size = kwargs.get('lot_size')
         self.support_overnight_trading = kwargs.get('support_overnight_trading')
         self.support_fractional_share =kwargs.get('support_fractional_share')
+        self.underlying_contract_name = kwargs.get('underlying_contract_name')
 
     @property
     def right(self):
