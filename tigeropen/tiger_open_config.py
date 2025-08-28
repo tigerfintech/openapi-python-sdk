@@ -150,6 +150,7 @@ class TigerOpenClientConfig:
             self.domain_conf = self.query_domains()
             self.refresh_server_info()
         self.inited = False
+        self._channel = ''
 
     @property
     def tiger_id(self):
