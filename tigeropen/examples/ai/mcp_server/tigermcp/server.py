@@ -92,188 +92,6 @@ class QuoteApi:
     quote_client = QuoteClient(_client_config)
 
     @staticmethod
-    @server.tool(description='Query the market data permissions the user has.')
-    @ApiHelper.handle_result
-    def get_quote_permissions() -> Any:
-        """
-        查询用户所拥有的行情权限
-        """
-        return QuoteApi.quote_client.get_quote_permission()
-
-    @staticmethod
-    @server.tool(description="Get the status of a market and its latest opening time.")
-    @ApiHelper.handle_result
-    def get_market_status(market: str = Market.ALL.value,
-                          lang: Optional[str] = None) -> Any:
-        """
-        获取指定市场的状态及最近开盘时间
-        """
-        status = QuoteApi.quote_client.get_market_status(market, lang=lang)
-        return status
-
-    @staticmethod
-    @server.tool(description='Get the market trading calendar since 2015, excluding temporary market closures.')
-    @ApiHelper.handle_result
-    def get_trading_calendar(
-            market: Market = Field(..., description="Market. 市场. US/HK/CN"),
-            begin_date: Optional[str] = Field(
-                None,
-                description="Start date in YYYY-MM-DD format, included. the year must be later than 2015. 开始日期",
-                pattern=r"^\d{4}-\d{2}-\d{2}$"),
-            end_date: Optional[str] = Field(
-                None,
-                description="End date in YYYY-MM-DD format, excluded, must later than begin_date. 结束日期",
-                pattern=r"^\d{4}-\d{2}-\d{2}$")) -> Any:
-        """
-        获取自 2015 年以来的市场交易日历（不含临时休市调整）
-        """
-        begin_dt = datetime.strptime(begin_date, '%Y-%m-%d') if begin_date else None
-        end_dt = datetime.strptime(end_date, '%Y-%m-%d') if end_date else None
-        if begin_dt and end_dt and begin_dt >= end_dt:
-            raise ValueError(
-                "end_date must be later than begin_date, if provided both."
-            )
-        return QuoteApi.quote_client.get_trading_calendar(
-            market, begin_date, end_date)
-
-    @staticmethod
-    @server.tool(description='Market scanner')
-    @ApiHelper.handle_result
-    def market_scanner(market: str = Field(..., description="Market. 市场. US/HK", pattern=r'^(US|HK)$'),
-                       filters: Optional[list[dict]] = Field(None,
-                                                             description="List of filter conditions. 过滤条件列表。Available field_type: StockField(tigeropen.common.consts.filter_fields.StockField), "
-                                                                         "AccumulateField(tigeropen.common.consts.filter_fields.AccumulateField), "
-                                                                         "FinancialField(tigeropen.common.consts.filter_fields.FinancialField), "
-                                                                         "MultiTagField(tigeropen.common.consts.filter_fields.MultiTagField)."
-                                                                         "Example: [{  \"field_type\": \"StockField\",  \"field_name\": \"current_ChangeRate\",  \"filter_min\": 0.01,  \"filter_max\": 0.5,  \"is_no_filter\": false},"
-                                                                         " {  \"field_type\": \"AccumulateField\",  \"field_name\": \"ChangeRate\",  \"filter_min\": 0.01,  \"filter_max\": 1,  \"is_no_filter\": false,  \"accumulate_period\": \"Last_Year\"}, "
-                                                                         "{  \"field_type\": \"FinancialField\",  \"field_name\": \"LYR_PE\",  \"filter_min\": 1,  \"filter_max\": 100,  \"is_no_filter\": false,  \"financial_period\": \"LTM\"},"
-                                                                         " {  \"field_type\": \"MultiTagField\",  \"field_name\": \"Concept\",  \"tag_list\": [\"BK4562\", \"BK4575\"],  \"is_no_filter\": false}]"),
-                       sort_field: Optional[dict] = Field(None,
-                                                          description="Sort field and direction. 排序字段和方向。Example: {  \"field_type\": \"StockField\",  \"field_name\": \"FloatShare\",  \"sort_dir\": \"ASC\",  \"period\": null}"),
-                       max_items: int = 1000) -> Any:
-        """
-        Market scanner
-        选股器
-        """
-        sort_field_data = None
-        if sort_field:
-            field_type = sort_field.get('field_type')
-            field_name = sort_field.get('field_name')
-            sort_dir_str = sort_field.get('sort_dir', 'DESC')
-            period_str = sort_field.get('period')
-
-            field = None
-            if field_type == 'StockField':
-                field = getattr(StockField, field_name, None)
-            elif field_type == 'AccumulateField':
-                field = getattr(AccumulateField, field_name, None)
-            elif field_type == 'FinancialField':
-                field = getattr(FinancialField, field_name, None)
-            elif field_type == 'MultiTagField':
-                field = getattr(MultiTagField, field_name, None)
-            sort_dir = getattr(SortDirection, sort_dir_str) if hasattr(
-                SortDirection, sort_dir_str) else SortDirection.DESC
-
-            period = None
-            if period_str and field_type == 'AccumulateField':
-                period = getattr(AccumulatePeriod, period_str) if hasattr(
-                    AccumulatePeriod, period_str) else None
-
-            if field:
-                sort_field_data = SortFilterData(field, sort_dir, period)
-
-        filter_list = []
-        if filters:
-            for filter_item in filters:
-                field_type = filter_item.get('field_type')
-                field_name = filter_item.get('field_name')
-                field = None
-
-                if field_type == 'StockField':
-                    field = getattr(StockField, field_name, None)
-                elif field_type == 'AccumulateField':
-                    field = getattr(AccumulateField, field_name, None)
-                elif field_type == 'FinancialField':
-                    field = getattr(FinancialField, field_name, None)
-                elif field_type == 'MultiTagField':
-                    field = getattr(MultiTagField, field_name, None)
-
-                if not field:
-                    continue
-
-                filter_min = filter_item.get('filter_min')
-                filter_max = filter_item.get('filter_max')
-                is_no_filter = filter_item.get('is_no_filter', False)
-
-                accumulate_period = None
-                financial_period = None
-                tag_list = None
-
-                if field_type == 'AccumulateField' and 'accumulate_period' in filter_item:
-                    period_str = filter_item.get('accumulate_period')
-                    accumulate_period = getattr(
-                        AccumulatePeriod, period_str) if hasattr(
-                        AccumulatePeriod, period_str) else None
-
-                elif field_type == 'FinancialField' and 'financial_period' in filter_item:
-                    period_str = filter_item.get('financial_period')
-                    financial_period = getattr(
-                        FinancialPeriod, period_str) if hasattr(
-                        FinancialPeriod, period_str) else None
-
-                elif field_type == 'MultiTagField' and 'tag_list' in filter_item:
-                    tag_list = filter_item.get('tag_list')
-
-                stock_filter = StockFilter(field=field,
-                                           filter_min=filter_min,
-                                           filter_max=filter_max,
-                                           is_no_filter=is_no_filter,
-                                           accumulate_period=accumulate_period,
-                                           financial_period=financial_period,
-                                           tag_list=tag_list)
-                filter_list.append(stock_filter)
-
-        all_items = []
-        all_symbols = set()
-        page_size = 100  # 每页请求的数量
-        cursor_id = None
-        items_fetched = 0
-
-        unlimited = max_items == 0
-
-        while True:
-            result = QuoteApi.quote_client.market_scanner(
-                market=market,
-                filters=filter_list if filter_list else None,
-                sort_field_data=sort_field_data,
-                page_size=page_size,
-                cursor_id=cursor_id)
-
-            all_items.extend(result.items)
-            all_symbols.update(result.symbols)
-            items_fetched += len(result.items)
-
-            if not result.cursor_id or (not unlimited
-                                        and items_fetched >= max_items):
-                break
-
-            cursor_id = result.cursor_id
-
-        final_items = all_items[:
-                                max_items] if not unlimited and max_items > 0 else all_items
-        final_result = ScannerResult(page=0,
-                                     page_size=len(final_items),
-                                     total_page=1,
-                                     total_count=len(final_items),
-                                     items=list(),
-                                     cursor_id=None)
-        final_result.items = final_items
-        final_result.symbols = list(all_symbols)
-
-        return final_result
-
-    @staticmethod
     @server.tool(description='Get real-time market data for stocks or options.')
     @ApiHelper.handle_result
     def get_realtime_quote(
@@ -344,9 +162,9 @@ class QuoteApi:
                                                      market=market)
 
     @staticmethod
-    @server.tool(description='Get tick-by-tick trade data.')
+    @server.tool(description='Get tick-by-tick quote data.')
     @ApiHelper.handle_result
-    def get_trade_ticks(symbols: Union[str, list[str]] = Field(...,
+    def get_ticks(symbols: Union[str, list[str]] = Field(...,
                                                                description="List of symbols. e.g. Stock: 'AAPL', '00700'; US Option: 'AAPL  250829C00150000'; HK Option: 'TCH.HK 230616C00550000'; Future: 'CL2509'"),
                         sec_type: Union[SecurityType, str] = Field(...,
                                                                    description="Security type. STK/OPT/FUT, aAll symbols must be in the same sec_type",
@@ -359,7 +177,7 @@ class QuoteApi:
                         timezone: Optional[str] = Field(None,
                                                         description="Timezone, US/Eastern or Asia/Hong_Kong, used by Option expiry")) -> Any:
         """
-        获取逐笔成交数据
+        获取逐笔成交行情数据
         """
         if sec_type.upper() not in [
             SecurityType.STK.value, SecurityType.OPT.value,
@@ -698,7 +516,7 @@ class TradeApi:
             base_currency=base_currency, consolidated=consolidated)
 
     @staticmethod
-    @server.tool(description="Get historical account asset analysis")
+    @server.tool(description="Get account asset analysis")
     @ApiHelper.handle_result
     def get_analytics_asset(
             start_date: Optional[str] = Field(
@@ -765,9 +583,9 @@ class TradeApi:
                                                   currency=currency)
 
     @staticmethod
-    @server.tool(description="Query the maximum tradable size of a stock or option in the account.")
+    @server.tool(description="Preview Order")
     @ApiHelper.handle_result
-    def get_estimate_tradable_quantity(
+    def preview_order(
             action: str = Field(..., description="Order action. BUY/SELL", pattern=r'^(BUY|SELL)$'),
             order_type: str = Field(..., description="Order type. MKT/LMT/STP/STP_LMT",
                                     pattern=r'^(MKT|LMT|STP|STP_LMT)$'),
@@ -797,13 +615,11 @@ class TradeApi:
                                             description="PUT/CALL. If sec_type is OPT, this field must be provided."),
             trading_session_type: Optional[str] = None,
             start_time: Optional[int] = None,
-            end_time: Optional[int] = None,
-            seg_type: Optional[str] = None
-
+            end_time: Optional[int] = None
     ) -> Any:
         """
-        Get estimate tradable quantity
-        获取可交易数量. 参数构造与下单一致.
+        Preview order
+        预览订单
         """
         order = TradeApi._prepare_order(
             action=action,
@@ -826,9 +642,16 @@ class TradeApi:
             put_call=put_call,
             trading_session_type=trading_session_type,
             start_time=start_time,
-            end_time=end_time
+            end_time=end_time,
         )
-        return TradeApi.trade_client.get_estimate_tradable_quantity(order=order, seg_type=seg_type)
+
+        # 如果返回的是错误信息，直接返回
+        if isinstance(order, dict) and "error" in order:
+            return order
+
+        preview_result = TradeApi.trade_client.preview_order(order)
+        return preview_result
+
 
     @staticmethod
     @server.tool(description="Place Order")
@@ -909,121 +732,30 @@ class TradeApi:
         return order
 
     @staticmethod
-    @server.tool(description="Modify Order")
+    @server.tool(description="Cancel Order")
     @ApiHelper.handle_result
-    def modify_order(
-            id: str = Field(..., description='Order.id, a multi bit number, like 38000878710423552'),
-            quantity: Optional[int] = Field(None, description="Modified quantity"),
-            limit_price: Optional[float] = Field(None, description="Modified limit price"),
-            aux_price: Optional[float] = Field(None, description="Modified auxiliary price"),
-            trailing_percent: Optional[float] = None,
-            time_in_force: Optional[str] = Field(None, description="Modified time in force. DAY/GTC/GTD"),
-            outside_rth: Optional[bool] = Field(None, description="Modified outside regular trading hours, True/False"),
-            expire_time: Optional[str] = Field(None,
-                                               description="Modified order expiration time in 'YYYY-MM-DD HH:MM:SS' format, required if time_in_force is GTD"),
-            user_mark: Optional[str] = None,
-    ) -> Any:
+    def cancel_order(id: str = Field(..., description='Order.id, like 38000878710423552')) -> Any:
         """
-        Modify order
-        修改订单
+        Cancel order
+        撤销订单
+
+        :param id: Order ID, 订单ID
         """
         if _read_only_mode:
             return {
-                "error": "Order modification is not allowed in read-only mode"
+                "error": "Order cancellation is not allowed in read-only mode"
             }
-
-        # 将字符串转换为整数
+        if len(id) < 10:
+            return {"error": f"Invalid order ID: {id}, please use order.id field value"}
         try:
             order_id = int(id)
         except (ValueError, TypeError):
             return {"error": f"Invalid order ID format: {id}"}
 
-        order = TradeApi.trade_client.get_order(id=order_id)
-        return TradeApi.trade_client.modify_order(
-            order,
-            id=order_id,
-            quantity=quantity,
-            limit_price=limit_price,
-            aux_price=aux_price,
-            trailing_percent=trailing_percent,
-            time_in_force=time_in_force,
-            outside_rth=outside_rth,
-            expire_time=expire_time,
-            user_mark=user_mark,
-        )
+        return TradeApi.trade_client.cancel_order(id=order_id)
 
     @staticmethod
-    @server.tool(description="Preview Order")
-    @ApiHelper.handle_result
-    def preview_order(
-            action: str = Field(..., description="Order action. BUY/SELL", pattern=r'^(BUY|SELL)$'),
-            order_type: str = Field(..., description="Order type. MKT/LMT/STP/STP_LMT",
-                                    pattern=r'^(MKT|LMT|STP|STP_LMT)$'),
-            quantity: int = Field(..., description="Order quantity. Must be a positive integer.", gt=0),
-            sec_type: str = Field(..., description="Security type. STK/OPT/FUT", pattern=r'^(STK|OPT|FUT|MLEG|FUND)$'),
-            symbol: Optional[str] = Field(None,
-                                          description="Contract symbol. e.g. 'AAPL', '00700', 'CL2509'. If sec_type is OPT, expiry/strike/put_call also must be provided."),
-            currency: Optional[str] = Field("USD", description="Currency, USD/HKD"),
-            limit_price: Optional[float] = Field(None,
-                                                 description="Limit price, required if order_type is LMT or STP_LMT"),
-            time_in_force: Optional[str] = Field(None, description="Time in force. DAY/GTC/GTD"),
-            outside_rth: Optional[bool] = Field(None, description="Outside regular trading hours, True/False"),
-            aux_price: Optional[float] = Field(None,
-                                               description="Auxiliary price, required if order_type is STP or STP_LMT"),
-            trailing_percent: Optional[float] = None,
-            expire_time: Optional[str] = Field(None,
-                                               description="Order expiration time in 'YYYY-MM-DD HH:MM:SS' format, required if time_in_force is GTD"),
-            user_mark: Optional[str] = None,
-            combo_type: Optional[str] = None,
-            contract_legs: Optional[list[dict]] = None,
-            expiry: Optional[str] = Field(None,
-                                          description="Option expiry date in 'YYYYMMDD' format, like '20250826'. If sec_type is OPT, this field must be provided.",
-                                          pattern=r'^\d{4}\d{2}\d{2}$'),
-            strike: Optional[float] = Field(None,
-                                            description="Option strike price. If sec_type is OPT, this field must be provided."),
-            put_call: Optional[str] = Field(None,
-                                            description="PUT/CALL. If sec_type is OPT, this field must be provided."),
-            trading_session_type: Optional[str] = None,
-            start_time: Optional[int] = None,
-            end_time: Optional[int] = None
-    ) -> Any:
-        """
-        Preview order
-        预览订单
-        """
-        order = TradeApi._prepare_order(
-            action=action,
-            order_type=order_type,
-            quantity=quantity,
-            sec_type=sec_type,
-            symbol=symbol,
-            currency=currency,
-            limit_price=limit_price,
-            time_in_force=time_in_force,
-            outside_rth=outside_rth,
-            aux_price=aux_price,
-            trailing_percent=trailing_percent,
-            expire_time=expire_time,
-            user_mark=user_mark,
-            combo_type=combo_type,
-            contract_legs=contract_legs,
-            expiry=expiry,
-            strike=strike,
-            put_call=put_call,
-            trading_session_type=trading_session_type,
-            start_time=start_time,
-            end_time=end_time,
-        )
-
-        # 如果返回的是错误信息，直接返回
-        if isinstance(order, dict) and "error" in order:
-            return order
-
-        preview_result = TradeApi.trade_client.preview_order(order)
-        return preview_result
-
-    @staticmethod
-    @server.tool(description="Get the full list of orders for the account.")
+    @server.tool(description="Get all orders")
     @ApiHelper.handle_result
     def get_orders(symbol: Optional[str] = None,
                    sec_type: Optional[str] = Field(SecurityType.ALL.value,
@@ -1054,11 +786,11 @@ class TradeApi:
     @staticmethod
     @server.tool(description="Get detailed information for a specified order.")
     @ApiHelper.handle_result
-    def get_order(id: str = Field(..., description='Order.id, a multi bit number, like 38000878710423552')) -> Any:
+    def get_order(id: str = Field(..., description='Order.id, a multi digit number, like 38000878710423552')) -> Any:
         """
         Get order
         获取订单详情
-        
+
         :param id: Order ID, 订单ID
         """
         if len(id) < 10:
@@ -1070,31 +802,9 @@ class TradeApi:
 
         return TradeApi.trade_client.get_order(id=order_id)
 
-    @staticmethod
-    @server.tool(description="Cancel Order")
-    @ApiHelper.handle_result
-    def cancel_order(id: str = Field(..., description='Order.id, like 38000878710423552')) -> Any:
-        """
-        Cancel order
-        撤销订单
-        
-        :param id: Order ID, 订单ID
-        """
-        if _read_only_mode:
-            return {
-                "error": "Order cancellation is not allowed in read-only mode"
-            }
-        if len(id) < 10:
-            return {"error": f"Invalid order ID: {id}, please use order.id field value"}
-        try:
-            order_id = int(id)
-        except (ValueError, TypeError):
-            return {"error": f"Invalid order ID format: {id}"}
-
-        return TradeApi.trade_client.cancel_order(id=order_id)
 
     @staticmethod
-    @server.tool(description="Get transaction information for filled orders.")
+    @server.tool(description="Get transaction records for a specified symbol or order.")
     @ApiHelper.handle_result
     def get_transactions(
             order_id: Optional[str] = Field(None, description="Order ID to filter transactions. 订单ID过滤"),
@@ -1119,7 +829,7 @@ class TradeApi:
     ) -> Any:
         """
         Get transactions
-        获取成交记录
+        获取订单成交记录
         """
         all_transactions = []
         page_token = ''
@@ -1347,6 +1057,177 @@ class TradeApi:
             order.trading_session_type = trading_session_type
 
         return order
+
+
+@server.tool(description="Get the status of a market and its latest opening time.")
+@ApiHelper.handle_result
+def get_market_status(market: str = Market.ALL.value,
+                      lang: Optional[str] = None) -> Any:
+    """
+    获取指定市场的状态及最近开盘时间
+    """
+    status = QuoteApi.quote_client.get_market_status(market, lang=lang)
+    return status
+#
+# @server.tool(description='Get the market trading calendar since 2015, excluding temporary market closures.')
+# @ApiHelper.handle_result
+# def get_trading_calendar(
+#         market: Market = Field(..., description="Market. 市场. US/HK/CN"),
+#         begin_date: Optional[str] = Field(
+#             None,
+#             description="Start date in YYYY-MM-DD format, included. the year must be later than 2015. 开始日期",
+#             pattern=r"^\d{4}-\d{2}-\d{2}$"),
+#         end_date: Optional[str] = Field(
+#             None,
+#             description="End date in YYYY-MM-DD format, excluded, must later than begin_date. 结束日期",
+#             pattern=r"^\d{4}-\d{2}-\d{2}$")) -> Any:
+#     """
+#     获取自 2015 年以来的市场交易日历（不含临时休市调整）
+#     """
+#     begin_dt = datetime.strptime(begin_date, '%Y-%m-%d') if begin_date else None
+#     end_dt = datetime.strptime(end_date, '%Y-%m-%d') if end_date else None
+#     if begin_dt and end_dt and begin_dt >= end_dt:
+#         raise ValueError(
+#             "end_date must be later than begin_date, if provided both."
+#         )
+#     return QuoteApi.quote_client.get_trading_calendar(
+#         market, begin_date, end_date)
+#
+# @server.tool(description='Market scanner')
+# @ApiHelper.handle_result
+# def market_scanner(market: str = Field(..., description="Market. 市场. US/HK", pattern=r'^(US|HK)$'),
+#                    filters: Optional[list[dict]] = Field(None,
+#                                                          description="List of filter conditions. 过滤条件列表。Available field_type: StockField(tigeropen.common.consts.filter_fields.StockField), "
+#                                                                      "AccumulateField(tigeropen.common.consts.filter_fields.AccumulateField), "
+#                                                                      "FinancialField(tigeropen.common.consts.filter_fields.FinancialField), "
+#                                                                      "MultiTagField(tigeropen.common.consts.filter_fields.MultiTagField)."
+#                                                                      "Example: [{  \"field_type\": \"StockField\",  \"field_name\": \"current_ChangeRate\",  \"filter_min\": 0.01,  \"filter_max\": 0.5,  \"is_no_filter\": false},"
+#                                                                      " {  \"field_type\": \"AccumulateField\",  \"field_name\": \"ChangeRate\",  \"filter_min\": 0.01,  \"filter_max\": 1,  \"is_no_filter\": false,  \"accumulate_period\": \"Last_Year\"}, "
+#                                                                      "{  \"field_type\": \"FinancialField\",  \"field_name\": \"LYR_PE\",  \"filter_min\": 1,  \"filter_max\": 100,  \"is_no_filter\": false,  \"financial_period\": \"LTM\"},"
+#                                                                      " {  \"field_type\": \"MultiTagField\",  \"field_name\": \"Concept\",  \"tag_list\": [\"BK4562\", \"BK4575\"],  \"is_no_filter\": false}]"),
+#                    sort_field: Optional[dict] = Field(None,
+#                                                       description="Sort field and direction. 排序字段和方向。Example: {  \"field_type\": \"StockField\",  \"field_name\": \"FloatShare\",  \"sort_dir\": \"ASC\",  \"period\": null}"),
+#                    max_items: int = 1000) -> Any:
+#     """
+#     Market scanner
+#     选股器
+#     """
+#     sort_field_data = None
+#     if sort_field:
+#         field_type = sort_field.get('field_type')
+#         field_name = sort_field.get('field_name')
+#         sort_dir_str = sort_field.get('sort_dir', 'DESC')
+#         period_str = sort_field.get('period')
+#
+#         field = None
+#         if field_type == 'StockField':
+#             field = getattr(StockField, field_name, None)
+#         elif field_type == 'AccumulateField':
+#             field = getattr(AccumulateField, field_name, None)
+#         elif field_type == 'FinancialField':
+#             field = getattr(FinancialField, field_name, None)
+#         elif field_type == 'MultiTagField':
+#             field = getattr(MultiTagField, field_name, None)
+#         sort_dir = getattr(SortDirection, sort_dir_str) if hasattr(
+#             SortDirection, sort_dir_str) else SortDirection.DESC
+#
+#         period = None
+#         if period_str and field_type == 'AccumulateField':
+#             period = getattr(AccumulatePeriod, period_str) if hasattr(
+#                 AccumulatePeriod, period_str) else None
+#
+#         if field:
+#             sort_field_data = SortFilterData(field, sort_dir, period)
+#
+#     filter_list = []
+#     if filters:
+#         for filter_item in filters:
+#             field_type = filter_item.get('field_type')
+#             field_name = filter_item.get('field_name')
+#             field = None
+#
+#             if field_type == 'StockField':
+#                 field = getattr(StockField, field_name, None)
+#             elif field_type == 'AccumulateField':
+#                 field = getattr(AccumulateField, field_name, None)
+#             elif field_type == 'FinancialField':
+#                 field = getattr(FinancialField, field_name, None)
+#             elif field_type == 'MultiTagField':
+#                 field = getattr(MultiTagField, field_name, None)
+#
+#             if not field:
+#                 continue
+#
+#             filter_min = filter_item.get('filter_min')
+#             filter_max = filter_item.get('filter_max')
+#             is_no_filter = filter_item.get('is_no_filter', False)
+#
+#             accumulate_period = None
+#             financial_period = None
+#             tag_list = None
+#
+#             if field_type == 'AccumulateField' and 'accumulate_period' in filter_item:
+#                 period_str = filter_item.get('accumulate_period')
+#                 accumulate_period = getattr(
+#                     AccumulatePeriod, period_str) if hasattr(
+#                     AccumulatePeriod, period_str) else None
+#
+#             elif field_type == 'FinancialField' and 'financial_period' in filter_item:
+#                 period_str = filter_item.get('financial_period')
+#                 financial_period = getattr(
+#                     FinancialPeriod, period_str) if hasattr(
+#                     FinancialPeriod, period_str) else None
+#
+#             elif field_type == 'MultiTagField' and 'tag_list' in filter_item:
+#                 tag_list = filter_item.get('tag_list')
+#
+#             stock_filter = StockFilter(field=field,
+#                                        filter_min=filter_min,
+#                                        filter_max=filter_max,
+#                                        is_no_filter=is_no_filter,
+#                                        accumulate_period=accumulate_period,
+#                                        financial_period=financial_period,
+#                                        tag_list=tag_list)
+#             filter_list.append(stock_filter)
+#
+#     all_items = []
+#     all_symbols = set()
+#     page_size = 100  # 每页请求的数量
+#     cursor_id = None
+#     items_fetched = 0
+#
+#     unlimited = max_items == 0
+#
+#     while True:
+#         result = QuoteApi.quote_client.market_scanner(
+#             market=market,
+#             filters=filter_list if filter_list else None,
+#             sort_field_data=sort_field_data,
+#             page_size=page_size,
+#             cursor_id=cursor_id)
+#
+#         all_items.extend(result.items)
+#         all_symbols.update(result.symbols)
+#         items_fetched += len(result.items)
+#
+#         if not result.cursor_id or (not unlimited
+#                                     and items_fetched >= max_items):
+#             break
+#
+#         cursor_id = result.cursor_id
+#
+#     final_items = all_items[:
+#                             max_items] if not unlimited and max_items > 0 else all_items
+#     final_result = ScannerResult(page=0,
+#                                  page_size=len(final_items),
+#                                  total_page=1,
+#                                  total_count=len(final_items),
+#                                  items=list(),
+#                                  cursor_id=None)
+#     final_result.items = final_items
+#     final_result.symbols = list(all_symbols)
+#
+#     return final_result
 
 
 if _debug_enable:
