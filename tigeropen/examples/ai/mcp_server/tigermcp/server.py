@@ -2,6 +2,8 @@
 import functools
 import os
 import re
+import sys
+import signal
 from datetime import datetime
 from typing import Optional, Any, Union
 
@@ -34,6 +36,7 @@ _client_config._channel = f"tigermcp-{TIGERMCP_VERSION}"
 
 # 通过环境变量配置只读模式，默认为 False
 _read_only_mode = os.environ.get("TIGERMCP_READONLY", "").lower() in ("true", "1", "yes")
+_debug_enable = os.environ.get("TIGERMCP_DEBUG", "").lower() in ("true", "1", "yes")
 
 server = FastMCP("TigerMCP")
 
@@ -83,16 +86,6 @@ class ApiHelper:
 @server.resource("server://status")
 def hello() -> Any:
     return {"message": "TigerOpen MCP Server is running!"}
-
-
-@server.tool(title="mcp server info",
-             description=f"MCP Server Version: {TIGERMCP_VERSION}, Tigeropen Version: {TIGEROPEN_SDK_VERSION}, Read Only Mode: {_read_only_mode}")
-def server_info() -> Any:
-    return {
-        "mcp_version": TIGERMCP_VERSION,
-        "sdk_version": TIGEROPEN_SDK_VERSION,
-        "read_only_mode": _read_only_mode
-    }
 
 
 class QuoteApi:
@@ -1106,18 +1099,19 @@ class TradeApi:
     def get_transactions(
             order_id: Optional[str] = Field(None, description="Order ID to filter transactions. 订单ID过滤"),
             symbol: Optional[str] = Field(None, description="Symbol to filter transactions. 合约代码过滤"),
-            sec_type: Optional[str] = Field(None, description="Security type to filter transactions. Available values STK/OPT/FUT/FUND, 合约类型过滤"),
+            sec_type: Optional[str] = Field(None,
+                                            description="Security type to filter transactions. Available values STK/OPT/FUT/FUND, 合约类型过滤"),
             start_time: Optional[int] = Field(
                 ..., description="Start time in milliseconds"),
             end_time: Optional[int] = Field(
                 ..., description="End time in milliseconds, must be later than start_time"),
             expiry: Optional[str] = Field(None,
-                                         description="Option expiry date in 'YYYYMMDD' format, like '20250830'. If sec_type is OPT, this field must be provided.",
-                                         pattern=r'^\d{4}\d{2}\d{2}$'),
+                                          description="Option expiry date in 'YYYYMMDD' format, like '20250830'. If sec_type is OPT, this field must be provided.",
+                                          pattern=r'^\d{4}\d{2}\d{2}$'),
             strike: Optional[float] = Field(None,
-                                           description="Option strike price. If sec_type is OPT, this field must be provided."),
+                                            description="Option strike price. If sec_type is OPT, this field must be provided."),
             put_call: Optional[str] = Field(None,
-                                           description="PUT/CALL. If sec_type is OPT, this field must be provided."),
+                                            description="PUT/CALL. If sec_type is OPT, this field must be provided."),
             max_items: int = Field(
                 1000,
                 description=
@@ -1355,11 +1349,19 @@ class TradeApi:
         return order
 
 
+if _debug_enable:
+    @server.tool(title="mcp server info",
+                 description=f"MCP Server Version: {TIGERMCP_VERSION}, Tigeropen Version: {TIGEROPEN_SDK_VERSION}, Read Only Mode: {_read_only_mode}")
+    def server_info() -> Any:
+        return {
+            "mcp_version": TIGERMCP_VERSION,
+            "sdk_version": TIGEROPEN_SDK_VERSION,
+            "read_only_mode": _read_only_mode
+        }
+
+
 def main():
     """Main entry function for MCP server, used by CLI"""
-    import signal
-    import sys
-
     def signal_handler(sig, frame):
         print("\nStop Tiger MCP Server...")
         sys.exit(0)
