@@ -52,3 +52,29 @@ uvx tigermcp
   }
 }
 ```
+
+### FAQ
+
+#### Error: `realpath: command not found`  
+
+If your system is macOS 12 or lower, you may encounter the following error when running the mcp server:
+```
+/Users/tiger/.cache/uv/archive-v0/5iV7KVbKUQlypQW-eBHBn/bin/tigermcp: line 2: realpath: command not found
+/Users/tiger/.cache/uv/archive-v0/5iV7KVbKUQlypQW-eBHBn/bin/tigermcp: line 2: /Users/tiger/python: No such file or directory
+/Users/tiger/.cache/uv/archive-v0/5iV7KVbKUQlypQW-eBHBn/bin/tigermcp: line 2: exec: /Users/tiger/python: cannot execute: No such file or directory
+```
+you need to install `coreutils`:
+
+If you don't have Homebrew installed, install it first by running the following command in your terminal:
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+Then, install `coreutils` by running:
+```bash
+brew install coreutils
+``` 
+
+### Release Notes
+- 0.1.3 (2025-08-29) Fix issues
+- 0.1.2 (2025-08-28) Fix issues
+- 0.1.1 (2025-08-25) Initial release
