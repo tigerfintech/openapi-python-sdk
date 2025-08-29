@@ -75,6 +75,7 @@ brew install coreutils
 ``` 
 
 ### Release Notes
+- 0.1.4 (2025-08-29) Fix issues
 - 0.1.3 (2025-08-29) Fix issues
 - 0.1.2 (2025-08-28) Fix issues
 - 0.1.1 (2025-08-25) Initial release
