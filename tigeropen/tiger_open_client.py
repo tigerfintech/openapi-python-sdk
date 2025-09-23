@@ -24,7 +24,7 @@ from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.common_utils import has_value
 from tigeropen.common.util.signature_utils import get_sign_content, sign_with_rsa, verify_with_rsa
 from tigeropen.common.util.web_utils import do_post
-
+from tigeropen.tiger_open_config import TigerOpenClientConfig
 
 LOG_FORMATTER = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
 SKIP_RETRY_SERVICES = {PLACE_ORDER, CANCEL_ORDER, MODIFY_ORDER}
@@ -38,7 +38,7 @@ class TigerOpenClient:
     logger：日志对象，客户端执行信息会通过此日志对象输出
     """
 
-    def __init__(self, client_config, logger=None):
+    def __init__(self, client_config: TigerOpenClientConfig, logger=None):
         self.__config = client_config
         if not client_config.private_key:
             raise Exception('private key can not be empty')
@@ -52,11 +52,14 @@ class TigerOpenClient:
                 file_handler.setFormatter(LOG_FORMATTER)
                 logger.addHandler(file_handler)
             self.__logger = logger
+        user_agent = 'openapi-python-sdk-' + __VERSION__
+        if client_config._channel:
+            user_agent = client_config._channel + ' ' + user_agent
         self.__headers = {
             'Content-type': 'application/json;charset=' + self.__config.charset,
             "Cache-Control": "no-cache",
             "Connection": "Keep-Alive",
-            "User-Agent": 'openapi-python-sdk-' + __VERSION__
+            "User-Agent": user_agent
         }
         self._initialize()
 

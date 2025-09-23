@@ -44,7 +44,6 @@ class Segment:
         self.category = None
         self.cash_balance = float('inf')
         self.cash_available_for_trade = float('inf')
-        self.cash_available_for_withdrawal = float('inf')
         self.gross_position_value = float('inf')
         self.equity_with_loan = float('inf')
         self.net_liquidation = float('inf')
@@ -84,12 +83,7 @@ class CurrencyAsset:
         self.currency = None
         self.cash_balance = float('inf')
         self.cash_available_for_trade = float('inf')
-        self.gross_position_value = float('inf')
-        self.stock_market_value = float('inf')
-        self.futures_market_value = float('inf')
-        self.option_market_value = float('inf')
-        self.unrealized_pl = float('inf')
-        self.realized_pl = float('inf')
+
 
     @staticmethod
     def from_dict(d):
