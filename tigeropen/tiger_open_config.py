@@ -138,9 +138,10 @@ class TigerOpenClientConfig:
         if not self.props_path:
             self.props_path = '.'
         self._load_props()
-        twofa_token = self.load_token()
-        if twofa_token:
-            self._token = twofa_token
+        if not self._token:
+            twofa_token = self.load_token()
+            if twofa_token:
+                self._token = twofa_token
 
         self.domain_conf = dict()
         self.enable_dynamic_domain = enable_dynamic_domain
