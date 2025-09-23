@@ -23,7 +23,8 @@ from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_D
     FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
     KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
-    FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH, BROKER_HOLD, OPTION_TIMELINE, FUTURE_DEPTH
+    FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH, BROKER_HOLD, OPTION_TIMELINE, FUTURE_DEPTH, \
+    FUTURE_HISTORY_MAIN_CONTRACT
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -64,6 +65,7 @@ from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_depth_response import FutureDepthResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
+from tigeropen.quote.response.future_history_main_contract_response import FutureHistoryMainContractResponse
 from tigeropen.quote.response.future_quote_bar_response import FutureQuoteBarResponse
 from tigeropen.quote.response.future_quote_ticks_response import FutureTradeTickResponse
 from tigeropen.quote.response.future_trading_times_response import FutureTradingTimesResponse
@@ -1539,6 +1541,40 @@ class QuoteClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.contracts
+            else:
+                raise ApiException(response.code, response.message)
+        return pd.DataFrame()
+
+    def get_future_history_main_contract(self, identifiers: Union[str, list[str]],
+                                         begin_time: int,
+                                         end_time: int) -> pd.DataFrame:
+        """
+        Get historical future main contract. 获取历史期货主力合约
+
+        :return: pandas.DataFrame. The columns are as follows:
+            contract_code: Contract code. 合约代码
+            time: Timestamp in milliseconds. 毫秒时间戳
+            refer_contract_code: The main contract referred to at that time. 当时的主力合约
+
+        :return example:
+            contract_code           time refer_contract_code
+        0         CLmain  1758574800000              CL2511
+        1         CLmain  1758315600000              CL2511
+        2         CLmain  1758229200000              CL2511
+        3         CLmain  1758142800000              CL2510
+        4         CLmain  1758056400000              CL2510
+        """
+        params = FutureQuoteParams()
+        params.contract_codes = self._format_to_list(identifiers)
+        params.begin_time = begin_time
+        params.end_time = end_time
+        request = OpenApiRequest(FUTURE_HISTORY_MAIN_CONTRACT, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FutureHistoryMainContractResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
         return pd.DataFrame()
