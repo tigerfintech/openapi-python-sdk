@@ -86,6 +86,7 @@ from tigeropen.quote.response.quote_depth_response import DepthQuoteResponse
 from tigeropen.quote.response.quote_grab_permission_response import QuoteGrabPermissionResponse
 from tigeropen.quote.response.quote_overnight_response import QuoteOvernightResponse
 from tigeropen.quote.response.quote_ticks_response import TradeTickResponse
+from tigeropen.quote.response.quote_timeline_history_response import QuoteTimelineHistoryResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
 from tigeropen.quote.response.stock_broker_response import StockBrokerResponse
@@ -496,8 +497,8 @@ class QuoteClient(TigerOpenClient):
                      symbols: list[str],
                      include_hour_trading: bool = False,
                      begin_time: Optional[Union[int, str]] = -1,
-                     lang: Optional[Union[str, None]] = None,
-                     trade_session: Optional[Union[str, None]] = None,
+                     lang: Optional[Union[str, Language]] = None,
+                     trade_session: Optional[Union[str, TradingSession]] = None,
                      **kwargs) -> pd.DataFrame:
         """
         Get intraday timeline data. 获取当日分时数据，支持盘前盘后
@@ -517,12 +518,15 @@ class QuoteClient(TigerOpenClient):
             - avg_price: volume weighted avg price up to now 加权均价
             - pre_close: previous close 昨日收盘价
             - volume: volume of the minute 该分钟成交量
-            - trading_session: trading session 交易时段
+            - trade_session: trading session 交易时段
 
         :return example:
-            symbol           time     price  avg_price  pre_close   volume trading_session
-        0     AAPL  1754919000000  226.7500  227.75438     229.09  1656620         regular
-        1     AAPL  1754919060000  226.6000  227.51157     229.09   426781         regular
+            symbol  pre_close trade_session           time    volume      price  avg_price
+        0     AAPL      245.5     PreMarket  1758528000000     13203  245.35000  245.70515
+        1     AAPL      245.5     PreMarket  1758528060000      2568  245.50000  245.66475
+        2     AAPL      245.5     PreMarket  1758528120000     16896  245.20000  245.47733
+        3     AAPL      245.5     PreMarket  1758528180000      8056  245.11000  245.43240
+        4     AAPL      245.5     PreMarket  1758528240000      2378  245.16000  245.41733
         """
         params = MultipleQuoteParams()
         params.symbols = self._format_to_list(symbols)
@@ -542,7 +546,7 @@ class QuoteClient(TigerOpenClient):
             response = QuoteTimelineResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.timelines
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
 
@@ -566,12 +570,12 @@ class QuoteClient(TigerOpenClient):
             - avg_price: volume weighted avg price up to now 加权均价
             
         Example:
-             symbol           time   volume     price  avg_price
-        0     AAPL  1698845400000   654691  171.1000  171.04840
-        1     AAPL  1698845460000   175598  170.5950  171.01788
-        2     AAPL  1698845520000   186093  170.5350  170.95750
-        3     AAPL  1698845580000   145550  170.2719  170.90828
-        4     AAPL  1698845640000   221063  170.4100  170.82759
+            symbol trade_session           time    volume      price   avg_price
+        0     NVDA       Regular  1744378200000   2734029  109.03000  108.544205
+        1     NVDA       Regular  1744378260000   1174433  108.70000  108.564995
+        2     NVDA       Regular  1744378320000   1209217  108.09000  108.557440
+        3     NVDA       Regular  1744378380000   1087583  108.42500  108.543790
+        4     NVDA       Regular  1744378440000    958574  108.43500  108.532360
         """
         params = MultipleQuoteParams()
         params.symbols = self._format_to_list(symbols)
@@ -582,7 +586,7 @@ class QuoteClient(TigerOpenClient):
         request = OpenApiRequest(HISTORY_TIMELINE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
-            response = QuoteDataframeResponse()
+            response = QuoteTimelineHistoryResponse()
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.result
@@ -1967,22 +1971,56 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_future_depth(self, identifiers: Union[str, list[str]],
-                         lang: Optional[Union[Language, str]] = None) -> pd.DataFrame:
+                         lang: Optional[Union[Language, str]] = None) -> dict:
         """
         Get future depth data. 获取期货深度数据
 
         :param identifiers: Future contract code list or a single contract code. 期货合约代码列表或单个合约代码
         :param lang: Language. 语言. Available options: zh_CN/zh_TW/en_US
-        :return: pandas.DataFrame. The columns are as follows:
-            identifier: Future contract code. 期货合约代码
-            ask_price: Ask price. 卖价
-            ask_size: Ask size. 卖量
-            bid_price: Bid price. 买价
-            bid_size: Bid size. 买量
+        :return:
+        if single identifier:
+        {
+            "identifier": "CL2509",
+            "asks": [
+                {"price": 63.07, "size": 10},
+                {"price": 63.08, "size": 5},
+                ...
+            ],
+            "bids": [
+                {"price": 63.06, "size": 7},
+                {"price": 63.05, "size": 12},
+                ...
+            ]
+        }
 
-        :return example:
-           identifier  ask_price  ask_size  bid_price  bid_size
-        0     ES2509     6469.5       11     6469.5       14
+        if multiple identifiers:
+        {
+            "CL2509": {
+                "asks": [
+                    {"price": 63.07, "size": 10},
+                    {"price": 63.08, "size": 5},
+                    ...
+                ],
+                "bids": [
+                    {"price": 63.06, "size": 7},
+                    {"price": 63.05, "size": 12},
+                    ...
+                ]
+            },
+            "ES2509": {
+                "asks": [
+                    {"price": 6469.5, "size": 11},
+                    {"price": 6469.75, "size": 14},
+                    ...
+                ],
+                "bids": [
+                    {"price": 6469.25, "size": 8},
+                    {"price": 6469.0, "size": 10},
+                    ...
+                ]
+            }
+        }
+
         """
         params = FutureQuoteParams()
         params.contract_codes = self._format_to_list(identifiers)
@@ -2710,7 +2748,7 @@ class QuoteClient(TigerOpenClient):
         params = BrokerHoldParams()
         params.market = get_enum_value(market)
         params.order_by = order_by
-        params.direction = get_enum_value(direction.name)
+        params.direction = get_enum_value(direction)
         params.limit = limit
         params.page = page
         params.lang = get_enum_value(lang) if lang else get_enum_value(

@@ -27,6 +27,7 @@ TIGEROPEN_TIGER_ID = ENV_PREFIX + 'TIGER_ID'
 TIGEROPEN_ACCOUNT = ENV_PREFIX + 'ACCOUNT'
 TIGEROPEN_SECRET_KEY = ENV_PREFIX + 'SECRET_KEY'
 TIGEROPEN_PRIVATE_KEY = ENV_PREFIX + 'PRIVATE_KEY'
+TIGEROPEN_LICENSE = ENV_PREFIX + 'LICENSE'
 TIGEROPEN_PROPS_PATH = ENV_PREFIX + 'PROPS_PATH'
 
 DEFAULT_DOMAIN = 'openapi.tigerfintech.com'
@@ -150,6 +151,7 @@ class TigerOpenClientConfig:
             self.domain_conf = self.query_domains()
             self.refresh_server_info()
         self.inited = False
+        self._channel = ''
 
     @property
     def tiger_id(self):
@@ -320,20 +322,14 @@ class TigerOpenClientConfig:
         return None
 
     def _load_env_vars(self):
-        """
-        从环境变量加载配置
-        """
-        # 读取 props_path
         if os.environ.get(TIGEROPEN_PROPS_PATH):
             self.props_path = os.environ.get(TIGEROPEN_PROPS_PATH)
 
-        # 读取核心配置
         if not self.tiger_id and os.environ.get(TIGEROPEN_TIGER_ID):
             self.tiger_id = os.environ.get(TIGEROPEN_TIGER_ID)
 
         if not self.private_key and os.environ.get(TIGEROPEN_PRIVATE_KEY):
             private_key_content = os.environ.get(TIGEROPEN_PRIVATE_KEY)
-            # 检查是否是文件路径
             if os.path.exists(private_key_content):
                 self.private_key = read_private_key(private_key_content)
             else:
@@ -345,11 +341,10 @@ class TigerOpenClientConfig:
         if not self.secret_key and os.environ.get(TIGEROPEN_SECRET_KEY):
             self.secret_key = os.environ.get(TIGEROPEN_SECRET_KEY)
 
+        if not self.license and os.environ.get(TIGEROPEN_LICENSE):
+            self.license = os.environ.get(TIGEROPEN_LICENSE)
+
     def _load_props(self):
-        """
-        从配置文件读取配置
-        """
-        # 从配置文件读取剩余配置或未在环境变量中指定的配置
         full_path = self._get_props_path(DEFAULT_PROPS_FILE)
         if full_path and os.path.exists(full_path):
             try:
