@@ -734,7 +734,7 @@ class TradeApi:
     @staticmethod
     @server.tool(description="Cancel Order")
     @ApiHelper.handle_result
-    def cancel_order(id: str = Field(..., description='Order.id, like 38000878710423552')) -> Any:
+    def cancel_order(id: str = Field(..., description='Order.id, a multi digit number')) -> Any:
         """
         Cancel order
         撤销订单
@@ -786,7 +786,7 @@ class TradeApi:
     @staticmethod
     @server.tool(description="Get detailed information for a specified order.")
     @ApiHelper.handle_result
-    def get_order(id: str = Field(..., description='Order.id, a multi digit number, like 38000878710423552')) -> Any:
+    def get_order(id: str = Field(..., description='Order.id, a multi digit number')) -> Any:
         """
         Get order
         获取订单详情
