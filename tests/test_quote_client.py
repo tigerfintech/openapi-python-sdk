@@ -369,7 +369,7 @@ class TestQuoteClient(unittest.TestCase):
             self.assertIn('avg_price', result.columns)
             self.assertIn('pre_close', result.columns)
             self.assertIn('volume', result.columns)
-            self.assertIn('trading_session', result.columns)
+            self.assertIn('trade_session', result.columns)
             first_row = result.iloc[0]
             self.assertEqual(first_row['symbol'], 'AAPL')
             self.assertEqual(first_row['time'], 1754919000000)
@@ -377,7 +377,7 @@ class TestQuoteClient(unittest.TestCase):
             self.assertAlmostEqual(first_row['avg_price'], 227.75438, places=5)
             self.assertEqual(first_row['pre_close'], 229.09)
             self.assertEqual(first_row['volume'], 1656620)
-            self.assertEqual(first_row['trading_session'], 'regular')
+            self.assertEqual(first_row['trade_session'], 'Regular')
         else:
             result = self.client.get_timeline(symbols=['AAPL'],
                                               # trade_session=TradingSession.OverNight
@@ -417,7 +417,7 @@ class TestQuoteClient(unittest.TestCase):
         else:
             result = self.client.get_timeline_history(symbols=['AAPL'],
                                                       date="2025-08-21",
-                                                      # trade_session=TradingSession.OverNight
+                                                      trade_session=TradingSession.OverNight
                                                       )
             logger.debug(f"Timeline History (real):\n {result}")
 

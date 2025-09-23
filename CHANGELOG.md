@@ -1,3 +1,9 @@
+## 3.4.7 (2025-09-23)
+### Fix
+- `QuoteClient.get_timeline_history` 解析盘前盘后分时数据问题
+### Breaking
+`QuoteClient.get_timeline` 返回的 DataFrame 中原来的 `tradingSession` 列改为 `trade_session`, 值改为 `TradingSession` 枚举值字符串
+
 ## 3.4.6 (2025-08-28)
 ### New
 - `TradeClient.get_positions` 持仓合约增加字段 `name`, `underlying_contract_name`
