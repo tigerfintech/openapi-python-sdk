@@ -24,7 +24,7 @@ python setup.py install
 - 接入前需要在[开放平台](https://quant.itiger.com/#openapi)登记开发者信息
 - 详情查看[接入说明](https://quant.itiger.com/openapi/zh/python/overview/introduction.html)
 
-###### 注: 本SDK当前支持 Python3.4 及以上版本
+###### 注: 本SDK当前支持 Python3.8 及以上版本
 
 ---
 
@@ -47,14 +47,10 @@ from tigeropen.trade.trade_client import TradeClient
 
 def get_client_config():
     """
-    :return:
+    Get client config.
     """
-    is_sandbox = False
-    client_config = TigerOpenClientConfig(sandbox_debug=is_sandbox)
-    client_config.private_key = read_private_key('your private key file path')
-    client_config.tiger_id = 'your tiger id'
-    client_config.account = 'your account'
-    client_config.language = Language.en_US
+    # First, get properties config file from the developer's website, then save it to local disk, such as /Users/demo/props/
+    client_config = TigerOpenClientConfig(props_path='/Users/demo/props/')
     return client_config
 
 def get_account_info():
