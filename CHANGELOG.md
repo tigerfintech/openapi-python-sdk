@@ -1,3 +1,7 @@
+## 3.4.8 (2025-09-24)
+### New
+- `QuoteClient.get_future_history_main_contract` 获取期货历史主力合约
+
 ## 3.4.7 (2025-09-23)
 ### Fix
 - `QuoteClient.get_timeline_history` 解析盘前盘后分时数据问题
