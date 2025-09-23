@@ -7,16 +7,23 @@ Created on 2018/10/31
 
 import pandas as pd
 
+from tigeropen.common.consts import TradingSession
 from tigeropen.common.response import TigerResponse
+from tigeropen.common.util.string_utils import camel_to_underline
 
-COLUMNS = ['symbol', 'time', 'price', 'avg_price', 'pre_close', 'volume', 'trading_session']
-TIMELINE_FIELD_MAPPINGS = {'avgPrice': 'avg_price'}
+FIELD_PREMARKET = 'preMarket'
+FIELD_ITEMS = 'items'
+FIELD_INTRADAY = 'intraday'
+FIELD_AFTERHOURS = 'afterHours'
+FIELD_OVERNIGHT = 'overnight'
+COLUMN_TRADE_SESSION = 'trade_session'
+COLUMN_PRE_CLOSE = 'pre_close'
 
 
 class QuoteTimelineResponse(TigerResponse):
     def __init__(self):
         super(QuoteTimelineResponse, self).__init__()
-        self.timelines = None
+        self.result = None
         self._is_success = None
 
     def parse_response_content(self, response_content):
@@ -29,40 +36,46 @@ class QuoteTimelineResponse(TigerResponse):
             for symbol_item in self.data:
                 symbol = symbol_item.get('symbol')
                 pre_close = symbol_item.get('preClose')
-                if 'preMarket' in symbol_item:  # 盘前
-                    pre_markets = symbol_item['preMarket'].get('items')
+                if FIELD_PREMARKET in symbol_item:  # 盘前
+                    pre_markets = symbol_item[FIELD_PREMARKET].get('items')
                     if pre_markets:
                         for item in pre_markets:
-                            item_values = self.parse_timeline(item, symbol, pre_close, 'pre_market')
-                            timeline_items.append([item_values.get(tag) for tag in COLUMNS])
+                            item_values = self.parse_timeline(item, symbol, pre_close, TradingSession.PreMarket.value)
+                            timeline_items.append(item_values)
 
-                if 'intraday' in symbol_item:  # 盘中
-                    regulars = symbol_item['intraday'].get('items')
-                elif 'items' in symbol_item:
-                    regulars = symbol_item['items'][0].get('items')
+                if FIELD_INTRADAY in symbol_item:  # 盘中
+                    regulars = symbol_item[FIELD_INTRADAY].get('items')
+                elif FIELD_ITEMS in symbol_item:
+                    regulars = symbol_item[FIELD_ITEMS][0].get('items')
                 else:
                     regulars = None
                 if regulars:
                     for item in regulars:
-                        item_values = self.parse_timeline(item, symbol, pre_close, 'regular')
-                        timeline_items.append([item_values.get(tag) for tag in COLUMNS])
+                        item_values = self.parse_timeline(item, symbol, pre_close, TradingSession.Regular.value)
+                        timeline_items.append(item_values)
 
-                if 'afterHours' in symbol_item:  # 盘后
-                    after_hours = symbol_item['afterHours'].get('items')
+                if FIELD_AFTERHOURS in symbol_item:  # 盘后
+                    after_hours = symbol_item[FIELD_AFTERHOURS].get('items')
                     if after_hours:
                         for item in after_hours:
-                            item_values = self.parse_timeline(item, symbol, pre_close, 'after_hours')
-                            timeline_items.append([item_values.get(tag) for tag in COLUMNS])
+                            item_values = self.parse_timeline(item, symbol, pre_close, TradingSession.AfterHours.value)
+                            timeline_items.append(item_values)
+                if FIELD_OVERNIGHT in symbol_item:  # 夜盘
+                    overnights = symbol_item[FIELD_OVERNIGHT].get('items')
+                    if overnights:
+                        for item in overnights:
+                            item_values = self.parse_timeline(item, symbol, pre_close, TradingSession.OverNight.value)
+                            timeline_items.append(item_values)
 
-            self.timelines = pd.DataFrame(timeline_items, columns=COLUMNS)
+            self.result = pd.DataFrame(timeline_items)
 
     @staticmethod
     def parse_timeline(item, symbol, pre_close, trading_session):
-        item_values = {'symbol': symbol, 'pre_close': pre_close, 'trading_session': trading_session}
+        item_values = {'symbol': symbol, COLUMN_PRE_CLOSE: pre_close, COLUMN_TRADE_SESSION: trading_session}
         for key, value in item.items():
             if value is None:
                 continue
-            tag = TIMELINE_FIELD_MAPPINGS[key] if key in TIMELINE_FIELD_MAPPINGS else key
+            tag = camel_to_underline(key)
             item_values[tag] = value
 
         return item_values
