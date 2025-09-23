@@ -13,8 +13,6 @@ class FutureHistoryMainContractResponse(TigerResponse):
 
     def parse_response_content(self, response_content, skip_main=True):
         response = super(FutureHistoryMainContractResponse, self).parse_response_content(response_content)
-        if 'is_success' in response:
-            self._is_success = response['is_success']
 
         if self.data:
             records = []
