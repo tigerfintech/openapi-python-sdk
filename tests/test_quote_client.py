@@ -1471,6 +1471,56 @@ class TestQuoteClient(unittest.TestCase):
             result = self.client.get_current_future_contract(future_type='ES')
             logger.debug(f"Future Current Contract (real):\n {result}")
 
+    def test_get_future_history_main_contract(self):
+        if self.is_mock:
+            mock_data = {"code":0,
+                         "message":"success",
+                         "timestamp":1758627126838,
+                         "data":[
+                             {"contractCode":"CLmain",
+                              "mainReferItems":
+                                  [
+                                      {"time":1758574800000,"referContractCode":"CL2511"},
+                                      {"time":1758315600000,"referContractCode":"CL2511"},
+                                      {"time":1758229200000,"referContractCode":"CL2511"},
+                                      {"time":1758142800000,"referContractCode":"CL2510"},
+                                      {"time":1758056400000,"referContractCode":"CL2510"},
+                                      {"time":1757970000000,"referContractCode":"CL2510"},
+                                      {"time":1757710800000,"referContractCode":"CL2510"}
+                                  ]
+                              }
+                         ]
+                         }
+            web_utils.do_request = MagicMock(
+                return_value=json.dumps(mock_data).encode())
+            # 调用获取期货历史主力合约方法
+            mock_result = self.client.get_future_history_main_contract(identifiers=['CLmain'],
+                                                                       begin_time=1755035100000,
+                                                                       end_time=1765035100000)
+            logger.debug(f"Future History Main Contract (mock):\n {mock_result}")
+            self.assertIsNotNone(mock_result)
+            self.assertFalse(mock_result.empty)
+            self.assertEqual(len(mock_result), 7)  # 应该有7条主力合约记录
+            self.assertIn('contract_code', mock_result.columns)
+            self.assertIn('time', mock_result.columns)
+            self.assertIn('refer_contract_code', mock_result.columns)
+            # 验证第一条主力合约记录
+            last_record = mock_result.iloc[0]
+            self.assertEqual(last_record['contract_code'], 'CLmain')
+            self.assertEqual(int(last_record['time']), 1758574800000)
+            self.assertEqual(last_record['refer_contract_code'], 'CL2511')
+            # 验证最后一条主力合约记录
+            first_record = mock_result.iloc[6]
+            self.assertEqual(first_record['contract_code'], 'CLmain')
+            self.assertEqual(int(first_record['time']), 1757710800000)
+            self.assertEqual(first_record['refer_contract_code'], 'CL2510')
+
+        else:
+            result = self.client.get_future_history_main_contract(identifiers=['CLmain'],
+                                                                  begin_time=1755035100000,
+                                                                  end_time=1765035100000)
+            logger.debug(f"Future History Main Contract (real):\n {result}")
+
     def test_get_all_future_contracts(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755064020186,

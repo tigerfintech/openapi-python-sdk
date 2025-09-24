@@ -28,6 +28,7 @@ TIGEROPEN_ACCOUNT = ENV_PREFIX + 'ACCOUNT'
 TIGEROPEN_SECRET_KEY = ENV_PREFIX + 'SECRET_KEY'
 TIGEROPEN_PRIVATE_KEY = ENV_PREFIX + 'PRIVATE_KEY'
 TIGEROPEN_LICENSE = ENV_PREFIX + 'LICENSE'
+TIGEROPEN_TOKEN = ENV_PREFIX + 'TOKEN'
 TIGEROPEN_PROPS_PATH = ENV_PREFIX + 'PROPS_PATH'
 
 DEFAULT_DOMAIN = 'openapi.tigerfintech.com'
@@ -137,7 +138,10 @@ class TigerOpenClientConfig:
         if not self.props_path:
             self.props_path = '.'
         self._load_props()
-        self._token = self.load_token()
+        if not self._token:
+            twofa_token = self.load_token()
+            if twofa_token:
+                self._token = twofa_token
 
         self.domain_conf = dict()
         self.enable_dynamic_domain = enable_dynamic_domain
@@ -343,6 +347,9 @@ class TigerOpenClientConfig:
 
         if not self.license and os.environ.get(TIGEROPEN_LICENSE):
             self.license = os.environ.get(TIGEROPEN_LICENSE)
+
+        if not self._token and os.environ.get(TIGEROPEN_TOKEN):
+            self._token = os.environ.get(TIGEROPEN_TOKEN)
 
     def _load_props(self):
         full_path = self._get_props_path(DEFAULT_PROPS_FILE)
