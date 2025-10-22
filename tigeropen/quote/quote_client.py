@@ -681,10 +681,10 @@ class QuoteClient(TigerOpenClient):
                          period: Union[BarPeriod, str] = BarPeriod.DAY,
                          begin_time: Union[int, str] = -1,
                          end_time: Union[int, str] = -1,
-                         total: int = 10000,
+                         total: int = 500,
                          page_size: int = 100,
                          right: Union[QuoteRight, str] = QuoteRight.BR,
-                         time_interval: int = 2,
+                         time_interval: int = 1,
                          lang: Optional[Union[str, Language]] = None,
                          trade_session: Optional[TradingSession] = None,
                          with_fundamental: Optional[bool] = None) -> pd.DataFrame:
@@ -719,8 +719,7 @@ class QuoteClient(TigerOpenClient):
         1   AAPL  1754452800000  205.630  215.38  205.59  213.25  108483103  2.315469e+10
         """
         if begin_time == -1 and end_time == -1:
-            raise ApiException(
-                400, 'One of the begin_time or end_time must be specified')
+            end_time = int(time.time() * 1000)
         if isinstance(symbol, list) and len(symbol) != 1:
             raise ApiException(
                 400, 'Paging queries support only one symbol at each request')
@@ -1783,7 +1782,7 @@ class QuoteClient(TigerOpenClient):
                         period: Union[BarPeriod, str] = BarPeriod.DAY,
                         begin_time: Union[int, str] = -1,
                         end_time: Union[int, str] = -1,
-                        limit: int = 1000,
+                        limit: int = 251,
                         page_token: Optional[str] = None,
                         timezone: Optional[str] = None) -> pd.DataFrame:
         """
@@ -1855,9 +1854,9 @@ class QuoteClient(TigerOpenClient):
                                 period: Union[BarPeriod, str] = BarPeriod.DAY,
                                 begin_time: Union[int, str] = -1,
                                 end_time: Union[int, str] = -1,
-                                total: Optional[int] = 10000,
-                                page_size: Optional[int] = 500,
-                                time_interval: Optional[int] = 2):
+                                total: Optional[int] = 500,
+                                page_size: Optional[int] = 100,
+                                time_interval: Optional[int] = 1):
         """
         Get Future bars by page. 分页获取期货K线数据
 
@@ -1881,8 +1880,7 @@ class QuoteClient(TigerOpenClient):
         :return:
         """
         if begin_time == -1 and end_time == -1:
-            raise ApiException(
-                400, 'One of the begin_time or end_time must be specified')
+            end_time = int(time.time() * 1000)
         if isinstance(identifier, list) and len(identifier) != 1:
             raise ApiException(
                 400,
