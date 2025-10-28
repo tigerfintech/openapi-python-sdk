@@ -3086,6 +3086,14 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_stock_fundamental(self, symbols, market):
+        """
+        :param symbols:
+        :param market:
+        :return:
+          symbol     roe     roa  pb_rate  ps_rate  divide_rate  week52_high  week52_low   ttm_eps   lyr_eps  volume_ratio  turnover_rate  ttm_pe_rate  lyr_pe_rate    market_cap  float_market_cap
+        0   AAPL  1.4981  0.2455     60.6     9.76       0.0038       269.12    169.2101  6.573399  6.109054      0.886438       0.003030    40.893608    44.001903  3.989245e+12      3.982239e+12
+        1   GOOG  0.3483  0.1679      9.0     8.79       0.0030       270.80    142.6600  9.385496  8.127120      1.237761       0.002121    28.760334    33.213488  3.264533e+12      2.925080e+12
+        """
         params = MultipleQuoteParams()
         params.symbols = self._format_to_list(symbols)
         params.market = get_enum_value(market)
