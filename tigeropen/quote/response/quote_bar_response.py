@@ -7,21 +7,17 @@ Created on 2018/10/31
 import pandas as pd
 
 from tigeropen.common.response import TigerResponse
-
-COLUMNS = ['symbol', 'time', 'open', 'high', 'low', 'close', 'volume', 'amount', 'next_page_token']
-BAR_FIELD_MAPPINGS = {'avgPrice': 'avg_price'}
+from tigeropen.common.util.string_utils import camel_to_underline
 
 
 class QuoteBarResponse(TigerResponse):
     def __init__(self):
         super(QuoteBarResponse, self).__init__()
-        self.bars = pd.DataFrame(columns=COLUMNS)
+        self.result = pd.DataFrame()
         self._is_success = None
 
     def parse_response_content(self, response_content):
-        response = super(QuoteBarResponse, self).parse_response_content(response_content)
-        if 'is_success' in response:
-            self._is_success = response['is_success']
+        super(QuoteBarResponse, self).parse_response_content(response_content)
 
         if self.data and isinstance(self.data, list):
             bar_items = []
@@ -31,11 +27,10 @@ class QuoteBarResponse(TigerResponse):
                 if 'items' in symbol_item:
                     for item in symbol_item['items']:
                         item_values = {'symbol': symbol, 'next_page_token': next_page_token}
-                        for key, value in item.items():
-                            if value is None:
-                                continue
-                            tag = BAR_FIELD_MAPPINGS[key] if key in BAR_FIELD_MAPPINGS else key
-                            item_values[tag] = value
-                        bar_items.append([item_values.get(tag) for tag in COLUMNS])
+                        item_values.update(item)
+                        bar_items.append(item_values)
 
-            self.bars = pd.DataFrame(bar_items, columns=COLUMNS)
+            self.result = pd.DataFrame(bar_items)
+            column_map = {col: camel_to_underline(col) for col in self.result.columns.to_list()}
+            self.result.rename(columns=column_map, inplace=True)
+            self.result.reset_index(inplace=True, drop=True)
