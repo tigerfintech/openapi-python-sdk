@@ -605,7 +605,8 @@ class QuoteClient(TigerOpenClient):
                  lang: Optional[Union[Language, str]] = None,
                  page_token: Optional[str] = None,
                  trade_session: Optional[Union[TradingSession, str]] = None,
-                 date: Optional[str] = None) -> pd.DataFrame:
+                 date: Optional[str] = None,
+                 with_fundamental: Optional[bool] = None) -> pd.DataFrame:
         """
         Get K-line (OHLC) data. 获取K线数据
 
@@ -629,6 +630,7 @@ class QuoteClient(TigerOpenClient):
         :param page_token: The token of next page. Only supported when exactly one symbol. 下一页的令牌，仅当请求一个股票时支持
         :param trade_session: Trading session. 交易时段. 夜盘传 TradingSession.OverNight
         :param date: Date in format yyyyMMdd. 日期，格式为 yyyyMMdd
+        :param with_fundamental: Whether to include fundamental data such as PE ratio and turnover rate. 是否包含市盈率/换手率等基本面数据.
         :return: pandas.DataFrame with columns:
             - symbol: stock symbol. 股票代码
             - time: timestamp in milliseconds. 毫秒时间戳
@@ -661,13 +663,14 @@ class QuoteClient(TigerOpenClient):
         params.trade_session = get_enum_value(trade_session)
         params.date = str(date).replace('-', '').replace('/',
                                                          '') if date else None
+        params.with_fundamental = with_fundamental
         request = OpenApiRequest(KLINE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
             response = QuoteBarResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.bars
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
 
@@ -683,7 +686,8 @@ class QuoteClient(TigerOpenClient):
                          right: Union[QuoteRight, str] = QuoteRight.BR,
                          time_interval: int = 2,
                          lang: Optional[Union[str, Language]] = None,
-                         trade_session: Optional[TradingSession] = None):
+                         trade_session: Optional[TradingSession] = None,
+                         with_fundamental: Optional[bool] = None) -> pd.DataFrame:
         """
         Get bars by page. 分页获取K线数据.
 
@@ -698,6 +702,7 @@ class QuoteClient(TigerOpenClient):
         :param lang: 语言
         :param trade_session: Trading session, e.g., TradingSession.PreMarket, TradingSession.Regular, TradingSession.AfterHours.
                           交易时段，例如 TradingSession.PreMarket（盘前），TradingSession.Regular（盘中），TradingSession.AfterHours（盘后）
+        :param with_fundamental: Whether to include fundamental data. 是否包含市盈率/换手率
         :return: pandas.DataFrame with columns:
             - symbol: Stock symbol. 股票代码
             - time: Timestamp. 毫秒时间戳
@@ -714,8 +719,7 @@ class QuoteClient(TigerOpenClient):
         1   AAPL  1754452800000  205.630  215.38  205.59  213.25  108483103  2.315469e+10
         """
         if begin_time == -1 and end_time == -1:
-            raise ApiException(
-                400, 'One of the begin_time or end_time must be specified')
+            end_time = int(time.time() * 1000)
         if isinstance(symbol, list) and len(symbol) != 1:
             raise ApiException(
                 400, 'Paging queries support only one symbol at each request')
@@ -735,7 +739,8 @@ class QuoteClient(TigerOpenClient):
                                  limit=page_size,
                                  lang=lang,
                                  trade_session=trade_session,
-                                 page_token=next_page_token)
+                                 page_token=next_page_token,
+                                 with_fundamental=with_fundamental)
             if bars.empty:
                 result_df = bars
                 break
@@ -1875,8 +1880,7 @@ class QuoteClient(TigerOpenClient):
         :return:
         """
         if begin_time == -1 and end_time == -1:
-            raise ApiException(
-                400, 'One of the begin_time or end_time must be specified')
+            end_time = int(time.time() * 1000)
         if isinstance(identifier, list) and len(identifier) != 1:
             raise ApiException(
                 400,
@@ -3082,6 +3086,14 @@ class QuoteClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
 
     def get_stock_fundamental(self, symbols, market):
+        """
+        :param symbols:
+        :param market:
+        :return:
+          symbol     roe     roa  pb_rate  ps_rate  divide_rate  week52_high  week52_low   ttm_eps   lyr_eps  volume_ratio  turnover_rate  ttm_pe_rate  lyr_pe_rate    market_cap  float_market_cap
+        0   AAPL  1.4981  0.2455     60.6     9.76       0.0038       269.12    169.2101  6.573399  6.109054      0.886438       0.003030    40.893608    44.001903  3.989245e+12      3.982239e+12
+        1   GOOG  0.3483  0.1679      9.0     8.79       0.0030       270.80    142.6600  9.385496  8.127120      1.237761       0.002121    28.760334    33.213488  3.264533e+12      2.925080e+12
+        """
         params = MultipleQuoteParams()
         params.symbols = self._format_to_list(symbols)
         params.market = get_enum_value(market)

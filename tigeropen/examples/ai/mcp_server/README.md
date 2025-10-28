@@ -75,6 +75,7 @@ brew install coreutils
 ``` 
 
 ### Release Notes
+- 0.1.5 (2025-09-24) Support SECRET_KEY/TOKEN env variables
 - 0.1.4 (2025-08-29) Fix issues
 - 0.1.3 (2025-08-29) Fix issues
 - 0.1.2 (2025-08-28) Fix issues
