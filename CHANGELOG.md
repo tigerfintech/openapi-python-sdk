@@ -1,4 +1,4 @@
-## 3.4.9 (2025-10-27)
+## 3.4.9 (2025-10-28)
 ### New
 - `QuoteClient.get_bars` 增加 `with_fundamental` 参数，支持获取附加数据(ttm_pe/lyr_pe/turnover_rate)的K线
 
