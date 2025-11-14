@@ -85,6 +85,11 @@ except ImportError:
 
 class TigerOpenClientConfig:
     def __init__(self, sandbox_debug=None, enable_dynamic_domain=True, props_path=None):
+        """
+        :param sandbox_debug: Deprecated, always False
+        :param enable_dynamic_domain:
+        :param props_path: config file path
+        """
         # 开发者应用id
         self._tiger_id = ''
         # 授权账户
