@@ -1992,8 +1992,8 @@ class QuoteClient(TigerOpenClient):
             limit_down: Lower price limit. 跌停价
 
         :return example:
-           identifier  latest_price  latest_size    latest_time  bid_price  ask_price  bid_size  ask_size  open_interest  open_interest_change  volume    open     high     low  settlement  limit_up  limit_down
-        0     ES2509        6469.5            5  1755067657000     6469.5    6469.75        11        14        1938507                 26858   46493  6468.0  6474.75  6461.0      6468.5    6919.5      6017.5
+          identifier  latest_price  latest_size    latest_time  bid_price  ask_price  bid_size  ask_size  open_interest  open_interest_change  volume   open   high   low  settlement  limit_up  limit_down  avg_price
+        0     CL2512         60.11            1  1762503297000      60.11      60.12         7         6         279904                -14313   27548  59.65  60.23  59.6       59.43       0.0         0.0      59.85
 
         """
         params = FutureQuoteParams()

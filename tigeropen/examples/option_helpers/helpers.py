@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Helpers for calculating the Greeks of options
+# requires QuantLib>=1.40
 # @Date    : 2022/4/15
 # @Author  : sukai
 import argparse
@@ -11,7 +12,7 @@ except ImportError:
     pass
 
 
-class FDDividendOptionHelper(ql.DividendVanillaOption):
+class FDDividendOptionHelper(ql.VanillaOption):
     def __init__(self,
                  engine_class,
                  option_type: ql.Option,
@@ -29,8 +30,8 @@ class FDDividendOptionHelper(ql.DividendVanillaOption):
                  ):
         self.dates = dates if dates is not None else list()
         self.dividends = dividends if dividends is not None else list()
-        super(FDDividendOptionHelper, self).__init__(ql.PlainVanillaPayoff(option_type, strike), exercise, self.dates,
-                                                     self.dividends)
+        super(FDDividendOptionHelper, self).__init__(ql.PlainVanillaPayoff(option_type, strike), exercise)
+
 
         self.option_type = option_type
         self.underlying = underlying
@@ -223,7 +224,7 @@ class FDEuropeanDividendOptionHelper(FDDividendOptionHelper):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Helpers for calculating the Greeks of options')
 
-    parser.add_argument('-t', '--type', type=str,
+    parser.add_argument('-t', '--type', type=str, default='CALL',
                         help='Option type, CALL/PUT (C/P)', choices=('C', 'P', 'CALL', 'PUT'))
     parser.add_argument('-u', '--underlying', type=float,
                         help='The price of the underlying asset')
@@ -258,6 +259,26 @@ if __name__ == '__main__':
         parser.error('Wrong option type')
     if args.volatility is None and args.npv is None and args.ask is None and args.bid is None:
         parser.error('Must specify the volatility or option npv(or option\'s ask, bid)')
+
+    # fixme
+    # {'type': 'C', 'underlying': 1000, 'strike': 1000, 'dividend': 0.01, 'rfrate': 0.02, 'volatility': 0, 'settlement': '2025/11/07', 'expiration': '2025/12/05', 'npv': None, 'ask': 45, 'bid': 43, 'european': False}
+    # The implied volatility with ask 45, bid 43, expected_npv 44.0 is: 0.39517521806708544
+    # npv: 43.99834257258945, delta:0.5245475606997624, gamma:0.0036374624407554427, theta:-0.7901654526751223, vega:1.1026120986571308, rho:0.36864693408134025
+
+    # {'type': 'C', 'underlying': 1000, 'strike': 1000, 'dividend': 0.01, 'rfrate': 0.02, 'volatility': 0, 'settlement': '2025/11/07', 'expiration': '2025/12/05', 'npv': None, 'ask': 45, 'bid': 43, 'european': False}
+    # The implied volatility with ask 45, bid 43, expected_npv 44.0 is: 0.3951752180670858
+    # npv: 43.99834257258963, delta:0.5245475606997675, gamma:0.003637462440755365, theta:-0.7901654526751721, vega:1.1026120986130779, rho:0.36864693429450307
+    args.settlement = '2025/11/07'
+    args.expiration = '2025/12/05'
+    args.type = 'C'
+    args.underlying = 1000
+    args.strike = 1000
+    args.rfrate = 0.02
+    args.dividend = 0.01
+    args.volatility = 0
+    args.npv = None
+    args.ask = 45
+    args.bid = 43
 
     print(args.__dict__)
     settlement_date = ql.DateParser.parseFormatted(str(args.settlement).replace('/', '-'), '%Y-%m-%d')
