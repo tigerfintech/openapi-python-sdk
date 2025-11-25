@@ -9,19 +9,30 @@ class ExtraCalculator:
 
     @staticmethod
     def annualized_levered_sell_return(option_time_value: float,
-                                       contracts: int,
-                                       margin_per_option: float,
-                                       days_to_expiry: int) -> float:
+                                       sell_margin: float,
+                                       days_to_expiry: int,
+                                       n_contracts: int = 1) -> float:
         """Calculate annualized levered sell return (for covered calls or cash-secured puts).
 
         Formula (applies to both calls and puts):
-            Annualized Return = (Time Value * Contracts / Margin) * 365 / Days to Expiry
+            Annualized Return = (Time Value * N_contracts / Margin) * 365 / Days to Expiry
+
+        Parameters
+        ----------
+        option_time_value : float
+            Time value (premium) received per contract (per underlying unit if margin is per unit).
+        sell_margin : float
+            Total sell margin required per option (per contract).
+        days_to_expiry : int
+            Days until expiry.
+        n_contracts : int
+            Number of contracts sold (default 1).
         """
         try:
-            if days_to_expiry <= 0 or margin_per_option <= 0 or contracts <= 0:
+            if days_to_expiry <= 0 or sell_margin <= 0 or n_contracts <= 0:
                 return float("nan")
-            numerator = option_time_value * contracts
-            annualized = numerator / margin_per_option * 365.0 / float(days_to_expiry)
+            numerator = option_time_value * n_contracts
+            annualized = numerator / sell_margin * 365.0 / float(days_to_expiry)
             return float(annualized)
         except Exception:
             return float("nan")
@@ -42,5 +53,6 @@ class ExtraCalculator:
 
 if __name__ == "__main__":
     # Simple example (for smoke testing only)
-    print("Example annualized levered sell return:", ExtraCalculator.annualized_levered_sell_return(1.5, 1, 1000.0, 30))
-    print("Example leverage ratio:", ExtraCalculator.leverage_ratio(0.5, 50.0, 2.0))
+    # n_contracts = number of contracts sold
+    print("Example annualized levered sell return:", ExtraCalculator.annualized_levered_sell_return(6.76, 6.76, 4, n_contracts=1))
+    print("Example leverage ratio:", ExtraCalculator.leverage_ratio(0.472, 240.52, 6.76))
