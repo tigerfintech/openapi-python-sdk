@@ -84,7 +84,7 @@ def decode_varint(buffer):
 
 class BaseTransport(listener.Publisher):
 
-    def __init__(self, auto_decode=True, encoding="utf-8", is_eol_fc=is_eol_default):
+    def __init__(self, auto_decode=True, encoding="utf-8", is_eol_fc=is_eol_default, callback_executor=None):
         self.__recvbuf = b""
         self.listeners = {}
         self.running = False
@@ -101,6 +101,7 @@ class BaseTransport(listener.Publisher):
 
         # function for creating threads used by the connection
         self.create_thread_fc = default_create_thread
+        self.callback_executor = callback_executor
 
         self.__listeners_change_condition = threading.Condition()
         self.__receiver_thread_exit_condition = threading.Condition()
@@ -214,22 +215,30 @@ class BaseTransport(listener.Publisher):
             if not notify_func:
                 logging.debug("listener %s has no method on_%s", listener, cmd_name)
                 continue
-            if cmd_type == SocketCommon.Command.HEARTBEAT:
-                notify_func(frame)
-                continue
-            if cmd_type == SocketCommon.Command.DISCONNECT:
-                notify_func()
-                continue
-            if cmd_type == SocketCommon.Command.CONNECT:
-                notify_func(self.current_host_and_port)
-                continue
 
             if cmd_type == SocketCommon.Command.ERROR and not self.connected:
                 with self.__connect_wait_condition:
                     self.connection_error = True
                     self.__connect_wait_condition.notify()
 
+            if self.callback_executor and cmd_type == SocketCommon.Command.MESSAGE:
+                self.callback_executor.submit(self._invoke_listener, notify_func, cmd_type, frame,
+                                              self.current_host_and_port)
+            else:
+                self._invoke_listener(notify_func, cmd_type, frame, self.current_host_and_port)
+
+    def _invoke_listener(self, notify_func, cmd_type, frame, host_and_port):
+        if cmd_type == SocketCommon.Command.HEARTBEAT:
             notify_func(frame)
+            return
+        if cmd_type == SocketCommon.Command.DISCONNECT:
+            notify_func()
+            return
+        if cmd_type == SocketCommon.Command.CONNECT:
+            notify_func(host_and_port)
+            return
+
+        notify_func(frame)
 
     def transmit(self, frame):
         """
@@ -440,8 +449,9 @@ class Transport(BaseTransport):
                  encoding="utf-8",
                  recv_bytes=1024,
                  is_eol_fc=is_eol_default,
-                 bind_host_port=None):
-        BaseTransport.__init__(self, auto_decode, encoding, is_eol_fc)
+                 bind_host_port=None,
+                 callback_executor=None):
+        BaseTransport.__init__(self, auto_decode, encoding, is_eol_fc, callback_executor=callback_executor)
 
         if host_and_ports is None:
             logging.debug("no hosts_and_ports specified, adding default localhost")
