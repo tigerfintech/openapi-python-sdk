@@ -7,6 +7,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from itertools import accumulate, zip_longest
 
+from tigeropen.push.thread_pool import OrderedThreadPoolExecutor
 from tigeropen.common.consts.push_types import ResponseType
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.util.order_utils import get_order_status
@@ -40,7 +41,7 @@ class ProtobufPushClient(ConnectionListener):
         self.callback_executor = callback_executor
         if not self.callback_executor:
             max_workers = client_config.callback_thread_pool_size if client_config else None
-            self.callback_executor = ThreadPoolExecutor(max_workers=max_workers)
+            self.callback_executor = OrderedThreadPoolExecutor(max_workers=max_workers)
 
         self.subscribed_symbols = None
         self.query_subscribed_callback = None
