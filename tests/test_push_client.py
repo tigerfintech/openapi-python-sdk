@@ -13,6 +13,7 @@ from tigeropen.push.pb.TradeTickData_pb2 import TradeTickData
 from tigeropen.tiger_open_config import TigerOpenClientConfig
 from tigeropen.push.network.transport import Transport
 from tigeropen.push.pb.SocketCommon_pb2 import SocketCommon
+from tigeropen.push.thread_pool import OrderedThreadPoolExecutor
 
 
 class TestPushClient(unittest.TestCase):
@@ -117,7 +118,7 @@ class TestPushClientThreadPool(unittest.TestCase):
         # Access the underlying ProtobufPushClient
         pb_client = client.client
 
-        self.assertIsInstance(pb_client.callback_executor, ThreadPoolExecutor)
+        self.assertIsInstance(pb_client.callback_executor, OrderedThreadPoolExecutor)
         # Default max_workers is None (ThreadPoolExecutor decides based on CPU)
         self.assertGreaterEqual(pb_client.callback_executor._max_workers, 1)
 
@@ -130,7 +131,7 @@ class TestPushClientThreadPool(unittest.TestCase):
         client = PushClient(self.host, self.port, use_protobuf=True, client_config=config)
         pb_client = client.client
 
-        self.assertIsInstance(pb_client.callback_executor, ThreadPoolExecutor)
+        self.assertIsInstance(pb_client.callback_executor, OrderedThreadPoolExecutor)
         self.assertEqual(pb_client.callback_executor._max_workers, 5)
 
     @patch('tigeropen.push.protobuf_push_client._patch_ssl')
