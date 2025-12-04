@@ -117,6 +117,7 @@ class StompPushClient(stomp.ConnectionListener):
             _patch_ssl()
         except:
             pass
+        self.logger.warning('StompPushClient is deprecated, use ProtobufPushClient instead.')
         
     def _connect(self):
         try:

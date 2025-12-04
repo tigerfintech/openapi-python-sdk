@@ -13,7 +13,8 @@ from time import monotonic
 
 from google.protobuf.json_format import MessageToJson
 
-from ..pb.util import ProtoMessageUtil
+from tigeropen.push.pb.util import ProtoMessageUtil
+from tigeropen.push.thread_pool import OrderedThreadPoolExecutor
 
 try:
     from socket import SOL_SOCKET, SO_KEEPALIVE, SOL_TCP, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_KEEPCNT
@@ -101,7 +102,7 @@ class BaseTransport(listener.Publisher):
 
         # function for creating threads used by the connection
         self.create_thread_fc = default_create_thread
-        self.callback_executor = callback_executor
+        self.callback_executor : OrderedThreadPoolExecutor  = callback_executor
 
         self.__listeners_change_condition = threading.Condition()
         self.__receiver_thread_exit_condition = threading.Condition()
@@ -222,8 +223,10 @@ class BaseTransport(listener.Publisher):
                     self.__connect_wait_condition.notify()
 
             if self.callback_executor and cmd_type == SocketCommon.Command.MESSAGE:
+                data_type = getattr(getattr(frame, 'body', None), 'dataType', None) if frame else None
+                routing_key = (cmd_type, data_type)
                 self.callback_executor.submit(self._invoke_listener, notify_func, cmd_type, frame,
-                                              self.current_host_and_port)
+                                              self.current_host_and_port, key=routing_key)
             else:
                 self._invoke_listener(notify_func, cmd_type, frame, self.current_host_and_port)
 
