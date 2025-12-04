@@ -4,7 +4,6 @@
 # @Author  : sukai
 import logging
 import sys
-from concurrent.futures import ThreadPoolExecutor
 from itertools import accumulate, zip_longest
 
 from tigeropen.push.thread_pool import OrderedThreadPoolExecutor

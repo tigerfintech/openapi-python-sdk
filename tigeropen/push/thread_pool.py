@@ -11,17 +11,13 @@ class OrderedThreadPoolExecutor:
         :param max_workers: The maximum number of threads that can be used to
             execute the given calls.
         """
-        if max_workers is None:
-            # Use the same default as ThreadPoolExecutor (Python 3.8+)
+        if max_workers is None or max_workers <= 0:
             max_workers = min(32, (os.cpu_count() or 1) + 4)
-        
-        if max_workers <= 0:
-            raise ValueError("max_workers must be greater than 0")
 
         self._max_workers_count = max_workers
         self._executors = [ThreadPoolExecutor(max_workers=1) for _ in range(max_workers)]
 
-    def submit(self, fn, *args, **kwargs):
+    def submit(self, fn, *args, key=None, **kwargs):
         """
         Submits a callable to be executed with the given arguments.
 
@@ -32,11 +28,12 @@ class OrderedThreadPoolExecutor:
         This ensures that calls with the same first argument are executed sequentially
         in the same thread.
         """
-        if args:
-            key = args[0]
-            index = hash(key) % self._max_workers_count
-        else:
-            index = 0
+        if key is None:
+            if args:
+                key = args[0]
+            else:
+                key = 0
+        index = hash(key) % self._max_workers_count
         return self._executors[index].submit(fn, *args, **kwargs)
 
     def shutdown(self, wait=True):

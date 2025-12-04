@@ -16,6 +16,23 @@ from tigeropen.push.pb.SocketCommon_pb2 import SocketCommon
 from tigeropen.push.thread_pool import OrderedThreadPoolExecutor
 
 
+class _ImmediateExecutor:
+
+    def __init__(self):
+        self.calls = []
+
+    def submit(self, fn, *args, key=None, **kwargs):
+        self.calls.append({'key': key, 'args': args, 'kwargs': kwargs})
+        return fn(*args, **kwargs)
+
+
+class _KeyAwareThreadPoolExecutor(ThreadPoolExecutor):
+
+    def submit(self, fn, *args, key=None, **kwargs):
+        # ThreadPoolExecutor ignores routing key; this hook keeps compatibility with transport
+        return super().submit(fn, *args, **kwargs)
+
+
 class TestPushClient(unittest.TestCase):
 
     def test_tick_convert(self):
@@ -137,7 +154,7 @@ class TestPushClientThreadPool(unittest.TestCase):
     @patch('tigeropen.push.protobuf_push_client._patch_ssl')
     def test_init_with_executor(self, mock_patch_ssl):
         """Test initialization with custom executor"""
-        executor = ThreadPoolExecutor(max_workers=3)
+        executor = _KeyAwareThreadPoolExecutor(max_workers=3)
         client = PushClient(self.host, self.port, use_protobuf=True, callback_executor=executor)
         pb_client = client.client
 
@@ -146,7 +163,7 @@ class TestPushClientThreadPool(unittest.TestCase):
 
     def test_transport_notify_with_executor(self):
         """Test that Transport uses the executor for MESSAGE commands"""
-        executor = ThreadPoolExecutor(max_workers=1)
+        executor = _KeyAwareThreadPoolExecutor(max_workers=1)
         transport = Transport(callback_executor=executor)
 
         # Mock listener
@@ -191,3 +208,22 @@ class TestPushClientThreadPool(unittest.TestCase):
         transport.notify(SocketCommon.Command.CONNECT, None)
 
         self.assertEqual(execution_thread_id, threading.get_ident())
+
+    def test_transport_routing_key_uses_cmd_and_data_type(self):
+        executor = _ImmediateExecutor()
+        transport = Transport(callback_executor=executor)
+
+        listener = MagicMock()
+        listener.on_message = MagicMock()
+        transport.set_listener("test_listener", listener)
+
+        frame = MagicMock()
+        frame.command = SocketCommon.Command.MESSAGE
+        frame.body = MagicMock()
+        frame.body.dataType = SocketCommon.DataType.Quote
+
+        transport.notify(SocketCommon.Command.MESSAGE, frame)
+
+        self.assertEqual(len(executor.calls), 1)
+        self.assertEqual(executor.calls[0]['key'],
+                         (SocketCommon.Command.MESSAGE, SocketCommon.DataType.Quote))
