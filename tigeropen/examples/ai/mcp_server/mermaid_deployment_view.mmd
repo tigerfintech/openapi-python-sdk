@@ -1,0 +1,14 @@
+graph TD
+  subgraph LocalHost
+    A[MCP Client (Agent)]
+    B[TigerMCP Server Process]
+  end
+  subgraph Network
+    Q[Quote Service - TigerOpen]
+    T[Trade Service - TigerOpen]
+  end
+  A -->|stdio JSON-RPC| B
+  B -->|QuoteClient SDK / HTTP| Q
+  B -->|TradeClient SDK / HTTP| T
+  B -->|logs/metrics| M[Prometheus/Grafana]
+  B -->|alerts| Alerting[PagerDuty/Slack]
