@@ -1,0 +1,8 @@
+graph LR
+  Host[Host (Agent/Controller)] -->|spawn process + stdio| MCPServer[TigerMCP Server Process]
+  MCPServer -->|stdout/stdin JSON-RPC| Agent[Model Adapter / Agent]
+  subgraph HostEnv[Host Environment]
+    Agent
+    Host
+  end
+  style HostEnv fill:#f9f,stroke:#333,stroke-width:1px
