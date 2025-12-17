@@ -16,6 +16,7 @@ class OrderedThreadPoolExecutor:
 
         self._max_workers_count = max_workers
         self._executors = [ThreadPoolExecutor(max_workers=1) for _ in range(max_workers)]
+        self._shutdown = False
 
     def submit(self, fn, *args, key=None, **kwargs):
         """
@@ -33,13 +34,20 @@ class OrderedThreadPoolExecutor:
                 key = args[0]
             else:
                 key = 0
+        # If executor has been shut down (e.g., process is exiting), avoid
+        # scheduling new tasks — return a Future with an appropriate exception.
+        if self._shutdown:
+            f = Future()
+            f.set_exception(RuntimeError('executor has been shutdown'))
+            return f
+
         index = hash(key) % self._max_workers_count
         try:
             return self._executors[index].submit(fn, *args, **kwargs)
         except RuntimeError as e:
-            # Underlying executor has been shutdown. Return a Future carrying
-            # the same exception so callers receive a completed future instead
-            # of raising from a worker thread.
+            # Underlying executor has been shutdown concurrently. Return a
+            # Future carrying the same exception so callers receive a
+            # completed future instead of raising from a worker thread.
             f = Future()
             f.set_exception(e)
             return f
@@ -55,6 +63,9 @@ class OrderedThreadPoolExecutor:
             futures have finished executing and the resources used by the
             executor have been reclaimed.
         """
+        # Mark shutdown first to prevent new submissions between shutdown calls
+        # and the actual executor shutdown (avoids race conditions).
+        self._shutdown = True
         for executor in self._executors:
             executor.shutdown(wait=wait)
 
