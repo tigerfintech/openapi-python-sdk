@@ -14,7 +14,7 @@ from time import monotonic
 from google.protobuf.json_format import MessageToJson
 
 from tigeropen.push.pb.util import ProtoMessageUtil
-from tigeropen.push.thread_pool import OrderedThreadPoolExecutor
+from tigeropen.push.thread_pool import CallbackThreadPoolExecutor
 
 try:
     from socket import SOL_SOCKET, SO_KEEPALIVE, SOL_TCP, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_KEEPCNT
@@ -102,7 +102,7 @@ class BaseTransport(listener.Publisher):
 
         # function for creating threads used by the connection
         self.create_thread_fc = default_create_thread
-        self.callback_executor : OrderedThreadPoolExecutor  = callback_executor
+        self.callback_executor : CallbackThreadPoolExecutor  = callback_executor
 
         self.__listeners_change_condition = threading.Condition()
         self.__receiver_thread_exit_condition = threading.Condition()
@@ -225,8 +225,13 @@ class BaseTransport(listener.Publisher):
             if self.callback_executor and cmd_type == SocketCommon.Command.MESSAGE:
                 data_type = getattr(getattr(frame, 'body', None), 'dataType', None) if frame else None
                 routing_key = (cmd_type, data_type)
-                self.callback_executor.submit(self._invoke_listener, notify_func, cmd_type, frame,
-                                              self.current_host_and_port, key=routing_key)
+                try:
+                    self.callback_executor.submit(self._invoke_listener, notify_func, cmd_type, frame,
+                                                  self.current_host_and_port, key=routing_key)
+                except RuntimeError as exc:
+                    logging.debug("callback executor unavailable during shutdown: %s", exc)
+                    self._handle_callback_executor_shutdown()
+                    break
             else:
                 self._invoke_listener(notify_func, cmd_type, frame, self.current_host_and_port)
 
@@ -242,6 +247,15 @@ class BaseTransport(listener.Publisher):
             return
 
         notify_func(frame)
+
+    def _handle_callback_executor_shutdown(self):
+        if not self.running:
+            return
+        self.running = False
+        try:
+            self.disconnect_socket()
+        except Exception:
+            logging.debug("error closing transport during executor shutdown", exc_info=True)
 
     def transmit(self, frame):
         """

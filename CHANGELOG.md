@@ -1,3 +1,9 @@
+## 3.5.0 (2025-12-18)
+### New
+- `TradeClient.get_transactions` 获取成交记录，支持 since_date/to_date, 返回增加 filled_quantity_scale
+- `TradeClient.get_prime_assets` 综合账户资产增加字段 forex_rate
+- 长链接回调支持线程池
+
 ## 3.4.9 (2025-10-28)
 ### New
 - `QuoteClient.get_bars` 增加 `with_fundamental` 参数，支持获取附加数据(ttm_pe/lyr_pe/turnover_rate)的K线
