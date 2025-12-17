@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, Future
 
 
 class OrderedThreadPoolExecutor:
@@ -34,7 +34,15 @@ class OrderedThreadPoolExecutor:
             else:
                 key = 0
         index = hash(key) % self._max_workers_count
-        return self._executors[index].submit(fn, *args, **kwargs)
+        try:
+            return self._executors[index].submit(fn, *args, **kwargs)
+        except RuntimeError as e:
+            # Underlying executor has been shutdown. Return a Future carrying
+            # the same exception so callers receive a completed future instead
+            # of raising from a worker thread.
+            f = Future()
+            f.set_exception(e)
+            return f
 
     def shutdown(self, wait=True):
         """
