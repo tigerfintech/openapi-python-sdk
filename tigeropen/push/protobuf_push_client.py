@@ -153,16 +153,32 @@ class ProtobufPushClient(ConnectionListener):
             self._prev_sigterm = signal.getsignal(signal.SIGTERM)
 
             def _handler(signum, frame):
+                # Restore the previous handler (or default) immediately so a
+                # second signal will terminate the process without waiting for
+                # our graceful shutdown.
                 try:
-                    # attempt graceful shutdown
-                    self.disconnect()
+                    if signum == signal.SIGINT:
+                        signal.signal(signal.SIGINT, self._prev_sigint or signal.SIG_DFL)
+                    else:
+                        signal.signal(signal.SIGTERM, self._prev_sigterm or signal.SIG_DFL)
                 except Exception:
                     pass
-                # chain to previous handler if it is callable
-                prev = self._prev_sigint if signum == signal.SIGINT else self._prev_sigterm
-                if callable(prev):
+
+                # Run disconnect in a background thread to avoid blocking the
+                # signal handler; this starts graceful shutdown asynchronously.
+                def _bg():
                     try:
-                        prev(signum, frame)
+                        self.disconnect()
+                    except Exception:
+                        pass
+
+                try:
+                    t = threading.Thread(target=_bg, daemon=True)
+                    t.start()
+                except Exception:
+                    # If unable to start a thread, attempt a direct call as fallback
+                    try:
+                        self.disconnect()
                     except Exception:
                         pass
 
