@@ -38,9 +38,13 @@ class ProtobufPushClient(ConnectionListener):
         self._sign = None
         self._connection = None
         self.callback_executor = callback_executor
+        # If callback_executor not supplied by caller, we create one and
+        # record ownership so we can shutdown it on disconnect.
+        self._callback_executor_owner = False
         if not self.callback_executor:
             max_workers = client_config.callback_thread_pool_size if client_config else None
             self.callback_executor = OrderedThreadPoolExecutor(max_workers=max_workers)
+            self._callback_executor_owner = True
 
         self.subscribed_symbols = None
         self.query_subscribed_callback = None
@@ -107,7 +111,16 @@ class ProtobufPushClient(ConnectionListener):
 
     def disconnect(self):
         if self._connection:
-            self._connection.disconnect()
+            try:
+                self._connection.disconnect()
+            finally:
+                # If we created the callback executor, shut it down so its
+                # worker threads exit after disconnect.
+                if getattr(self, '_callback_executor_owner', False) and self.callback_executor:
+                    try:
+                        self.callback_executor.shutdown(wait=True)
+                    except Exception:
+                        pass
 
     def on_connected(self, frame):
         if self.connect_callback:
