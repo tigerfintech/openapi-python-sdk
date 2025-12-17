@@ -3,6 +3,7 @@
 # @Date    : 2023/2/17
 # @Author  : sukai
 import logging
+import signal
 import sys
 from itertools import accumulate, zip_longest
 
@@ -38,13 +39,18 @@ class ProtobufPushClient(ConnectionListener):
         self._sign = None
         self._connection = None
         self.callback_executor = callback_executor
-        # If callback_executor not supplied by caller, we create one and
-        # record ownership so we can shutdown it on disconnect.
+        # Track ownership: if client did not supply an executor we create one
+        # and are responsible for shutting it down on disconnect/kill.
         self._callback_executor_owner = False
         if not self.callback_executor:
             max_workers = client_config.callback_thread_pool_size if client_config else None
             self.callback_executor = OrderedThreadPoolExecutor(max_workers=max_workers)
             self._callback_executor_owner = True
+
+        # Signal handler bookkeeping
+        self._signal_handlers_saved = False
+        self._prev_sigint = None
+        self._prev_sigterm = None
 
         self.subscribed_symbols = None
         self.query_subscribed_callback = None
@@ -106,6 +112,13 @@ class ProtobufPushClient(ConnectionListener):
                                                              )
             self._connection.connect(con_req, wait=True,
                                      )
+            # After a successful connect, install signal handlers so a
+            # kill (SIGINT/SIGTERM) triggers a clean disconnect and
+            # executor shutdown (if we own it).
+            try:
+                self._install_signal_handlers()
+            except Exception:
+                pass
         except ConnectFailedException as e:
             raise e
 
@@ -114,13 +127,58 @@ class ProtobufPushClient(ConnectionListener):
             try:
                 self._connection.disconnect()
             finally:
-                # If we created the callback executor, shut it down so its
-                # worker threads exit after disconnect.
+                # restore any replaced signal handlers
+                try:
+                    self._restore_signal_handlers()
+                except Exception:
+                    pass
+                # shutdown executor if we created it
                 if getattr(self, '_callback_executor_owner', False) and self.callback_executor:
                     try:
                         self.callback_executor.shutdown(wait=True)
                     except Exception:
                         pass
+
+    def _install_signal_handlers(self):
+        if self._signal_handlers_saved:
+            return
+        try:
+            self._prev_sigint = signal.getsignal(signal.SIGINT)
+            self._prev_sigterm = signal.getsignal(signal.SIGTERM)
+
+            def _handler(signum, frame):
+                try:
+                    # attempt graceful shutdown
+                    self.disconnect()
+                except Exception:
+                    pass
+                # chain to previous handler if it is callable
+                prev = self._prev_sigint if signum == signal.SIGINT else self._prev_sigterm
+                if callable(prev):
+                    try:
+                        prev(signum, frame)
+                    except Exception:
+                        pass
+
+            signal.signal(signal.SIGINT, _handler)
+            signal.signal(signal.SIGTERM, _handler)
+            self._signal_handlers_saved = True
+        except Exception:
+            # If signals cannot be modified (e.g., in some embedded envs), ignore
+            pass
+
+    def _restore_signal_handlers(self):
+        if not self._signal_handlers_saved:
+            return
+        try:
+            signal.signal(signal.SIGINT, self._prev_sigint)
+        except Exception:
+            pass
+        try:
+            signal.signal(signal.SIGTERM, self._prev_sigterm)
+        except Exception:
+            pass
+        self._signal_handlers_saved = False
 
     def on_connected(self, frame):
         if self.connect_callback:
