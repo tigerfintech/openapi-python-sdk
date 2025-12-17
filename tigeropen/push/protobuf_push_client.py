@@ -30,7 +30,7 @@ else:
 
 class ProtobufPushClient(ConnectionListener):
     def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000),
-                 client_config=None, callback_executor=None):
+                 client_config=None, callback_executor=None, shutdown_callback_executor_on_disconnect=False):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
@@ -42,6 +42,10 @@ class ProtobufPushClient(ConnectionListener):
         # Track ownership: if client did not supply an executor we create one
         # and are responsible for shutting it down on disconnect/kill.
         self._callback_executor_owner = False
+        # Whether to shutdown the provided callback_executor on disconnect/kill.
+        # Default False to avoid closing executors owned by callers unless
+        # explicitly requested.
+        self._shutdown_callback_executor_on_disconnect = shutdown_callback_executor_on_disconnect
         if not self.callback_executor:
             max_workers = client_config.callback_thread_pool_size if client_config else None
             self.callback_executor = OrderedThreadPoolExecutor(max_workers=max_workers)
@@ -132,8 +136,10 @@ class ProtobufPushClient(ConnectionListener):
                     self._restore_signal_handlers()
                 except Exception:
                     pass
-                # shutdown executor if we created it
-                if getattr(self, '_callback_executor_owner', False) and self.callback_executor:
+                # shutdown executor if we created it or caller requested shutdown
+                if self.callback_executor and (
+                        getattr(self, '_callback_executor_owner', False)
+                        or self._shutdown_callback_executor_on_disconnect):
                     try:
                         self.callback_executor.shutdown(wait=True)
                     except Exception:
