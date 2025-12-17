@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import signal
 from concurrent.futures import ThreadPoolExecutor, Future
 
 
@@ -16,6 +17,9 @@ class OrderedThreadPoolExecutor:
 
         self._max_workers_count = max_workers
         self._executors = [ThreadPoolExecutor(max_workers=1) for _ in range(max_workers)]
+        # Flag to indicate this executor has been shut down. Used to avoid
+        # scheduling new tasks after shutdown is initiated (helps during
+        # process termination / kill signals).
         self._shutdown = False
 
     def submit(self, fn, *args, key=None, **kwargs):
@@ -34,9 +38,10 @@ class OrderedThreadPoolExecutor:
                 key = args[0]
             else:
                 key = 0
-        # If executor has been shut down (e.g., process is exiting), avoid
-        # scheduling new tasks — return a Future with an appropriate exception.
-        if self._shutdown:
+        # If executor has been shut down, return a completed Future with an
+        # exception so callers don't try to schedule tasks into closed
+        # threadpools (and to avoid unhandled errors printing to stderr).
+        if getattr(self, '_shutdown', False):
             f = Future()
             f.set_exception(RuntimeError('executor has been shutdown'))
             return f
@@ -45,9 +50,10 @@ class OrderedThreadPoolExecutor:
         try:
             return self._executors[index].submit(fn, *args, **kwargs)
         except RuntimeError as e:
-            # Underlying executor has been shutdown concurrently. Return a
-            # Future carrying the same exception so callers receive a
-            # completed future instead of raising from a worker thread.
+            # Underlying ThreadPoolExecutor may have been shutdown
+            # concurrently. Return a Future carrying the exception so the
+            # caller receives it via the Future interface instead of an
+            # unhandled thread exception.
             f = Future()
             f.set_exception(e)
             return f
@@ -63,11 +69,16 @@ class OrderedThreadPoolExecutor:
             futures have finished executing and the resources used by the
             executor have been reclaimed.
         """
-        # Mark shutdown first to prevent new submissions between shutdown calls
-        # and the actual executor shutdown (avoids race conditions).
+        # Mark shutdown first to prevent new submissions from being
+        # scheduled while we're tearing down the underlying executors.
         self._shutdown = True
         for executor in self._executors:
-            executor.shutdown(wait=wait)
+            try:
+                executor.shutdown(wait=wait)
+            except Exception:
+                # Ignore errors during shutdown to ensure all executors
+                # are attempted to be shut down.
+                pass
 
     @property
     def _max_workers(self):
