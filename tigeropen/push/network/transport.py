@@ -229,9 +229,7 @@ class BaseTransport(listener.Publisher):
                     self.callback_executor.submit(self._invoke_listener, notify_func, cmd_type, frame,
                                                   self.current_host_and_port, key=routing_key)
                 except RuntimeError as exc:
-                    logging.debug("callback executor unavailable during shutdown: %s", exc)
-                    self._handle_callback_executor_shutdown()
-                    break
+                    logging.warning("callback executor unavailable during shutdown: %s", exc)
             else:
                 self._invoke_listener(notify_func, cmd_type, frame, self.current_host_and_port)
 
@@ -247,16 +245,6 @@ class BaseTransport(listener.Publisher):
             return
 
         notify_func(frame)
-
-    def _handle_callback_executor_shutdown(self):
-        if not self.running:
-            return
-        try:
-            self.disconnect_socket()
-        except Exception:
-            logging.debug("error closing transport during executor shutdown", exc_info=True)
-        finally:
-            self.running = False
 
     def transmit(self, frame):
         """
