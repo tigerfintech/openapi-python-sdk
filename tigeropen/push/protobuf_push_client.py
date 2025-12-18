@@ -108,6 +108,7 @@ class ProtobufPushClient(ConnectionListener):
     def disconnect(self):
         if self._connection:
             self._connection.disconnect()
+            self.callback_executor.shutdown()
 
     def on_connected(self, frame):
         if self.connect_callback:

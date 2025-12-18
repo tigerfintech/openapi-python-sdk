@@ -36,19 +36,22 @@ class CallbackThreadPoolExecutor:
         index = abs(hash(key)) % self._max_workers_count
         return self._executors[index].submit(fn, *args, **kwargs)
 
-    def shutdown(self, wait=True):
+    def shutdown(self, wait=True, cancel_futures=True):
         """
         Clean-up the resources associated with the Executor.
 
         It is safe to call this method several times. Otherwise, no other
         methods can be called after this one.
 
-        :param wait: If True then shutdown will not return until all running
+        wait: If True then shutdown will not return until all running
             futures have finished executing and the resources used by the
             executor have been reclaimed.
+        cancel_futures: If True then shutdown will cancel all pending
+            futures. Futures that are completed or running will not be
+            cancelled.
         """
         for executor in self._executors:
-            executor.shutdown(wait=wait)
+            executor.shutdown(wait=wait, cancel_futures=cancel_futures)
 
     @property
     def _max_workers(self):
