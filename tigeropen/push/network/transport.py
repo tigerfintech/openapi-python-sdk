@@ -251,11 +251,12 @@ class BaseTransport(listener.Publisher):
     def _handle_callback_executor_shutdown(self):
         if not self.running:
             return
-        self.running = False
         try:
             self.disconnect_socket()
         except Exception:
             logging.debug("error closing transport during executor shutdown", exc_info=True)
+        finally:
+            self.running = False
 
     def transmit(self, frame):
         """
