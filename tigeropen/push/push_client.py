@@ -11,7 +11,7 @@ from tigeropen.push.stomp_push_client import StompPushClient
 
 class PushClient:
     def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000),
-                 use_protobuf=True, client_config=None):
+                 use_protobuf=True, client_config=None, callback_executor=None):
         """
         :param host:
         :param port:
@@ -19,11 +19,13 @@ class PushClient:
         :param connection_timeout: unit: second. The timeout value should be greater the heartbeats interval
         :param heartbeats: tuple of millisecond
         :param use_protobuf: use stomp protocol or protobuf
+        :param callback_executor: executor for callback
         """
         if use_protobuf:
             self.client = ProtobufPushClient(host=host, port=port, use_ssl=use_ssl,
                                              connection_timeout=connection_timeout,
-                                             heartbeats=heartbeats, client_config=client_config)
+                                             heartbeats=heartbeats, client_config=client_config,
+                                             callback_executor=callback_executor)
         else:
             self.client = StompPushClient(host=host, port=port, use_ssl=use_ssl, connection_timeout=connection_timeout,
                                           heartbeats=heartbeats)
