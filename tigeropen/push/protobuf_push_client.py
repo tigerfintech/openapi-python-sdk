@@ -6,6 +6,7 @@ import logging
 import sys
 from itertools import accumulate, zip_longest
 
+from tigeropen.push.thread_pool import CallbackThreadPoolExecutor
 from tigeropen.common.consts.push_types import ResponseType
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.util.order_utils import get_order_status
@@ -26,10 +27,9 @@ if sys.platform == 'linux' or sys.platform == 'linux2':
 else:
     KEEPALIVE = False
 
-
 class ProtobufPushClient(ConnectionListener):
     def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000),
-                 client_config=None):
+                 client_config=None, callback_executor=None):
         self.host = host
         self.port = port
         self.use_ssl = use_ssl
@@ -37,6 +37,10 @@ class ProtobufPushClient(ConnectionListener):
         self._private_key = None
         self._sign = None
         self._connection = None
+        self.callback_executor = callback_executor
+        if not self.callback_executor:
+            max_workers = client_config.callback_thread_pool_size if client_config else None
+            self.callback_executor = CallbackThreadPoolExecutor(max_workers=max_workers)
 
         self.subscribed_symbols = None
         self.query_subscribed_callback = None
@@ -85,7 +89,8 @@ class ProtobufPushClient(ConnectionListener):
 
         self._connection = PushConnection(host_and_ports=[(self.host, self.port)],
                                           keepalive=KEEPALIVE, timeout=self._connection_timeout,
-                                          heartbeats=self._heartbeats, reconnect_attempts_max=60)
+                                          heartbeats=self._heartbeats, reconnect_attempts_max=60,
+                                          callback_executor=self.callback_executor)
         self._connection.set_listener('push', self)
         try:
             if self.use_ssl:
@@ -103,6 +108,7 @@ class ProtobufPushClient(ConnectionListener):
     def disconnect(self):
         if self._connection:
             self._connection.disconnect()
+            self.callback_executor.shutdown()
 
     def on_connected(self, frame):
         if self.connect_callback:
