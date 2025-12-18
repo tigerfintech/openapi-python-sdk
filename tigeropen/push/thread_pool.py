@@ -33,7 +33,7 @@ class CallbackThreadPoolExecutor:
                 key = args[0]
             else:
                 key = 0
-        index = hash(key) % self._max_workers_count
+        index = abs(hash(key)) % self._max_workers_count
         return self._executors[index].submit(fn, *args, **kwargs)
 
     def shutdown(self, wait=True):
