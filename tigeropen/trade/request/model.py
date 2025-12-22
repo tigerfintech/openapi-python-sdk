@@ -162,7 +162,7 @@ class AggregateAssetParams(BaseParams):
         return self._base_currency
     @base_currency.setter
     def base_currency(self, value):
-        self._base_currency = value 
+        self._base_currency = value
 
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
@@ -717,6 +717,7 @@ class OrdersParams(BaseParams):
 
 
 class TransactionsParams(BaseParams):
+
     def __init__(self):
         super(TransactionsParams, self).__init__()
         self._account = None
@@ -729,6 +730,8 @@ class TransactionsParams(BaseParams):
         self._right = None
         self._start_date = None
         self._end_date = None
+        self._since_date = None
+        self._to_date = None
         self._limit = None
         self._page_token = None
 
@@ -787,6 +790,22 @@ class TransactionsParams(BaseParams):
     @end_date.setter
     def end_date(self, value):
         self._end_date = value
+
+    @property
+    def since_date(self):
+        return self._since_date
+
+    @since_date.setter
+    def since_date(self, value):
+        self._since_date = value
+
+    @property
+    def to_date(self):
+        return self._to_date
+
+    @to_date.setter
+    def to_date(self, value):
+        self._to_date = value
 
     @property
     def limit(self):
@@ -850,6 +869,12 @@ class TransactionsParams(BaseParams):
 
         if self.end_date:
             params['end_date'] = self.end_date
+
+        if self.since_date:
+            params['since_date'] = self.since_date
+
+        if self.to_date:
+            params['to_date'] = self.to_date
 
         if self.limit:
             params['limit'] = self.limit
@@ -928,7 +953,7 @@ class PlaceModifyOrderParams(BaseParams):
             params['sec_type'] = SecurityType.MLEG.value
 
         return params
-               
+
     def _parse_account_param(self):
         params = dict()
         if self.account:
