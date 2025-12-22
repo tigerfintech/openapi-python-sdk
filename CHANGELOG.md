@@ -1,4 +1,4 @@
-## 3.5.0 (2025-12-18)
+## 3.5.0 (2025-12-22)
 ### New
 - `TradeClient.get_transactions` 获取成交记录，支持 since_date/to_date, 返回增加 filled_quantity_scale
 - `TradeClient.get_prime_assets` 综合账户资产增加字段 forex_rate
