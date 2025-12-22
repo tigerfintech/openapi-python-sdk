@@ -83,6 +83,7 @@ class CurrencyAsset:
         self.currency = None
         self.cash_balance = float('inf')
         self.cash_available_for_trade = float('inf')
+        self.forex_rate = float('inf')
 
 
     @staticmethod

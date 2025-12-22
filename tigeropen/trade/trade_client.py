@@ -24,7 +24,7 @@ from tigeropen.common.util.common_utils import get_enum_value, date_str_to_times
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.tiger_open_config import LANGUAGE
-from tigeropen.trade.domain.order import Order
+from tigeropen.trade.domain.order import Order, Transaction
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
     OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams, SegmentFundParams, \
     ForexTradeOrderParams, EstimateTradableQuantityModel, FundingHistoryParams, AggregateAssetParams, FundDetailsParams
@@ -687,13 +687,14 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_order(self,
-                  account: Optional[str] = None,
-                  id: Optional[int] = None,
-                  order_id: Optional[int] = None,
-                  is_brief: bool = False,
-                  show_charges: Optional[bool] = None,
-                  lang: Optional[Union[Language, str]] = None) -> Optional['Order']:
+    def get_order(
+            self,
+            account: Optional[str] = None,
+            id: Optional[int] = None,
+            order_id: Optional[int] = None,
+            is_brief: bool = False,
+            show_charges: Optional[bool] = None,
+            lang: Optional[Union[Language, str]] = None) -> Optional['Order']:
         """
         Get a specific order by ID. 获取指定订单信息
         
@@ -971,19 +972,18 @@ class TradeClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def modify_order(
-            self,
-            order: 'Order',
-            quantity: Optional[Union[int, float]] = None,
-            limit_price: Optional[float] = None,
-            aux_price: Optional[float] = None,
-            trail_stop_price: Optional[float] = None,
-            trailing_percent: Optional[float] = None,
-            percent_offset: Optional[float] = None,
-            time_in_force: Optional[str] = None,
-            outside_rth: Optional[bool] = None,
-            lang: Optional[Union[Language, str]] = None,
-            **kwargs) -> Optional[int]:
+    def modify_order(self,
+                     order: 'Order',
+                     quantity: Optional[Union[int, float]] = None,
+                     limit_price: Optional[float] = None,
+                     aux_price: Optional[float] = None,
+                     trail_stop_price: Optional[float] = None,
+                     trailing_percent: Optional[float] = None,
+                     percent_offset: Optional[float] = None,
+                     time_in_force: Optional[str] = None,
+                     outside_rth: Optional[bool] = None,
+                     lang: Optional[Union[Language, str]] = None,
+                     **kwargs) -> Optional[int]:
         """
         Modify an order. 修改订单
         
@@ -1041,12 +1041,10 @@ class TradeClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def cancel_order(
-        self,
-        account: Optional[str] = None,
-        id: Optional[int] = None,
-        order_id: Optional[int] = None
-    ) -> Optional[int]:
+    def cancel_order(self,
+                     account: Optional[str] = None,
+                     id: Optional[int] = None,
+                     order_id: Optional[int] = None) -> Optional[int]:
         """
         Cancel an order. 取消订单
         
@@ -1074,19 +1072,23 @@ class TradeClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_transactions(self,
-                         account: Optional[str]=None,
-                         order_id: Optional[int]=None,
-                         symbol: Optional[str]=None,
-                         sec_type: Optional[Union[SecurityType, str]]=None,
-                         start_time: Optional[int]=None,
-                         end_time: Optional[int]=None,
-                         limit: int=100,
-                         expiry: Optional[str]=None,
-                         strike: Optional[float]=None,
-                         put_call: Optional[str]=None,
-                         lang: Optional[Union[Language, str]]=None,
-                         page_token: Optional[str]=None):
+    def get_transactions(
+        self,
+        account: Optional[str] = None,
+        order_id: Optional[int] = None,
+        symbol: Optional[str] = None,
+        sec_type: Optional[Union[SecurityType, str]] = None,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: int = 100,
+        expiry: Optional[str] = None,
+        strike: Optional[float] = None,
+        put_call: Optional[str] = None,
+        lang: Optional[Union[Language, str]] = None,
+        page_token: Optional[str] = None,
+        since_date: Optional[str] = None,
+        to_date: Optional[str] = None
+    ) -> Optional[Union[list[Transaction], 'TransactionsResponse']]:
         """
         query order transactions, only prime accounts are supported.
         :param account: account id. If not passed, the default account is used
@@ -1099,6 +1101,10 @@ class TradeClient(TigerOpenClient):
         :param expiry: expiry date of Option. 'yyyyMMdd', like '220121'
         :param strike: strike price of Option
         :param put_call: Option right, PUT or CALL
+        :param since_date: date str. format yyyyMMdd, like '20211201'
+        :param to_date: date str. format yyyyMMdd, like '20211231'
+        :param page_token: page token for pagination
+        :param lang: language. tigeropen.common.consts.Language
         :return:
         """
         params = TransactionsParams()
@@ -1109,6 +1115,8 @@ class TradeClient(TigerOpenClient):
         params.symbol = symbol
         params.start_date = date_str_to_timestamp(start_time, self._timezone)
         params.end_date = date_str_to_timestamp(end_time, self._timezone)
+        params.since_date = since_date
+        params.to_date = to_date
         params.limit = limit
         params.expiry = expiry
         params.strike = strike
@@ -1130,13 +1138,13 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_analytics_asset(self,
-                            account: Optional[str]=None,
-                            start_date: Optional[str]=None,
-                            end_date: Optional[str]=None,
-                            seg_type: Optional[Union[SegmentType, str]]=None,
-                            currency: Optional[Union[Currency, str]]=None,
-                            sub_account: Optional[str]=None,
-                            lang: Optional[Union[Language, str]]=None):
+                            account: Optional[str] = None,
+                            start_date: Optional[str] = None,
+                            end_date: Optional[str] = None,
+                            seg_type: Optional[Union[SegmentType, str]] = None,
+                            currency: Optional[Union[Currency, str]] = None,
+                            sub_account: Optional[str] = None,
+                            lang: Optional[Union[Language, str]] = None):
         """
         get analytics of history asset
         :param account:
