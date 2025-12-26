@@ -1,3 +1,7 @@
+## 3.5.1 (2025-12-26)
+### New
+- TradeClient 增加转股相关接口
+
 ## 3.5.0 (2025-12-22)
 ### New
 - `TradeClient.get_transactions` 获取成交记录，支持 since_date/to_date, 返回增加 filled_quantity_scale

@@ -18,7 +18,8 @@ from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS
     PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET, SEGMENT_FUND_AVAILABLE, SEGMENT_FUND_HISTORY, \
     TRANSFER_FUND, \
     TRANSFER_SEGMENT_FUND, CANCEL_SEGMENT_FUND, PLACE_FOREX_ORDER, ESTIMATE_TRADABLE_QUANTITY, AGGREGATE_ASSETS, \
-    FUND_DETAILS
+    FUND_DETAILS, POSITION_TRANSFER, POSITION_TRANSFER_RECORDS, POSITION_TRANSFER_DETAIL, \
+    POSITION_TRANSFER_EXTERNAL_RECORDS
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import get_enum_value, date_str_to_timestamp
 from tigeropen.common.request import OpenApiRequest
@@ -27,7 +28,8 @@ from tigeropen.tiger_open_config import LANGUAGE
 from tigeropen.trade.domain.order import Order, Transaction
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
     OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams, SegmentFundParams, \
-    ForexTradeOrderParams, EstimateTradableQuantityModel, FundingHistoryParams, AggregateAssetParams, FundDetailsParams
+    ForexTradeOrderParams, EstimateTradableQuantityModel, FundingHistoryParams, AggregateAssetParams, FundDetailsParams, \
+    PositionTransferParams, PositionTransferRecordsParams, PositionTransferDetailParams
 from tigeropen.trade.response.account_profile_response import ProfilesResponse
 from tigeropen.trade.response.aggregate_assets_response import AggregateAssetsResponse
 from tigeropen.trade.response.analytics_asset_response import AnalyticsAssetResponse
@@ -44,6 +46,10 @@ from tigeropen.trade.response.segment_fund_response import SegmentFundAvailableR
     SegmentFundHistoryResponse, SegmentFundCancelResponse
 from tigeropen.trade.response.segment_fund_response import SegmentFundTransferResponse
 from tigeropen.trade.response.transactions_response import TransactionsResponse
+from tigeropen.trade.response.transfer_response import PositionTransferResponse, PositionTransferRecordsResponse, \
+    PositionTransferDetailResponse, PositionTransferExternalRecordsResponse
+from tigeropen.trade.domain.transfer import PositionTransfer, PositionTransferRecord, PositionTransferDetail, \
+    PositionTransferExternalRecord, TransferItem
 from tigeropen.trade.response.funding_history_response import FundingHistoryResponse
 
 
@@ -1378,6 +1384,153 @@ class TradeClient(TigerOpenClient):
                 return response.result
             else:
                 raise ApiException(response.code, response.message)
+
+    def transfer_position(
+            self,
+            from_account: str,
+            to_account: str,
+            transfers: List[TransferItem],
+            market: Optional[str] = None,
+            secret_key: Optional[str] = None) -> Optional[PositionTransfer]:
+        """
+        内部转股
+        :param from_account: 转出账户
+        :param to_account: 转入账户
+        :param transfers: 转股列表, 列表元素为 TransferItem 对象
+        :param market: 市场
+        :return: PositionTransfer 对象
+        """
+        params = PositionTransferParams()
+        params.from_account = from_account if from_account else self._account
+        params.to_account = to_account
+        params.transfers = transfers if isinstance(transfers,
+                                                   list) else [transfers]
+        params.market = market
+        params.secret_key = secret_key if secret_key else self._secret_key
+
+        request = OpenApiRequest(POSITION_TRANSFER, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = PositionTransferResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_position_transfer_records(
+            self,
+            since_date: str,
+            to_date: str,
+            status: Optional[str] = None,
+            market: Optional[str] = None,
+            symbol: Optional[str] = None,
+            account_id: Optional[str] = None,
+            secret_key: Optional[str] = None,
+            lang: Optional[str] = None) -> Optional[List[PositionTransferRecord]]:
+        """
+        获取内部转股记录
+        :param since_date: 开始日期 YYYY-MM-DD
+        :param to_date: 结束日期 YYYY-MM-DD
+        :param status: 状态
+        :param market: 市场
+        :param symbol: 代码
+        :param account_id: 账户 ID
+        :return: List[PositionTransferRecord]
+        """
+        params = PositionTransferRecordsParams()
+        params.account_id = account_id if account_id else self._account
+        params.since_date = since_date
+        params.to_date = to_date
+        params.status = status
+        params.market = market
+        params.symbol = symbol
+        params.secret_key = secret_key if secret_key else self._secret_key
+        params.lang = get_enum_value(lang) if lang else get_enum_value(
+            self._lang)
+
+        request = OpenApiRequest(POSITION_TRANSFER_RECORDS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = PositionTransferRecordsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_position_transfer_detail(
+            self,
+            transfer_id: str,
+            account_id: Optional[str] = None,
+            secret_key: Optional[str] = None,
+            lang: Optional[str] = None) -> Optional[PositionTransferDetail]:
+        """
+        获取内部转股详情
+        :param transfer_id: 转股记录 ID
+        :param account_id: 账户 ID
+        :return: PositionTransferDetail 对象
+        """
+        params = PositionTransferDetailParams()
+        params.account_id = account_id if account_id else self._account
+        params.id = transfer_id
+        params.secret_key = secret_key if secret_key else self._secret_key
+        params.lang = get_enum_value(lang) if lang else get_enum_value(
+            self._lang)
+        request = OpenApiRequest(POSITION_TRANSFER_DETAIL, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = PositionTransferDetailResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_position_transfer_external_records(
+            self,
+            since_date: str,
+            to_date: str,
+            status: Optional[str] = None,
+            market: Optional[str] = None,
+            symbol: Optional[str] = None,
+            account_id: Optional[str] = None,
+            secret_key: Optional[str] = None,
+            lang: Optional[str] = None) -> Optional[List[PositionTransferExternalRecord]]:
+        """
+        获取外部转股记录
+        :param since_date: 开始日期 YYYY-MM-DD
+        :param to_date: 结束日期 YYYY-MM-DD
+        :param status: 状态. 新提交 PendingNew, 已提交 NEW, 人工处理中 ManualProcessing, 已成功 Succ, 已失败  Fail, 已取消 Canceled, 部分成功  PartialSucc
+        :param market: 市场
+        :param symbol: 代码
+        :param account_id: 账户 ID
+        :return: List[PositionTransferExternalRecord]
+        """
+        params = PositionTransferRecordsParams()
+        params.account_id = account_id if account_id else self._account
+        params.since_date = since_date
+        params.to_date = to_date
+        params.status = status
+        params.market = market
+        params.symbol = symbol
+        params.secret_key = secret_key if secret_key else self._secret_key
+        params.lang = get_enum_value(lang) if lang else get_enum_value(
+            self._lang)
+        request = OpenApiRequest(POSITION_TRANSFER_EXTERNAL_RECORDS,
+                                 biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = PositionTransferExternalRecordsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
 
     def __fetch_data(self, request):
         try:
