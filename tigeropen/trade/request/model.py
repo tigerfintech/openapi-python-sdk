@@ -1715,18 +1715,10 @@ class PositionTransferParams(BaseParams):
             transfer_list = []
             for transfer in self.transfers:
                 item = {}
-                if hasattr(transfer, 'symbol') and transfer.symbol:
-                    item['symbol'] = transfer.symbol
-                if hasattr(transfer, 'quantity') and transfer.quantity:
-                    item['quantity'] = transfer.quantity
-                if hasattr(transfer, 'expiry') and transfer.expiry:
-                    item['expiry'] = transfer.expiry
-                if hasattr(transfer, 'strike') and transfer.strike:
-                    item['strike'] = transfer.strike
-                if hasattr(transfer, 'right') and transfer.right:
-                    item['right'] = transfer.right
-                if hasattr(transfer, 'sec_type') and transfer.sec_type:
-                    item['sec_type'] = transfer.sec_type
+                for attr in ['symbol', 'quantity', 'expiry', 'strike', 'right', 'sec_type']:
+                    value = getattr(transfer, attr, None)
+                    if value is not None:  # 明确检查非 None
+                        item[attr] = value
                 transfer_list.append(item)
             params['transfers'] = transfer_list
         if self.secret_key:
