@@ -1717,7 +1717,7 @@ class PositionTransferParams(BaseParams):
                 item = {}
                 for attr in ['symbol', 'quantity', 'expiry', 'strike', 'right', 'sec_type']:
                     value = getattr(transfer, attr, None)
-                    if value is not None:  # 明确检查非 None
+                    if value is not None:
                         item[attr] = value
                 transfer_list.append(item)
             params['transfers'] = transfer_list
