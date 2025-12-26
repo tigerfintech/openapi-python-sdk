@@ -11,6 +11,7 @@ from tigeropen.common.util.order_utils import limit_order
 from tigeropen.tiger_open_config import TigerOpenClientConfig
 from tigeropen.trade.domain.contract import Contract
 from tigeropen.trade.domain.order import Order
+from tigeropen.trade.domain.transfer import TransferItem
 from tigeropen.trade.trade_client import TradeClient
 
 logger = logging.getLogger(__name__)
@@ -1276,3 +1277,137 @@ class TestTradeClient(unittest.TestCase):
             logger.debug(f"Place Order Result: {result}")
             oid = self.client.modify_order(order, limit_price=100.5)
             logger.debug(f"Modify Order Result: {oid}")
+
+    def test_transfer_position(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "id": "12345",
+                    "accountId": "1001",
+                    "counterpartyAccountId": "1002",
+                    "method": "INTERNAL",
+                    "direction": "OUT",
+                    "status": "PENDING",
+                    "comment": "test transfer",
+                    "userId": "u1",
+                    "userName": "user1",
+                    "memo": "memo1",
+                    "finishedAt": "2025-01-01",
+                    "updatedAt": "2025-01-01",
+                    "createdAt": "2025-01-01"
+                }
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            transfers = [TransferItem(symbol="AAPL", quantity=10)]
+            mock_result = self.client.transfer_position(from_account="1001", to_account="1002", transfers=transfers, market="US")
+
+            self.assertIsNotNone(mock_result)
+            self.assertEqual(mock_result.id, "12345")
+            self.assertEqual(mock_result.account_id, "1001")
+            self.assertEqual(mock_result.counterparty_account_id, "1002")
+            self.assertEqual(mock_result.status, "PENDING")
+        else:
+            transfers = [TransferItem(symbol="AAPL", quantity=10)]
+            result = self.client.transfer_position(from_account="1001", to_account="1002", transfers=transfers, market="US")
+            logger.debug(f"Transfer Position Result: {result}")
+
+    def test_get_position_transfer_records(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "data": [
+                    {
+                        "id": "12345",
+                        "accountId": "1001",
+                        "counterpartyAccountId": "1002",
+                        "method": "INTERNAL",
+                        "direction": "OUT",
+                        "status": "PENDING",
+                        "memo": "memo1",
+                        "userId": "u1",
+                        "userName": "user1",
+                        "finishedAt": "2025-01-01",
+                        "updatedAt": "2025-01-01",
+                        "createdAt": "2025-01-01"
+                    }
+                ]
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            mock_result = self.client.get_position_transfer_records(since_date="2025-01-01", to_date="2025-01-02")
+
+            self.assertIsNotNone(mock_result)
+            self.assertIsInstance(mock_result, list)
+            self.assertEqual(len(mock_result), 1)
+            self.assertEqual(mock_result[0].id, "12345")
+            self.assertEqual(mock_result[0].account_id, "1001")
+        else:
+            result = self.client.get_position_transfer_records(since_date="2025-01-01", to_date="2025-01-02")
+            logger.debug(f"Position Transfer Records: {result}")
+
+    def test_get_position_transfer_detail(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "id": "12345",
+                    "accountId": "1001",
+                    "detail": [
+                        {
+                            "id": "d1",
+                            "transferId": "12345",
+                            "symbol": "AAPL",
+                            "quantity": 10
+                        }
+                    ]
+                }
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            mock_result = self.client.get_position_transfer_detail(account_id="1001", transfer_id="12345")
+
+            self.assertIsNotNone(mock_result)
+            self.assertEqual(mock_result.id, "12345")
+            self.assertEqual(len(mock_result.detail), 1)
+            self.assertEqual(mock_result.detail[0].symbol, "AAPL")
+        else:
+            result = self.client.get_position_transfer_detail(account_id="1001", transfer_id="12345")
+            logger.debug(f"Position Transfer Detail: {result}")
+
+    def test_get_position_transfer_external_records(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "data": [
+                    {
+                        "id": "ext1",
+                        "accountId": "1001",
+                        "status": "PENDING",
+                        "transferPropertyInfos": [
+                            {
+                                "symbol": "AAPL",
+                                "quantity": 100
+                            }
+                        ]
+                    }
+                ]
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            mock_result = self.client.get_position_transfer_external_records(account_id="1001", since_date="2025-01-01", to_date="2025-01-02")
+
+            self.assertIsNotNone(mock_result)
+            self.assertIsInstance(mock_result, list)
+            self.assertEqual(len(mock_result), 1)
+            self.assertEqual(mock_result[0].id, "ext1")
+            self.assertEqual(len(mock_result[0].transfer_property_infos), 1)
+            self.assertEqual(mock_result[0].transfer_property_infos[0].symbol, "AAPL")
+        else:
+            result = self.client.get_position_transfer_external_records(account_id="1001", since_date="2025-01-01", to_date="2025-01-02")
+            logger.debug(f"Position Transfer External Records: {result}")

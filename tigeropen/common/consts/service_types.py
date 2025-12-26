@@ -35,6 +35,10 @@ ESTIMATE_TRADABLE_QUANTITY = "estimate_tradable_quantity"
 TRANSFER_FUND = "transfer_fund"
 AGGREGATE_ASSETS = "aggregate_assets"
 FUND_DETAILS = "fund_details"
+POSITION_TRANSFER = "position_transfer"  # 内部转股
+POSITION_TRANSFER_RECORDS = "position_transfer_records"  # 内部转股记录
+POSITION_TRANSFER_DETAIL = "position_transfer_detail"  # 内部转股详情
+POSITION_TRANSFER_EXTERNAL_RECORDS = "position_transfer_external_records"  # 外部转股记录
 
 USER_LICENSE = "user_license"
 
