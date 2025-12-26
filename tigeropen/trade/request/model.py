@@ -162,7 +162,7 @@ class AggregateAssetParams(BaseParams):
         return self._base_currency
     @base_currency.setter
     def base_currency(self, value):
-        self._base_currency = value 
+        self._base_currency = value
 
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
@@ -717,6 +717,7 @@ class OrdersParams(BaseParams):
 
 
 class TransactionsParams(BaseParams):
+
     def __init__(self):
         super(TransactionsParams, self).__init__()
         self._account = None
@@ -729,6 +730,8 @@ class TransactionsParams(BaseParams):
         self._right = None
         self._start_date = None
         self._end_date = None
+        self._since_date = None
+        self._to_date = None
         self._limit = None
         self._page_token = None
 
@@ -787,6 +790,22 @@ class TransactionsParams(BaseParams):
     @end_date.setter
     def end_date(self, value):
         self._end_date = value
+
+    @property
+    def since_date(self):
+        return self._since_date
+
+    @since_date.setter
+    def since_date(self, value):
+        self._since_date = value
+
+    @property
+    def to_date(self):
+        return self._to_date
+
+    @to_date.setter
+    def to_date(self, value):
+        self._to_date = value
 
     @property
     def limit(self):
@@ -850,6 +869,12 @@ class TransactionsParams(BaseParams):
 
         if self.end_date:
             params['end_date'] = self.end_date
+
+        if self.since_date:
+            params['since_date'] = self.since_date
+
+        if self.to_date:
+            params['to_date'] = self.to_date
 
         if self.limit:
             params['limit'] = self.limit
@@ -928,7 +953,7 @@ class PlaceModifyOrderParams(BaseParams):
             params['sec_type'] = SecurityType.MLEG.value
 
         return params
-               
+
     def _parse_account_param(self):
         params = dict()
         if self.account:
@@ -1667,4 +1692,83 @@ class FundDetailsParams(BaseParams):
             params['start'] = self._start
         if self._limit:
             params['limit'] = self._limit
+        return params
+
+class PositionTransferParams(BaseParams):
+    def __init__(self):
+        super(PositionTransferParams, self).__init__()
+        self.from_account = None
+        self.to_account = None
+        self.market = None
+        self.transfers = None
+        self.secret_key = None
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.from_account:
+            params['from_account'] = self.from_account
+        if self.to_account:
+            params['to_account'] = self.to_account
+        if self.market:
+            params['market'] = self.market
+        if self.transfers:
+            transfer_list = []
+            for transfer in self.transfers:
+                item = {}
+                for attr in ['symbol', 'quantity', 'expiry', 'strike', 'right', 'sec_type']:
+                    value = getattr(transfer, attr, None)
+                    if value is not None:
+                        item[attr] = value
+                transfer_list.append(item)
+            params['transfers'] = transfer_list
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+        return params
+
+
+class PositionTransferRecordsParams(BaseParams):
+    def __init__(self):
+        super(PositionTransferRecordsParams, self).__init__()
+        self.account_id = None
+        self.since_date = None
+        self.to_date = None
+        self.status = None
+        self.market = None
+        self.symbol = None
+        self.secret_key = None
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.account_id:
+            params['account_id'] = self.account_id
+        if self.since_date:
+            params['since_date'] = self.since_date
+        if self.to_date:
+            params['to_date'] = self.to_date
+        if self.status:
+            params['status'] = self.status
+        if self.market:
+            params['market'] = self.market
+        if self.symbol:
+            params['symbol'] = self.symbol
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
+        return params
+
+
+class PositionTransferDetailParams(BaseParams):
+    def __init__(self):
+        super(PositionTransferDetailParams, self).__init__()
+        self.id = None
+        self.account_id = None
+        self.secret_key = None
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self.id:
+            params['id'] = self.id
+        if self.account_id:
+            params['account_id'] = self.account_id
+        if self.secret_key:
+            params['secret_key'] = self.secret_key
         return params
