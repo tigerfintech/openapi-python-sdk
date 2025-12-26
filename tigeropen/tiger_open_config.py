@@ -130,6 +130,7 @@ class TigerOpenClientConfig:
         self.log_path = None
         self.retry_max_time = 60
         self.retry_max_tries = 5
+        self.callback_thread_pool_size = None
         
         # token 刷新间隔周期， 单位秒
         self._token_refresh_duration = TOKEN_REFRESH_DURATION
