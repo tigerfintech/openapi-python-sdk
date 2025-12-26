@@ -170,51 +170,51 @@ class TestExtraCalculator(unittest.TestCase):
 
     def test_annualized_levered_sell_return_normal(self):
         """Test annualized levered sell return in normal cases"""
-        # Time value 1.5, 1 contract, margin 1000, 30 days to expiry
-        result = ExtraCalculator.annualized_levered_sell_return(1.5, 1000.0, 30, n_contracts=1)
-        expected = (1.5 * 1) / 1000.0 * 365.0 / 30.0
+        # Time value 1.5 per share, multiplier 100, margin 1000 per contract, 30 days to expiry
+        result = ExtraCalculator.annualized_levered_sell_return(1.5, 1000.0, 30, multiplier=100)
+        expected = (1.5 * 100) / 1000.0 * 365.0 / 30.0
         self.assertAlmostEqual(result, expected, delta=self.delta)
-        self.assertAlmostEqual(result, 0.01825, delta=self.delta)
+        self.assertAlmostEqual(result, 1.825, delta=self.delta)
 
-    def test_annualized_levered_sell_return_multiple_contracts(self):
-        """Test with multiple contracts"""
-        # Time value 2.0, 100 contracts, margin 50000, 60 days to expiry
-        result = ExtraCalculator.annualized_levered_sell_return(2.0, 50000.0, 60, n_contracts=100)
-        expected = (2.0 * 100) / 50000.0 * 365.0 / 60.0
+    def test_annualized_levered_sell_return_custom_multiplier(self):
+        """Test with a custom contract multiplier"""
+        # Time value 2.0 per share, multiplier 150 shares, margin 50000 per contract, 60 days
+        result = ExtraCalculator.annualized_levered_sell_return(2.0, 50000.0, 60, multiplier=150)
+        expected = (2.0 * 150) / 50000.0 * 365.0 / 60.0
         self.assertAlmostEqual(result, expected, delta=self.delta)
         self.assertGreater(result, 0)
 
     def test_annualized_levered_sell_return_short_expiry(self):
         """Test short-term expiry case"""
         # 1 day to expiry, annualized return should be high
-        result = ExtraCalculator.annualized_levered_sell_return(1.0, 1000.0, 1, n_contracts=1)
+        result = ExtraCalculator.annualized_levered_sell_return(1.0, 1000.0, 1, multiplier=100)
         self.assertGreater(result, 0.3)  # Should be greater than 30%
 
     def test_annualized_levered_sell_return_invalid_days(self):
         """Test invalid days to expiry"""
         # days_to_expiry <= 0 should return NaN
-        result = ExtraCalculator.annualized_levered_sell_return(1.5, 1000.0, 0, n_contracts=1)
+        result = ExtraCalculator.annualized_levered_sell_return(1.5, 1000.0, 0, multiplier=100)
         self.assertTrue(math.isnan(result))
         
-        result = ExtraCalculator.annualized_levered_sell_return(1.5, 1000.0, -10, n_contracts=1)
+        result = ExtraCalculator.annualized_levered_sell_return(1.5, 1000.0, -10, multiplier=100)
         self.assertTrue(math.isnan(result))
 
     def test_annualized_levered_sell_return_invalid_margin(self):
         """Test invalid margin"""
         # sell_margin <= 0 should return NaN
-        result = ExtraCalculator.annualized_levered_sell_return(1.5, 0, 30, n_contracts=1)
+        result = ExtraCalculator.annualized_levered_sell_return(1.5, 0, 30, multiplier=100)
         self.assertTrue(math.isnan(result))
         
-        result = ExtraCalculator.annualized_levered_sell_return(1.5, -1000.0, 30, n_contracts=1)
+        result = ExtraCalculator.annualized_levered_sell_return(1.5, -1000.0, 30, multiplier=100)
         self.assertTrue(math.isnan(result))
 
-    def test_annualized_levered_sell_return_invalid_contracts(self):
-        """Test invalid number of contracts"""
-        # contracts <= 0 should return NaN
-        result = ExtraCalculator.annualized_levered_sell_return(1.5, 1000.0, 30, n_contracts=0)
+    def test_annualized_levered_sell_return_invalid_multiplier(self):
+        """Test invalid multiplier (shares per contract)"""
+        # multiplier <= 0 should return NaN
+        result = ExtraCalculator.annualized_levered_sell_return(1.5, 1000.0, 30, multiplier=0)
         self.assertTrue(math.isnan(result))
         
-        result = ExtraCalculator.annualized_levered_sell_return(1.5, 1000.0, 30, n_contracts=-1)
+        result = ExtraCalculator.annualized_levered_sell_return(1.5, 1000.0, 30, multiplier=-1)
         self.assertTrue(math.isnan(result))
 
     def test_leverage_ratio_normal(self):
