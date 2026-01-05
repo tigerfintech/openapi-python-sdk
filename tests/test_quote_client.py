@@ -805,7 +805,9 @@ class TestQuoteClient(unittest.TestCase):
                          "data": [
                              {"symbol": "PDD", "identifier": "PDD   260121C00090000", "strike": "90.0", "volume": 130,
                               "multiplier": 100, "right": "call", "volatility": "26.29%", "expiry": 1768971600000,
-                              "ratesBonds": 0.039494}]}
+                              "ratesBonds": 0.039494, "midPrice": 1.23, "midTimestamp": 1755001774000,
+                              "markPrice": 1.25, "markTimestamp": 1755001774100, "preMarkPrice": 1.2,
+                              "sellingReturn": 0.15}]}
             web_utils.do_request = MagicMock(
                 return_value=json.dumps(mock_data).encode())
 
@@ -829,6 +831,12 @@ class TestQuoteClient(unittest.TestCase):
             self.assertIn('volume', mock_result.columns)
             self.assertIn('rates_bonds', mock_result.columns)
             self.assertIn('volatility', mock_result.columns)
+            self.assertIn('mid_price', mock_result.columns)
+            self.assertIn('mid_timestamp', mock_result.columns)
+            self.assertIn('mark_price', mock_result.columns)
+            self.assertIn('mark_timestamp', mock_result.columns)
+            self.assertIn('pre_mark_price', mock_result.columns)
+            self.assertIn('selling_return', mock_result.columns)
 
             # 验证具体数据
             first_row = mock_result.iloc[0]
@@ -841,6 +849,12 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(first_row['volume'], 130)
             self.assertAlmostEqual(first_row['rates_bonds'], 0.039494)
             self.assertEqual(first_row['volatility'], '26.29%')
+            self.assertAlmostEqual(first_row['mid_price'], 1.23)
+            self.assertEqual(first_row['mid_timestamp'], 1755001774000)
+            self.assertAlmostEqual(first_row['mark_price'], 1.25)
+            self.assertEqual(first_row['mark_timestamp'], 1755001774100)
+            self.assertAlmostEqual(first_row['pre_mark_price'], 1.2)
+            self.assertAlmostEqual(first_row['selling_return'], 0.15)
         else:
             result = self.client.get_option_briefs(
                 identifiers=['PDD 260121C00090000'])
