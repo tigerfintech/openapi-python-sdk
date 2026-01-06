@@ -8,11 +8,11 @@ class ExtraCalculator:
     """Utility class containing leverage-related calculation methods."""
 
     @staticmethod
-    def annualized_levered_sell_return(option_time_value: float,
+    def annualized_leveraged_sell_return(option_time_value: float,
                                        sell_margin: float,
                                        days_to_expiry: int,
                                        multiplier: int = 100) -> float:
-        """Calculate annualized levered sell return (for covered calls or cash-secured puts).
+        """Calculate annualized leveraged sell return (for covered calls or cash-secured puts).
 
         Formula (applies to both calls and puts):
             Annualized Return = (Time Value * Multiplier / Margin) * 365 / Days to Expiry

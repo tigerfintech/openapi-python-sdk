@@ -143,12 +143,14 @@ class TransferPropertyInfo:
         return "TransferPropertyInfo(%s)" % self.__dict__
 
 class TransferItem:
-    def __init__(self, symbol=None, quantity=None, expiry=None, strike=None, right=None, sec_type=None):
+    def __init__(self, symbol=None, quantity=None, expiry=None, strike=None, put_call=None, sec_type=None, right=None):
         self.symbol = symbol
         self.quantity = quantity
         self.expiry = expiry
         self.strike = strike
-        self.right = right
+        # right is an alias of put_call
+        self.put_call = put_call if put_call else right
+        self.right = right if right else put_call
         self.sec_type = sec_type
 
     def __repr__(self):
