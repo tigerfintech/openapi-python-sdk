@@ -1059,10 +1059,16 @@ class QuoteClient(TigerOpenClient):
             rates_bonds: Risk-free interest rate. 无风险利率
             volatility: Historical volatility. 历史波动率
             change: Price change. 价格变动
+            mid_price: Mid price between ask and bid. 买卖价中间价
+            mid_timestamp: Timestamp of mid price. 中间价时间戳
+            mark_price: Mark price. 标记价格
+            mark_timestamp: Timestamp of mark price. 标记价格时间戳
+            pre_mark_price: Previous mark price. 前标记价格
+            selling_return: Selling return. 卖出收益率
 
         :return example:
-                    identifier symbol         expiry strike put_call  multiplier ask_price ask_size bid_price bid_size pre_close latest_price latest_time  volume open_interest  open  high   low  rates_bonds volatility change
-        0  PDD   260121C00090000    PDD  1768971600000   90.0     CALL         100      None     None      None     None      None         None        None       0          None  None  None  None     0.039494     26.29%   None
+          symbol             identifier strike  latest_price  volume   high    low   open  pre_close  open_interest  change  multiplier put_call volatility         expiry  rates_bonds  mid_price  mid_timestamp  mark_price  mark_timestamp  pre_mark_price  selling_return
+        0   NVDA  NVDA  260116C00100000  100.0          88.0       0  88.15  88.15  88.15      88.15          49505   -0.15         100     CALL     30.57%  1768539600000     0.034998       88.0  1767042004434        88.0   1767042004434           88.15        0.049738
 
         """
         params = OptionContractsParams()

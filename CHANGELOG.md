@@ -1,3 +1,8 @@
+## 3.5.2 (2026-01-06)
+### New
+- `QuoteClient.get_option_briefs` 增加 `mark_price`, `selling_return` 等字段
+- 期权计算工具增加若干方法
+
 ## 3.5.1 (2025-12-26)
 ### New
 - TradeClient 增加转股相关接口
