@@ -156,7 +156,7 @@ class FDAmericanDividendOptionHelper(FDDividendOptionHelper):
                  dividends: List[float] = None,
                  calendar: ql.Calendar = ql.NullCalendar(),
                  day_counter: ql.DayCounter = ql.Actual365Fixed(),
-                 engine_class: ql.PricingEngine.__class__ = ql.FdBlackScholesVanillaEngine
+                 engine_class: ql.PricingEngine = ql.FdBlackScholesVanillaEngine
                  ):
         """
 
@@ -209,7 +209,7 @@ class FDEuropeanDividendOptionHelper(FDDividendOptionHelper):
                  dividends: List[float] = None,
                  calendar: ql.Calendar = ql.NullCalendar(),
                  day_counter: ql.DayCounter = ql.Actual365Fixed(),
-                 engine_class: ql.PricingEngine.__class__ = ql.FdBlackScholesVanillaEngine
+                 engine_class: ql.PricingEngine = ql.FdBlackScholesVanillaEngine
                  ):
         super(FDEuropeanDividendOptionHelper, self).__init__(engine_class=engine_class,
                                                              option_type=option_type, underlying=underlying,
@@ -268,17 +268,17 @@ if __name__ == '__main__':
     # {'type': 'C', 'underlying': 1000, 'strike': 1000, 'dividend': 0.01, 'rfrate': 0.02, 'volatility': 0, 'settlement': '2025/11/07', 'expiration': '2025/12/05', 'npv': None, 'ask': 45, 'bid': 43, 'european': False}
     # The implied volatility with ask 45, bid 43, expected_npv 44.0 is: 0.3951752180670858
     # npv: 43.99834257258963, delta:0.5245475606997675, gamma:0.003637462440755365, theta:-0.7901654526751721, vega:1.1026120986130779, rho:0.36864693429450307
-    args.settlement = '2025/11/07'
-    args.expiration = '2025/12/05'
+    args.settlement = '2026/01/06'
+    args.expiration = '2026/01/16'
     args.type = 'C'
-    args.underlying = 1000
-    args.strike = 1000
-    args.rfrate = 0.02
-    args.dividend = 0.01
+    args.underlying = 262.36
+    args.strike = 200
+    args.rfrate = 0.034979
+    args.dividend = 0.0039
     args.volatility = 0
     args.npv = None
-    args.ask = 45
-    args.bid = 43
+    args.ask = 62.6
+    args.bid = 62.6
 
     print(args.__dict__)
     settlement_date = ql.DateParser.parseFormatted(str(args.settlement).replace('/', '-'), '%Y-%m-%d')

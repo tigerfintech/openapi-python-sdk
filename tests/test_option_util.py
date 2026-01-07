@@ -106,10 +106,6 @@ class TestOptionUtil(unittest.TestCase):
             'latest_price': [10.5],
             'ask_price': [10.6],
             'bid_price': [10.4],
-            'ask_size': [100],
-            'bid_size': [150],
-            'volume': [5000],
-            'open_interest': [10000],
             'rates_bonds': [0.02],
             'volatility': [0.3]
         })
@@ -131,23 +127,20 @@ class TestOptionUtil(unittest.TestCase):
         # Mock empty DataFrame
         self.mock_quote_client.get_option_briefs.return_value = pd.DataFrame()
         
-        result = self.option_util.get_option_metrics(['AAPL 260116C00200000'])
-        
-        self.assertTrue(result.empty)
-        self.mock_quote_client.get_option_briefs.assert_called_once()
+            with self.assertRaises(ValueError):
+                self.option_util.get_option_metrics(['AAPL 260116C00200000'])
+            self.mock_quote_client.get_option_briefs.assert_called_once()
     
     def test_get_option_metrics_empty_briefs_list_return(self):
         """Test get_option_metrics with empty briefs returns empty list"""
         # Mock empty DataFrame
         self.mock_quote_client.get_option_briefs.return_value = pd.DataFrame()
         
-        result = self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
-            return_type='list'
-        )
-        
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 0)
+            with self.assertRaises(ValueError):
+                self.option_util.get_option_metrics(
+                    ['AAPL 260116C00200000'],
+                    return_type='list'
+                )
     
     def test_get_option_metrics_dataframe_return(self):
         """Test get_option_metrics returns DataFrame"""
@@ -160,9 +153,13 @@ class TestOptionUtil(unittest.TestCase):
         })
         
         # Call method
+        # Mock underlying stock briefs
+        self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'latest_price': [210.0]
+        })
         result = self.option_util.get_option_metrics(
             ['AAPL 260116C00200000'],
-            underlying_price=210.0,
             return_type='dataframe'
         )
         
@@ -189,9 +186,12 @@ class TestOptionUtil(unittest.TestCase):
         })
         
         # Call method
+        self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'latest_price': [210.0]
+        })
         result = self.option_util.get_option_metrics(
             ['AAPL 260116C00200000'],
-            underlying_price=210.0,
             return_type='list'
         )
         
@@ -209,18 +209,22 @@ class TestOptionUtil(unittest.TestCase):
         self.mock_quote_client.get_option_briefs.return_value = mock_briefs
         
         # Call method with explicit dividend_rate
+        self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'latest_price': [210.0]
+        })
         result = self.option_util.get_option_metrics(
             ['AAPL 260116C00200000'],
-            underlying_price=210.0,
             dividend_rate=0.01
         )
         
         # Assertions
         self.assertIsInstance(result, pd.DataFrame)
         # Should not call get_stock_fundamental when dividend_rate is provided
-        self.mock_quote_client.get_stock_fundamental.assert_not_called()
-    
-    def test_get_option_metrics_auto_fetch_dividend(self):
+            with self.assertRaises(ValueError):
+                self.option_util.get_option_metrics(
+                    ['AAPL 260116C00200000']
+                )
         """Test automatic dividend rate fetching"""
         # Setup mock data
         mock_briefs = self._create_mock_option_briefs()
@@ -240,14 +244,21 @@ class TestOptionUtil(unittest.TestCase):
         # Should call get_stock_fundamental
         self.mock_quote_client.get_stock_fundamental.assert_called_once()
     
-    def test_get_option_metrics_market_inference(self):
-        """Test market code inference from symbol"""
-        # Test US stock
+    def test_get_option_metrics_market_parameter(self):
+        """Test market parameter usage"""
+        # Test with default market='US'
         mock_briefs_us = pd.DataFrame({
             'identifier': ['AAPL 260116C00200000'],
             'symbol': ['AAPL'],
             'strike': [200.0],
             'put_call': ['CALL'],
+            self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+                'symbol': ['AAPL'],
+                'latest_price': [210.0]
+            })
+            result = self.option_util.get_option_metrics(
+                ['AAPL 260116C00200000']
+            )
             'expiry': [1768540800000],
             'multiplier': [100],
             'latest_price': [10.5]
@@ -258,14 +269,29 @@ class TestOptionUtil(unittest.TestCase):
             'divide_rate': [0.005]
         })
         
+        # Test with default market
+        self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'latest_price': [210.0]
+        })
         self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
-            underlying_price=210.0
+            ['AAPL 260116C00200000']
         )
         
-        # Check if get_stock_fundamental was called with US market
+        # Check if get_stock_fundamental was called with US market (default)
         call_args = self.mock_quote_client.get_stock_fundamental.call_args
         self.assertEqual(call_args[1]['market'], 'US')
+        
+        # Test with explicit HK market
+        self.mock_quote_client.get_stock_fundamental.reset_mock()
+        self.option_util.get_option_metrics(
+            ['AAPL 260116C00200000'],
+            underlying_price=210.0,
+            market='HK'
+        )
+        
+        call_args = self.mock_quote_client.get_stock_fundamental.call_args
+        self.assertEqual(call_args[1]['market'], 'HK')
     
     def test_calculate_price_probabilities(self):
         """Test calculate_price_probabilities method"""
@@ -362,9 +388,16 @@ class TestOptionUtil(unittest.TestCase):
         self.mock_quote_client.get_option_briefs.return_value = mock_briefs
         
         # Should not raise exception
+        self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'latest_price': [210.0]
+        })
+        self.mock_quote_client.get_stock_fundamental.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'divide_rate': [0.0]
+        })
         result = self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
-            underlying_price=210.0
+            ['AAPL 260116C00200000']
         )
         
         self.assertIsInstance(result, pd.DataFrame)
@@ -382,8 +415,6 @@ class TestOptionUtil(unittest.TestCase):
             'latest_price': [10.5, 5.5, 8.5],
             'ask_price': [10.6, 5.6, 8.6],
             'bid_price': [10.4, 5.4, 8.4],
-            'volume': [5000, 3000, 4000],
-            'open_interest': [10000, 8000, 9000],
             'rates_bonds': [0.02, 0.02, 0.02],
             'volatility': [0.3, 0.32, 0.28]
         })
@@ -393,9 +424,12 @@ class TestOptionUtil(unittest.TestCase):
             'divide_rate': [0.005]
         })
         
+        self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'latest_price': [210.0]
+        })
         result = self.option_util.get_option_metrics(
             ['AAPL 260116C00200000', 'AAPL 260116C00210000', 'AAPL 260116P00200000'],
-            underlying_price=210.0,
             return_type='list'
         )
         

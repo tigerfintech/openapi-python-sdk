@@ -5,8 +5,9 @@ Option utility class for fetching option quotes and calculating option metrics.
 @Author  : sukai
 """
 from typing import List, Optional, Union, Dict
+import logging
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from dataclasses import dataclass
 
 try:
@@ -22,6 +23,16 @@ from tigeropen.examples.option_helpers.helpers import (
 from tigeropen.examples.option_helpers.probability_calculator import ProbabilityCalculator
 from tigeropen.examples.option_helpers.extra_calculator import ExtraCalculator
 
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.max_rows', 5000)
+pd.set_option('display.width', 5000)
+
 
 @dataclass
 class OptionMetric:
@@ -36,12 +47,7 @@ class OptionMetric:
         expiry: Expiration date (millisecond timestamp)
         multiplier: Option multiplier
         latest_price: Current option price
-        ask_price: Ask price
-        bid_price: Bid price
-        ask_size: Ask size
-        bid_size: Bid size
-        open_interest: Open interest
-        volume: Trading volume
+        underlying_price: Current underlying stock price
         delta: Delta greek
         gamma: Gamma greek
         theta: Theta greek (daily decay)
@@ -60,12 +66,7 @@ class OptionMetric:
     expiry: int
     multiplier: int
     latest_price: Optional[float]
-    ask_price: Optional[float] = None
-    bid_price: Optional[float] = None
-    ask_size: Optional[float] = None
-    bid_size: Optional[float] = None
-    open_interest: Optional[float] = None
-    volume: Optional[float] = None
+    underlying_price: Optional[float] = None
     delta: Optional[float] = None
     gamma: Optional[float] = None
     theta: Optional[float] = None
@@ -83,9 +84,7 @@ class OptionMetric:
     
     def __str__(self) -> str:
         """String representation."""
-        return (f"OptionMetric({self.identifier}, strike={self.strike}, "
-                f"price={self.latest_price:.2f}, delta={self.delta:.4f}, "
-                f"iv={self.implied_vol:.4f})")
+        return (f"OptionMetric<{self.to_dict()}>")
 
 
 class OptionUtil:
@@ -117,7 +116,7 @@ class OptionUtil:
                           dividend_rate: Optional[float] = None,
                           is_european: bool = False,
                           reference_date: Optional[ql.Date] = None,
-                          market: Optional[str] = None,
+                          market: str = 'US',
                           timezone: Optional[str] = None,
                           return_type: str = 'dataframe') -> Union[pd.DataFrame, List[OptionMetric]]:
         """
@@ -150,55 +149,60 @@ class OptionUtil:
         # Fetch option quotes
         briefs = self.quote_client.get_option_briefs(identifiers, market=market, timezone=timezone)
         
-        if briefs.empty:
-            if return_type == 'list':
-                return []
-            return briefs
+        if briefs is None or briefs.empty:
+            error_msg = f"No option data returned for identifiers: {identifiers}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        # Get unique underlying symbols
+        underlying_symbols = briefs['symbol'].unique().tolist()
+        
+        # Fetch underlying stock prices if not provided
+        underlying_prices = {}
+        if underlying_price is None and underlying_symbols:
+            stock_briefs = self.quote_client.get_stock_briefs(underlying_symbols)
+            if stock_briefs is None or stock_briefs.empty:
+                error_msg = f"No stock data returned for symbols: {underlying_symbols}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+                
+            for _, row in stock_briefs.iterrows():
+                symbol = row.get('symbol')
+                latest_price = row.get('latest_price')
+                if symbol and not pd.isna(latest_price):
+                    underlying_prices[symbol] = float(latest_price)
+            logger.debug(f"Fetched underlying prices: {underlying_prices}")
         
         # Fetch dividend rates for underlying symbols if not provided
         dividend_rates = {}
-        if dividend_rate is None:
-            try:
-                # Get unique underlying symbols
-                underlying_symbols = briefs['symbol'].unique().tolist()
-                if underlying_symbols:
-                    # Infer market if not provided
-                    inferred_market = market
-                    if inferred_market is None:
-                        # Try to infer from first symbol
-                        first_symbol = underlying_symbols[0]
-                        if first_symbol.startswith('0') or first_symbol.startswith('3') or first_symbol.startswith('6'):
-                            inferred_market = 'CN'
-                        elif len(first_symbol) == 5 and first_symbol.isdigit():
-                            inferred_market = 'HK'
-                        else:
-                            inferred_market = 'US'
-                    
-                    # Fetch fundamental data
-                    fundamental_data = self.quote_client.get_stock_fundamental(
-                        underlying_symbols, 
-                        market=inferred_market
-                    )
-                    
-                    # Extract dividend rates
-                    if fundamental_data is not None and not fundamental_data.empty:
-                        for _, row in fundamental_data.iterrows():
-                            symbol = row.get('symbol')
-                            div_rate = row.get('divide_rate', 0.0)
-                            if symbol and not pd.isna(div_rate):
-                                dividend_rates[symbol] = float(div_rate)
-            except Exception as e:
-                print(f"Warning: Failed to fetch dividend rates: {str(e)}. Using 0.0 as default.")
-                # Continue with empty dividend_rates dict
+        if dividend_rate is None and underlying_symbols:
+            # Fetch fundamental data
+            fundamental_data = self.quote_client.get_stock_fundamental(
+                underlying_symbols, 
+                market=market
+            )
+            
+            if fundamental_data is None or fundamental_data.empty:
+                error_msg = f"No fundamental data returned for symbols: {underlying_symbols}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            
+            # Extract dividend rates
+            for _, row in fundamental_data.iterrows():
+                symbol = row.get('symbol')
+                div_rate = row.get('divide_rate', 0.0)
+                if symbol and not pd.isna(div_rate):
+                    dividend_rates[symbol] = float(div_rate)
         
         # Set reference date
         if reference_date is None:
-            today = datetime.today()
+            today = datetime.today() - timedelta(days=1)
             reference_date = ql.Date(today.day, today.month, today.year)
         
         ql.Settings.instance().evaluationDate = reference_date
         
         # Initialize result columns
+        briefs['underlying_price'] = None
         briefs['delta'] = None
         briefs['gamma'] = None
         briefs['theta'] = None
@@ -212,127 +216,155 @@ class OptionUtil:
         
         # Calculate metrics for each option
         for idx, row in briefs.iterrows():
-            try:
-                # Determine underlying price
-                current_underlying = underlying_price if underlying_price is not None else row.get('latest_price', None)
-                if current_underlying is None or pd.isna(current_underlying):
-                    continue
+            # Extract option parameters first to get underlying symbol
+            underlying_symbol = row.get('symbol', '')
+            
+            # Determine underlying price
+            if underlying_price is not None:
+                current_underlying = underlying_price
+            else:
+                # Get underlying price from fetched stock prices
+                current_underlying = underlying_prices.get(underlying_symbol, None)
                 
-                # Extract option parameters
-                strike = row.get('strike', 0)
-                put_call = row.get('put_call', 'CALL')
-                expiry_timestamp = row.get('expiry', 0)
-                multiplier = row.get('multiplier', 100)
-                underlying_symbol = row.get('symbol', '')
-                
-                # Get dividend rate for this underlying
-                if dividend_rate is not None:
-                    current_dividend_rate = dividend_rate
-                else:
-                    current_dividend_rate = dividend_rates.get(underlying_symbol, 0.0)
-                
-                # Calculate days to expiry
-                expiry_date = self._timestamp_to_ql_date(expiry_timestamp)
-                days_to_expiry = expiry_date - reference_date
-                
-                if days_to_expiry <= 0:
-                    continue
-                
-                # Get option type
-                option_type = ql.Option.Call if put_call == 'CALL' else ql.Option.Put
-                
-                # Get market data for calculations
-                ask_price = row.get('ask_price', 0)
-                bid_price = row.get('bid_price', 0)
-                latest_price = row.get('latest_price', 0)
-                
-                # Determine option price for calculations
-                if latest_price and not pd.isna(latest_price) and latest_price > 0:
-                    option_price = latest_price
-                elif ask_price and bid_price and not pd.isna(ask_price) and not pd.isna(bid_price):
-                    option_price = (ask_price + bid_price) / 2
-                else:
-                    continue
-                
-                # Get or use provided rates
-                rf_rate = row.get('rates_bonds', risk_free_rate)
-                if pd.isna(rf_rate):
-                    rf_rate = risk_free_rate
-                
-                # Get historical volatility as initial guess
-                hist_vol = row.get('volatility', 0.3)
-                if pd.isna(hist_vol) or hist_vol == 0:
-                    hist_vol = 0.3
-                else:
-                    # Convert from percentage if needed
-                    if hist_vol > 1:
-                        hist_vol = hist_vol / 100.0
-                
-                # Create option hecurrent_lper
-                helper_class = FDEuropeanDividendOptionHelper if is_european else FDAmericanDividendOptionHelper
-                helper = helper_class(
-                    option_type=option_type,
-                    underlying=current_underlying,
-                    strike=strike,
-                    risk_free_rate=rf_rate,
-                    dividend_rate=current_dividend_rate,
-                    volatility=hist_vol,
-                    settlement_date=reference_date,
-                    expiration_date=expiry_date
-                )
-                
-                # Calculate implied volatility
-                try:
-                    implied_vol = helper.implied_volatility(option_price)
-                    helper.update_implied_volatility(implied_vol)
-                    briefs.loc[idx, 'implied_vol'] = implied_vol
-                except Exception:
-                    implied_vol = hist_vol
-                    briefs.loc[idx, 'implied_vol'] = implied_vol
-                
-                # Calculate Greeks
-                briefs.loc[idx, 'npv'] = helper.NPV()
-                briefs.loc[idx, 'delta'] = helper.delta()
-                briefs.loc[idx, 'gamma'] = helper.gamma()
-                briefs.loc[idx, 'theta'] = helper.theta()
-                briefs.loc[idx, 'vega'] = helper.vega()
-                briefs.loc[idx, 'rho'] = helper.rho()
-                
-                # Calculate leverage ratio
-                delta = helper.delta()
-                leverage = self.extra_calculator.leverage_ratio(delta, current_underlying, option_price)
-                briefs.loc[idx, 'leverage_ratio'] = leverage
-                
-                # Calculate annualized sell return (if selling margin available)
-                time_value = option_price - max(0, 
-                    (current_underlying - strike) if put_call == 'CALL' else (strike - current_underlying))
-                # Estimate sell margin (simplified)
-                if put_call == 'PUT':
-                    sell_margin = strike * multiplier
-                else:
-                    sell_margin = current_underlying * multiplier
-                
-                ann_return = self.extra_calculator.annualized_leveraged_sell_return(
-                    time_value, sell_margin, days_to_expiry, multiplier
-                )
-                briefs.loc[idx, 'annualized_sell_return'] = ann_return
-                
-                # Calculate profit probability for long position
-                profit_prob = self.probability_calculator.probability_long_profit(
-                    stock_price=current_underlying,
-                    strike=strike,
-                    premium=option_price,
-                    iv=implied_vol,
-                    days=days_to_expiry,
-                    option_type=put_call,
-                    contract_multiplier=multiplier
-                )
-                briefs.loc[idx, 'profit_probability'] = profit_prob
-                
-            except Exception as e:
-                # Log error but continue with other options
-                print(f"Error calculating metrics for {row.get('identifier', 'unknown')}: {str(e)}")
+            if current_underlying is None or pd.isna(current_underlying):
+                logger.warning(f"Skipping {row.get('identifier', 'unknown')}: no underlying price available")
                 continue
+            current_underlying = float(current_underlying)
+            
+            # Store underlying price in result
+            briefs.loc[idx, 'underlying_price'] = current_underlying
+
+            # Extract option parameters
+            strike = float(row.get('strike', 0))
+            put_call = row.get('put_call', 'CALL')
+            expiry_timestamp = int(row.get('expiry', 0))
+            multiplier = int(row.get('multiplier', 100))
+
+            # Get dividend rate for this underlying
+            if dividend_rate is not None:
+                current_dividend_rate = float(dividend_rate)
+            else:
+                current_dividend_rate = float(dividend_rates.get(underlying_symbol, 0.0))
+
+            # Calculate days to expiry
+            expiry_date = self._timestamp_to_ql_date(expiry_timestamp)
+            days_to_expiry = expiry_date - reference_date
+
+            if days_to_expiry <= 0:
+                continue
+
+            # Get option type
+            option_type = ql.Option.Call if put_call == 'CALL' else ql.Option.Put
+
+            # Get market data for calculations
+            ask_price = row.get('ask_price', 0)
+            bid_price = row.get('bid_price', 0)
+            latest_price = row.get('latest_price', 0)
+            
+            # Convert to float if not None/NaN
+            if ask_price and not pd.isna(ask_price):
+                ask_price = float(ask_price)
+            else:
+                ask_price = 0.0
+                
+            if bid_price and not pd.isna(bid_price):
+                bid_price = float(bid_price)
+            else:
+                bid_price = 0.0
+                
+            if latest_price and not pd.isna(latest_price):
+                latest_price = float(latest_price)
+            else:
+                latest_price = 0.0
+            
+            # Determine option price for calculations
+            if latest_price > 0:
+                option_price = latest_price
+            elif ask_price > 0 and bid_price > 0:
+                option_price = (ask_price + bid_price) / 2
+            else:
+                continue
+
+            # Get or use provided rates
+            rf_rate = row.get('rates_bonds', risk_free_rate)
+            if pd.isna(rf_rate):
+                rf_rate = risk_free_rate
+            else:
+                rf_rate = float(rf_rate)
+            
+            # Log option calculation parameters
+            logger.debug(f"Calculating metrics for {row.get('identifier', 'unknown')}:")
+            logger.debug(f"  Underlying: {underlying_symbol} @ {current_underlying:.2f}")
+            logger.debug(f"  Strike: {strike:.2f}, Type: {put_call}, Days to expiry: {days_to_expiry}")
+            logger.debug(f"  Option price: {option_price:.4f}")
+            logger.debug(f"  Risk-free rate: {rf_rate:.4f}")
+            logger.debug(f"  Dividend rate: {current_dividend_rate:.4f}")
+            logger.debug(f"  Reference date: {reference_date}")
+
+            # Create option hecurrent_lper
+            helper_class = FDEuropeanDividendOptionHelper if is_european else FDAmericanDividendOptionHelper
+            helper = helper_class(
+                option_type=option_type,
+                underlying=current_underlying,
+                strike=strike,
+                risk_free_rate=rf_rate,
+                dividend_rate=current_dividend_rate,
+                volatility=0,
+                settlement_date=reference_date,
+                expiration_date=expiry_date
+            )
+
+            # Calculate implied volatility
+            try:
+                implied_vol = helper.implied_volatility(option_price)
+                helper.update_implied_volatility(implied_vol)
+                briefs.loc[idx, 'implied_vol'] = implied_vol
+            except Exception as e:
+                logger.warning(
+                    "  Implied vol solve failed (%s); skipping metrics for %s",
+                    e,
+                    row.get('identifier', 'unknown')
+                )
+                continue
+
+            # Calculate Greeks
+            briefs.loc[idx, 'npv'] = helper.NPV()
+            briefs.loc[idx, 'delta'] = helper.delta()
+            briefs.loc[idx, 'gamma'] = helper.gamma()
+            briefs.loc[idx, 'theta'] = helper.theta()
+            briefs.loc[idx, 'vega'] = helper.vega()
+            briefs.loc[idx, 'rho'] = helper.rho()
+
+            # Calculate leverage ratio
+            delta = helper.delta()
+            leverage = self.extra_calculator.leverage_ratio(delta, current_underlying, option_price)
+            briefs.loc[idx, 'leverage_ratio'] = leverage
+
+            # Calculate annualized sell return (if selling margin available)
+            time_value = option_price - max(0,
+                (current_underlying - strike) if put_call == 'CALL' else (strike - current_underlying))
+            # Estimate sell margin (simplified)
+            if put_call == 'PUT':
+                sell_margin = strike * multiplier
+            else:
+                sell_margin = current_underlying * multiplier
+
+            ann_return = self.extra_calculator.annualized_leveraged_sell_return(
+                time_value, sell_margin, days_to_expiry, multiplier
+            )
+            briefs.loc[idx, 'annualized_sell_return'] = ann_return
+
+            # Calculate profit probability for long position
+            profit_prob = self.probability_calculator.probability_long_profit(
+                stock_price=current_underlying,
+                strike=strike,
+                premium=option_price,
+                iv=implied_vol,
+                days=days_to_expiry,
+                option_type=put_call,
+                contract_multiplier=multiplier
+            )
+            briefs.loc[idx, 'profit_probability'] = profit_prob
         
         # Return in requested format
         if return_type == 'list':
@@ -352,12 +384,7 @@ class OptionUtil:
                 expiry=row['expiry'] if 'expiry' in row else 0,
                 multiplier=row['multiplier'] if 'multiplier' in row else 100,
                 latest_price=row['latest_price'] if 'latest_price' in row else None,
-                ask_price=row['ask_price'] if 'ask_price' in row else None,
-                bid_price=row['bid_price'] if 'bid_price' in row else None,
-                ask_size=row['ask_size'] if 'ask_size' in row else None,
-                bid_size=row['bid_size'] if 'bid_size' in row else None,
-                open_interest=row['open_interest'] if 'open_interest' in row else None,
-                volume=row['volume'] if 'volume' in row else None,
+                underlying_price=row['underlying_price'] if 'underlying_price' in row else None,
                 delta=row['delta'] if 'delta' in row else None,
                 gamma=row['gamma'] if 'gamma' in row else None,
                 theta=row['theta'] if 'theta' in row else None,
@@ -432,7 +459,7 @@ if __name__ == '__main__':
     from tigeropen.tiger_open_config import TigerOpenClientConfig
     
     # Configure client with your properties file
-    client_config = TigerOpenClientConfig(props_path='/path/to/your/properties/file/')
+    client_config = TigerOpenClientConfig(props_path='../../../tests/.config/prod/')
     quote_client = QuoteClient(client_config)
     
     option_util = OptionUtil(quote_client)
@@ -441,22 +468,16 @@ if __name__ == '__main__':
     identifiers = ['AAPL 260116C00200000']
     
     # Example 1: Return as DataFrame
-    print("=" * 80)
-    print("Example 1: Return as DataFrame")
-    print("=" * 80)
-    metrics_df = option_util.get_option_metrics(identifiers, underlying_price=240.52, return_type='dataframe')
-    print(metrics_df[['identifier', 'strike', 'put_call', 'latest_price', 
-                      'delta', 'gamma', 'theta', 'vega', 'implied_vol', 
-                      'leverage_ratio', 'profit_probability']])
+    logger.info("Example 1: Return as DataFrame")
+    metrics_df = option_util.get_option_metrics(identifiers, return_type='dataframe')
+    logger.info(f"\n{metrics_df}")
     
     # Example 2: Return as List of OptionMetric objects
-    print("\n" + "=" * 80)
-    print("Example 2: Return as List of OptionMetric objects")
-    print("=" * 80)
-    metrics_list = option_util.get_option_metrics(identifiers, underlying_price=240.52, return_type='list')
+    logger.info("Example 2: Return as List of OptionMetric objects")
+    metrics_list = option_util.get_option_metrics(identifiers, return_type='list')
     for metric in metrics_list:
-        print(metric)
-        print(f"  Greeks: delta={metric.delta:.4f}, gamma={metric.gamma:.6f}, "
-              f"theta={metric.theta:.4f}, vega={metric.vega:.4f}")
-        print(f"  Risk: implied_vol={metric.implied_vol:.4f}, leverage={metric.leverage_ratio:.4f}")
-        print(f"  Probability: profit_prob={metric.profit_probability:.4f}")
+        logger.info(metric)
+        logger.info(f"  Greeks: delta={metric.delta}, gamma={metric.gamma}, "
+              f"theta={metric.theta}, vega={metric.vega}")
+        logger.info(f"  Risk: implied_vol={metric.implied_vol}, leverage={metric.leverage_ratio}")
+        logger.info(f"  Probability: profit_prob={metric.profit_probability}")
