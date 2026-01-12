@@ -16,6 +16,7 @@ except ImportError:
     ql = None
 
 from tigeropen.quote.quote_client import QuoteClient
+from tigeropen.trade.trade_client import TradeClient
 from tigeropen.examples.option_helpers.helpers import (
     FDAmericanDividendOptionHelper, 
     FDEuropeanDividendOptionHelper
@@ -29,9 +30,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.max_rows', 5000)
-pd.set_option('display.width', 5000)
+
 
 
 @dataclass
@@ -95,14 +94,16 @@ class OptionUtil:
     various calculators to compute Greeks, probabilities, and other option metrics.
     """
     
-    def __init__(self, quote_client: QuoteClient):
+    def __init__(self, quote_client: QuoteClient, trade_client: Optional[TradeClient] = None):
         """
         Initialize OptionUtil with a QuoteClient instance.
         
         Args:
             quote_client: Configured QuoteClient instance for fetching market data
+            trade_client: Optional TradeClient instance for fetching contract margin data
         """
         self.quote_client = quote_client
+        self.trade_client = trade_client
         self.probability_calculator = ProbabilityCalculator()
         self.extra_calculator = ExtraCalculator()
         
@@ -235,10 +236,23 @@ class OptionUtil:
             briefs.loc[idx, 'underlying_price'] = current_underlying
 
             # Extract option parameters
-            strike = float(row.get('strike', 0))
+            strike = row.get('strike', 0)
+            if strike is None or pd.isna(strike):
+                logger.warning(f"Skipping {row.get('identifier', 'unknown')}: invalid strike price")
+                continue
+            strike = float(strike)
+            
             put_call = row.get('put_call', 'CALL')
-            expiry_timestamp = int(row.get('expiry', 0))
-            multiplier = int(row.get('multiplier', 100))
+            expiry_timestamp = row.get('expiry', 0)
+            if expiry_timestamp is None or pd.isna(expiry_timestamp):
+                logger.warning(f"Skipping {row.get('identifier', 'unknown')}: invalid expiry")
+                continue
+            expiry_timestamp = int(expiry_timestamp)
+            
+            multiplier = row.get('multiplier', 100)
+            if multiplier is None or pd.isna(multiplier):
+                multiplier = 100
+            multiplier = int(multiplier)
 
             # Get dividend rate for this underlying
             if dividend_rate is not None:
@@ -343,11 +357,35 @@ class OptionUtil:
             # Calculate annualized sell return (if selling margin available)
             time_value = option_price - max(0,
                 (current_underlying - strike) if put_call == 'CALL' else (strike - current_underlying))
-            # Estimate sell margin (simplified)
-            if put_call == 'PUT':
-                sell_margin = strike * multiplier
-            else:
-                sell_margin = current_underlying * multiplier
+            
+            # Get sell margin from TradeClient if available
+            sell_margin = None
+            if self.trade_client is not None:
+                try:
+                    option_identifier = row.get('identifier', '')
+                    # Parse identifier to get option details
+                    # Format: "SYMBOL YYMMDD[C/P]STRIKE" e.g. "AAPL 250815C00125000"
+                    contract = self.trade_client.get_contract(
+                        symbol=underlying_symbol,
+                        sec_type='OPT',
+                        expiry=self._timestamp_to_date_str(expiry_timestamp),
+                        strike=strike,
+                        put_call=put_call
+                    )
+                    if contract and contract.short_initial_margin is not None:
+                        # short_initial_margin is a ratio, multiply by strike price and multiplier
+                        sell_margin = contract.short_initial_margin * strike * multiplier
+                        logger.debug(f"  Got short_initial_margin from contract: {contract.short_initial_margin}, sell_margin: {sell_margin}")
+                except Exception as e:
+                    logger.warning(f"  Failed to get contract margin for {option_identifier}: {e}")
+            
+            # Fallback to estimate if TradeClient not available or failed
+            if sell_margin is None:
+                if put_call == 'PUT':
+                    sell_margin = strike * multiplier
+                else:
+                    sell_margin = current_underlying * multiplier
+                logger.debug(f"  Using estimated sell_margin: {sell_margin}")
 
             ann_return = self.extra_calculator.annualized_leveraged_sell_return(
                 time_value, sell_margin, days_to_expiry, multiplier
@@ -398,7 +436,7 @@ class OptionUtil:
             )
             metrics_list.append(metric)
         return metrics_list
-    
+
     def calculate_price_probabilities(self,
                                      stock_price: float,
                                      target_price: float,
@@ -406,25 +444,25 @@ class OptionUtil:
                                      days: float) -> Dict[str, float]:
         """
         Calculate probability metrics for price movements.
-        
+
         Args:
             stock_price: Current stock price
             target_price: Target price level
             iv: Implied volatility (annualized)
             days: Time horizon in days
-            
+
         Returns:
             Dictionary with probability metrics
         """
         cumulative_prob = self.probability_calculator.cumulative_probability(
             stock_price, target_price, iv, days
         )
-        
+
         return {
             'cumulative_probability': cumulative_prob,
             'probability_above': 1.0 - cumulative_prob
         }
-    
+
     def calculate_price_range_probability(self,
                                          stock_price: float,
                                          lower_price: float,
@@ -433,45 +471,54 @@ class OptionUtil:
                                          days: float) -> float:
         """
         Calculate probability that price will be within a range.
-        
+
         Args:
             stock_price: Current stock price
             lower_price: Lower bound
             upper_price: Upper bound
             iv: Implied volatility (annualized)
             days: Time horizon in days
-            
+
         Returns:
             Probability that price will be in [lower_price, upper_price]
         """
         return self.probability_calculator.probability(
             stock_price, lower_price, upper_price, iv, days
         )
-    
+
     def _timestamp_to_ql_date(self, timestamp_ms: int) -> ql.Date:
         """Convert millisecond timestamp to QuantLib Date."""
         dt = datetime.fromtimestamp(timestamp_ms / 1000.0)
         return ql.Date(dt.day, dt.month, dt.year)
+    
+    def _timestamp_to_date_str(self, timestamp_ms: int) -> str:
+        """Convert millisecond timestamp to date string in YYYYMMDD format."""
+        dt = datetime.fromtimestamp(timestamp_ms / 1000.0)
+        return dt.strftime('%Y%m%d')
 
 
 if __name__ == '__main__':
+    pd.set_option('display.max_columns', 500)
+    pd.set_option('display.max_rows', 5000)
+    pd.set_option('display.width', 5000)
     # Example usage (requires configured QuoteClient)
     from tigeropen.tiger_open_config import TigerOpenClientConfig
-    
+
     # Configure client with your properties file
     client_config = TigerOpenClientConfig(props_path='../../../tests/.config/prod/')
     quote_client = QuoteClient(client_config)
-    
-    option_util = OptionUtil(quote_client)
-    
+    trade_client = TradeClient(client_config)
+
+    option_util = OptionUtil(quote_client, trade_client)
+
     # Calculate metrics for specific options
     identifiers = ['AAPL 260116C00200000']
-    
+
     # Example 1: Return as DataFrame
     logger.info("Example 1: Return as DataFrame")
     metrics_df = option_util.get_option_metrics(identifiers, return_type='dataframe')
     logger.info(f"\n{metrics_df}")
-    
+
     # Example 2: Return as List of OptionMetric objects
     logger.info("Example 2: Return as List of OptionMetric objects")
     metrics_list = option_util.get_option_metrics(identifiers, return_type='list')
