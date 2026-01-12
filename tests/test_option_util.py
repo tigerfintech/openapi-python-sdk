@@ -17,6 +17,8 @@ except ImportError:
 
 from tigeropen.examples.option_helpers.util import OptionUtil, OptionMetric
 from tigeropen.quote.quote_client import QuoteClient
+from tigeropen.trade.trade_client import TradeClient
+from tigeropen.trade.domain.contract import Contract
 
 
 class TestOptionMetric(unittest.TestCase):
@@ -119,29 +121,40 @@ class TestOptionUtil(unittest.TestCase):
     def test_init_with_quote_client(self):
         """Test successful initialization"""
         self.assertIsInstance(self.option_util.quote_client, QuoteClient)
+        self.assertIsNone(self.option_util.trade_client)
         self.assertIsNotNone(self.option_util.probability_calculator)
         self.assertIsNotNone(self.option_util.extra_calculator)
+    
+    def test_init_with_trade_client(self):
+        """Test initialization with TradeClient"""
+        mock_trade_client = Mock(spec=TradeClient)
+        option_util = OptionUtil(self.mock_quote_client, mock_trade_client)
+        
+        self.assertIsInstance(option_util.quote_client, QuoteClient)
+        self.assertIsInstance(option_util.trade_client, TradeClient)
+        self.assertIsNotNone(option_util.probability_calculator)
+        self.assertIsNotNone(option_util.extra_calculator)
     
     def test_get_option_metrics_empty_briefs(self):
         """Test get_option_metrics with empty briefs"""
         # Mock empty DataFrame
         self.mock_quote_client.get_option_briefs.return_value = pd.DataFrame()
         
-            with self.assertRaises(ValueError):
-                self.option_util.get_option_metrics(['AAPL 260116C00200000'])
-            self.mock_quote_client.get_option_briefs.assert_called_once()
-    
+        with self.assertRaises(ValueError):
+            self.option_util.get_option_metrics(['AAPL 260116C00200000'])
+        self.mock_quote_client.get_option_briefs.assert_called_once()
+
     def test_get_option_metrics_empty_briefs_list_return(self):
         """Test get_option_metrics with empty briefs returns empty list"""
         # Mock empty DataFrame
         self.mock_quote_client.get_option_briefs.return_value = pd.DataFrame()
         
-            with self.assertRaises(ValueError):
-                self.option_util.get_option_metrics(
-                    ['AAPL 260116C00200000'],
-                    return_type='list'
-                )
-    
+        with self.assertRaises(ValueError):
+            self.option_util.get_option_metrics(
+                ['AAPL 260116C00200000'],
+                return_type='list'
+            )
+
     def test_get_option_metrics_dataframe_return(self):
         """Test get_option_metrics returns DataFrame"""
         # Setup mock data
@@ -221,10 +234,12 @@ class TestOptionUtil(unittest.TestCase):
         # Assertions
         self.assertIsInstance(result, pd.DataFrame)
         # Should not call get_stock_fundamental when dividend_rate is provided
-            with self.assertRaises(ValueError):
-                self.option_util.get_option_metrics(
-                    ['AAPL 260116C00200000']
-                )
+        with self.assertRaises(ValueError):
+            self.option_util.get_option_metrics(
+                ['AAPL 260116C00200000']
+            )
+
+    def test_get_option_metrics_automatic_dividend_rate(self):
         """Test automatic dividend rate fetching"""
         # Setup mock data
         mock_briefs = self._create_mock_option_briefs()
@@ -252,13 +267,6 @@ class TestOptionUtil(unittest.TestCase):
             'symbol': ['AAPL'],
             'strike': [200.0],
             'put_call': ['CALL'],
-            self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
-                'symbol': ['AAPL'],
-                'latest_price': [210.0]
-            })
-            result = self.option_util.get_option_metrics(
-                ['AAPL 260116C00200000']
-            )
             'expiry': [1768540800000],
             'multiplier': [100],
             'latest_price': [10.5]
@@ -340,6 +348,19 @@ class TestOptionUtil(unittest.TestCase):
         self.assertEqual(ql_date.dayOfMonth(), dt.day)
         self.assertEqual(ql_date.month(), dt.month)
         self.assertEqual(ql_date.year(), dt.year)
+    
+    def test_timestamp_to_date_str(self):
+        """Test _timestamp_to_date_str conversion"""
+        # 2026-01-16 00:00:00 UTC
+        timestamp_ms = 1768540800000
+        
+        date_str = self.option_util._timestamp_to_date_str(timestamp_ms)
+        
+        self.assertIsInstance(date_str, str)
+        self.assertEqual(len(date_str), 8)  # YYYYMMDD format
+        # Verify it's a valid date format
+        dt = datetime.strptime(date_str, '%Y%m%d')
+        self.assertIsNotNone(dt)
     
     def test_dataframe_to_metrics(self):
         """Test _dataframe_to_metrics conversion"""
@@ -436,6 +457,179 @@ class TestOptionUtil(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0].put_call, 'CALL')
         self.assertEqual(result[2].put_call, 'PUT')
+    
+    def test_get_option_metrics_with_trade_client_margin(self):
+        """Test get_option_metrics with TradeClient for margin calculation"""
+        # Setup mock TradeClient
+        mock_trade_client = Mock(spec=TradeClient)
+        mock_contract = Mock(spec=Contract)
+        mock_contract.short_initial_margin = 0.25  # 25% margin requirement
+        mock_trade_client.get_contract.return_value = mock_contract
+        
+        # Create OptionUtil with TradeClient
+        option_util = OptionUtil(self.mock_quote_client, mock_trade_client)
+        
+        # Setup mock data
+        mock_briefs = self._create_mock_option_briefs()
+        self.mock_quote_client.get_option_briefs.return_value = mock_briefs
+        self.mock_quote_client.get_stock_fundamental.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'divide_rate': [0.005]
+        })
+        self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'latest_price': [210.0]
+        })
+        
+        # Call method
+        result = option_util.get_option_metrics(
+            ['AAPL 260116C00200000'],
+            return_type='dataframe'
+        )
+        
+        # Verify TradeClient.get_contract was called
+        mock_trade_client.get_contract.assert_called_once()
+        call_args = mock_trade_client.get_contract.call_args
+        self.assertEqual(call_args[1]['symbol'], 'AAPL')
+        self.assertEqual(call_args[1]['sec_type'], 'OPT')
+        self.assertEqual(call_args[1]['strike'], 200.0)
+        self.assertEqual(call_args[1]['put_call'], 'CALL')
+        
+        # Verify result includes calculated margin
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertIn('annualized_sell_return', result.columns)
+    
+    def test_get_option_metrics_without_trade_client_fallback(self):
+        """Test get_option_metrics fallback margin calculation without TradeClient"""
+        # Create OptionUtil without TradeClient (use setUp instance)
+        mock_briefs = self._create_mock_option_briefs()
+        self.mock_quote_client.get_option_briefs.return_value = mock_briefs
+        self.mock_quote_client.get_stock_fundamental.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'divide_rate': [0.005]
+        })
+        self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'latest_price': [210.0]
+        })
+        
+        # Call method
+        result = self.option_util.get_option_metrics(
+            ['AAPL 260116C00200000'],
+            return_type='dataframe'
+        )
+        
+        # Should still calculate margin (using fallback)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertIn('annualized_sell_return', result.columns)
+    
+    def test_get_option_metrics_trade_client_error_handling(self):
+        """Test error handling when TradeClient.get_contract fails"""
+        # Setup mock TradeClient that raises exception
+        mock_trade_client = Mock(spec=TradeClient)
+        mock_trade_client.get_contract.side_effect = Exception("API Error")
+        
+        option_util = OptionUtil(self.mock_quote_client, mock_trade_client)
+        
+        # Setup mock data
+        mock_briefs = self._create_mock_option_briefs()
+        self.mock_quote_client.get_option_briefs.return_value = mock_briefs
+        self.mock_quote_client.get_stock_fundamental.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'divide_rate': [0.005]
+        })
+        self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'latest_price': [210.0]
+        })
+        
+        # Should not raise exception, should fallback to estimate
+        result = option_util.get_option_metrics(
+            ['AAPL 260116C00200000'],
+            return_type='dataframe'
+        )
+        
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertIn('annualized_sell_return', result.columns)
+    
+    def test_get_option_metrics_trade_client_none_margin(self):
+        """Test handling when TradeClient returns contract with None margin"""
+        # Setup mock TradeClient with None margin
+        mock_trade_client = Mock(spec=TradeClient)
+        mock_contract = Mock(spec=Contract)
+        mock_contract.short_initial_margin = None  # No margin data
+        mock_trade_client.get_contract.return_value = mock_contract
+        
+        option_util = OptionUtil(self.mock_quote_client, mock_trade_client)
+        
+        # Setup mock data
+        mock_briefs = self._create_mock_option_briefs()
+        self.mock_quote_client.get_option_briefs.return_value = mock_briefs
+        self.mock_quote_client.get_stock_fundamental.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'divide_rate': [0.005]
+        })
+        self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'latest_price': [210.0]
+        })
+        
+        # Should fallback to estimate
+        result = option_util.get_option_metrics(
+            ['AAPL 260116C00200000'],
+            return_type='dataframe'
+        )
+        
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertIn('annualized_sell_return', result.columns)
+    
+    def test_get_option_metrics_put_option_margin(self):
+        """Test margin calculation for PUT options"""
+        # Setup mock TradeClient
+        mock_trade_client = Mock(spec=TradeClient)
+        mock_contract = Mock(spec=Contract)
+        mock_contract.short_initial_margin = 0.30  # 30% margin for PUT
+        mock_trade_client.get_contract.return_value = mock_contract
+        
+        option_util = OptionUtil(self.mock_quote_client, mock_trade_client)
+        
+        # Setup mock data for PUT option
+        mock_briefs = pd.DataFrame({
+            'identifier': ['AAPL 260116P00200000'],
+            'symbol': ['AAPL'],
+            'strike': [200.0],
+            'put_call': ['PUT'],  # PUT option
+            'expiry': [1768540800000],
+            'multiplier': [100],
+            'latest_price': [8.5],
+            'ask_price': [8.6],
+            'bid_price': [8.4],
+            'rates_bonds': [0.02],
+            'volatility': [0.28]
+        })
+        self.mock_quote_client.get_option_briefs.return_value = mock_briefs
+        self.mock_quote_client.get_stock_fundamental.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'divide_rate': [0.005]
+        })
+        self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
+            'symbol': ['AAPL'],
+            'latest_price': [210.0]
+        })
+        
+        # Call method
+        result = option_util.get_option_metrics(
+            ['AAPL 260116P00200000'],
+            return_type='dataframe'
+        )
+        
+        # Verify get_contract was called with PUT
+        call_args = mock_trade_client.get_contract.call_args
+        self.assertEqual(call_args[1]['put_call'], 'PUT')
+        
+        # Verify result
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertIn('annualized_sell_return', result.columns)
 
 
 class TestOptionUtilIntegration(unittest.TestCase):

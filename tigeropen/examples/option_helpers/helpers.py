@@ -271,7 +271,7 @@ if __name__ == '__main__':
     args.settlement = '2026/01/06'
     args.expiration = '2026/01/16'
     args.type = 'C'
-    args.underlying = 262.36
+    args.underlying = 260.33
     args.strike = 200
     args.rfrate = 0.034979
     args.dividend = 0.0039
