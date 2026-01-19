@@ -101,7 +101,7 @@ class ProbabilityCalculator:
         tail = (1.0 - p) / 2.0
         return abs(self._inv_normal_cdf(tail))
 
-    def probability_long_profit(self, stock_price: float, strike: float, premium: float, iv: float, days: float, option_type: str = "CALL", contract_multiplier: int = 1) -> float:
+    def probability_long_profit(self, stock_price: float, strike: float, premium: float, iv: float, days: float, option_type: str = "CALL") -> float:
         """Probability that a long option (CALL or PUT) will be profitable at expiry.
 
         Parameters
@@ -111,20 +111,18 @@ class ProbabilityCalculator:
         strike : float
             Option strike price.
         premium : float
-            Option premium. If this is the total contract premium, use `contract_multiplier` to convert to per-unit.
+            Option premium per contract unit.
         iv : float
             Annualized implied volatility (decimal).
         days : float
             Time to expiry in days.
         option_type : str
             Either 'CALL' or 'PUT' (case-insensitive).
-        contract_multiplier : int
-            Multiplier to convert contract premium to per-unit (default 1).
         """
         if stock_price is None or strike is None or premium is None or iv is None or days == 0:
             return float("nan")
         try:
-            premium_per_unit = float(premium) / float(contract_multiplier)
+            premium_per_unit = float(premium)
         except Exception:
             return float("nan")
 
@@ -231,7 +229,6 @@ def main(argv: list[str] | None = None) -> int:
     p_opt.add_argument("iv", type=float)
     p_opt.add_argument("days", type=float)
     p_opt.add_argument("option_type", type=str, choices=["CALL", "PUT"])
-    p_opt.add_argument("contract_multiplier", type=int, nargs="?", default=1)
 
     args = parser.parse_args(argv)
     pc = ProbabilityCalculator()
@@ -247,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "below":
         out = pc.calc_below_price_probability(args.latest_price, args.price, args.volatility, args.future_days, args.z_value)
     elif args.cmd == "long_profit":
-        out = pc.probability_long_profit(args.stock_price, args.strike, args.premium, args.iv, args.days, args.option_type, args.contract_multiplier)
+        out = pc.probability_long_profit(args.stock_price, args.strike, args.premium, args.iv, args.days, args.option_type)
     else:
         parser.print_help()
         return 2

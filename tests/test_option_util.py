@@ -5,7 +5,7 @@ Unit tests for OptionUtil class
 @Author  : sukai
 """
 import unittest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 import pandas as pd
 from datetime import datetime
 
@@ -18,7 +18,6 @@ except ImportError:
 from tigeropen.examples.option_helpers.util import OptionUtil, OptionMetric
 from tigeropen.quote.quote_client import QuoteClient
 from tigeropen.trade.trade_client import TradeClient
-from tigeropen.trade.domain.contract import Contract
 
 
 class TestOptionMetric(unittest.TestCase):
@@ -106,8 +105,10 @@ class TestOptionUtil(unittest.TestCase):
             'expiry': [1768540800000],  # 2026-01-16
             'multiplier': [100],
             'latest_price': [10.5],
+            'mark_price': [10.55],
             'ask_price': [10.6],
             'bid_price': [10.4],
+            'currency': ['USD'],
             'rates_bonds': [0.02],
             'volatility': [0.3]
         })
@@ -459,17 +460,16 @@ class TestOptionUtil(unittest.TestCase):
         self.assertEqual(result[2].put_call, 'PUT')
     
     def test_get_option_metrics_with_trade_client_margin(self):
-        """Test get_option_metrics with TradeClient for margin calculation"""
-        # Setup mock TradeClient
+        """Test get_option_metrics with TradeClient preview margin calculation"""
         mock_trade_client = Mock(spec=TradeClient)
-        mock_contract = Mock(spec=Contract)
-        mock_contract.short_initial_margin = 0.25  # 25% margin requirement
-        mock_trade_client.get_contract.return_value = mock_contract
-        
-        # Create OptionUtil with TradeClient
+        mock_trade_client._account = 'TEST123'
+        mock_trade_client.preview_order.return_value = {
+            'init_margin_before': 10000.0,
+            'init_margin': 10250.0
+        }
+
         option_util = OptionUtil(self.mock_quote_client, mock_trade_client)
-        
-        # Setup mock data
+
         mock_briefs = self._create_mock_option_briefs()
         self.mock_quote_client.get_option_briefs.return_value = mock_briefs
         self.mock_quote_client.get_stock_fundamental.return_value = pd.DataFrame({
@@ -480,24 +480,20 @@ class TestOptionUtil(unittest.TestCase):
             'symbol': ['AAPL'],
             'latest_price': [210.0]
         })
-        
-        # Call method
+
         result = option_util.get_option_metrics(
             ['AAPL 260116C00200000'],
             return_type='dataframe'
         )
-        
-        # Verify TradeClient.get_contract was called
-        mock_trade_client.get_contract.assert_called_once()
-        call_args = mock_trade_client.get_contract.call_args
-        self.assertEqual(call_args[1]['symbol'], 'AAPL')
-        self.assertEqual(call_args[1]['sec_type'], 'OPT')
-        self.assertEqual(call_args[1]['strike'], 200.0)
-        self.assertEqual(call_args[1]['put_call'], 'CALL')
-        
-        # Verify result includes calculated margin
+
+        mock_trade_client.preview_order.assert_called_once()
+        preview_order_arg = mock_trade_client.preview_order.call_args[0][0]
+        self.assertEqual(preview_order_arg.limit_price, mock_briefs.loc[0, 'mark_price'])
+        self.assertEqual(preview_order_arg.order_type, 'LMT')
+        self.assertEqual(preview_order_arg.action, 'SELL')
+
         self.assertIsInstance(result, pd.DataFrame)
-        self.assertIn('annualized_sell_return', result.columns)
+        self.assertIn('annualized_leveraged_sell_return', result.columns)
     
     def test_get_option_metrics_without_trade_client_fallback(self):
         """Test get_option_metrics fallback margin calculation without TradeClient"""
@@ -521,17 +517,16 @@ class TestOptionUtil(unittest.TestCase):
         
         # Should still calculate margin (using fallback)
         self.assertIsInstance(result, pd.DataFrame)
-        self.assertIn('annualized_sell_return', result.columns)
+        self.assertIn('annualized_leveraged_sell_return', result.columns)
     
     def test_get_option_metrics_trade_client_error_handling(self):
-        """Test error handling when TradeClient.get_contract fails"""
-        # Setup mock TradeClient that raises exception
+        """Test error handling when preview_order fails"""
         mock_trade_client = Mock(spec=TradeClient)
-        mock_trade_client.get_contract.side_effect = Exception("API Error")
-        
+        mock_trade_client._account = 'TEST123'
+        mock_trade_client.preview_order.side_effect = Exception("API Error")
+
         option_util = OptionUtil(self.mock_quote_client, mock_trade_client)
-        
-        # Setup mock data
+
         mock_briefs = self._create_mock_option_briefs()
         self.mock_quote_client.get_option_briefs.return_value = mock_briefs
         self.mock_quote_client.get_stock_fundamental.return_value = pd.DataFrame({
@@ -542,27 +537,24 @@ class TestOptionUtil(unittest.TestCase):
             'symbol': ['AAPL'],
             'latest_price': [210.0]
         })
-        
-        # Should not raise exception, should fallback to estimate
+
         result = option_util.get_option_metrics(
             ['AAPL 260116C00200000'],
             return_type='dataframe'
         )
-        
+
+        mock_trade_client.preview_order.assert_called_once()
         self.assertIsInstance(result, pd.DataFrame)
-        self.assertIn('annualized_sell_return', result.columns)
+        self.assertIn('annualized_leveraged_sell_return', result.columns)
     
-    def test_get_option_metrics_trade_client_none_margin(self):
-        """Test handling when TradeClient returns contract with None margin"""
-        # Setup mock TradeClient with None margin
+    def test_get_option_metrics_trade_client_preview_missing_fields(self):
+        """Test handling when preview_order returns incomplete margin data"""
         mock_trade_client = Mock(spec=TradeClient)
-        mock_contract = Mock(spec=Contract)
-        mock_contract.short_initial_margin = None  # No margin data
-        mock_trade_client.get_contract.return_value = mock_contract
-        
+        mock_trade_client._account = 'TEST123'
+        mock_trade_client.preview_order.return_value = {'warning_text': 'no margin'}
+
         option_util = OptionUtil(self.mock_quote_client, mock_trade_client)
-        
-        # Setup mock data
+
         mock_briefs = self._create_mock_option_briefs()
         self.mock_quote_client.get_option_briefs.return_value = mock_briefs
         self.mock_quote_client.get_stock_fundamental.return_value = pd.DataFrame({
@@ -573,23 +565,25 @@ class TestOptionUtil(unittest.TestCase):
             'symbol': ['AAPL'],
             'latest_price': [210.0]
         })
-        
-        # Should fallback to estimate
+
         result = option_util.get_option_metrics(
             ['AAPL 260116C00200000'],
             return_type='dataframe'
         )
-        
+
+        mock_trade_client.preview_order.assert_called_once()
         self.assertIsInstance(result, pd.DataFrame)
-        self.assertIn('annualized_sell_return', result.columns)
+        self.assertIn('annualized_leveraged_sell_return', result.columns)
     
     def test_get_option_metrics_put_option_margin(self):
         """Test margin calculation for PUT options"""
         # Setup mock TradeClient
         mock_trade_client = Mock(spec=TradeClient)
-        mock_contract = Mock(spec=Contract)
-        mock_contract.short_initial_margin = 0.30  # 30% margin for PUT
-        mock_trade_client.get_contract.return_value = mock_contract
+        mock_trade_client._account = 'TEST123'
+        mock_trade_client.preview_order.return_value = {
+            'init_margin_before': 15000.0,
+            'init_margin': 15120.0
+        }
         
         option_util = OptionUtil(self.mock_quote_client, mock_trade_client)
         
@@ -602,8 +596,10 @@ class TestOptionUtil(unittest.TestCase):
             'expiry': [1768540800000],
             'multiplier': [100],
             'latest_price': [8.5],
+            'mark_price': [8.55],
             'ask_price': [8.6],
             'bid_price': [8.4],
+            'currency': ['USD'],
             'rates_bonds': [0.02],
             'volatility': [0.28]
         })
@@ -623,13 +619,13 @@ class TestOptionUtil(unittest.TestCase):
             return_type='dataframe'
         )
         
-        # Verify get_contract was called with PUT
-        call_args = mock_trade_client.get_contract.call_args
-        self.assertEqual(call_args[1]['put_call'], 'PUT')
-        
-        # Verify result
+        mock_trade_client.preview_order.assert_called_once()
+        preview_order_arg = mock_trade_client.preview_order.call_args[0][0]
+        self.assertEqual(preview_order_arg.contract.put_call, 'PUT')
+        self.assertEqual(preview_order_arg.limit_price, 8.55)
+
         self.assertIsInstance(result, pd.DataFrame)
-        self.assertIn('annualized_sell_return', result.columns)
+        self.assertIn('annualized_leveraged_sell_return', result.columns)
 
 
 class TestOptionUtilIntegration(unittest.TestCase):
