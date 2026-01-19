@@ -17,6 +17,9 @@ except ImportError:
 
 from tigeropen.quote.quote_client import QuoteClient
 from tigeropen.trade.trade_client import TradeClient
+from tigeropen.common.util.contract_utils import option_contract_by_symbol
+from tigeropen.common.util.order_utils import limit_order
+from tigeropen.common.util.contract_utils import option_contract_by_symbol
 from tigeropen.examples.option_helpers.helpers import (
     FDAmericanDividendOptionHelper, 
     FDEuropeanDividendOptionHelper
@@ -55,7 +58,7 @@ class OptionMetric:
         npv: Net present value
         implied_vol: Implied volatility
         leverage_ratio: Leverage ratio
-        annualized_sell_return: Annualized return for selling the option
+        annualized_leveraged_sell_return: Annualized return for selling the option
         profit_probability: Probability that long position will be profitable at expiry
     """
     identifier: str
@@ -74,7 +77,7 @@ class OptionMetric:
     npv: Optional[float] = None
     implied_vol: Optional[float] = None
     leverage_ratio: Optional[float] = None
-    annualized_sell_return: Optional[float] = None
+    annualized_leveraged_sell_return: Optional[float] = None
     profit_probability: Optional[float] = None
     
     def to_dict(self) -> Dict:
@@ -131,7 +134,7 @@ class OptionUtil:
             dividend_rate: Dividend rate (annualized). If None, will fetch from get_stock_fundamental
             is_european: Whether the option is European style (default False for American)
             reference_date: Reference date for calculations. If None, uses today
-            market: Market code (US/HK/CN)
+            market: Market code (US/HK)
             timezone: Timezone for date processing
             return_type: Return format - 'dataframe' (default) for pandas DataFrame or 'list' for list of OptionMetric objects
             
@@ -142,7 +145,7 @@ class OptionUtil:
                 - npv (Net Present Value)
                 - implied_vol (implied volatility)
                 - leverage_ratio
-                - annualized_sell_return
+                - annualized_leveraged_sell_return
                 - profit_probability (long position)
                 
             If return_type='list': List[OptionMetric] objects containing all calculated metrics
@@ -212,7 +215,7 @@ class OptionUtil:
         briefs['npv'] = None
         briefs['implied_vol'] = None
         briefs['leverage_ratio'] = None
-        briefs['annualized_sell_return'] = None
+        briefs['annualized_leveraged_sell_return'] = None
         briefs['profit_probability'] = None
         
         # Calculate metrics for each option
@@ -271,32 +274,16 @@ class OptionUtil:
             option_type = ql.Option.Call if put_call == 'CALL' else ql.Option.Put
 
             # Get market data for calculations
-            ask_price = row.get('ask_price', 0)
-            bid_price = row.get('bid_price', 0)
-            latest_price = row.get('latest_price', 0)
-            
-            # Convert to float if not None/NaN
-            if ask_price and not pd.isna(ask_price):
-                ask_price = float(ask_price)
-            else:
-                ask_price = 0.0
-                
-            if bid_price and not pd.isna(bid_price):
-                bid_price = float(bid_price)
-            else:
-                bid_price = 0.0
-                
-            if latest_price and not pd.isna(latest_price):
-                latest_price = float(latest_price)
-            else:
-                latest_price = 0.0
-            
-            # Determine option price for calculations
-            if latest_price > 0:
-                option_price = latest_price
-            elif ask_price > 0 and bid_price > 0:
-                option_price = (ask_price + bid_price) / 2
-            else:
+            raw_mark_price = row.get('mark_price')
+            mark_price = float(raw_mark_price) if raw_mark_price and not pd.isna(raw_mark_price) else None
+
+            raw_latest_price = row.get('latest_price')
+            latest_price_value = float(raw_latest_price) if raw_latest_price and not pd.isna(raw_latest_price) else None
+
+            # Determine option price for calculations (mark -> latest fallback)
+            option_price = mark_price if mark_price is not None else (latest_price_value if latest_price_value is not None else 0.0)
+
+            if option_price <= 0:
                 continue
 
             # Get or use provided rates
@@ -306,7 +293,6 @@ class OptionUtil:
             else:
                 rf_rate = float(rf_rate)
             
-            # Log option calculation parameters
             logger.debug(f"Calculating metrics for {row.get('identifier', 'unknown')}:")
             logger.debug(f"  Underlying: {underlying_symbol} @ {current_underlying:.2f}")
             logger.debug(f"  Strike: {strike:.2f}, Type: {put_call}, Days to expiry: {days_to_expiry}")
@@ -315,7 +301,6 @@ class OptionUtil:
             logger.debug(f"  Dividend rate: {current_dividend_rate:.4f}")
             logger.debug(f"  Reference date: {reference_date}")
 
-            # Create option hecurrent_lper
             helper_class = FDEuropeanDividendOptionHelper if is_european else FDAmericanDividendOptionHelper
             helper = helper_class(
                 option_type=option_type,
@@ -358,39 +343,25 @@ class OptionUtil:
             time_value = option_price - max(0,
                 (current_underlying - strike) if put_call == 'CALL' else (strike - current_underlying))
             
-            # Get sell margin from TradeClient if available
-            sell_margin = None
-            if self.trade_client is not None:
-                try:
-                    option_identifier = row.get('identifier', '')
-                    # Parse identifier to get option details
-                    # Format: "SYMBOL YYMMDD[C/P]STRIKE" e.g. "AAPL 250815C00125000"
-                    contract = self.trade_client.get_contract(
-                        symbol=underlying_symbol,
-                        sec_type='OPT',
-                        expiry=self._timestamp_to_date_str(expiry_timestamp),
-                        strike=strike,
-                        put_call=put_call
-                    )
-                    if contract and contract.short_initial_margin is not None:
-                        # short_initial_margin is a ratio, multiply by strike price and multiplier
-                        sell_margin = contract.short_initial_margin * strike * multiplier
-                        logger.debug(f"  Got short_initial_margin from contract: {contract.short_initial_margin}, sell_margin: {sell_margin}")
-                except Exception as e:
-                    logger.warning(f"  Failed to get contract margin for {option_identifier}: {e}")
-            
-            # Fallback to estimate if TradeClient not available or failed
-            if sell_margin is None:
-                if put_call == 'PUT':
-                    sell_margin = strike * multiplier
-                else:
-                    sell_margin = current_underlying * multiplier
-                logger.debug(f"  Using estimated sell_margin: {sell_margin}")
+            option_identifier = row.get('identifier', '')
+            currency = row.get('currency', 'USD')
+            sell_margin = self._calculate_sell_margin(
+                underlying_symbol=underlying_symbol,
+                strike=strike,
+                put_call=put_call,
+                multiplier=multiplier,
+                expiry_timestamp=expiry_timestamp,
+                current_underlying=current_underlying,
+                option_identifier=option_identifier,
+                currency=currency,
+                mark_price=mark_price,
+                option_price=option_price
+            )
 
             ann_return = self.extra_calculator.annualized_leveraged_sell_return(
                 time_value, sell_margin, days_to_expiry, multiplier
             )
-            briefs.loc[idx, 'annualized_sell_return'] = ann_return
+            briefs.loc[idx, 'annualized_leveraged_sell_return'] = ann_return
 
             # Calculate profit probability for long position
             profit_prob = self.probability_calculator.probability_long_profit(
@@ -400,7 +371,6 @@ class OptionUtil:
                 iv=implied_vol,
                 days=days_to_expiry,
                 option_type=put_call,
-                contract_multiplier=multiplier
             )
             briefs.loc[idx, 'profit_probability'] = profit_prob
         
@@ -431,7 +401,7 @@ class OptionUtil:
                 npv=row['npv'] if 'npv' in row else None,
                 implied_vol=row['implied_vol'] if 'implied_vol' in row else None,
                 leverage_ratio=row['leverage_ratio'] if 'leverage_ratio' in row else None,
-                annualized_sell_return=row['annualized_sell_return'] if 'annualized_sell_return' in row else None,
+                annualized_leveraged_sell_return=row['annualized_leveraged_sell_return'] if 'annualized_leveraged_sell_return' in row else None,
                 profit_probability=row['profit_probability'] if 'profit_probability' in row else None
             )
             metrics_list.append(metric)
@@ -464,11 +434,11 @@ class OptionUtil:
         }
 
     def calculate_price_range_probability(self,
-                                         stock_price: float,
-                                         lower_price: float,
-                                         upper_price: float,
-                                         iv: float,
-                                         days: float) -> float:
+                                          stock_price: float,
+                                          lower_price: float,
+                                          upper_price: float,
+                                          iv: float,
+                                          days: float) -> float:
         """
         Calculate probability that price will be within a range.
 
@@ -485,6 +455,95 @@ class OptionUtil:
         return self.probability_calculator.probability(
             stock_price, lower_price, upper_price, iv, days
         )
+
+    def _calculate_sell_margin(self,
+                               underlying_symbol: str,
+                               strike: float,
+                               put_call: str,
+                               multiplier: int,
+                               expiry_timestamp: int,
+                               current_underlying: float,
+                               option_identifier: str = '',
+                               currency: Optional[str] = 'USD',
+                               mark_price: Optional[float] = None,
+                               option_price: Optional[float] = None) -> float:
+        """Compute sell margin, preferring preview_order delta when available."""
+        if self.trade_client is None:
+            return self._estimate_sell_margin(put_call, strike, current_underlying, multiplier)
+
+        limit_price = mark_price if mark_price is not None and mark_price > 0 else option_price
+        if limit_price is None or limit_price <= 0:
+            logger.warning(f"  No valid price for previewing margin on {option_identifier}; using estimate")
+            return self._estimate_sell_margin(put_call, strike, current_underlying, multiplier)
+
+        expiry_str = self._timestamp_to_date_str(expiry_timestamp)
+        try:
+            contract = option_contract_by_symbol(
+                symbol=underlying_symbol,
+                expiry=expiry_str,
+                strike=strike,
+                put_call=put_call,
+                currency=currency or 'USD',
+                multiplier=multiplier
+            )
+        except Exception as exc:
+            logger.warning(f"  Failed to build local contract for {option_identifier}: {exc}")
+            return self._estimate_sell_margin(put_call, strike, current_underlying, multiplier)
+
+        preview_margin = self._preview_option_sell_margin(contract, option_identifier, limit_price)
+        if preview_margin is not None:
+            return preview_margin
+
+        return self._estimate_sell_margin(put_call, strike, current_underlying, multiplier)
+
+    def _preview_option_sell_margin(self,
+                                    contract,
+                                    option_identifier: str,
+                                    limit_price: float) -> Optional[float]:
+        if limit_price is None or limit_price <= 0:
+            logger.warning(f"  Invalid limit price for {option_identifier}; skipping preview")
+            return None
+
+        account = getattr(self.trade_client, '_account', None)
+        if not account:
+            logger.warning("  TradeClient has no account configured; cannot preview margin")
+            return None
+
+        order = limit_order(
+            account=account,
+            contract=contract,
+            action='SELL',
+            quantity=1,
+            limit_price=limit_price
+        )
+
+        try:
+            preview = self.trade_client.preview_order(order)
+        except Exception as exc:
+            logger.warning(f"  preview_order failed for {option_identifier}: {exc}")
+            return None
+
+        if not preview:
+            return None
+
+        init_before = preview.get('init_margin_before') if isinstance(preview, dict) else getattr(preview, 'init_margin_before', None)
+        init_after = preview.get('init_margin') if isinstance(preview, dict) else getattr(preview, 'init_margin', None)
+
+        if init_before is None or init_after is None:
+            logger.warning(f"  preview_order returned no init margin data for {option_identifier}")
+            return None
+
+        delta = float(init_after) - float(init_before)
+        return max(delta, 0.0)
+
+    @staticmethod
+    def _estimate_sell_margin(put_call: str,
+                              strike: float,
+                              current_underlying: float,
+                              multiplier: int) -> float:
+        sell_margin = strike * multiplier if put_call == 'PUT' else current_underlying * multiplier
+        logger.debug(f"  Using estimated sell_margin: {sell_margin}")
+        return sell_margin
 
     def _timestamp_to_ql_date(self, timestamp_ms: int) -> ql.Date:
         """Convert millisecond timestamp to QuantLib Date."""
@@ -512,7 +571,7 @@ if __name__ == '__main__':
     option_util = OptionUtil(quote_client, trade_client)
 
     # Calculate metrics for specific options
-    identifiers = ['AAPL 260116C00200000']
+    identifiers = ['TSLA 260220C00385000']
 
     # Example 1: Return as DataFrame
     logger.info("Example 1: Return as DataFrame")

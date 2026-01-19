@@ -130,13 +130,13 @@ class TestProbabilityCalculator(unittest.TestCase):
         days = 30
 
         # Call profit probability: S_T > K + premium
-        prob_call = pc.probability_long_profit(S0, K, premium, iv, days, option_type="CALL", contract_multiplier=1)
+        prob_call = pc.probability_long_profit(S0, K, premium, iv, days, option_type="CALL")
         # Should be between 0 and 1
         self.assertGreaterEqual(prob_call, 0.0)
         self.assertLessEqual(prob_call, 1.0)
 
         # Put profit probability: S_T < K - premium
-        prob_put = pc.probability_long_profit(S0, K, premium, iv, days, option_type="PUT", contract_multiplier=1)
+        prob_put = pc.probability_long_profit(S0, K, premium, iv, days, option_type="PUT")
         self.assertGreaterEqual(prob_put, 0.0)
         self.assertLessEqual(prob_put, 1.0)
 
