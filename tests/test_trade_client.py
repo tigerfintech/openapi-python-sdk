@@ -25,10 +25,10 @@ logger.setLevel(logging.DEBUG)
 class TestTradeClient(unittest.TestCase):
 
     def setUp(self):
-        self.is_mock = True
+        self.is_mock = False
         current_dir = os.path.dirname(__file__)
         self.client_config = TigerOpenClientConfig(
-            props_path=os.path.join(current_dir, ".config/prod_20150899/"))
+            props_path=os.path.join(current_dir, ".config/prod_2015xxxx/"))
         self.client: TradeClient = TradeClient(self.client_config,
                                                logger=logger)
         self.origin_do_request = web_utils.do_request
