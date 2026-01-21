@@ -54,5 +54,5 @@ class ExtraCalculator:
 if __name__ == "__main__":
     # Simple example (for smoke testing only)
     # multiplier = number of shares per contract
-    print("Example annualized levered sell return:", ExtraCalculator.annualized_levered_sell_return(6.76, 676.0, 4, multiplier=100))
+    print("Example annualized levered sell return:", ExtraCalculator.annualized_leveraged_sell_return(6.76, 676.0, 4, multiplier=100))
     print("Example leverage ratio:", ExtraCalculator.leverage_ratio(0.472, 240.52, 6.76))
