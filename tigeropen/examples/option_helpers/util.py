@@ -116,7 +116,7 @@ class OptionUtil:
     def get_option_metrics(self,
                           identifiers: Union[str, List[str]],
                           underlying_price: Optional[float] = None,
-                          risk_free_rate: float = 0.02,
+                          risk_free_rate: float = 0.03,
                           dividend_rate: Optional[float] = None,
                           is_european: bool = False,
                           reference_date: Optional[ql.Date] = None,

@@ -159,7 +159,6 @@ class ProbabilityCalculator:
     def calc_below_price_probability(self, latest_price: float, price: float, volatility: float, future_days: int, z_value: float) -> float:
         """Probability the underlying will be below `price` after `future_days`.
 
-        This function follows the algebra from the C++ implementation and returns
         the standard-normal CDF of the appropriately scaled log-ratio.
         """
         if (latest_price is None or math.isnan(latest_price) or abs(latest_price) <= 1e-12
