@@ -133,6 +133,15 @@ class CapitalPeriod(Enum):
     HALFAYEAR = "6month"
 
 
+@unique
+class OptionAnalysisPeriod(Enum):
+    """期权分析周期 / Option analysis period"""
+    THREE_YEAR = '3year'          # 3 year period / 3年
+    FIFTY_TWO_WEEK = '52week'     # 52 week (1 year) period / 52周（1年）
+    TWENTY_SIX_WEEK = '26week'    # 26 week (6 month) period / 26周（6个月）
+    THIRTEEN_WEEK = '13week'      # 13 week (3 month) period / 13周（3个月）
+
+
 class OrderStatus(Enum):
     PENDING_NEW = 'PendingNew'
     NEW = 'Initial'  # 订单初始状态

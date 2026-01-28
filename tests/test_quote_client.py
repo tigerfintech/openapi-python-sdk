@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 
-from tigeropen.common.consts import CapitalPeriod, Valuation, Income, Market, SortDirection, TradingSession, BarPeriod
+from tigeropen.common.consts import CapitalPeriod, Valuation, Income, Market, SortDirection, TradingSession, BarPeriod, OptionAnalysisPeriod
 from tigeropen.common.consts.filter_fields import FinancialPeriod, StockField
 from tigeropen.common.util import web_utils
 from tigeropen.quote.domain.filter import StockFilter, SortFilterData, OptionFilter
@@ -1199,6 +1199,134 @@ class TestQuoteClient(unittest.TestCase):
         else:
             result = self.client.get_option_timeline(identifiers=['TCH.HK 250828C00610000'], market=Market.HK)
             logger.debug(f"Option Timeline (real):\n {result}")
+
+    def test_get_option_analysis(self):
+        """Test get_option_analysis method with various input formats"""
+        if self.is_mock:
+            # Mock data for option analysis response
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1755100000000,
+                "data": [
+                    {
+                        "symbol": "AAPL",
+                        "impliedVol30Days": 0.2534,
+                        "hisVolatility": 0.2203,
+                        "ivHisVRatio": 1.15,
+                        "callPutRatio": 1.23,
+                        "impliedVolMetric": {
+                            "period": "52week",
+                            "percentile": 0.45,
+                            "rank": 0.38
+                        }
+                    },
+                    {
+                        "symbol": "TSLA",
+                        "impliedVol30Days": 0.4521,
+                        "hisVolatility": 0.3987,
+                        "ivHisVRatio": 1.13,
+                        "callPutRatio": 0.89,
+                        "impliedVolMetric": {
+                            "period": "26week",
+                            "percentile": 0.62,
+                            "rank": 0.55
+                        }
+                    }
+                ]
+            }
+            web_utils.do_request = MagicMock(
+                return_value=json.dumps(mock_data).encode())
+
+            # Test 1: Empty symbols returns empty list
+            result_empty = self.client.get_option_analysis(symbols=[])
+            logger.debug(f"Option Analysis (empty symbols):\n {result_empty}")
+            self.assertIsNotNone(result_empty)
+            self.assertIsInstance(result_empty, list)
+            self.assertEqual(len(result_empty), 0)
+
+            # Test 2: String symbols use default period
+            result_strings = self.client.get_option_analysis(
+                symbols=['AAPL', 'TSLA'],
+                period=OptionAnalysisPeriod.FIFTY_TWO_WEEK,
+                market=Market.US
+            )
+            logger.debug(f"Option Analysis (string symbols):\n {result_strings}")
+            
+            # Verify list structure
+            self.assertIsNotNone(result_strings)
+            self.assertIsInstance(result_strings, list)
+            self.assertEqual(len(result_strings), 2)
+            
+            # Verify first object data (AAPL)
+            aapl = result_strings[0]
+            self.assertEqual(aapl.symbol, 'AAPL')
+            self.assertAlmostEqual(aapl.implied_vol_30_days, 0.2534, places=4)
+            self.assertAlmostEqual(aapl.his_volatility, 0.2203, places=4)
+            self.assertAlmostEqual(aapl.iv_his_v_ratio, 1.15, places=2)
+            self.assertAlmostEqual(aapl.call_put_ratio, 1.23, places=2)
+            
+            # Verify nested iv_metric object
+            self.assertIsNotNone(aapl.iv_metric)
+            self.assertEqual(aapl.iv_metric.period, '52week')
+            self.assertAlmostEqual(aapl.iv_metric.percentile, 0.45, places=2)
+            self.assertAlmostEqual(aapl.iv_metric.rank, 0.38, places=2)
+            
+            # Verify second object data (TSLA)
+            tsla = result_strings[1]
+            self.assertEqual(tsla.symbol, 'TSLA')
+            self.assertAlmostEqual(tsla.implied_vol_30_days, 0.4521, places=4)
+            self.assertEqual(tsla.iv_metric.period, '26week')
+
+            # Test 3: Dict symbols use their own period
+            result_dicts = self.client.get_option_analysis(
+                symbols=[
+                    {"symbol": "AAPL", "period": "52week"},
+                    {"symbol": "TSLA", "period": "26week"}
+                ],
+                market=Market.US
+            )
+            logger.debug(f"Option Analysis (dict symbols):\n {result_dicts}")
+            
+            self.assertIsNotNone(result_dicts)
+            self.assertIsInstance(result_dicts, list)
+            self.assertEqual(len(result_dicts), 2)
+            
+            # Verify periods are correctly set
+            self.assertEqual(result_dicts[0].iv_metric.period, '52week')
+            self.assertEqual(result_dicts[1].iv_metric.period, '26week')
+
+            # Test 4: Mixed input handling (strings and dicts)
+            result_mixed = self.client.get_option_analysis(
+                symbols=[
+                    "AAPL",  # String - should use default period
+                    {"symbol": "TSLA", "period": OptionAnalysisPeriod.TWENTY_SIX_WEEK}  # Dict - uses its own period
+                ],
+                period=OptionAnalysisPeriod.FIFTY_TWO_WEEK,  # Default period for string symbols
+                market=Market.US
+            )
+            logger.debug(f"Option Analysis (mixed input):\n {result_mixed}")
+            
+            self.assertIsNotNone(result_mixed)
+            self.assertIsInstance(result_mixed, list)
+            self.assertEqual(len(result_mixed), 2)
+            
+            # Verify AAPL uses default period (52week)
+            aapl_mixed = next(a for a in result_mixed if a.symbol == 'AAPL')
+            self.assertEqual(aapl_mixed.iv_metric.period, '52week')
+            
+            # Verify TSLA uses its own period (26week)
+            tsla_mixed = next(a for a in result_mixed if a.symbol == 'TSLA')
+            self.assertEqual(tsla_mixed.iv_metric.period, '26week')
+
+        else:
+            # Real API tests
+            result = self.client.get_option_analysis(
+                symbols=['AAPL', 'TSLA'],
+                period=OptionAnalysisPeriod.FIFTY_TWO_WEEK,
+                market=Market.US
+            )
+            logger.debug(f"Option Analysis (real):\n {result}")
 
     def test_get_future_exchanges(self):
         if not self.is_mock:

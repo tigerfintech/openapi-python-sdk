@@ -1,3 +1,7 @@
+## 3.5.3 (2026-01-29)
+### New
+- `QuoteClient.get_option_analysis` 获取期权分析指标（隐含波动率、历史波动率、IV/HV比率、看涨看跌比率、IV百分位、IV排名）
+
 ## 3.5.2 (2026-01-21)
 ### New
 - `QuoteClient.get_option_briefs` 增加 `mark_price`, `selling_return` 等字段
