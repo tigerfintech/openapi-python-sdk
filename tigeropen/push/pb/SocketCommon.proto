@@ -33,6 +33,7 @@ message SocketCommon {
     StockTop = 10;
     OptionTop = 11;
     Kline = 12;
+    Cc = 13;
   }
 
   enum QuoteType {
