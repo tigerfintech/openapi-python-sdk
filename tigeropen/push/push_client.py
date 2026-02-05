@@ -104,6 +104,22 @@ class PushClient:
         self.client.kline_changed = value
 
     @property
+    def cc_changed(self):
+        return self.client.cc_changed
+
+    @cc_changed.setter
+    def cc_changed(self, value):
+        self.client.cc_changed = value
+
+    @property
+    def cc_bbo_changed(self):
+        return self.client.cc_bbo_changed
+
+    @cc_bbo_changed.setter
+    def cc_bbo_changed(self, value):
+        self.client.cc_bbo_changed = value
+
+    @property
     def full_tick_changed(self):
         return self.client.full_tick_changed
 
@@ -365,3 +381,19 @@ class PushClient:
 
     def unsubscribe_kline(self, symbols=None):
         self.client.unsubscribe_kline(symbols)
+
+    def subscribe_cc(self, symbols):
+        """
+        订阅数字货币行情
+        :param symbols: symbol列表
+        :return:
+        """
+        return self.client.subscribe_cc(symbols=symbols)
+
+    def unsubscribe_cc(self, symbols=None):
+        """
+        退订数字货币行情
+        :param symbols: symbol列表
+        :return:
+        """
+        return self.client.unsubscribe_cc(symbols=symbols)

@@ -1109,6 +1109,7 @@ class StockBrokerParams(BaseParams):
         super().__init__()
         self._symbol = None
         self._limit = None
+        self._sec_type = None
 
     @property
     def symbol(self):
@@ -1126,12 +1127,22 @@ class StockBrokerParams(BaseParams):
     def limit(self, value):
         self._limit = value
 
+    @property
+    def sec_type(self):
+        return self._sec_type
+
+    @sec_type.setter
+    def sec_type(self, value):
+        self._sec_type = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.symbol:
             params['symbol'] = self.symbol
         if self.limit:
             params['limit'] = self.limit
+        if self.sec_type:
+            params['sec_type'] = self.sec_type
         return params
 
 class BrokerHoldParams(BaseParams):
