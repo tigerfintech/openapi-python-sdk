@@ -14,7 +14,7 @@ import pandas as pd
 from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3, \
     OPEN_API_SERVICE_VERSION_V1, Language, SortDirection, TradingSession, Income, Balance, CashFlow, BalanceSheetRatio, \
     Growth, Leverage, Profitability, \
-    FinancialReportPeriodType, CapitalPeriod
+    FinancialReportPeriodType, CapitalPeriod, OptionAnalysisPeriod
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.fundamental_fields import Field
@@ -24,7 +24,7 @@ from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_D
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
     KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
     FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH, BROKER_HOLD, OPTION_TIMELINE, FUTURE_DEPTH, \
-    FUTURE_HISTORY_MAIN_CONTRACT
+    FUTURE_HISTORY_MAIN_CONTRACT, OPTION_ANALYSIS
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -56,7 +56,7 @@ from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, Mul
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
     StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams, OptionContractsParams, \
-    BrokerHoldParams
+    BrokerHoldParams, OptionAnalysisParams
 from tigeropen.quote.response.broker_hold_response import BrokerHoldResponse
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
@@ -73,6 +73,7 @@ from tigeropen.quote.response.kline_quota_response import KlineQuotaResponse
 from tigeropen.quote.response.market_scanner_response import MarketScannerResponse, MarketScannerTagsResponse
 from tigeropen.quote.response.market_status_response import MarketStatusResponse
 from tigeropen.quote.response.option_briefs_response import OptionBriefsResponse
+from tigeropen.quote.response.option_analysis_response import OptionAnalysisResponse
 from tigeropen.quote.response.option_chains_response import OptionChainsResponse
 from tigeropen.quote.response.option_depth_response import OptionDepthQuoteResponse
 from tigeropen.quote.response.option_expirations_response import OptionExpirationsResponse
@@ -1405,6 +1406,75 @@ class QuoteClient(TigerOpenClient):
                 return response.result
             else:
                 raise ApiException(response.code, response.message)
+
+    def get_option_analysis(
+            self,
+            symbols: Union[List[str], List[dict]],
+            period: Union[OptionAnalysisPeriod, str] = OptionAnalysisPeriod.FIFTY_TWO_WEEK,
+            market: Optional[Union[Market, str]] = None,
+            lang: Optional[Union[Language, str]] = None) -> List:
+        """
+        Get option analysis metrics for symbols.
+        获取期权分析指标。
+        
+        :param symbols: List of symbols. Can be:
+            - List of strings: ["AAPL", "TSLA"] (uses the period parameter)
+            - List of dicts: [{"symbol": "AAPL", "period": "26week"}, ...] (per-symbol periods)
+            - Mixed: ["AAPL", {"symbol": "TSLA", "period": "26week"}]
+        :param period: Default period for string symbols. 分析周期。
+            Options: OptionAnalysisPeriod.THREE_YEAR, FIFTY_TWO_WEEK, TWENTY_SIX_WEEK, THIRTEEN_WEEK
+        :param market: Stock market (US/HK/CN)
+        :param lang: Language (zh_CN/zh_TW/en_US)
+        :return: List[OptionAnalysis] with attributes:
+            - symbol: Stock symbol
+            - implied_vol_30_days: 30-day implied volatility
+            - his_volatility: Historical volatility
+            - iv_his_v_ratio: IV to HV ratio
+            - call_put_ratio: Call/Put ratio
+            - iv_metric: IVMetric object with:
+                - period: Analysis period
+                - percentile: IV percentile
+                - rank: IV rank
+        """
+        if not symbols:
+            return []
+        
+        params = OptionAnalysisParams()
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        
+        if market:
+            params.market = get_enum_value(market)
+        
+        # Get period value (handle both enum and string)
+        period_value = get_enum_value(period) if period else OptionAnalysisPeriod.FIFTY_TWO_WEEK.value
+        
+        # Normalize symbols input to list of dicts
+        symbol_list = []
+        for item in symbols:
+            if isinstance(item, dict):
+                # Use per-symbol period if provided, otherwise use default
+                item_period = item.get("period", period_value)
+                symbol_list.append({
+                    "symbol": item.get("symbol", ""),
+                    "period": get_enum_value(item_period)
+                })
+            elif isinstance(item, str):
+                symbol_list.append({"symbol": item, "period": period_value})
+
+        params.symbols = symbol_list
+        
+        request = OpenApiRequest(OPTION_ANALYSIS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        
+        if response_content:
+            response = OptionAnalysisResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.analysis_list
+            else:
+                raise ApiException(response.code, response.message)
+        
+        return []
 
     def get_future_exchanges(
             self,
