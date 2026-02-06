@@ -1568,3 +1568,36 @@ class KlineQuotaParams(BaseParams):
         if self.with_details is not None:
             params['with_details'] = self.with_details
         return params
+
+
+class OptionAnalysisParams(BaseParams):
+    """Request parameters for option analysis API."""
+    
+    def __init__(self):
+        super().__init__()
+        self._symbols = []  # List of {"symbol": str, "period": str}
+        self._market = None
+    
+    @property
+    def symbols(self):
+        return self._symbols
+    
+    @symbols.setter
+    def symbols(self, value):
+        self._symbols = value
+    
+    @property
+    def market(self):
+        return self._market
+    
+    @market.setter
+    def market(self, value):
+        self._market = value
+    
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self._symbols:
+            params['symbols'] = self._symbols
+        if self._market:
+            params['market'] = self._market
+        return params
