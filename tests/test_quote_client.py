@@ -29,10 +29,10 @@ pd.set_option('display.width', 5000)
 class TestQuoteClient(unittest.TestCase):
 
     def setUp(self):
-        self.is_mock = False
+        self.is_mock = True
         current_dir = os.path.dirname(__file__)
         self.client_config = TigerOpenClientConfig(
-            props_path=os.path.join(current_dir, ".config/prod_2015xxxx/"))
+            props_path=os.path.join(current_dir, ".config/prod_xxxx/"))
         self.client: QuoteClient = QuoteClient(self.client_config,
                                                logger=logger,
                                                is_grab_permission=False)
