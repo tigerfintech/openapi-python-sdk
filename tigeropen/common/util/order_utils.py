@@ -23,7 +23,7 @@ def market_order(account, contract, action, quantity, time_in_force='DAY'):
 
 def market_order_by_amount(account, contract, action, amount, time_in_force='DAY'):
     """
-    按金额的市价单(用于基金)
+    按金额的市价单
     :param account:
     :param contract:
     :param action: BUY/SELL
@@ -44,6 +44,18 @@ def limit_order(account, contract, action, quantity, limit_price, time_in_force=
     :return:
     """
     return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, time_in_force=time_in_force)
+
+def limit_order_by_amount(account, contract, action, amount, limit_price, time_in_force='DAY'):
+    """
+    按金额的限价单
+    :param account:
+    :param contract:
+    :param action: BUY/SELL
+    :param amount:
+    :param limit_price: 限价的价格
+    :return:
+    """
+    return Order(account, contract, action, 'LMT', total_cash_amount=amount, limit_price=limit_price, time_in_force=time_in_force)
 
 
 def stop_order(account, contract, action, quantity, aux_price, time_in_force='DAY'):
