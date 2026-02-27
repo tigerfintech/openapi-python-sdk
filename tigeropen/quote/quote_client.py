@@ -407,6 +407,8 @@ class QuoteClient(TigerOpenClient):
 
         return pd.DataFrame()
 
+    get_cc_briefs = get_stock_briefs
+
     def get_stock_delay_briefs(
             self,
             symbols: list[str],
