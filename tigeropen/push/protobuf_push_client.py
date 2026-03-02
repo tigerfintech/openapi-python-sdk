@@ -56,6 +56,8 @@ class ProtobufPushClient(ConnectionListener):
         self.stock_top_changed = None
         self.option_top_changed = None
         self.kline_changed = None
+        self.cc_changed = None
+        self.cc_bbo_changed = None
         self.connect_callback = None
         self.disconnect_callback = None
         self.subscribe_callback = None
@@ -207,6 +209,15 @@ class ProtobufPushClient(ConnectionListener):
                 elif frame.body.dataType == SocketCommon.DataType.Kline:
                     if self.kline_changed:
                         self.kline_changed(frame.body.klineData)
+                elif frame.body.dataType == SocketCommon.DataType.Cc:
+                    if self.cc_changed:
+                        basic_data = convert_to_basic_data(frame.body.quoteData)
+                        if basic_data:
+                            self.cc_changed(basic_data)
+                    if self.cc_bbo_changed:
+                        bbo_data = convert_to_bbo_data(frame.body.quoteData)
+                        if bbo_data:
+                            self.cc_bbo_changed(bbo_data)
                 else:
                     self.logger.warning(f'unhandled frame: {frame}')
         except Exception:
@@ -447,6 +458,26 @@ class ProtobufPushClient(ConnectionListener):
         :return:
         """
         req = ProtoMessageUtil.build_unsubscribe_kline_message(symbols)
+        self._connection.send_frame(req)
+        return req.id
+
+    def subscribe_cc(self, symbols):
+        """
+        订阅数字货币行情
+        :param symbols: symbol列表
+        :return:
+        """
+        req = ProtoMessageUtil.build_subscribe_quote_message(symbols, data_type=SocketCommon.Cc)
+        self._connection.send_frame(req)
+        return req.id
+
+    def unsubscribe_cc(self, symbols=None):
+        """
+        退订数字货币行情
+        :param symbols: symbol列表
+        :return:
+        """
+        req = ProtoMessageUtil.build_unsubscribe_quote_message(symbols, data_type=SocketCommon.Cc)
         self._connection.send_frame(req)
         return req.id
 
