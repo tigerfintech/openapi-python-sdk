@@ -1083,6 +1083,9 @@ class PlaceModifyOrderParams(BaseParams):
             params.update(self._parse_contract_param())
             params.update(common_params)
             params.update(self._parse_leg_param())
+        # CC not support DAY time_in_force, so set time_in_force to None if sec_type is CC and time_in_force is DAY
+        if params.get('sec_type') == SecurityType.CC.value and params.get('time_in_force') == 'DAY':
+            params['time_in_force'] = None
         return params
 
 

@@ -43,7 +43,6 @@ message QuoteData {
   // minute data: price, average price, time, volume
   optional Minute mi = 28;
 
-   // Decimal value encoded as a string to avoid precision loss
   optional double volumeDecimal = 29;
 
   message Minute {
