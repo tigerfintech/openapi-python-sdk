@@ -300,6 +300,7 @@ class IndustryParams(BaseParams):
         self._industry_id = None
         self._market = None
         self._symbol = None
+        self._sec_type = None
 
     @property
     def industry_level(self):
@@ -333,6 +334,14 @@ class IndustryParams(BaseParams):
     def symbol(self, value):
         self._symbol = value
 
+    @property
+    def sec_type(self):
+        return self._sec_type
+
+    @sec_type.setter
+    def sec_type(self, value):
+        self._sec_type = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
 
@@ -347,5 +356,8 @@ class IndustryParams(BaseParams):
 
         if self.symbol:
             params['symbol'] = self.symbol
+
+        if self.sec_type:
+            params['sec_type'] = self.sec_type
 
         return params

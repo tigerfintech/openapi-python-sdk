@@ -63,6 +63,7 @@ class SecurityType(Enum):
     CASH = 'CASH'  # 外汇
     MLEG = 'MLEG'  # 期权组合
     FUND = 'FUND'  # 基金
+    CC = 'CC'
 
 
 @unique
