@@ -479,8 +479,9 @@ class TradeApi:
 
     @staticmethod
     @server.tool(description='Get account position data.')
+    @ApiHelper.handle_result
     def get_positions(sec_type: str = Field(SecurityType.STK.value,
-                                            description="Security type. STK/OPT/FUT", pattern=r'^(STK|OPT|FUT)$'),
+                                              description="Security type. STK/OPT/FUT", pattern=r'^(STK|OPT|FUT)$'),
                       market: str = Field(Market.ALL.value,
                                           description="Market. US/HK/ALL", pattern=r'^(US|HK|ALL)$'),
                       symbol: Optional[str] = Field(None, description='Contract symbol. e.g. "AAPL", "00700"')
@@ -488,14 +489,13 @@ class TradeApi:
         """
         获取持仓信息
         """
-        result = ApiHelper.serialize_list(
-            TradeApi.trade_client.get_positions(sec_type=sec_type,
-                                                market=market,
-                                                symbol=symbol))
+        result = TradeApi.trade_client.get_positions(sec_type=sec_type,
+                                                     market=market,
+                                                     symbol=symbol)
         if result:
             for item in result:
-                item.pop('quantity', None)
-                item.pop('position_scale', None)
+                item.__dict__.pop('quantity', None)
+                item.__dict__.pop('position_scale', None)
         return result
 
     @staticmethod
