@@ -479,7 +479,6 @@ class TradeApi:
 
     @staticmethod
     @server.tool(description='Get account position data.')
-    @ApiHelper.handle_result
     def get_positions(sec_type: str = Field(SecurityType.STK.value,
                                               description="Security type. STK/OPT/FUT", pattern=r'^(STK|OPT|FUT)$'),
                       market: str = Field(Market.ALL.value,
@@ -493,10 +492,15 @@ class TradeApi:
                                                      market=market,
                                                      symbol=symbol)
         if result:
+            positions_list = []
             for item in result:
-                item.__dict__.pop('quantity', None)
-                item.__dict__.pop('position_scale', None)
-        return result
+                # Convert to dict first, then remove unwanted fields
+                pos_dict = dict(item.__dict__)
+                pos_dict.pop('quantity', None)
+                pos_dict.pop('position_scale', None)
+                positions_list.append(pos_dict)
+            return positions_list
+        return []
 
     @staticmethod
     @server.tool(description='Get account asset information.')
