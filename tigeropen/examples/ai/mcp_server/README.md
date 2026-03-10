@@ -75,6 +75,8 @@ brew install coreutils
 ``` 
 
 ### Release Notes
+- 0.1.7 (2026-03-03) Fix get_positions to return full list (convert to dict format)
+- 0.1.6 (2026-03-03) Fix get_positions return
 - 0.1.5 (2025-09-24) Support SECRET_KEY/TOKEN env variables
 - 0.1.4 (2025-08-29) Fix issues
 - 0.1.3 (2025-08-29) Fix issues
