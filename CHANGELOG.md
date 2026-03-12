@@ -1,3 +1,7 @@
+## 3.5.5 (2026-03-12)
+### New
+- `QuoteClient.get_option_analysis` 新增 `require_volatility_list` 参数，支持返回历史波动率列表（`volatility_list`）
+
 ## 3.5.4 (2026-03-02)
 ### New
 - 行情/交易/长链接适配数字货币

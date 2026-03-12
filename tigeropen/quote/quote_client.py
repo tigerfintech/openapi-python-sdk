@@ -1431,11 +1431,13 @@ class QuoteClient(TigerOpenClient):
             symbols: Union[List[str], List[dict]],
             period: Union[OptionAnalysisPeriod, str] = OptionAnalysisPeriod.FIFTY_TWO_WEEK,
             market: Optional[Union[Market, str]] = None,
-            lang: Optional[Union[Language, str]] = None) -> List:
+            require_volatility_list: Optional[bool] = None,
+            lang: Optional[Union[Language, str]] = None
+            ) -> List:
         """
         Get option analysis metrics for symbols.
         获取期权分析指标。
-        
+
         :param symbols: List of symbols. Can be:
             - List of strings: ["AAPL", "TSLA"] (uses the period parameter)
             - List of dicts: [{"symbol": "AAPL", "period": "26week"}, ...] (per-symbol periods)
@@ -1444,6 +1446,7 @@ class QuoteClient(TigerOpenClient):
             Options: OptionAnalysisPeriod.THREE_YEAR, FIFTY_TWO_WEEK, TWENTY_SIX_WEEK, THIRTEEN_WEEK
         :param market: Stock market (US/HK/CN)
         :param lang: Language (zh_CN/zh_TW/en_US)
+        :param require_volatility_list: Whether to return volatility list data. 是否返回波动率列表数据。
         :return: List[OptionAnalysis] with attributes:
             - symbol: Stock symbol
             - implied_vol_30_days: 30-day implied volatility
@@ -1454,6 +1457,7 @@ class QuoteClient(TigerOpenClient):
                 - period: Analysis period
                 - percentile: IV percentile
                 - rank: IV rank
+            - volatility_list: List[VolatilityListItem] (when require_volatility_list=True)
         """
         if not symbols:
             return []
@@ -1473,15 +1477,22 @@ class QuoteClient(TigerOpenClient):
             if isinstance(item, dict):
                 # Use per-symbol period if provided, otherwise use default
                 item_period = item.get("period", period_value)
-                symbol_list.append({
+                symbol_entry = {
                     "symbol": item.get("symbol", ""),
-                    "period": get_enum_value(item_period)
-                })
+                    "period": get_enum_value(item_period),
+                }
+                item_require = item.get("require_volatility_list", require_volatility_list)
+                if item_require is not None:
+                    symbol_entry["require_volatility_list"] = item_require
+                symbol_list.append(symbol_entry)
             elif isinstance(item, str):
-                symbol_list.append({"symbol": item, "period": period_value})
+                symbol_entry = {"symbol": item, "period": period_value}
+                if require_volatility_list is not None:
+                    symbol_entry["require_volatility_list"] = require_volatility_list
+                symbol_list.append(symbol_entry)
 
         params.symbols = symbol_list
-        
+
         request = OpenApiRequest(OPTION_ANALYSIS, biz_model=params)
         response_content = self.__fetch_data(request)
         
