@@ -6,7 +6,7 @@ Created on 2024
 """
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util import string_utils
-from tigeropen.quote.domain.option_analysis import OptionAnalysis, IVMetric
+from tigeropen.quote.domain.option_analysis import OptionAnalysis, IVMetric, VolatilityListItem
 
 
 class OptionAnalysisResponse(TigerResponse):
@@ -44,6 +44,16 @@ class OptionAnalysisResponse(TigerResponse):
                     metric.percentile = value.get('percentile')
                     metric.rank = value.get('rank')
                     analysis.iv_metric = metric
+                elif key == 'volatilityList' and isinstance(value, list):
+                    # Parse volatility list
+                    vol_list = []
+                    for vol_item in value:
+                        vi = VolatilityListItem()
+                        for vk, vv in vol_item.items():
+                            snake_vk = self.FIELD_MAPPINGS.get(vk, string_utils.camel_to_underline(vk))
+                            setattr(vi, snake_vk, vv)
+                        vol_list.append(vi)
+                    analysis.volatility_list = vol_list
                 else:
                     # Convert camelCase to snake_case, using field mappings for special cases
                     snake_key = self.FIELD_MAPPINGS.get(key, string_utils.camel_to_underline(key))

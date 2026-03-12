@@ -1583,28 +1583,28 @@ class KlineQuotaParams(BaseParams):
 
 class OptionAnalysisParams(BaseParams):
     """Request parameters for option analysis API."""
-    
+
     def __init__(self):
         super().__init__()
-        self._symbols = []  # List of {"symbol": str, "period": str}
+        self._symbols = []  # List of {"symbol": str, "period": str, "require_volatility_list": bool(optional)}
         self._market = None
-    
+
     @property
     def symbols(self):
         return self._symbols
-    
+
     @symbols.setter
     def symbols(self, value):
         self._symbols = value
-    
+
     @property
     def market(self):
         return self._market
-    
+
     @market.setter
     def market(self, value):
         self._market = value
-    
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self._symbols:
