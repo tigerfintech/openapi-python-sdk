@@ -12,20 +12,20 @@ metadata:
   openclaw:
     requires:
       env:
-        - TIGER_ID
-        - TIGER_PRIVATE_KEY
-        - TIGER_ACCOUNT
+        - TIGEROPEN_TIGER_ID
+        - TIGEROPEN_PRIVATE_KEY
+        - TIGEROPEN_ACCOUNT
       bins:
         - pip
         - python
-    primaryEnv: TIGER_ID
+    primaryEnv: TIGEROPEN_TIGER_ID
 ---
 
 # Tiger Open API Python SDK
 
 > 老虎量化开放平台 Python SDK 完整技能集 / Complete AI skill set for Tiger Brokers OpenAPI
 
-- Docs: https://docs.itigerup.com/docs/intro
+- Docs: https://docs.itigerup.com/docs/prepare
 - GitHub: https://github.com/tigerbrokers/openapi-python-sdk
 - SDK: `pip install tigeropen` | Python 3.8 - 3.13
 
@@ -38,22 +38,27 @@ This skill is organized into focused reference files. Load the relevant guide ba
 - **[Trading](references/trade.md)** — Place orders (market/limit/stop/algo), order management, assets, positions, fund transfers
 - **[Options](references/option.md)** — Option chains, Greeks, single-leg/multi-leg combos, option calculator
 - **[Real-time Push](references/push.md)** — Subscribe to quote/depth/tick/K-line/order/position/asset changes via PushClient
-- **[MCP Server](references/mcp.md)** — Expose Tiger API as MCP tools for Cursor, Claude Code, Trae
+- **[MCP Server](references/mcp.md)** — Expose Tiger API as MCP tools for Cursor, Claude Code, Kiro, Trae
 
 ## Quick Start
 
 ```python
 from tigeropen.common.consts import Language, Market
 from tigeropen.tiger_open_config import TigerOpenClientConfig
+from tigeropen.common.util.signature_utils import read_private_key
 from tigeropen.quote.quote_client import QuoteClient
 from tigeropen.trade.trade_client import TradeClient
 
 # 1. Configure / 配置
-config = TigerOpenClientConfig(sandbox_debug=False)
-config.tiger_id = 'your_tiger_id'
-config.language = Language.en_US
-config.private_key = '/path/to/your_private_key.pem'
-config.account = 'your_account'
+# 方式一：配置文件(推荐) / Method 1: Config file (recommended)
+config = TigerOpenClientConfig(props_path='/path/to/your/config/')
+
+# 方式二：代码赋值 / Method 2: Code assignment
+# config = TigerOpenClientConfig()
+# config.tiger_id = 'your_tiger_id'
+# config.private_key = read_private_key('/path/to/your_private_key.pem')
+# config.account = 'your_account'
+# config.language = Language.en_US
 
 # 2. Query quotes / 查询行情
 quote_client = QuoteClient(config)

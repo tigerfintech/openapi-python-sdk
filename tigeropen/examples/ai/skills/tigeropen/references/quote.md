@@ -36,8 +36,9 @@ for s in status:
 
 ```python
 cal = quote_client.get_trading_calendar(market=Market.US, begin_date='2025-01-01', end_date='2025-12-31')
-# 返回交易日列表 / Returns list of trading dates
-# 属性: date, type (TRADING/NON_TRADING)
+# 返回 list[dict] / Returns list of dicts
+# 每项: {'date': '2025-01-02', 'type': 'TRADING'}
+# type: TRADING(交易日) / NON_TRADING(非交易日)
 ```
 
 ---
@@ -106,9 +107,9 @@ metas = quote_client.get_trade_metas(symbols=['AAPL', '00700'])
 ## K线数据 / K-line (Candlestick) Data
 
 ```python
-from tigeropen.common.consts import BarPeriod, QuoteRight
+from tigeropen.common.consts import BarPeriod, QuoteRight, TradingSession
 
-# 日K / Daily (返回 DataFrame: symbol, time, open, high, low, close, volume)
+# 日K / Daily (返回 DataFrame: symbol, time, open, high, low, close, volume, amount)
 bars = quote_client.get_bars(['AAPL'], period=BarPeriod.DAY, limit=60)
 
 # 分钟K / Minute
@@ -123,16 +124,33 @@ bars_nr = quote_client.get_bars(['AAPL'], period=BarPeriod.DAY, right=QuoteRight
 
 # 多股票 / Multiple symbols
 bars = quote_client.get_bars(['AAPL', 'TSLA', 'GOOG'], period=BarPeriod.DAY, limit=30)
+
+# 指定日期的分钟K线 / Minute K-lines for specific date
+bars = quote_client.get_bars(['AAPL'], period=BarPeriod.ONE_MINUTE, date='20250618')
+
+# 指定交易时段 / Specific trading session (夜盘 overnight)
+bars = quote_client.get_bars(['AAPL'], period=BarPeriod.DAY,
+                              trade_session=TradingSession.OverNight)
+
+# 含基本面数据(PE/换手率) / With fundamental data (PE/turnover)
+bars = quote_client.get_bars(['AAPL'], period=BarPeriod.DAY, with_fundamental=True)
+
+# 分页(单个标的，使用 page_token) / Pagination (single symbol, via page_token)
+bars = quote_client.get_bars(['AAPL'], period=BarPeriod.DAY, limit=100)
+next_token = bars['next_page_token'].iloc[0]
+if next_token:
+    bars_next = quote_client.get_bars(['AAPL'], period=BarPeriod.DAY, limit=100, page_token=next_token)
 ```
 
 ### 分页获取大量K线 / Paginated K-line for Large Datasets
 
 ```python
-# 自动分页获取 / Auto-paginated fetch
+# 自动分页获取(注意: symbol 为单个字符串) / Auto-paginated fetch (note: symbol is a single string)
 bars = quote_client.get_bars_by_page(symbol='AAPL', period=BarPeriod.DAY,
                                       begin_time='2020-01-01', end_time='2025-01-01',
                                       total=2000)
-# total: 需要获取的总条数 / total bars needed
+# 也支持 trade_session 和 with_fundamental 参数
+# Also supports trade_session and with_fundamental params
 ```
 
 **K线周期 / Bar Periods**: `day/week/month/year/1min/3min/5min/10min/15min/30min/45min/60min/2hour/3hour/4hour/6hour`
@@ -155,12 +173,17 @@ depth = quote_client.get_depth_quote(['00700'], market=Market.HK)
 ## 逐笔成交 / Trade Ticks
 
 ```python
-ticks = quote_client.get_trade_ticks(symbols=['AAPL'], limit=50)
-# 返回 DataFrame: symbol, time, price, volume, type
-# begin_index/end_index 可分页
+from tigeropen.common.consts import TradingSession
 
-# 含成交方向 / With tick direction
-ticks = quote_client.get_trade_ticks(symbols=['AAPL'], limit=100)
+ticks = quote_client.get_trade_ticks(symbols=['AAPL'], limit=50)
+# 返回 DataFrame: symbol, time, price, volume, direction(+/-), index
+
+# 指定交易时段 / Specific trading session
+ticks = quote_client.get_trade_ticks(symbols=['AAPL'], limit=100,
+                                      trade_session=TradingSession.Regular)
+
+# 分页(使用 begin_index/end_index) / Pagination via begin_index/end_index
+ticks = quote_client.get_trade_ticks(symbols=['AAPL'], begin_index=0, end_index=100)
 ```
 
 ## 分时数据 / Timeline (Intraday)
@@ -168,10 +191,14 @@ ticks = quote_client.get_trade_ticks(symbols=['AAPL'], limit=100)
 ```python
 # 当日分时 / Today's timeline
 timeline = quote_client.get_timeline(['AAPL'], include_hour_trading=True)
-# 返回 DataFrame: symbol, time, price, avg_price, volume
+# 返回 DataFrame: symbol, time, price, avg_price, pre_close, volume, trade_session
+
+# 指定交易时段 / Specific trading session
+timeline = quote_client.get_timeline(['AAPL'], trade_session=TradingSession.OverNight)
 
 # 历史某日分时 / Historical date
 timeline = quote_client.get_timeline_history(['AAPL'], date='2025-06-18')
+# 也支持 trade_session 参数 / Also supports trade_session param
 ```
 
 ---
@@ -179,11 +206,14 @@ timeline = quote_client.get_timeline_history(['AAPL'], date='2025-06-18')
 ## 资金流向 / Capital Flow
 
 ```python
-# 资金流向 / Capital flow
+from tigeropen.common.consts import CapitalPeriod
+
+# 资金流向 / Capital flow (使用 CapitalPeriod 枚举)
 flow = quote_client.get_capital_flow(symbol='AAPL', market='US',
-                                      period='day',  # intraday/day/week/month/year/quarter/6month
+                                      period=CapitalPeriod.DAY,
                                       begin_time='2025-01-01', end_time='2025-06-30')
-# 属性: net_inflow, super_large_inflow/outflow, large/middle/small inflow/outflow
+# 返回 DataFrame: time, timestamp, net_inflow, symbol, period
+# CapitalPeriod 可选值: INTRADAY, DAY, WEEK, MONTH, YEAR, QUARTER, HALFAYEAR
 
 # 资金分布 / Capital distribution
 distribution = quote_client.get_capital_distribution(symbol='AAPL', market='US')
@@ -193,11 +223,12 @@ distribution = quote_client.get_capital_distribution(symbol='AAPL', market='US')
 ## 港股经纪商 / HK Broker Data
 
 ```python
-# 经纪商席位 / Broker seats
+# 经纪商席位 / Broker seats (返回 StockBroker 对象)
 broker = quote_client.get_stock_broker('00700', limit=40)
-# 返回买卖双方经纪商列表 / Returns bid/ask broker list
+# broker.bid_broker: 买方经纪商列表(LevelBroker: level, price, broker_count, broker)
+# broker.ask_broker: 卖方经纪商列表
 
-# 经纪商持仓 / Broker holdings (CCASS)
+# 经纪商持仓(CCASS) / Broker holdings (CCASS) - 独立方法
 hold = quote_client.get_broker_hold(symbol='00700', limit=40)
 ```
 
@@ -270,8 +301,9 @@ earnings = quote_client.get_corporate_earnings_calendar(
 > 详细的期权交易功能见 tigeropen-option 技能 / See tigeropen-option skill for trading
 
 ```python
-# 到期日 / Expirations
+# 到期日 / Expirations (返回 DataFrame: symbol, option_symbol, date, timestamp, period_tag)
 expirations = quote_client.get_option_expirations(symbols=['AAPL'], market='US')
+# period_tag: "m"=月度期权(monthly), "w"=周期权(weekly)
 
 # 期权链 / Option chain
 from tigeropen.quote.domain.filter import OptionFilter
@@ -284,7 +316,7 @@ chain = quote_client.get_option_chain(symbol='AAPL', expiry='2025-08-29',
 # 实时行情 / Real-time quotes
 briefs = quote_client.get_option_briefs(identifiers=['AAPL  250829C00150000'])
 
-# K线 / K-lines
+# K线 / K-lines (支持: day, 1min, 5min, 30min, 60min; 可选 sort_dir)
 bars = quote_client.get_option_bars(identifiers=['AAPL  250829C00150000'], period='day')
 
 # 深度 / Depth
@@ -303,9 +335,13 @@ hk_symbols = quote_client.get_option_symbols(market='HK')  # e.g. 00700 -> TCH.H
 ### 期权分析 / Option Analysis
 
 ```python
-analysis = quote_client.get_option_analysis(symbols=['AAPL'])
-# 返回: implied_volatility, historical_volatility, greeks 等
-# 属性: symbol, iv_rank, iv_percentile, hv_20, hv_60, hv_90, put_call_ratio
+from tigeropen.common.consts import OptionAnalysisPeriod
+
+analysis = quote_client.get_option_analysis(symbols=['AAPL'],
+                                             period=OptionAnalysisPeriod.FIFTY_TWO_WEEK)
+# 返回 List[OptionAnalysis]
+# 属性: symbol, implied_vol_30_days, his_volatility, iv_his_v_ratio, call_put_ratio
+# iv_metric: IVMetric(period, percentile, rank)
 ```
 
 **期权代码格式 / Option Symbol Format**:

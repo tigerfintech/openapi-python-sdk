@@ -4,8 +4,8 @@
 > 中文 | English — 双语技能。Bilingual skill.
 > 官方文档 Docs: https://docs.itigerup.com/docs/mcp
 
-Tiger MCP Server 将老虎 OpenAPI 暴露为 MCP (Model Context Protocol) 工具，集成到 Cursor、Claude Code、Trae 等 AI 编辑器。
-Tiger MCP Server exposes Tiger OpenAPI as MCP tools for AI editors like Cursor, Claude Code, and Trae.
+Tiger MCP Server 将老虎 OpenAPI 暴露为 MCP (Model Context Protocol) 工具，集成到 Cursor、Claude Code、Kiro、Trae 等 AI 编辑器。
+Tiger MCP Server exposes Tiger OpenAPI as MCP tools for AI editors like Cursor, Claude Code, Kiro, and Trae.
 
 ## 安装 / Installation
 
@@ -30,14 +30,14 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 ### 方式一：配置文件 / Config File
 
 ```bash
-export TIGEROPEN_PROPS_PATH="/path/to/tiger_openapi_config.properties"
+export TIGEROPEN_PROPS_PATH="/path/to/config/"  # 配置文件所在目录 / Directory containing config file
 ```
 
 ### 方式二：环境变量 / Environment Variables
 
 ```bash
 export TIGEROPEN_TIGER_ID="your_tiger_id"
-export TIGEROPEN_PRIVATE_KEY="your_private_key"
+export TIGEROPEN_PRIVATE_KEY="your_private_key"  # 私钥内容或文件路径 / Key content or file path
 export TIGEROPEN_ACCOUNT="your_account"
 ```
 
@@ -69,12 +69,16 @@ uvx tigermcp
       "env": {
         "TIGEROPEN_TIGER_ID": "your_tiger_id",
         "TIGEROPEN_PRIVATE_KEY": "your_private_key",
-        "TIGEROPEN_ACCOUNT": "your_account"
+        "TIGEROPEN_ACCOUNT": "your_account",
+        "TIGERMCP_READONLY": true
       }
     }
   }
 }
 ```
+
+> 也可使用 `TIGEROPEN_PROPS_PATH` 指定配置文件路径，代替 `TIGEROPEN_TIGER_ID` 等配置。
+> You can also use `TIGEROPEN_PROPS_PATH` to specify config file path instead of individual env vars.
 
 ### 机构用户 / Institutional Users
 
@@ -106,8 +110,8 @@ uvx tigermcp
       "command": "uvx",
       "args": ["--python", "3.13", "tigermcp"],
       "env": {
-        "TIGEROPEN_PROPS_PATH": "/path/to/config.properties",
-        "TIGERMCP_READONLY": "true"
+        "TIGEROPEN_PROPS_PATH": "/path/to/config/",
+        "TIGERMCP_READONLY": true
       }
     }
   }
@@ -121,6 +125,7 @@ uvx tigermcp
 | Cursor | `.cursor/mcp.json` (项目级) 或 `~/.cursor/mcp.json` (全局) |
 | Claude Code | `.claude/settings.local.json` 或 `~/.claude/settings.json` |
 | Trae | `.trae/mcp.json` |
+| Kiro | `.kiro/settings/mcp.json` (项目级) 或 `~/.kiro/settings/mcp.json` (全局) |
 
 ## 可用 MCP 工具 / Available MCP Tools
 
@@ -178,10 +183,10 @@ brew install coreutils
 
 ## 注意事项 / Notes
 
-- `TIGERMCP_READONLY=true` 启用只读模式，禁止 `place_order` 和 `cancel_order`
-- 初次使用建议只读模式 / Start with read-only mode
+- `TIGERMCP_READONLY=true` 启用只读模式，禁止 `place_order` 和 `cancel_order`，初次使用建议开启
 - MCP Server 通过 stdio 模式运行 / Runs in stdio mode
 - 需要 `tigeropen>=3.4.8` 和 `mcp[cli]>=1.13.0`
+- 也可使用 `TIGEROPEN_PROPS_PATH` 指定配置文件路径，代替单独配置各环境变量
 - Tiger MCP 是 AI 连接 Tiger API 的工具，输出取决于 AI/LLM 能力
 - 用户承担所有投资决策风险 / Users bear all investment decision risks
 - 免责声明 / Disclaimer: https://docs.itigerup.com/docs/mcp
