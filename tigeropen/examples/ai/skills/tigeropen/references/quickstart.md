@@ -8,7 +8,7 @@
 老虎量化开放平台 Python SDK (tigeropen) 为个人和机构用户提供交易与行情 API，支持美股、港股、A股、新加坡、澳洲市场的股票、期权、期货等品种。
 The Tiger Open Platform Python SDK (tigeropen) provides trading and market data APIs for stocks, options, futures across US, HK, China A-shares, Singapore, and Australia markets.
 
-- 官方文档 / Docs: https://docs.itigerup.com/docs/intro
+- 官方文档 / Docs: https://docs.itigerup.com/docs/prepare (新版) | https://quant.itigerup.com/openapi/zh/python/quickStart/prepare.html (旧版)
 - GitHub: https://github.com/tigerbrokers/openapi-python-sdk
 - SDK Version: 3.5.4 | Python: 3.8 - 3.13
 
@@ -31,6 +31,12 @@ The Tiger Open Platform Python SDK (tigeropen) provides trading and market data 
 ```bash
 pip install tigeropen
 
+# 升级 / Upgrade
+pip install tigeropen --upgrade
+
+# 或使用 conda / Or use conda
+conda install tigeropen
+
 # 验证 / Verify
 python -c "import tigeropen; print(tigeropen.__VERSION__)"
 ```
@@ -38,10 +44,13 @@ python -c "import tigeropen; print(tigeropen.__VERSION__)"
 ## 前置条件 / Prerequisites
 
 1. 开通老虎证券账户并入金 / Open a Tiger Brokers account and fund it
-2. 访问 https://developer.itigerup.com/ 激活 API 权限 / Activate API permissions
-3. 获取 `tiger_id` 和 RSA 私钥文件 / Obtain `tiger_id` and RSA private key file
+2. 个人用户访问 https://quant.itigerup.com/#developer 激活 API 权限 / Individual users activate API permissions
+   机构用户访问机构账户中心 / Institutional users visit institutional account center
+3. 获取 `tiger_id`、RSA 私钥(PKCS#1格式)和资金账号 / Obtain `tiger_id`, RSA private key (PKCS#1 format), and account
+4. 导出配置文件 `tiger_openapi_config.properties` / Export config file
 
-> 机构用户通过机构后台注册 / Institutional users register via institutional backend
+> 私钥不会保存在服务端，刷新页面后消失，请务必保存。Private key is not stored on server; save it before refreshing the page.
+> Java 使用 PKCS#8 格式，Python 使用 PKCS#1 格式。Java uses PKCS#8, Python uses PKCS#1.
 
 ## 账户类型 / Account Types
 
@@ -53,41 +62,68 @@ python -c "import tigeropen; print(tigeropen.__VERSION__)"
 
 ## 配置 / Configuration
 
-### 方式一：配置文件 / Config File
+### 方式一：配置文件(推荐) / Config File (Recommended)
 
-创建 `tiger_openapi_config.properties`:
+从开发者网站导出配置文件 `tiger_openapi_config.properties`，放入合适的系统路径。
+Export config file from developer website and place it in a suitable path.
+
+配置文件格式 / Config file format:
 
 ```properties
-tiger_id=your_tiger_id
-private_key_path=/path/to/private_key.pem
-account=your_account
+tiger_id=20150001
+account=12345678
+license=TBHK
+private_key_pk1=MIICXgIBAAKBgQC.....your_pkcs1_private_key
+private_key_pk8=MIICeAIBADANBgk.....your_pkcs8_private_key
+env=PROD
+# 机构用户需额外配置 / Institutional users also need:
+# secret_key=your_secret_key
 ```
 
 ```python
 from tigeropen.tiger_open_config import TigerOpenClientConfig
 
-client_config = TigerOpenClientConfig(props_path='/path/to/your/tiger_openapi_config.properties')
+# 指定配置文件所在目录 / Specify directory containing config file
+client_config = TigerOpenClientConfig(props_path='/path/to/your/config/')
+# 也可将配置文件放入程序当前目录，SDK 默认取当前路径
+# Or place config file in current directory; SDK defaults to current path
 ```
+
+> 港股牌照(TBHK)还需将 `tiger_openapi_token.properties` 放入同一目录。
+> HK license (TBHK) also requires `tiger_openapi_token.properties` in the same directory.
 
 ### 方式二：环境变量 / Environment Variables
 
 ```bash
 export TIGEROPEN_TIGER_ID="your_tiger_id"
-export TIGEROPEN_PRIVATE_KEY="your_private_key_content"  # 私钥内容，非路径
+export TIGEROPEN_PRIVATE_KEY="your_private_key_content"  # 私钥内容或私钥文件路径 / Key content or file path
 export TIGEROPEN_ACCOUNT="your_account"
+# 可选 / Optional:
+# export TIGEROPEN_PROPS_PATH="/path/to/config/"  # 配置文件目录 / Config file directory
+# export TIGEROPEN_LICENSE="TBSG"
+# export TIGEROPEN_SECRET_KEY="your_secret_key"  # 机构用户 / Institutional users
+# export TIGEROPEN_TOKEN="your_2fa_token"  # TBHK 牌照 / TBHK license
 ```
 
 ```python
-client_config = TigerOpenClientConfig()  # 自动读取环境变量
+client_config = TigerOpenClientConfig()  # 自动读取环境变量 / Auto-reads env vars
 ```
 
 ### 方式三：代码赋值 / Code Assignment
 
 ```python
+from tigeropen.tiger_open_config import TigerOpenClientConfig
+from tigeropen.common.util.signature_utils import read_private_key
+
 client_config = TigerOpenClientConfig()
 client_config.tiger_id = 'your_tiger_id'
-client_config.private_key = 'your_private_key_content'
+client_config.private_key = read_private_key('/path/to/private_key.pem')  # 读取 PKCS#1 格式 PEM 文件
+# 私钥也可直接填字符串内容 / Or set private key content directly:
+# client_config.private_key = 'MIICWwIBAAKBgQCSW+.....私钥内容'
 client_config.account = 'your_account'
+client_config.license = 'TBSG'  # 牌照信息 / License info
+client_config.language = Language.zh_CN  # 可选，默认英语 / Optional, defaults to English
+# client_config.timezone = 'US/Eastern'  # 可选时区 / Optional timezone
 ```
 
 > 优先级 Priority: 代码参数 code > 环境变量 env > 配置文件 config > 默认值 defaults
@@ -95,9 +131,11 @@ client_config.account = 'your_account'
 ### 机构用户 / Institutional Users
 
 ```python
-client_config.secret_key = 'your_secret_key'
-# 香港机构需额外设置 / HK institutional needs:
-# client_config.token = 'tbhk_2fa_token'
+client_config.secret_key = 'your_secret_key'  # 在机构中心获取 / Obtain from institutional center
+# 香港机构(TBHK牌照)需额外设置 token / HK institutional (TBHK license) needs token:
+# client_config.token = 'your_2fa_token'
+# token 有效期30天，可配置自动刷新 / Token valid for 30 days, can auto-refresh:
+# client_config.token_refresh_duration = 24 * 60 * 60  # 单位秒 / seconds
 ```
 
 ## 创建客户端 / Create Clients
@@ -118,10 +156,13 @@ trade_client = TradeClient(client_config=client_config)
 ## 模拟交易 / Paper Trading
 
 ```python
-client_config = TigerOpenClientConfig(sandbox_debug=True)
-client_config.account = 'your_paper_account'
+client_config = TigerOpenClientConfig(props_path='/path/to/your/config/')
+client_config.account = 'your_paper_account'  # 17位数字模拟账号 / 17-digit paper account
 # 模拟账户支持美股/港股/A股/期权
 ```
+
+> `sandbox_debug` 参数已废弃，请勿使用。SDK 通过账号自动识别模拟账户。
+> `sandbox_debug` is deprecated. SDK auto-detects paper accounts by account number.
 
 ## 完整入门示例 / Complete Quickstart
 
@@ -131,8 +172,15 @@ from tigeropen.common.consts import Market, BarPeriod
 from tigeropen.quote.quote_client import QuoteClient
 from tigeropen.trade.trade_client import TradeClient
 
-# 1. 加载配置 / Load config
-client_config = TigerOpenClientConfig(props_path='/path/to/your/tiger_openapi_config.properties')
+# 1. 加载配置(推荐使用配置文件) / Load config (config file recommended)
+client_config = TigerOpenClientConfig(props_path='/path/to/your/config/')
+
+# 或代码赋值 / Or code assignment:
+# from tigeropen.common.util.signature_utils import read_private_key
+# client_config = TigerOpenClientConfig()
+# client_config.tiger_id = 'your_tiger_id'
+# client_config.private_key = read_private_key('/path/to/private_key.pem')
+# client_config.account = 'your_account'
 
 # 2. 创建客户端 / Create clients
 quote_client = QuoteClient(client_config=client_config)
@@ -406,8 +454,11 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 ## 注意事项 / Notes
 
-- 认证使用 RSA-2048 签名 / Authentication uses RSA-2048 signatures
+- 认证使用 RSA 签名，Python SDK 使用 PKCS#1 格式私钥 / Authentication uses RSA signatures, Python SDK uses PKCS#1 private key
+- 私钥可通过 `read_private_key('path/to/pem')` 读取文件，或直接赋值字符串内容 / Private key via `read_private_key()` or direct string
 - `QuoteClient` 应创建一次并复用 / Create once and reuse
-- 行情权限需单独购买 / Quote permissions require separate purchase
+- 行情权限需单独购买，API 与 App 独立 / Quote permissions require separate purchase
 - 交易佣金与 App 一致，无额外 API 费用 / Trading fees same as app
-- 官方 QQ/Telegram 支持群 / Official support groups: https://t.me/TigerBrokersAPISupport
+- `sandbox_debug` 参数已废弃，请勿使用 / `sandbox_debug` is deprecated, do not use
+- 官方文档 / Official docs: https://docs.itigerup.com/docs/prepare
+- 官方支持群 / Support: https://t.me/TigerBrokersAPISupport

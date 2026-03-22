@@ -110,18 +110,20 @@ print(f"Order ID: {order.id}")
 ### 市价单 MKT / Market Order
 
 ```python
-from tigeropen.common.util.order_utils import market_order
+from tigeropen.common.util.order_utils import market_order, market_order_by_amount
 
 order = market_order(account=client_config.account, contract=contract,
                      action='BUY', quantity=100)
 trade_client.place_order(order)
 
 # 按金额下单(碎股) / By amount (fractional shares)
-order = market_order(account=client_config.account, contract=contract,
-                     action='BUY', quantity=0)
-order.total_cash_amount = 5000  # 买入 $5000 的股票
+order = market_order_by_amount(account=client_config.account, contract=contract,
+                               action='BUY', amount=5000)  # 买入 $5000 的股票
 trade_client.place_order(order)
 ```
+
+> 也有 `limit_order_by_amount` 用于按金额的限价单。
+> There's also `limit_order_by_amount` for limit orders by amount.
 
 ### 止损单 STP / Stop Order
 
@@ -177,21 +179,23 @@ trade_client.place_order(order)
 ### 附加订单(止盈止损) / Bracket Orders (Take Profit / Stop Loss)
 
 ```python
-from tigeropen.common.util.order_utils import limit_order, order_leg
+from tigeropen.common.util.order_utils import limit_order_with_legs, order_leg
 
-order = limit_order(account=client_config.account, contract=contract,
-                    action='BUY', quantity=100, limit_price=150.0)
-order.order_legs = [
+# 推荐使用 limit_order_with_legs / Recommended: use limit_order_with_legs
+legs = [
     order_leg(leg_type='PROFIT', price=170.0),              # 止盈 / Take profit
     order_leg(leg_type='LOSS', price=140.0),                 # 止损 / Stop loss
     # 也可用跟踪止损 / Or trailing stop loss:
     # order_leg(leg_type='LOSS', trailing_percent=5.0),
 ]
+order = limit_order_with_legs(account=client_config.account, contract=contract,
+                              action='BUY', quantity=100, limit_price=150.0,
+                              order_legs=legs)
 trade_client.place_order(order)
 ```
 
-> 附加订单仅支持限价单作为主订单。子订单在主订单全部成交后自动生效。
-> Bracket orders only support limit as primary. Legs activate after primary is fully filled.
+> 附加订单仅支持限价单作为主订单，最多2个 leg。子订单在主订单全部成交后自动生效。
+> Bracket orders only support limit as primary, max 2 legs. Legs activate after primary is fully filled.
 
 ### order_leg 参数 / order_leg Parameters
 
@@ -219,7 +223,7 @@ trade_client.place_order(order)
 | `trailing_percent` | 跟踪止损百分比 Trailing percent | TRAIL |
 | `time_in_force` | `DAY`/`GTC`(撤销前有效)/`GTD`(指定日期) | - |
 | `outside_rth` | 盘前盘后 Pre/after hours (仅美股 US only) | - |
-| `trading_session_type` | `OverNight`(夜盘)/`Regular` | - |
+| `trading_session_type` | 交易时段 `TradingSessionType` 枚举值(PRE_RTH_POST/OVERNIGHT/RTH/FULL/HK_AUC/HK_CTS/HK_AUC_CTS) | - |
 | `order_id` | 自定义订单ID Custom order ID | - |
 | `user_mark` | 自定义标记 Custom mark | - |
 | `quantity_scale` | 数量精度(碎股) Quantity scale (fractional) | - |
@@ -236,6 +240,9 @@ trade_client.place_order(order)
 | STP_LMT 止损限价 | ✅ | - | - | ✅ | ✅ |
 | TRAIL 跟踪止损 | ✅ | - | - | - | - |
 | TWAP/VWAP 算法 | ✅ | - | - | - | - |
+| AL 竞价限价 | - | ✅ | - | - | - |
+| AM 竞价市价 | - | ✅ | - | - | - |
+| OCA 一撤全撤 | ✅ | ✅ | - | - | - |
 
 ### 特殊下单场景 / Special Order Scenarios
 
@@ -246,11 +253,13 @@ order = limit_order(account=client_config.account, contract=contract,
 order.outside_rth = True
 trade_client.place_order(order)
 
-# 夜盘(通宵) / Overnight trading
+# 夜盘(通宵) / Overnight trading (使用 TradingSessionType 枚举)
+from tigeropen.common.consts import TradingSessionType
 order = limit_order(account=client_config.account, contract=contract,
                     action='BUY', quantity=100, limit_price=150.0)
-order.trading_session_type = 'OverNight'
+order.trading_session_type = TradingSessionType.OVERNIGHT.value
 trade_client.place_order(order)
+# TradingSessionType 可选值: PRE_RTH_POST, OVERNIGHT, RTH, FULL, HK_AUC, HK_CTS, HK_AUC_CTS
 
 # GTC 订单 / Good Till Cancelled
 order = limit_order(account=client_config.account, contract=contract,
@@ -258,7 +267,7 @@ order = limit_order(account=client_config.account, contract=contract,
 order.time_in_force = 'GTC'
 trade_client.place_order(order)
 
-# 港股下单 / HK stock order
+# 港股下单 / HK stock order (注意: 数量须为 lot_size 的整数倍，可通过 get_trade_metas 查询)
 hk_contract = stock_contract(symbol='00700', currency='HKD')
 order = limit_order(account=client_config.account, contract=hk_contract,
                     action='BUY', quantity=100, limit_price=350.0)
@@ -274,6 +283,41 @@ trade_client.place_order(order)
 from tigeropen.common.util.price_util import PriceUtil
 price_util = PriceUtil(trade_client)
 corrected = price_util.correct_price(symbol='AAPL', price=150.123)
+```
+
+### 港股竞价单 / HK Auction Orders
+
+```python
+from tigeropen.common.util.order_utils import auction_limit_order, auction_market_order
+
+# 竞价限价单 AL / Auction Limit Order
+order = auction_limit_order(account=client_config.account, contract=hk_contract,
+                            action='BUY', quantity=100, limit_price=350.0)
+trade_client.place_order(order)
+
+# 竞价市价单 AM / Auction Market Order
+order = auction_market_order(account=client_config.account, contract=hk_contract,
+                             action='BUY', quantity=100)
+trade_client.place_order(order)
+```
+
+> 竞价单用于港股竞价时段(开盘竞价/收盘竞价)。`time_in_force` 支持 `DAY` 和 `OPG`。
+> Auction orders for HK pre-opening/closing auction sessions. `time_in_force` supports `DAY` and `OPG`.
+
+### OCA 订单(一撤全撤) / OCA Order (One-Cancels-All)
+
+```python
+from tigeropen.common.util.order_utils import oca_order, order_leg
+
+# OCA 订单: 多个子订单中任一成交，其余自动撤销
+# OCA order: when any leg fills, others are automatically cancelled
+legs = [
+    order_leg(leg_type='LMT', limit_price=160.0),   # 限价单
+    order_leg(leg_type='STP', price=140.0),           # 止损单
+]
+order = oca_order(account=client_config.account, contract=contract,
+                  action='SELL', order_legs=legs, quantity=100)
+trade_client.place_order(order)
 ```
 
 ---
@@ -528,7 +572,10 @@ records = trade_client.get_funding_history(
 ## 外汇下单 / Forex Order
 
 ```python
+from tigeropen.common.consts import SegmentType
+
 trade_client.place_forex_order(
+    seg_type=SegmentType.SEC,  # SEC(证券板块) 或 FUT(期货板块)
     source_currency='USD', target_currency='HKD', source_amount=10000.0)
 ```
 
@@ -554,9 +601,12 @@ trade_client.place_forex_order(
 
 ## 注意事项 / Notes
 
-- `place_order` 返回成功仅表示提交成功，需查询确认成交 / Success only means submitted
+- `place_order` 返回成功仅表示提交成功，需查询确认成交。可检查 `order.id` 和 `order.status` / Success only means submitted; check `order.id` and `order.status`
 - 市价单(MKT)和止损单(STP)不支持盘前盘后 / MKT and STP don't support pre/after-hours
 - 同一证券不能同时持有多头和空头 / Cannot hold long and short simultaneously
 - 下单前建议 `preview_order` / Use preview before placing real orders
 - 交易佣金与 App 一致，无额外费用 / Trading fees same as app
 - 已成交订单查询需指定时间范围，最多90天 / Filled orders require time range, max 90 days
+- 港股下单数量须为 `lot_size` 的整数倍，可通过 `get_trade_metas` 查询 / HK orders must be multiples of `lot_size`
+- `quantity_scale` 用于碎股精度控制 / `quantity_scale` controls fractional share precision
+- `adjust_limit` 参数可用于价格自动修正 / `adjust_limit` for automatic price adjustment

@@ -22,7 +22,9 @@ trade_client = TradeClient(client_config=client_config)
 
 ```python
 expirations = quote_client.get_option_expirations(symbols=['AAPL'], market='US')
-# 返回到期日列表 / Returns list of expiration dates
+# 返回 DataFrame / Returns DataFrame
+# 列: symbol, option_symbol, date, timestamp, period_tag
+# period_tag: "m"=月度期权(monthly), "w"=周期权(weekly)
 # 也支持 symbols=['AAPL', 'TSLA'] 批量查询
 ```
 
@@ -92,10 +94,11 @@ chain = quote_client.get_option_chain(symbol='TCH.HK', expiry='2025-06-18', mark
 briefs = quote_client.get_option_briefs(identifiers=['AAPL  250829C00150000'])
 # 属性: symbol, latest_price, bid_price, ask_price, volume, open_interest, change, change_percent
 # Greeks: delta, gamma, theta, vega, rho, implied_volatility
+# 额外属性: mid_price, mark_price, pre_mark_price, rates_bonds
 
-# K线 / K-lines
+# K线 / K-lines (支持周期: day, 1min, 5min, 30min, 60min)
 bars = quote_client.get_option_bars(identifiers=['AAPL  250829C00150000'], period='day')
-# 也支持分钟级别: period='1min', '5min' 等
+# 可选参数: sort_dir (SortDirection.ASC/DESC), limit, begin_time, end_time
 
 # 深度行情 / Depth quotes
 depth = quote_client.get_option_depth(identifiers=['AAPL  250829C00150000'], market='US')
@@ -103,8 +106,9 @@ depth = quote_client.get_option_depth(identifiers=['AAPL  250829C00150000'], mar
 # 逐笔成交 / Trade ticks
 ticks = quote_client.get_option_trade_ticks(identifiers=['AAPL  250829C00150000'])
 
-# 分时 / Timeline
+# 分时 / Timeline (支持 US 和 HK 市场 / Supports US and HK markets)
 timeline = quote_client.get_option_timeline(identifiers=['AAPL  250829C00150000'])
+# HK 期权: quote_client.get_option_timeline(identifiers=['TCH.HK250828C00610000'], market='HK')
 ```
 
 ### 期权代码格式 / Option Symbol Format
@@ -120,11 +124,43 @@ timeline = quote_client.get_option_timeline(identifiers=['AAPL  250829C00150000'
 ## 期权分析 / Option Analysis
 
 ```python
+from tigeropen.common.consts import OptionAnalysisPeriod
+
+# 基础用法(默认52周) / Basic usage (default 52-week)
 analysis = quote_client.get_option_analysis(symbols=['AAPL'])
-# 属性: symbol, iv_rank, iv_percentile, hv_20, hv_60, hv_90, put_call_ratio
-# iv_rank: 当前IV在过去一年中的排名百分位 / Current IV rank percentile
-# hv_20/60/90: 20/60/90日历史波动率 / Historical volatility
+
+# 指定分析周期 / Specify analysis period
+analysis = quote_client.get_option_analysis(
+    symbols=['AAPL'],
+    period=OptionAnalysisPeriod.TWENTY_SIX_WEEK)
+
+# 每个标的不同周期 / Per-symbol periods
+analysis = quote_client.get_option_analysis(
+    symbols=[
+        'AAPL',  # 使用默认周期
+        {'symbol': 'TSLA', 'period': '26week'},  # 指定26周
+    ])
+
+# 返回 List[OptionAnalysis]，属性:
+# - symbol: 标的代码
+# - implied_vol_30_days: 30日隐含波动率
+# - his_volatility: 历史波动率
+# - iv_his_v_ratio: IV/HV 比率
+# - call_put_ratio: 看涨/看跌比率
+# - iv_metric: IVMetric 对象，包含:
+#     - period: 分析周期
+#     - percentile: IV 百分位
+#     - rank: IV 排名
 ```
+
+### OptionAnalysisPeriod 分析周期
+
+| 周期 Period | 值 Value | 说明 Description |
+|------------|---------|-----------------|
+| `THREE_YEAR` | `3year` | 3年 / 3 years |
+| `FIFTY_TWO_WEEK` | `52week` | 52周(1年，默认) / 52 weeks (default) |
+| `TWENTY_SIX_WEEK` | `26week` | 26周(6个月) / 26 weeks |
+| `THIRTEEN_WEEK` | `13week` | 13周(3个月) / 13 weeks |
 
 ---
 
