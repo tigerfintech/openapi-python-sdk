@@ -44,6 +44,7 @@ class SocketCommon(_message.Message):
         StockTop: _ClassVar[SocketCommon.DataType]
         OptionTop: _ClassVar[SocketCommon.DataType]
         Kline: _ClassVar[SocketCommon.DataType]
+        Cc: _ClassVar[SocketCommon.DataType]
     Unknown: SocketCommon.DataType
     Quote: SocketCommon.DataType
     Option: SocketCommon.DataType
@@ -57,6 +58,7 @@ class SocketCommon(_message.Message):
     StockTop: SocketCommon.DataType
     OptionTop: SocketCommon.DataType
     Kline: SocketCommon.DataType
+    Cc: SocketCommon.DataType
     class QuoteType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = ()
         None: _ClassVar[SocketCommon.QuoteType]

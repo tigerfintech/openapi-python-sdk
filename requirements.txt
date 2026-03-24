@@ -1,15 +1,2 @@
-simplejson
-delorean
-pandas
-python-dateutil
-pytz
-pyasn1
-rsa
-stomp.py
-getmac
-cryptography~=44.0.3
-backoff
-jproperties
-protobuf
-google-cloud
-urllib3
+# Install dependencies from pyproject.toml
+.

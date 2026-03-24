@@ -228,6 +228,7 @@ class SingleQuoteParams(MarketParams):
 
 
 class MultipleQuoteParams(MarketParams):
+
     def __init__(self):
         super(MultipleQuoteParams, self).__init__()
         self._symbols = None
@@ -244,6 +245,7 @@ class MultipleQuoteParams(MarketParams):
         self._date = None
         self._page_token = None
         self._trade_session = None
+        self._with_fundamental = None
 
     @property
     def symbols(self):
@@ -357,6 +359,14 @@ class MultipleQuoteParams(MarketParams):
     def trade_session(self, value):
         self._trade_session = value
 
+    @property
+    def with_fundamental(self):
+        return self._with_fundamental
+
+    @with_fundamental.setter
+    def with_fundamental(self, value):
+        self._with_fundamental = value
+
     def to_openapi_dict(self):
         params = super(MultipleQuoteParams, self).to_openapi_dict()
 
@@ -401,6 +411,9 @@ class MultipleQuoteParams(MarketParams):
 
         if self.trade_session:
             params['trade_session'] = self.trade_session
+
+        if self.with_fundamental:
+            params['with_fundamental'] = self.with_fundamental
 
         return params
 
@@ -1096,6 +1109,7 @@ class StockBrokerParams(BaseParams):
         super().__init__()
         self._symbol = None
         self._limit = None
+        self._sec_type = None
 
     @property
     def symbol(self):
@@ -1113,12 +1127,22 @@ class StockBrokerParams(BaseParams):
     def limit(self, value):
         self._limit = value
 
+    @property
+    def sec_type(self):
+        return self._sec_type
+
+    @sec_type.setter
+    def sec_type(self, value):
+        self._sec_type = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.symbol:
             params['symbol'] = self.symbol
         if self.limit:
             params['limit'] = self.limit
+        if self.sec_type:
+            params['sec_type'] = self.sec_type
         return params
 
 class BrokerHoldParams(BaseParams):
@@ -1144,9 +1168,9 @@ class BrokerHoldParams(BaseParams):
         self._page = value
     @property
     def limit(self):
-        return self._limit  
-    @limit.setter   
-    def limit(self, value): 
+        return self._limit
+    @limit.setter
+    def limit(self, value):
         self._limit = value
     @property
     def order_by(self):
@@ -1161,7 +1185,7 @@ class BrokerHoldParams(BaseParams):
     def direction(self, value):
         self._direction = value
     def to_openapi_dict(self):
-        params = super().to_openapi_dict()  
+        params = super().to_openapi_dict()
         if self.market:
             params['market'] = self.market
         if self.page is not None and self.page >= 0:
@@ -1555,4 +1579,36 @@ class KlineQuotaParams(BaseParams):
         if self.with_details is not None:
             params['with_details'] = self.with_details
         return params
-    
+
+
+class OptionAnalysisParams(BaseParams):
+    """Request parameters for option analysis API."""
+
+    def __init__(self):
+        super().__init__()
+        self._symbols = []  # List of {"symbol": str, "period": str, "require_volatility_list": bool(optional)}
+        self._market = None
+
+    @property
+    def symbols(self):
+        return self._symbols
+
+    @symbols.setter
+    def symbols(self, value):
+        self._symbols = value
+
+    @property
+    def market(self):
+        return self._market
+
+    @market.setter
+    def market(self, value):
+        self._market = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self._symbols:
+            params['symbols'] = self._symbols
+        if self._market:
+            params['market'] = self._market
+        return params

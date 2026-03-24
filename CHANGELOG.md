@@ -1,3 +1,51 @@
+## 3.5.6 (2026-03-24)
+### New
+- 新增 CLI 命令行工具 `tigeropen`，支持行情查询、交易管理、账户查看、实时推送等功能，输出格式支持 table/json/csv. 支持一键安装
+- CLI 子命令: config (init/show/set/path), quote (briefs/bars/timeline/ticks/depth/market-status/symbols + option/future/capital/fundamental 子组), trade (order list/get/place/preview/modify/cancel + position/transaction), account (info/assets/analytics), push (quote/order/position/asset)
+- CLI 支持 `tigeropen uninstall` 自动执行卸载
+- 新增 AI Skills 技能集，支持 Claude Code、Cursor 等 AI 编码工具
+- 新增 pyproject.toml，采用现代 Python 打包标准
+### Modify
+- 迁移文档链接至新域名 docs.itigerup.com
+- README 重构为中英双语，新增 CLI / MCP / Skills 使用说明
+
+## 3.5.5 (2026-03-12)
+### New
+- `QuoteClient.get_option_analysis` 新增 `require_volatility_list` 参数，支持返回历史波动率列表（`volatility_list`）
+
+## 3.5.4 (2026-03-02)
+### New
+- 行情/交易/长链接适配数字货币
+- 支持金额单
+
+## 3.5.3 (2026-01-29)
+### New
+- `QuoteClient.get_option_analysis` 获取期权分析指标（隐含波动率、历史波动率、IV/HV比率、看涨看跌比率、IV百分位、IV排名）
+
+## 3.5.2 (2026-01-21)
+### New
+- `QuoteClient.get_option_briefs` 增加 `mark_price`, `selling_return` 等字段
+- 期权计算工具增加若干方法
+- cryptography 最低版本调整为 41.0.7
+
+## 3.5.1 (2025-12-26)
+### New
+- TradeClient 增加转股相关接口
+
+## 3.5.0 (2025-12-22)
+### New
+- `TradeClient.get_transactions` 获取成交记录，支持 since_date/to_date, 返回增加 filled_quantity_scale
+- `TradeClient.get_prime_assets` 综合账户资产增加字段 forex_rate
+- 长链接回调支持线程池
+
+## 3.4.9 (2025-10-28)
+### New
+- `QuoteClient.get_bars` 增加 `with_fundamental` 参数，支持获取附加数据(ttm_pe/lyr_pe/turnover_rate)的K线
+
+## 3.4.8 (2025-09-24)
+### New
+- `QuoteClient.get_future_history_main_contract` 获取期货历史主力合约
+
 ## 3.4.7 (2025-09-23)
 ### Fix
 - `QuoteClient.get_timeline_history` 解析盘前盘后分时数据问题

@@ -35,6 +35,10 @@ ESTIMATE_TRADABLE_QUANTITY = "estimate_tradable_quantity"
 TRANSFER_FUND = "transfer_fund"
 AGGREGATE_ASSETS = "aggregate_assets"
 FUND_DETAILS = "fund_details"
+POSITION_TRANSFER = "position_transfer"  # 内部转股
+POSITION_TRANSFER_RECORDS = "position_transfer_records"  # 内部转股记录
+POSITION_TRANSFER_DETAIL = "position_transfer_detail"  # 内部转股详情
+POSITION_TRANSFER_EXTERNAL_RECORDS = "position_transfer_external_records"  # 外部转股记录
 
 USER_LICENSE = "user_license"
 
@@ -87,6 +91,7 @@ OPTION_TRADE_TICK = "option_trade_tick"
 OPTION_DEPTH = "option_depth"
 ALL_HK_OPTION_SYMBOLS = "all_hk_option_symbols"
 OPTION_TIMELINE = "option_timeline"
+OPTION_ANALYSIS = "option_analysis"
 
 
 # 期货行情
@@ -96,6 +101,7 @@ FUTURE_CONTRACT_BY_EXCHANGE_CODE = "future_contract_by_exchange_code"
 FUTURE_CONTRACTS = "future_contracts"
 FUTURE_CONTINUOUS_CONTRACTS = "future_continuous_contracts"
 FUTURE_CURRENT_CONTRACT = "future_current_contract"
+FUTURE_HISTORY_MAIN_CONTRACT = "future_history_main_contract"
 FUTURE_KLINE = "future_kline"
 FUTURE_REAL_TIME_QUOTE = "future_real_time_quote"
 FUTURE_TICK = "future_tick"

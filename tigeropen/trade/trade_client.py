@@ -18,16 +18,18 @@ from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS
     PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET, SEGMENT_FUND_AVAILABLE, SEGMENT_FUND_HISTORY, \
     TRANSFER_FUND, \
     TRANSFER_SEGMENT_FUND, CANCEL_SEGMENT_FUND, PLACE_FOREX_ORDER, ESTIMATE_TRADABLE_QUANTITY, AGGREGATE_ASSETS, \
-    FUND_DETAILS
+    FUND_DETAILS, POSITION_TRANSFER, POSITION_TRANSFER_RECORDS, POSITION_TRANSFER_DETAIL, \
+    POSITION_TRANSFER_EXTERNAL_RECORDS
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import get_enum_value, date_str_to_timestamp
 from tigeropen.common.request import OpenApiRequest
 from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.tiger_open_config import LANGUAGE
-from tigeropen.trade.domain.order import Order
+from tigeropen.trade.domain.order import Order, Transaction
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
     OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams, SegmentFundParams, \
-    ForexTradeOrderParams, EstimateTradableQuantityModel, FundingHistoryParams, AggregateAssetParams, FundDetailsParams
+    ForexTradeOrderParams, EstimateTradableQuantityModel, FundingHistoryParams, AggregateAssetParams, FundDetailsParams, \
+    PositionTransferParams, PositionTransferRecordsParams, PositionTransferDetailParams
 from tigeropen.trade.response.account_profile_response import ProfilesResponse
 from tigeropen.trade.response.aggregate_assets_response import AggregateAssetsResponse
 from tigeropen.trade.response.analytics_asset_response import AnalyticsAssetResponse
@@ -44,6 +46,10 @@ from tigeropen.trade.response.segment_fund_response import SegmentFundAvailableR
     SegmentFundHistoryResponse, SegmentFundCancelResponse
 from tigeropen.trade.response.segment_fund_response import SegmentFundTransferResponse
 from tigeropen.trade.response.transactions_response import TransactionsResponse
+from tigeropen.trade.response.transfer_response import PositionTransferResponse, PositionTransferRecordsResponse, \
+    PositionTransferDetailResponse, PositionTransferExternalRecordsResponse
+from tigeropen.trade.domain.transfer import PositionTransfer, PositionTransferRecord, PositionTransferDetail, \
+    PositionTransferExternalRecord, TransferItem
 from tigeropen.trade.response.funding_history_response import FundingHistoryResponse
 
 
@@ -687,13 +693,14 @@ class TradeClient(TigerOpenClient):
                 raise ApiException(response.code, response.message)
         return None
 
-    def get_order(self,
-                  account: Optional[str] = None,
-                  id: Optional[int] = None,
-                  order_id: Optional[int] = None,
-                  is_brief: bool = False,
-                  show_charges: Optional[bool] = None,
-                  lang: Optional[Union[Language, str]] = None) -> Optional['Order']:
+    def get_order(
+            self,
+            account: Optional[str] = None,
+            id: Optional[int] = None,
+            order_id: Optional[int] = None,
+            is_brief: bool = False,
+            show_charges: Optional[bool] = None,
+            lang: Optional[Union[Language, str]] = None) -> Optional['Order']:
         """
         Get a specific order by ID. 获取指定订单信息
         
@@ -971,19 +978,18 @@ class TradeClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def modify_order(
-            self,
-            order: 'Order',
-            quantity: Optional[Union[int, float]] = None,
-            limit_price: Optional[float] = None,
-            aux_price: Optional[float] = None,
-            trail_stop_price: Optional[float] = None,
-            trailing_percent: Optional[float] = None,
-            percent_offset: Optional[float] = None,
-            time_in_force: Optional[str] = None,
-            outside_rth: Optional[bool] = None,
-            lang: Optional[Union[Language, str]] = None,
-            **kwargs) -> Optional[int]:
+    def modify_order(self,
+                     order: 'Order',
+                     quantity: Optional[Union[int, float]] = None,
+                     limit_price: Optional[float] = None,
+                     aux_price: Optional[float] = None,
+                     trail_stop_price: Optional[float] = None,
+                     trailing_percent: Optional[float] = None,
+                     percent_offset: Optional[float] = None,
+                     time_in_force: Optional[str] = None,
+                     outside_rth: Optional[bool] = None,
+                     lang: Optional[Union[Language, str]] = None,
+                     **kwargs) -> Optional[int]:
         """
         Modify an order. 修改订单
         
@@ -1041,12 +1047,10 @@ class TradeClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def cancel_order(
-        self,
-        account: Optional[str] = None,
-        id: Optional[int] = None,
-        order_id: Optional[int] = None
-    ) -> Optional[int]:
+    def cancel_order(self,
+                     account: Optional[str] = None,
+                     id: Optional[int] = None,
+                     order_id: Optional[int] = None) -> Optional[int]:
         """
         Cancel an order. 取消订单
         
@@ -1074,19 +1078,23 @@ class TradeClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_transactions(self,
-                         account: Optional[str]=None,
-                         order_id: Optional[int]=None,
-                         symbol: Optional[str]=None,
-                         sec_type: Optional[Union[SecurityType, str]]=None,
-                         start_time: Optional[int]=None,
-                         end_time: Optional[int]=None,
-                         limit: int=100,
-                         expiry: Optional[str]=None,
-                         strike: Optional[float]=None,
-                         put_call: Optional[str]=None,
-                         lang: Optional[Union[Language, str]]=None,
-                         page_token: Optional[str]=None):
+    def get_transactions(
+        self,
+        account: Optional[str] = None,
+        order_id: Optional[int] = None,
+        symbol: Optional[str] = None,
+        sec_type: Optional[Union[SecurityType, str]] = None,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: int = 100,
+        expiry: Optional[str] = None,
+        strike: Optional[float] = None,
+        put_call: Optional[str] = None,
+        lang: Optional[Union[Language, str]] = None,
+        page_token: Optional[str] = None,
+        since_date: Optional[str] = None,
+        to_date: Optional[str] = None
+    ) -> Optional[Union[list[Transaction], 'TransactionsResponse']]:
         """
         query order transactions, only prime accounts are supported.
         :param account: account id. If not passed, the default account is used
@@ -1099,6 +1107,10 @@ class TradeClient(TigerOpenClient):
         :param expiry: expiry date of Option. 'yyyyMMdd', like '220121'
         :param strike: strike price of Option
         :param put_call: Option right, PUT or CALL
+        :param since_date: date str. format yyyyMMdd, like '20211201'
+        :param to_date: date str. format yyyyMMdd, like '20211231'
+        :param page_token: page token for pagination
+        :param lang: language. tigeropen.common.consts.Language
         :return:
         """
         params = TransactionsParams()
@@ -1109,6 +1121,8 @@ class TradeClient(TigerOpenClient):
         params.symbol = symbol
         params.start_date = date_str_to_timestamp(start_time, self._timezone)
         params.end_date = date_str_to_timestamp(end_time, self._timezone)
+        params.since_date = since_date
+        params.to_date = to_date
         params.limit = limit
         params.expiry = expiry
         params.strike = strike
@@ -1130,13 +1144,13 @@ class TradeClient(TigerOpenClient):
         return None
 
     def get_analytics_asset(self,
-                            account: Optional[str]=None,
-                            start_date: Optional[str]=None,
-                            end_date: Optional[str]=None,
-                            seg_type: Optional[Union[SegmentType, str]]=None,
-                            currency: Optional[Union[Currency, str]]=None,
-                            sub_account: Optional[str]=None,
-                            lang: Optional[Union[Language, str]]=None):
+                            account: Optional[str] = None,
+                            start_date: Optional[str] = None,
+                            end_date: Optional[str] = None,
+                            seg_type: Optional[Union[SegmentType, str]] = None,
+                            currency: Optional[Union[Currency, str]] = None,
+                            sub_account: Optional[str] = None,
+                            lang: Optional[Union[Language, str]] = None):
         """
         get analytics of history asset
         :param account:
@@ -1370,6 +1384,153 @@ class TradeClient(TigerOpenClient):
                 return response.result
             else:
                 raise ApiException(response.code, response.message)
+
+    def transfer_position(
+            self,
+            from_account: str,
+            to_account: str,
+            transfers: List[TransferItem],
+            market: Optional[str] = None,
+            secret_key: Optional[str] = None) -> Optional[PositionTransfer]:
+        """
+        内部转股
+        :param from_account: 转出账户
+        :param to_account: 转入账户
+        :param transfers: 转股列表, 列表元素为 TransferItem 对象
+        :param market: 市场
+        :return: PositionTransfer 对象
+        """
+        params = PositionTransferParams()
+        params.from_account = from_account if from_account else self._account
+        params.to_account = to_account
+        params.transfers = transfers if isinstance(transfers,
+                                                   list) else [transfers]
+        params.market = market
+        params.secret_key = secret_key if secret_key else self._secret_key
+
+        request = OpenApiRequest(POSITION_TRANSFER, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = PositionTransferResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_position_transfer_records(
+            self,
+            since_date: str,
+            to_date: str,
+            status: Optional[str] = None,
+            market: Optional[str] = None,
+            symbol: Optional[str] = None,
+            account_id: Optional[str] = None,
+            secret_key: Optional[str] = None,
+            lang: Optional[str] = None) -> Optional[List[PositionTransferRecord]]:
+        """
+        获取内部转股记录
+        :param since_date: 开始日期 YYYY-MM-DD
+        :param to_date: 结束日期 YYYY-MM-DD
+        :param status: 状态
+        :param market: 市场
+        :param symbol: 代码
+        :param account_id: 账户 ID
+        :return: List[PositionTransferRecord]
+        """
+        params = PositionTransferRecordsParams()
+        params.account_id = account_id if account_id else self._account
+        params.since_date = since_date
+        params.to_date = to_date
+        params.status = status
+        params.market = market
+        params.symbol = symbol
+        params.secret_key = secret_key if secret_key else self._secret_key
+        params.lang = get_enum_value(lang) if lang else get_enum_value(
+            self._lang)
+
+        request = OpenApiRequest(POSITION_TRANSFER_RECORDS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = PositionTransferRecordsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_position_transfer_detail(
+            self,
+            transfer_id: str,
+            account_id: Optional[str] = None,
+            secret_key: Optional[str] = None,
+            lang: Optional[str] = None) -> Optional[PositionTransferDetail]:
+        """
+        获取内部转股详情
+        :param transfer_id: 转股记录 ID
+        :param account_id: 账户 ID
+        :return: PositionTransferDetail 对象
+        """
+        params = PositionTransferDetailParams()
+        params.account_id = account_id if account_id else self._account
+        params.id = transfer_id
+        params.secret_key = secret_key if secret_key else self._secret_key
+        params.lang = get_enum_value(lang) if lang else get_enum_value(
+            self._lang)
+        request = OpenApiRequest(POSITION_TRANSFER_DETAIL, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = PositionTransferDetailResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_position_transfer_external_records(
+            self,
+            since_date: str,
+            to_date: str,
+            status: Optional[str] = None,
+            market: Optional[str] = None,
+            symbol: Optional[str] = None,
+            account_id: Optional[str] = None,
+            secret_key: Optional[str] = None,
+            lang: Optional[str] = None) -> Optional[List[PositionTransferExternalRecord]]:
+        """
+        获取外部转股记录
+        :param since_date: 开始日期 YYYY-MM-DD
+        :param to_date: 结束日期 YYYY-MM-DD
+        :param status: 状态. 新提交 PendingNew, 已提交 NEW, 人工处理中 ManualProcessing, 已成功 Succ, 已失败  Fail, 已取消 Canceled, 部分成功  PartialSucc
+        :param market: 市场
+        :param symbol: 代码
+        :param account_id: 账户 ID
+        :return: List[PositionTransferExternalRecord]
+        """
+        params = PositionTransferRecordsParams()
+        params.account_id = account_id if account_id else self._account
+        params.since_date = since_date
+        params.to_date = to_date
+        params.status = status
+        params.market = market
+        params.symbol = symbol
+        params.secret_key = secret_key if secret_key else self._secret_key
+        params.lang = get_enum_value(lang) if lang else get_enum_value(
+            self._lang)
+        request = OpenApiRequest(POSITION_TRANSFER_EXTERNAL_RECORDS,
+                                 biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = PositionTransferExternalRecordsResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
 
     def __fetch_data(self, request):
         try:

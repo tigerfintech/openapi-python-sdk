@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 
-from tigeropen.common.consts import CapitalPeriod, Valuation, Income, Market, SortDirection, TradingSession, BarPeriod
+from tigeropen.common.consts import CapitalPeriod, Valuation, Income, Market, SortDirection, TradingSession, BarPeriod, OptionAnalysisPeriod
 from tigeropen.common.consts.filter_fields import FinancialPeriod, StockField
 from tigeropen.common.util import web_utils
 from tigeropen.quote.domain.filter import StockFilter, SortFilterData, OptionFilter
@@ -32,7 +32,7 @@ class TestQuoteClient(unittest.TestCase):
         self.is_mock = True
         current_dir = os.path.dirname(__file__)
         self.client_config = TigerOpenClientConfig(
-            props_path=os.path.join(current_dir, ".config/prod_20150899/"))
+            props_path=os.path.join(current_dir, ".config/prod_xxxx/"))
         self.client: QuoteClient = QuoteClient(self.client_config,
                                                logger=logger,
                                                is_grab_permission=False)
@@ -805,7 +805,9 @@ class TestQuoteClient(unittest.TestCase):
                          "data": [
                              {"symbol": "PDD", "identifier": "PDD   260121C00090000", "strike": "90.0", "volume": 130,
                               "multiplier": 100, "right": "call", "volatility": "26.29%", "expiry": 1768971600000,
-                              "ratesBonds": 0.039494}]}
+                              "ratesBonds": 0.039494, "midPrice": 1.23, "midTimestamp": 1755001774000,
+                              "markPrice": 1.25, "markTimestamp": 1755001774100, "preMarkPrice": 1.2,
+                              "sellingReturn": 0.15}]}
             web_utils.do_request = MagicMock(
                 return_value=json.dumps(mock_data).encode())
 
@@ -829,6 +831,12 @@ class TestQuoteClient(unittest.TestCase):
             self.assertIn('volume', mock_result.columns)
             self.assertIn('rates_bonds', mock_result.columns)
             self.assertIn('volatility', mock_result.columns)
+            self.assertIn('mid_price', mock_result.columns)
+            self.assertIn('mid_timestamp', mock_result.columns)
+            self.assertIn('mark_price', mock_result.columns)
+            self.assertIn('mark_timestamp', mock_result.columns)
+            self.assertIn('pre_mark_price', mock_result.columns)
+            self.assertIn('selling_return', mock_result.columns)
 
             # 验证具体数据
             first_row = mock_result.iloc[0]
@@ -841,6 +849,12 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(first_row['volume'], 130)
             self.assertAlmostEqual(first_row['rates_bonds'], 0.039494)
             self.assertEqual(first_row['volatility'], '26.29%')
+            self.assertAlmostEqual(first_row['mid_price'], 1.23)
+            self.assertEqual(first_row['mid_timestamp'], 1755001774000)
+            self.assertAlmostEqual(first_row['mark_price'], 1.25)
+            self.assertEqual(first_row['mark_timestamp'], 1755001774100)
+            self.assertAlmostEqual(first_row['pre_mark_price'], 1.2)
+            self.assertAlmostEqual(first_row['selling_return'], 0.15)
         else:
             result = self.client.get_option_briefs(
                 identifiers=['PDD 260121C00090000'])
@@ -1186,6 +1200,134 @@ class TestQuoteClient(unittest.TestCase):
             result = self.client.get_option_timeline(identifiers=['TCH.HK 250828C00610000'], market=Market.HK)
             logger.debug(f"Option Timeline (real):\n {result}")
 
+    def test_get_option_analysis(self):
+        """Test get_option_analysis method with various input formats"""
+        if self.is_mock:
+            # Mock data for option analysis response
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1755100000000,
+                "data": [
+                    {
+                        "symbol": "AAPL",
+                        "impliedVol30Days": 0.2534,
+                        "hisVolatility": 0.2203,
+                        "ivHisVRatio": 1.15,
+                        "callPutRatio": 1.23,
+                        "impliedVolMetric": {
+                            "period": "52week",
+                            "percentile": 0.45,
+                            "rank": 0.38
+                        }
+                    },
+                    {
+                        "symbol": "TSLA",
+                        "impliedVol30Days": 0.4521,
+                        "hisVolatility": 0.3987,
+                        "ivHisVRatio": 1.13,
+                        "callPutRatio": 0.89,
+                        "impliedVolMetric": {
+                            "period": "26week",
+                            "percentile": 0.62,
+                            "rank": 0.55
+                        }
+                    }
+                ]
+            }
+            web_utils.do_request = MagicMock(
+                return_value=json.dumps(mock_data).encode())
+
+            # Test 1: Empty symbols returns empty list
+            result_empty = self.client.get_option_analysis(symbols=[])
+            logger.debug(f"Option Analysis (empty symbols):\n {result_empty}")
+            self.assertIsNotNone(result_empty)
+            self.assertIsInstance(result_empty, list)
+            self.assertEqual(len(result_empty), 0)
+
+            # Test 2: String symbols use default period
+            result_strings = self.client.get_option_analysis(
+                symbols=['AAPL', 'TSLA'],
+                period=OptionAnalysisPeriod.FIFTY_TWO_WEEK,
+                market=Market.US
+            )
+            logger.debug(f"Option Analysis (string symbols):\n {result_strings}")
+            
+            # Verify list structure
+            self.assertIsNotNone(result_strings)
+            self.assertIsInstance(result_strings, list)
+            self.assertEqual(len(result_strings), 2)
+            
+            # Verify first object data (AAPL)
+            aapl = result_strings[0]
+            self.assertEqual(aapl.symbol, 'AAPL')
+            self.assertAlmostEqual(aapl.implied_vol_30_days, 0.2534, places=4)
+            self.assertAlmostEqual(aapl.his_volatility, 0.2203, places=4)
+            self.assertAlmostEqual(aapl.iv_his_v_ratio, 1.15, places=2)
+            self.assertAlmostEqual(aapl.call_put_ratio, 1.23, places=2)
+            
+            # Verify nested iv_metric object
+            self.assertIsNotNone(aapl.iv_metric)
+            self.assertEqual(aapl.iv_metric.period, '52week')
+            self.assertAlmostEqual(aapl.iv_metric.percentile, 0.45, places=2)
+            self.assertAlmostEqual(aapl.iv_metric.rank, 0.38, places=2)
+            
+            # Verify second object data (TSLA)
+            tsla = result_strings[1]
+            self.assertEqual(tsla.symbol, 'TSLA')
+            self.assertAlmostEqual(tsla.implied_vol_30_days, 0.4521, places=4)
+            self.assertEqual(tsla.iv_metric.period, '26week')
+
+            # Test 3: Dict symbols use their own period
+            result_dicts = self.client.get_option_analysis(
+                symbols=[
+                    {"symbol": "AAPL", "period": "52week"},
+                    {"symbol": "TSLA", "period": "26week"}
+                ],
+                market=Market.US
+            )
+            logger.debug(f"Option Analysis (dict symbols):\n {result_dicts}")
+            
+            self.assertIsNotNone(result_dicts)
+            self.assertIsInstance(result_dicts, list)
+            self.assertEqual(len(result_dicts), 2)
+            
+            # Verify periods are correctly set
+            self.assertEqual(result_dicts[0].iv_metric.period, '52week')
+            self.assertEqual(result_dicts[1].iv_metric.period, '26week')
+
+            # Test 4: Mixed input handling (strings and dicts)
+            result_mixed = self.client.get_option_analysis(
+                symbols=[
+                    "AAPL",  # String - should use default period
+                    {"symbol": "TSLA", "period": OptionAnalysisPeriod.TWENTY_SIX_WEEK}  # Dict - uses its own period
+                ],
+                period=OptionAnalysisPeriod.FIFTY_TWO_WEEK,  # Default period for string symbols
+                market=Market.US
+            )
+            logger.debug(f"Option Analysis (mixed input):\n {result_mixed}")
+            
+            self.assertIsNotNone(result_mixed)
+            self.assertIsInstance(result_mixed, list)
+            self.assertEqual(len(result_mixed), 2)
+            
+            # Verify AAPL uses default period (52week)
+            aapl_mixed = next(a for a in result_mixed if a.symbol == 'AAPL')
+            self.assertEqual(aapl_mixed.iv_metric.period, '52week')
+            
+            # Verify TSLA uses its own period (26week)
+            tsla_mixed = next(a for a in result_mixed if a.symbol == 'TSLA')
+            self.assertEqual(tsla_mixed.iv_metric.period, '26week')
+
+        else:
+            # Real API tests
+            result = self.client.get_option_analysis(
+                symbols=['AAPL', 'TSLA'],
+                period=OptionAnalysisPeriod.FIFTY_TWO_WEEK,
+                market=Market.US
+            )
+            logger.debug(f"Option Analysis (real):\n {result}")
+
     def test_get_future_exchanges(self):
         if not self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755062040054,
@@ -1470,6 +1612,56 @@ class TestQuoteClient(unittest.TestCase):
         else:
             result = self.client.get_current_future_contract(future_type='ES')
             logger.debug(f"Future Current Contract (real):\n {result}")
+
+    def test_get_future_history_main_contract(self):
+        if self.is_mock:
+            mock_data = {"code":0,
+                         "message":"success",
+                         "timestamp":1758627126838,
+                         "data":[
+                             {"contractCode":"CLmain",
+                              "mainReferItems":
+                                  [
+                                      {"time":1758574800000,"referContractCode":"CL2511"},
+                                      {"time":1758315600000,"referContractCode":"CL2511"},
+                                      {"time":1758229200000,"referContractCode":"CL2511"},
+                                      {"time":1758142800000,"referContractCode":"CL2510"},
+                                      {"time":1758056400000,"referContractCode":"CL2510"},
+                                      {"time":1757970000000,"referContractCode":"CL2510"},
+                                      {"time":1757710800000,"referContractCode":"CL2510"}
+                                  ]
+                              }
+                         ]
+                         }
+            web_utils.do_request = MagicMock(
+                return_value=json.dumps(mock_data).encode())
+            # 调用获取期货历史主力合约方法
+            mock_result = self.client.get_future_history_main_contract(identifiers=['CLmain'],
+                                                                       begin_time=1755035100000,
+                                                                       end_time=1765035100000)
+            logger.debug(f"Future History Main Contract (mock):\n {mock_result}")
+            self.assertIsNotNone(mock_result)
+            self.assertFalse(mock_result.empty)
+            self.assertEqual(len(mock_result), 7)  # 应该有7条主力合约记录
+            self.assertIn('contract_code', mock_result.columns)
+            self.assertIn('time', mock_result.columns)
+            self.assertIn('refer_contract_code', mock_result.columns)
+            # 验证第一条主力合约记录
+            last_record = mock_result.iloc[0]
+            self.assertEqual(last_record['contract_code'], 'CLmain')
+            self.assertEqual(int(last_record['time']), 1758574800000)
+            self.assertEqual(last_record['refer_contract_code'], 'CL2511')
+            # 验证最后一条主力合约记录
+            first_record = mock_result.iloc[6]
+            self.assertEqual(first_record['contract_code'], 'CLmain')
+            self.assertEqual(int(first_record['time']), 1757710800000)
+            self.assertEqual(first_record['refer_contract_code'], 'CL2510')
+
+        else:
+            result = self.client.get_future_history_main_contract(identifiers=['CLmain'],
+                                                                  begin_time=1755035100000,
+                                                                  end_time=1765035100000)
+            logger.debug(f"Future History Main Contract (real):\n {result}")
 
     def test_get_all_future_contracts(self):
         if self.is_mock:
