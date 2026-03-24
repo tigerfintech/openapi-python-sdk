@@ -69,11 +69,37 @@ class TigerCLI(click.Group):
                 traceback.print_exc()
             sys.exit(1)
 
+    # Global options that can appear anywhere in the command line
+    _GLOBAL_OPTIONS = {
+        '-f': 1, '--format': 1,
+        '-c': 1, '--config-path': 1,
+        '-l': 1, '--language': 1,
+        '-v': 0, '--verbose': 0,
+    }
+
     def parse_args(self, ctx, args):
         if not args:
             click.echo(GETTING_STARTED.format(version=__VERSION__))
             ctx.exit(0)
-        return super().parse_args(ctx, args)
+        # Move global options to the front so Click's group parser can see them.
+        # This allows e.g. `tigeropen quote briefs AAPL -f json` to work.
+        front = []
+        rest = []
+        i = 0
+        args = list(args)
+        while i < len(args):
+            arg = args[i]
+            if arg in self._GLOBAL_OPTIONS:
+                n_values = self._GLOBAL_OPTIONS[arg]
+                front.append(arg)
+                for j in range(n_values):
+                    if i + 1 + j < len(args):
+                        front.append(args[i + 1 + j])
+                i += 1 + n_values
+            else:
+                rest.append(arg)
+                i += 1
+        return super().parse_args(ctx, front + rest)
 
 
 @click.group(cls=TigerCLI, context_settings=CONTEXT_SETTINGS)
@@ -81,7 +107,7 @@ class TigerCLI(click.Group):
               help='Path to config directory or properties file.')
 @click.option('--format', '-f', 'output_format',
               type=click.Choice(['table', 'json', 'csv'], case_sensitive=False),
-              default='table', help='Output format.')
+              default='json', help='Output format.')
 @click.option('--language', '-l',
               type=click.Choice(['en_US', 'zh_CN', 'zh_TW'], case_sensitive=False),
               default='en_US', help='Language.')
