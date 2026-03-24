@@ -4,10 +4,13 @@ Client factory module for CLI.
 Handles config resolution, private key loading, and lazy client creation.
 """
 import os
+from pathlib import Path
 
 from tigeropen import __VERSION__
 from tigeropen.common.util.signature_utils import read_private_key
 from tigeropen.tiger_open_config import TigerOpenClientConfig
+
+DEFAULT_CONFIG_DIR = str(Path.home() / '.tigeropen')
 
 
 def resolve_private_key(key_input):
@@ -41,7 +44,7 @@ def build_config(ctx_obj):
     :param ctx_obj: dict with optional keys: config_path, tiger_id, account, private_key, language
     :return: TigerOpenClientConfig
     """
-    config_path = ctx_obj.get('config_path')
+    config_path = ctx_obj.get('config_path') or DEFAULT_CONFIG_DIR
     config = TigerOpenClientConfig(enable_dynamic_domain=False,
                                    props_path=config_path)
     config._channel = f"tigercli"

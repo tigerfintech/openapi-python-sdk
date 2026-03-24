@@ -8,10 +8,7 @@ import click
 from jproperties import Properties
 
 from tigeropen.tiger_open_config import DEFAULT_PROPS_FILE
-from tigeropen.cli.client_factory import resolve_private_key
-
-
-DEFAULT_CONFIG_DIR = os.path.expanduser('~/.tigeropen')
+from tigeropen.cli.client_factory import resolve_private_key, DEFAULT_CONFIG_DIR
 
 
 @click.group('config')
@@ -21,13 +18,33 @@ def config():
 
 
 @config.command('init')
-def config_init():
+@click.pass_context
+def config_init(ctx):
     """Interactive configuration setup."""
     tiger_id = click.prompt('Tiger ID')
     account = click.prompt('Account')
-    private_key = click.prompt('Private Key (file path or key content)')
-    license_val = click.prompt('License (TBNZ/TBSG/TBHK/TBAU/TBUS)', default='', show_default=False)
-    secret_key = click.prompt('Secret Key (institutional only)', default='', show_default=False)
+
+    # Private key: support multi-line paste (PEM or raw base64).
+    # Read lines until an empty line signals end of input.
+    click.echo('Private Key (file path or key content, blank line to finish):')
+    lines = []
+    stdin = click.get_text_stream('stdin')
+    while True:
+        line = stdin.readline()
+        if not line:  # EOF
+            break
+        line = line.rstrip('\n').rstrip('\r')
+        if not line and lines:
+            break
+        if line:
+            lines.append(line)
+    private_key = ''.join(lines)
+
+    if not private_key:
+        raise click.ClickException('Private key cannot be empty.')
+
+    secret_key = click.prompt('Secret Key (institutional only, press Enter to skip)',
+                              default='', show_default=False)
     config_dir = click.prompt('Config directory', default=DEFAULT_CONFIG_DIR)
 
     os.makedirs(config_dir, exist_ok=True)
@@ -38,8 +55,6 @@ def config_init():
     p['account'] = account
     p['private_key_pk8'] = resolve_private_key(private_key)
 
-    if license_val:
-        p['license'] = license_val
     if secret_key:
         p['secret_key'] = secret_key
 
