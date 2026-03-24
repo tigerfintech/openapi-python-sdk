@@ -13,3 +13,4 @@ jproperties
 protobuf
 google-cloud
 urllib3
+click>=8.0
