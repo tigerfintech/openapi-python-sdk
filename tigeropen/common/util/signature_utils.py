@@ -59,11 +59,20 @@ def fill_public_key_marker(public_key):
 
 @lru_cache(maxsize=10)
 def load_private_key(private_key):
-    return serialization.load_pem_private_key(
-        fill_private_key_marker(private_key).encode(),
-        password=None,
-        backend=default_backend()
-    )
+    der_data = base64.b64decode(private_key)
+    try:
+        return serialization.load_der_private_key(
+            der_data,
+            password=None,
+            backend=default_backend()
+        )
+    except (ValueError, TypeError):
+        pem_data = fill_private_key_marker(private_key).encode()
+        return serialization.load_pem_private_key(
+            pem_data,
+            password=None,
+            backend=default_backend()
+        )
 
 
 @lru_cache(maxsize=10)

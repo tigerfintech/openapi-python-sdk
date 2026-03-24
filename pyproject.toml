@@ -43,7 +43,7 @@ dependencies = [
     "rsa",
     "stomp.py",
     "getmac",
-    "cryptography~=41.0.7",
+    "cryptography",
     "backoff",
     "jproperties",
     "protobuf",
