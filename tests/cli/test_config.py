@@ -22,7 +22,9 @@ class TestConfigInit(unittest.TestCase):
     def test_config_init_creates_properties_file(self):
         """config init should create tiger_openapi_config.properties via interactive prompts."""
         from tigeropen.cli.main import cli
-        result = self.runner.invoke(cli, ['config', 'init'], input=f'test_id\ntest_account\ntest_private_key_content\n\n\n{self.temp_dir}\n')
+        # Prompts: tiger_id, account, private_key (+ blank line), secret_key(skip), config_dir
+        result = self.runner.invoke(cli, ['config', 'init'],
+                                    input=f'test_id\ntest_account\ntest_private_key_content\n\n\n{self.temp_dir}\n')
         self.assertEqual(result.exit_code, 0)
         props_file = os.path.join(self.temp_dir, 'tiger_openapi_config.properties')
         self.assertTrue(os.path.exists(props_file))
@@ -30,7 +32,8 @@ class TestConfigInit(unittest.TestCase):
     def test_config_init_writes_correct_values(self):
         """config init should write tiger_id, account, private_key to properties file."""
         from tigeropen.cli.main import cli
-        result = self.runner.invoke(cli, ['config', 'init'], input=f'my_tiger_id\nmy_account\nmy_private_key\n\n\n{self.temp_dir}\n')
+        result = self.runner.invoke(cli, ['config', 'init'],
+                                    input=f'my_tiger_id\nmy_account\nmy_private_key\n\n\n{self.temp_dir}\n')
         self.assertEqual(result.exit_code, 0)
         props_file = os.path.join(self.temp_dir, 'tiger_openapi_config.properties')
         content = open(props_file, 'r').read()
@@ -168,6 +171,17 @@ class TestConfigInitWithPemKey(unittest.TestCase):
         props_file = os.path.join(config_dir, 'tiger_openapi_config.properties')
         self.assertTrue(os.path.exists(props_file))
 
+    def test_config_init_with_multiline_key(self):
+        """config init should join multi-line pasted private key into one string."""
+        from tigeropen.cli.main import cli
+        # Simulate pasting a multi-line key: 3 lines + blank line to finish
+        result = self.runner.invoke(cli, ['config', 'init'],
+                                    input=f'test_id\ntest_account\nAAAA\nBBBB\nCCCC\n\n\n{self.temp_dir}\n')
+        self.assertEqual(result.exit_code, 0)
+        props_file = os.path.join(self.temp_dir, 'tiger_openapi_config.properties')
+        content = open(props_file, 'r').read()
+        self.assertIn('AAAABBBBCCCC', content)
+
 
 class TestConfigSetNew(unittest.TestCase):
     """Tests for config set creating new properties."""
@@ -252,15 +266,14 @@ class TestConfigInitFullOptions(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_config_init_with_license_and_secret(self):
-        """config init with license and secret_key should write them to properties."""
+    def test_config_init_with_secret(self):
+        """config init with secret_key should write it to properties."""
         from tigeropen.cli.main import cli
         result = self.runner.invoke(cli, ['config', 'init'],
-                                    input=f'test_id\ntest_account\ntest_key\nTBUS\nmy_secret\n{self.temp_dir}\n')
+                                    input=f'test_id\ntest_account\ntest_key\n\nmy_secret\n{self.temp_dir}\n')
         self.assertEqual(result.exit_code, 0)
         props_file = os.path.join(self.temp_dir, 'tiger_openapi_config.properties')
         content = open(props_file, 'r').read()
-        self.assertIn('TBUS', content)
         self.assertIn('my_secret', content)
 
 
