@@ -65,11 +65,13 @@ class PushConnection(BaseConnection, Protocol):
                  auto_decode=True,
                  encoding="utf-8",
                  heart_beat_receive_scale=1.5,
-                 bind_host_port=None):
+                 bind_host_port=None,
+                 callback_executor=None):
         transport = Transport(host_and_ports, prefer_localhost, try_loopback_connect,
                               reconnect_sleep_initial, reconnect_sleep_increase, reconnect_sleep_jitter,
                               reconnect_sleep_max, reconnect_attempts_max, timeout,
-                              keepalive, vhost, auto_decode, encoding, bind_host_port=bind_host_port)
+                              keepalive, vhost, auto_decode, encoding, bind_host_port=bind_host_port,
+                              callback_executor=callback_executor)
         BaseConnection.__init__(self, transport)
         Protocol.__init__(self, transport, heartbeats,
                           heart_beat_receive_scale=heart_beat_receive_scale)

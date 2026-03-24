@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Helpers for calculating the Greeks of options
+# requires QuantLib>=1.40
 # @Date    : 2022/4/15
 # @Author  : sukai
 import argparse
@@ -11,7 +12,7 @@ except ImportError:
     pass
 
 
-class FDDividendOptionHelper(ql.DividendVanillaOption):
+class FDDividendOptionHelper(ql.VanillaOption):
     def __init__(self,
                  engine_class,
                  option_type: ql.Option,
@@ -29,8 +30,8 @@ class FDDividendOptionHelper(ql.DividendVanillaOption):
                  ):
         self.dates = dates if dates is not None else list()
         self.dividends = dividends if dividends is not None else list()
-        super(FDDividendOptionHelper, self).__init__(ql.PlainVanillaPayoff(option_type, strike), exercise, self.dates,
-                                                     self.dividends)
+        super(FDDividendOptionHelper, self).__init__(ql.PlainVanillaPayoff(option_type, strike), exercise)
+
 
         self.option_type = option_type
         self.underlying = underlying
@@ -155,7 +156,7 @@ class FDAmericanDividendOptionHelper(FDDividendOptionHelper):
                  dividends: List[float] = None,
                  calendar: ql.Calendar = ql.NullCalendar(),
                  day_counter: ql.DayCounter = ql.Actual365Fixed(),
-                 engine_class: ql.PricingEngine.__class__ = ql.FdBlackScholesVanillaEngine
+                 engine_class: ql.PricingEngine = ql.FdBlackScholesVanillaEngine
                  ):
         """
 
@@ -208,7 +209,7 @@ class FDEuropeanDividendOptionHelper(FDDividendOptionHelper):
                  dividends: List[float] = None,
                  calendar: ql.Calendar = ql.NullCalendar(),
                  day_counter: ql.DayCounter = ql.Actual365Fixed(),
-                 engine_class: ql.PricingEngine.__class__ = ql.FdBlackScholesVanillaEngine
+                 engine_class: ql.PricingEngine = ql.FdBlackScholesVanillaEngine
                  ):
         super(FDEuropeanDividendOptionHelper, self).__init__(engine_class=engine_class,
                                                              option_type=option_type, underlying=underlying,
@@ -223,7 +224,7 @@ class FDEuropeanDividendOptionHelper(FDDividendOptionHelper):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Helpers for calculating the Greeks of options')
 
-    parser.add_argument('-t', '--type', type=str,
+    parser.add_argument('-t', '--type', type=str, default='CALL',
                         help='Option type, CALL/PUT (C/P)', choices=('C', 'P', 'CALL', 'PUT'))
     parser.add_argument('-u', '--underlying', type=float,
                         help='The price of the underlying asset')
@@ -259,7 +260,18 @@ if __name__ == '__main__':
     if args.volatility is None and args.npv is None and args.ask is None and args.bid is None:
         parser.error('Must specify the volatility or option npv(or option\'s ask, bid)')
 
-    print(args.__dict__)
+    # args.settlement = '2026/01/18'
+    # args.expiration = '2026/02/20'
+    # args.type = 'C'
+    # args.underlying = 437.5
+    # args.strike = 385
+    # args.rfrate = 0.03553
+    # args.dividend = 0.00
+    # args.volatility = 0
+    # args.npv = None
+    # args.ask = 59.55
+    # args.bid = args.ask
+
     settlement_date = ql.DateParser.parseFormatted(str(args.settlement).replace('/', '-'), '%Y-%m-%d')
     expiration_date = ql.DateParser.parseFormatted(str(args.expiration).replace('/', '-'), '%Y-%m-%d')
 

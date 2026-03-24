@@ -4,7 +4,6 @@ import os
 import re
 import sys
 import signal
-from datetime import datetime
 from typing import Optional, Any, Union
 
 import pandas as pd
@@ -12,11 +11,6 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 from tigeropen import __VERSION__ as TIGEROPEN_SDK_VERSION
 from tigeropen.common.consts import Market, SecurityType, Currency, OrderType
-from tigeropen.common.consts import SortDirection
-from tigeropen.common.consts.filter_fields import (
-    StockField, AccumulateField, FinancialField, MultiTagField,
-    AccumulatePeriod, FinancialPeriod
-)
 from tigeropen.common.util.contract_utils import option_contract_by_symbol, future_contract, \
     stock_contract
 from tigeropen.common.util.order_utils import (limit_order, market_order,
@@ -24,7 +18,7 @@ from tigeropen.common.util.order_utils import (limit_order, market_order,
                                                trail_order, algo_order,
                                                algo_order_params, combo_order,
                                                contract_leg)
-from tigeropen.quote.domain.filter import StockFilter, SortFilterData, ScannerResult, OptionFilter
+from tigeropen.quote.domain.filter import OptionFilter
 from tigeropen.quote.quote_client import QuoteClient
 from tigeropen.tiger_open_config import TigerOpenClientConfig
 from tigeropen.trade.trade_client import TradeClient
@@ -486,7 +480,7 @@ class TradeApi:
     @staticmethod
     @server.tool(description='Get account position data.')
     def get_positions(sec_type: str = Field(SecurityType.STK.value,
-                                            description="Security type. STK/OPT/FUT", pattern=r'^(STK|OPT|FUT)$'),
+                                              description="Security type. STK/OPT/FUT", pattern=r'^(STK|OPT|FUT)$'),
                       market: str = Field(Market.ALL.value,
                                           description="Market. US/HK/ALL", pattern=r'^(US|HK|ALL)$'),
                       symbol: Optional[str] = Field(None, description='Contract symbol. e.g. "AAPL", "00700"')
@@ -494,15 +488,19 @@ class TradeApi:
         """
         获取持仓信息
         """
-        result = ApiHelper.serialize_list(
-            TradeApi.trade_client.get_positions(sec_type=sec_type,
-                                                market=market,
-                                                symbol=symbol))
+        result = TradeApi.trade_client.get_positions(sec_type=sec_type,
+                                                     market=market,
+                                                     symbol=symbol)
         if result:
+            positions_list = []
             for item in result:
-                item.pop('quantity', None)
-                item.pop('position_scale', None)
-        return result
+                # Convert to dict first, then remove unwanted fields
+                pos_dict = dict(item.__dict__)
+                pos_dict.pop('quantity', None)
+                pos_dict.pop('position_scale', None)
+                positions_list.append(pos_dict)
+            return positions_list
+        return []
 
     @staticmethod
     @server.tool(description='Get account asset information.')

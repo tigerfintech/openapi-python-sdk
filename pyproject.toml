@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "tigeropen"
+dynamic = ["version"]
+description = "TigerBrokers Open API Python SDK"
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {text = "Apache-2.0"}
+requires-python = ">=3.8"
+authors = [
+    {name = "TigerBrokers", email = "openapi@itiger.com"},
+]
+keywords = ["tiger", "brokers", "openapi", "trading", "quant", "finance"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "simplejson",
+    "delorean",
+    "pandas",
+    "python-dateutil",
+    "pytz",
+    "pyasn1",
+    "rsa",
+    "stomp.py",
+    "getmac",
+    "cryptography",
+    "backoff",
+    "jproperties",
+    "protobuf",
+    "google-cloud",
+    "urllib3",
+    "click>=8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/tigerfintech/openapi-python-sdk"
+Documentation = "https://docs.itigerup.com/docs/"
+Repository = "https://github.com/tigerfintech/openapi-python-sdk"
+Issues = "https://github.com/tigerfintech/openapi-python-sdk/issues"
+
+[project.scripts]
+tigeropen = "tigeropen.cli.main:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "tigeropen.__VERSION__"}
+
+[tool.setuptools.packages.find]
+exclude = ["tests", "tests.*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.*"]

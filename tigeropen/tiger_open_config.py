@@ -28,6 +28,7 @@ TIGEROPEN_ACCOUNT = ENV_PREFIX + 'ACCOUNT'
 TIGEROPEN_SECRET_KEY = ENV_PREFIX + 'SECRET_KEY'
 TIGEROPEN_PRIVATE_KEY = ENV_PREFIX + 'PRIVATE_KEY'
 TIGEROPEN_LICENSE = ENV_PREFIX + 'LICENSE'
+TIGEROPEN_TOKEN = ENV_PREFIX + 'TOKEN'
 TIGEROPEN_PROPS_PATH = ENV_PREFIX + 'PROPS_PATH'
 
 DEFAULT_DOMAIN = 'openapi.tigerfintech.com'
@@ -84,6 +85,11 @@ except ImportError:
 
 class TigerOpenClientConfig:
     def __init__(self, sandbox_debug=None, enable_dynamic_domain=True, props_path=None):
+        """
+        :param sandbox_debug: Deprecated, always False
+        :param enable_dynamic_domain:
+        :param props_path: config file path
+        """
         # 开发者应用id
         self._tiger_id = ''
         # 授权账户
@@ -124,6 +130,7 @@ class TigerOpenClientConfig:
         self.log_path = None
         self.retry_max_time = 60
         self.retry_max_tries = 5
+        self.callback_thread_pool_size = None
         
         # token 刷新间隔周期， 单位秒
         self._token_refresh_duration = TOKEN_REFRESH_DURATION
@@ -137,7 +144,10 @@ class TigerOpenClientConfig:
         if not self.props_path:
             self.props_path = '.'
         self._load_props()
-        self._token = self.load_token()
+        if not self._token:
+            twofa_token = self.load_token()
+            if twofa_token:
+                self._token = twofa_token
 
         self.domain_conf = dict()
         self.enable_dynamic_domain = enable_dynamic_domain
@@ -343,6 +353,9 @@ class TigerOpenClientConfig:
 
         if not self.license and os.environ.get(TIGEROPEN_LICENSE):
             self.license = os.environ.get(TIGEROPEN_LICENSE)
+
+        if not self._token and os.environ.get(TIGEROPEN_TOKEN):
+            self._token = os.environ.get(TIGEROPEN_TOKEN)
 
     def _load_props(self):
         full_path = self._get_props_path(DEFAULT_PROPS_FILE)

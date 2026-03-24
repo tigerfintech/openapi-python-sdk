@@ -14,7 +14,7 @@ import pandas as pd
 from tigeropen.common.consts import Market, QuoteRight, BarPeriod, OPEN_API_SERVICE_VERSION_V3, \
     OPEN_API_SERVICE_VERSION_V1, Language, SortDirection, TradingSession, Income, Balance, CashFlow, BalanceSheetRatio, \
     Growth, Leverage, Profitability, \
-    FinancialReportPeriodType, CapitalPeriod
+    FinancialReportPeriodType, CapitalPeriod, OptionAnalysisPeriod
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, CorporateActionType, IndustryLevel
 from tigeropen.common.consts.filter_fields import FieldBelongType
 from tigeropen.common.consts.fundamental_fields import Field
@@ -23,7 +23,8 @@ from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_D
     FUTURE_CONTRACTS, MARKET_SCANNER, \
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
     KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
-    FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH, BROKER_HOLD, OPTION_TIMELINE, FUTURE_DEPTH
+    FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH, BROKER_HOLD, OPTION_TIMELINE, FUTURE_DEPTH, \
+    FUTURE_HISTORY_MAIN_CONTRACT, OPTION_ANALYSIS
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -55,7 +56,7 @@ from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, Mul
     FutureQuoteParams, FutureExchangeParams, FutureContractParams, FutureTradingTimeParams, SingleContractParams, \
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
     StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams, OptionContractsParams, \
-    BrokerHoldParams
+    BrokerHoldParams, OptionAnalysisParams
 from tigeropen.quote.response.broker_hold_response import BrokerHoldResponse
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
@@ -64,6 +65,7 @@ from tigeropen.quote.response.future_briefs_response import FutureBriefsResponse
 from tigeropen.quote.response.future_contract_response import FutureContractResponse
 from tigeropen.quote.response.future_depth_response import FutureDepthResponse
 from tigeropen.quote.response.future_exchange_response import FutureExchangeResponse
+from tigeropen.quote.response.future_history_main_contract_response import FutureHistoryMainContractResponse
 from tigeropen.quote.response.future_quote_bar_response import FutureQuoteBarResponse
 from tigeropen.quote.response.future_quote_ticks_response import FutureTradeTickResponse
 from tigeropen.quote.response.future_trading_times_response import FutureTradingTimesResponse
@@ -71,6 +73,7 @@ from tigeropen.quote.response.kline_quota_response import KlineQuotaResponse
 from tigeropen.quote.response.market_scanner_response import MarketScannerResponse, MarketScannerTagsResponse
 from tigeropen.quote.response.market_status_response import MarketStatusResponse
 from tigeropen.quote.response.option_briefs_response import OptionBriefsResponse
+from tigeropen.quote.response.option_analysis_response import OptionAnalysisResponse
 from tigeropen.quote.response.option_chains_response import OptionChainsResponse
 from tigeropen.quote.response.option_depth_response import OptionDepthQuoteResponse
 from tigeropen.quote.response.option_expirations_response import OptionExpirationsResponse
@@ -171,12 +174,14 @@ class QuoteClient(TigerOpenClient):
 
     def get_symbols(self,
                     market: Optional[Union[Market, str]] = Market.ALL,
-                    include_otc: bool = False) -> list[str]:
+                    include_otc: bool = False,
+                    sec_type: Optional[Union[SecurityType, str]] = None) -> list[str]:
         """
         Get symbols of market. 获取市场下的股票代码列表
 
         :param market: Stock market. 市场. Available values: US/HK/CN/ALL
         :param include_otc: Is include OTC. 是否包含 OTC 股票
+        :param sec_type: Security type. 证券类型. 获取数字货币代码列表时需传 SecurityType.CC
         :return: List of symbols, include delisted stocks. 所有 symbol 的列表，包含退市和不可交易的部分代码.
             If start with '.' , it is an index, such as .DJI represents the Dow Jones Index. 如果以 '.' 开头，则表示指数代码，如 .DJI 表示道琼斯指数.
         
@@ -187,6 +192,7 @@ class QuoteClient(TigerOpenClient):
         params.market = get_enum_value(market)
         params.lang = get_enum_value(self._lang)
         params.include_otc = include_otc
+        params.sec_type = get_enum_value(sec_type)
         request = OpenApiRequest(ALL_SYMBOLS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -341,7 +347,8 @@ class QuoteClient(TigerOpenClient):
             self,
             symbols: list[str],
             include_hour_trading: Optional[bool] = False,
-            lang: Optional[Union[str, Language]] = None) -> pd.DataFrame:
+            lang: Optional[Union[str, Language]] = None,
+            sec_type: Optional[Union[SecurityType, str]] = None) -> pd.DataFrame:
         """
         Get stock realtime quote. 获取股票实时行情
 
@@ -386,6 +393,7 @@ class QuoteClient(TigerOpenClient):
         params.include_hour_trading = include_hour_trading
         params.lang = get_enum_value(lang) if lang else get_enum_value(
             self._lang)
+        params.sec_type = get_enum_value(sec_type)
 
         request = OpenApiRequest(QUOTE_REAL_TIME, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -399,10 +407,13 @@ class QuoteClient(TigerOpenClient):
 
         return pd.DataFrame()
 
+    get_cc_briefs = get_stock_briefs
+
     def get_stock_delay_briefs(
             self,
             symbols: list[str],
-            lang: Optional[Union[str, Language]] = None) -> pd.DataFrame:
+            lang: Optional[Union[str, Language]] = None,
+            sec_type: Optional[Union[SecurityType, str]] = None) -> pd.DataFrame:
         """
         Get delay quote. 获取股票延时行情
 
@@ -427,6 +438,7 @@ class QuoteClient(TigerOpenClient):
         params.symbols = self._format_to_list(symbols)
         params.lang = get_enum_value(lang) if lang else get_enum_value(
             self._lang)
+        params.sec_type = get_enum_value(sec_type)
 
         request = OpenApiRequest(QUOTE_DELAY, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -440,7 +452,7 @@ class QuoteClient(TigerOpenClient):
 
         return pd.DataFrame()
 
-    def get_stock_details(self, symbols, lang=None):
+    def get_stock_details(self, symbols, lang=None, sec_type=None):
         """
         获取股票详情
         :param symbols: 股票代号列表
@@ -481,6 +493,7 @@ class QuoteClient(TigerOpenClient):
         params.symbols = self._format_to_list(symbols)
         params.lang = get_enum_value(lang) if lang else get_enum_value(
             self._lang)
+        params.sec_type = get_enum_value(sec_type)
 
         request = OpenApiRequest(STOCK_DETAIL, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -499,6 +512,7 @@ class QuoteClient(TigerOpenClient):
                      begin_time: Optional[Union[int, str]] = -1,
                      lang: Optional[Union[str, Language]] = None,
                      trade_session: Optional[Union[str, TradingSession]] = None,
+                     sec_type: Optional[Union[SecurityType, str]] = None,
                      **kwargs) -> pd.DataFrame:
         """
         Get intraday timeline data. 获取当日分时数据，支持盘前盘后
@@ -510,6 +524,7 @@ class QuoteClient(TigerOpenClient):
                           开始时间, 13位时间戳或日期字符串, -1 表示当天全部
         :param lang: Language, zh_CN/zh_TW/en_US. Default from config. 语言
         :param trade_session: Trading session, e.g. TradingSession.Regular, TradingSession.OverNight. 交易时段，可选
+        :param sec_type: Security type. 证券类型. 获取数字货币分时时需传 SecurityType.CC
         :param kwargs: Other optional params, e.g. version. 其他可选参数
         :return: pandas.DataFrame with columns:
             - symbol: stock symbol 股票代码
@@ -535,6 +550,7 @@ class QuoteClient(TigerOpenClient):
         params.lang = get_enum_value(lang) if lang else get_enum_value(
             self._lang)
         params.trade_session = get_enum_value(trade_session)
+        params.sec_type = get_enum_value(sec_type)
         if 'version' in kwargs:
             params.version = kwargs.get('version')
         else:
@@ -603,7 +619,9 @@ class QuoteClient(TigerOpenClient):
                  lang: Optional[Union[Language, str]] = None,
                  page_token: Optional[str] = None,
                  trade_session: Optional[Union[TradingSession, str]] = None,
-                 date: Optional[str] = None) -> pd.DataFrame:
+                 date: Optional[str] = None,
+                 with_fundamental: Optional[bool] = None,
+                 sec_type: Optional[Union[SecurityType, str]] = None) -> pd.DataFrame:
         """
         Get K-line (OHLC) data. 获取K线数据
 
@@ -627,6 +645,8 @@ class QuoteClient(TigerOpenClient):
         :param page_token: The token of next page. Only supported when exactly one symbol. 下一页的令牌，仅当请求一个股票时支持
         :param trade_session: Trading session. 交易时段. 夜盘传 TradingSession.OverNight
         :param date: Date in format yyyyMMdd. 日期，格式为 yyyyMMdd
+        :param with_fundamental: Whether to include fundamental data such as PE ratio and turnover rate. 是否包含市盈率/换手率等基本面数据.
+        :param sec_type: Security type. 证券类型. 获取数字货币K线时需传 SecurityType.CC
         :return: pandas.DataFrame with columns:
             - symbol: stock symbol. 股票代码
             - time: timestamp in milliseconds. 毫秒时间戳
@@ -659,13 +679,15 @@ class QuoteClient(TigerOpenClient):
         params.trade_session = get_enum_value(trade_session)
         params.date = str(date).replace('-', '').replace('/',
                                                          '') if date else None
+        params.with_fundamental = with_fundamental
+        params.sec_type = get_enum_value(sec_type)
         request = OpenApiRequest(KLINE, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
             response = QuoteBarResponse()
             response.parse_response_content(response_content)
             if response.is_success():
-                return response.bars
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
 
@@ -681,7 +703,9 @@ class QuoteClient(TigerOpenClient):
                          right: Union[QuoteRight, str] = QuoteRight.BR,
                          time_interval: int = 2,
                          lang: Optional[Union[str, Language]] = None,
-                         trade_session: Optional[TradingSession] = None):
+                         trade_session: Optional[TradingSession] = None,
+                         with_fundamental: Optional[bool] = None,
+                         sec_type: Optional[Union[SecurityType, str]] = None) -> pd.DataFrame:
         """
         Get bars by page. 分页获取K线数据.
 
@@ -696,6 +720,8 @@ class QuoteClient(TigerOpenClient):
         :param lang: 语言
         :param trade_session: Trading session, e.g., TradingSession.PreMarket, TradingSession.Regular, TradingSession.AfterHours.
                           交易时段，例如 TradingSession.PreMarket（盘前），TradingSession.Regular（盘中），TradingSession.AfterHours（盘后）
+        :param with_fundamental: Whether to include fundamental data. 是否包含市盈率/换手率
+        :param sec_type: Security type. 证券类型. 获取数字货币K线时需传 SecurityType.CC
         :return: pandas.DataFrame with columns:
             - symbol: Stock symbol. 股票代码
             - time: Timestamp. 毫秒时间戳
@@ -712,8 +738,7 @@ class QuoteClient(TigerOpenClient):
         1   AAPL  1754452800000  205.630  215.38  205.59  213.25  108483103  2.315469e+10
         """
         if begin_time == -1 and end_time == -1:
-            raise ApiException(
-                400, 'One of the begin_time or end_time must be specified')
+            end_time = int(time.time() * 1000)
         if isinstance(symbol, list) and len(symbol) != 1:
             raise ApiException(
                 400, 'Paging queries support only one symbol at each request')
@@ -733,7 +758,9 @@ class QuoteClient(TigerOpenClient):
                                  limit=page_size,
                                  lang=lang,
                                  trade_session=trade_session,
-                                 page_token=next_page_token)
+                                 page_token=next_page_token,
+                                 with_fundamental=with_fundamental,
+                                 sec_type=sec_type)
             if bars.empty:
                 result_df = bars
                 break
@@ -1052,10 +1079,16 @@ class QuoteClient(TigerOpenClient):
             rates_bonds: Risk-free interest rate. 无风险利率
             volatility: Historical volatility. 历史波动率
             change: Price change. 价格变动
+            mid_price: Mid price between ask and bid. 买卖价中间价
+            mid_timestamp: Timestamp of mid price. 中间价时间戳
+            mark_price: Mark price. 标记价格
+            mark_timestamp: Timestamp of mark price. 标记价格时间戳
+            pre_mark_price: Previous mark price. 前标记价格
+            selling_return: Selling return. 卖出收益率
 
         :return example:
-                    identifier symbol         expiry strike put_call  multiplier ask_price ask_size bid_price bid_size pre_close latest_price latest_time  volume open_interest  open  high   low  rates_bonds volatility change
-        0  PDD   260121C00090000    PDD  1768971600000   90.0     CALL         100      None     None      None     None      None         None        None       0          None  None  None  None     0.039494     26.29%   None
+          symbol             identifier strike  latest_price  volume   high    low   open  pre_close  open_interest  change  multiplier put_call volatility         expiry  rates_bonds  mid_price  mid_timestamp  mark_price  mark_timestamp  pre_mark_price  selling_return
+        0   NVDA  NVDA  260116C00100000  100.0          88.0       0  88.15  88.15  88.15      88.15          49505   -0.15         100     CALL     30.57%  1768539600000     0.034998       88.0  1767042004434        88.0   1767042004434           88.15        0.049738
 
         """
         params = OptionContractsParams()
@@ -1393,6 +1426,86 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
+    def get_option_analysis(
+            self,
+            symbols: Union[List[str], List[dict]],
+            period: Union[OptionAnalysisPeriod, str] = OptionAnalysisPeriod.FIFTY_TWO_WEEK,
+            market: Optional[Union[Market, str]] = None,
+            require_volatility_list: Optional[bool] = None,
+            lang: Optional[Union[Language, str]] = None
+            ) -> List:
+        """
+        Get option analysis metrics for symbols.
+        获取期权分析指标。
+
+        :param symbols: List of symbols. Can be:
+            - List of strings: ["AAPL", "TSLA"] (uses the period parameter)
+            - List of dicts: [{"symbol": "AAPL", "period": "26week"}, ...] (per-symbol periods)
+            - Mixed: ["AAPL", {"symbol": "TSLA", "period": "26week"}]
+        :param period: Default period for string symbols. 分析周期。
+            Options: OptionAnalysisPeriod.THREE_YEAR, FIFTY_TWO_WEEK, TWENTY_SIX_WEEK, THIRTEEN_WEEK
+        :param market: Stock market (US/HK/CN)
+        :param lang: Language (zh_CN/zh_TW/en_US)
+        :param require_volatility_list: Whether to return volatility list data. 是否返回波动率列表数据。
+        :return: List[OptionAnalysis] with attributes:
+            - symbol: Stock symbol
+            - implied_vol_30_days: 30-day implied volatility
+            - his_volatility: Historical volatility
+            - iv_his_v_ratio: IV to HV ratio
+            - call_put_ratio: Call/Put ratio
+            - iv_metric: IVMetric object with:
+                - period: Analysis period
+                - percentile: IV percentile
+                - rank: IV rank
+            - volatility_list: List[VolatilityListItem] (when require_volatility_list=True)
+        """
+        if not symbols:
+            return []
+        
+        params = OptionAnalysisParams()
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+        
+        if market:
+            params.market = get_enum_value(market)
+        
+        # Get period value (handle both enum and string)
+        period_value = get_enum_value(period) if period else OptionAnalysisPeriod.FIFTY_TWO_WEEK.value
+        
+        # Normalize symbols input to list of dicts
+        symbol_list = []
+        for item in symbols:
+            if isinstance(item, dict):
+                # Use per-symbol period if provided, otherwise use default
+                item_period = item.get("period", period_value)
+                symbol_entry = {
+                    "symbol": item.get("symbol", ""),
+                    "period": get_enum_value(item_period),
+                }
+                item_require = item.get("require_volatility_list", require_volatility_list)
+                if item_require is not None:
+                    symbol_entry["require_volatility_list"] = item_require
+                symbol_list.append(symbol_entry)
+            elif isinstance(item, str):
+                symbol_entry = {"symbol": item, "period": period_value}
+                if require_volatility_list is not None:
+                    symbol_entry["require_volatility_list"] = require_volatility_list
+                symbol_list.append(symbol_entry)
+
+        params.symbols = symbol_list
+
+        request = OpenApiRequest(OPTION_ANALYSIS, biz_model=params)
+        response_content = self.__fetch_data(request)
+        
+        if response_content:
+            response = OptionAnalysisResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.analysis_list
+            else:
+                raise ApiException(response.code, response.message)
+        
+        return []
+
     def get_future_exchanges(
             self,
             sec_type: Optional[Union[SecurityType, str]] = SecurityType.FUT,
@@ -1539,6 +1652,40 @@ class QuoteClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.contracts
+            else:
+                raise ApiException(response.code, response.message)
+        return pd.DataFrame()
+
+    def get_future_history_main_contract(self, identifiers: Union[str, list[str]],
+                                         begin_time: int,
+                                         end_time: int) -> pd.DataFrame:
+        """
+        Get historical future main contract. 获取历史期货主力合约
+
+        :return: pandas.DataFrame. The columns are as follows:
+            contract_code: Contract code. 合约代码
+            time: Timestamp in milliseconds. 毫秒时间戳
+            refer_contract_code: The main contract referred to at that time. 当时的主力合约
+
+        :return example:
+            contract_code           time refer_contract_code
+        0         CLmain  1758574800000              CL2511
+        1         CLmain  1758315600000              CL2511
+        2         CLmain  1758229200000              CL2511
+        3         CLmain  1758142800000              CL2510
+        4         CLmain  1758056400000              CL2510
+        """
+        params = FutureQuoteParams()
+        params.contract_codes = self._format_to_list(identifiers)
+        params.begin_time = begin_time
+        params.end_time = end_time
+        request = OpenApiRequest(FUTURE_HISTORY_MAIN_CONTRACT, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = FutureHistoryMainContractResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
             else:
                 raise ApiException(response.code, response.message)
         return pd.DataFrame()
@@ -1839,8 +1986,7 @@ class QuoteClient(TigerOpenClient):
         :return:
         """
         if begin_time == -1 and end_time == -1:
-            raise ApiException(
-                400, 'One of the begin_time or end_time must be specified')
+            end_time = int(time.time() * 1000)
         if isinstance(identifier, list) and len(identifier) != 1:
             raise ApiException(
                 400,
@@ -1952,8 +2098,8 @@ class QuoteClient(TigerOpenClient):
             limit_down: Lower price limit. 跌停价
 
         :return example:
-           identifier  latest_price  latest_size    latest_time  bid_price  ask_price  bid_size  ask_size  open_interest  open_interest_change  volume    open     high     low  settlement  limit_up  limit_down
-        0     ES2509        6469.5            5  1755067657000     6469.5    6469.75        11        14        1938507                 26858   46493  6468.0  6474.75  6461.0      6468.5    6919.5      6017.5
+          identifier  latest_price  latest_size    latest_time  bid_price  ask_price  bid_size  ask_size  open_interest  open_interest_change  volume   open   high   low  settlement  limit_up  limit_down  avg_price
+        0     CL2512         60.11            1  1762503297000      60.11      60.12         7         6         279904                -14313   27548  59.65  60.23  59.6       59.43       0.0         0.0      59.85
 
         """
         params = FutureQuoteParams()
@@ -2419,11 +2565,12 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_stock_industry(self, symbol, market=Market.US):
+    def get_stock_industry(self, symbol, market=Market.US, sec_type=None):
         """
         获取股票的行业
         :param symbol: 股票 symbol
         :param market: 市场枚举类型
+        :param sec_type: 证券类型
         :return: 所属多级行业的列表
             如 [{'industry_level': 'GSECTOR', 'id': '45', 'name_cn': '信息技术', 'name_en': 'Information Technology'},
               {'industry_level': 'GGROUP', 'id': '4520', 'name_cn': '技术硬件与设备', 'name_en': 'Technology Hardware & Equipment'},
@@ -2434,6 +2581,7 @@ class QuoteClient(TigerOpenClient):
         params.symbol = symbol
         params.market = get_enum_value(market)
         params.lang = get_enum_value(self._lang)
+        params.sec_type = get_enum_value(sec_type)
         request = OpenApiRequest(STOCK_INDUSTRY, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -2632,7 +2780,8 @@ class QuoteClient(TigerOpenClient):
             self,
             symbol: str,
             limit: int = 40,
-            lang: Optional[Union[Language, str]] = None) -> StockBroker:
+            lang: Optional[Union[Language, str]] = None,
+            sec_type: Optional[Union[SecurityType, str]] = None) -> StockBroker:
         """
         Get stockbroker information. 获取股票经纪商信息
 
@@ -2692,6 +2841,7 @@ class QuoteClient(TigerOpenClient):
         params.limit = limit
         params.lang = get_enum_value(lang) if lang else get_enum_value(
             self._lang)
+        params.sec_type = get_enum_value(sec_type)
         request = OpenApiRequest(STOCK_BROKER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:
@@ -3045,11 +3195,20 @@ class QuoteClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
 
-    def get_stock_fundamental(self, symbols, market):
+    def get_stock_fundamental(self, symbols, market, sec_type=None):
+        """
+        :param symbols:
+        :param market:
+        :return:
+          symbol     roe     roa  pb_rate  ps_rate  divide_rate  week52_high  week52_low   ttm_eps   lyr_eps  volume_ratio  turnover_rate  ttm_pe_rate  lyr_pe_rate    market_cap  float_market_cap
+        0   AAPL  1.4981  0.2455     60.6     9.76       0.0038       269.12    169.2101  6.573399  6.109054      0.886438       0.003030    40.893608    44.001903  3.989245e+12      3.982239e+12
+        1   GOOG  0.3483  0.1679      9.0     8.79       0.0030       270.80    142.6600  9.385496  8.127120      1.237761       0.002121    28.760334    33.213488  3.264533e+12      2.925080e+12
+        """
         params = MultipleQuoteParams()
         params.symbols = self._format_to_list(symbols)
         params.market = get_enum_value(market)
         params.lang = get_enum_value(self._lang)
+        params.sec_type = get_enum_value(sec_type)
         request = OpenApiRequest(STOCK_FUNDAMENTAL, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:

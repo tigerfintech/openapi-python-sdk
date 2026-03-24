@@ -43,6 +43,8 @@ message QuoteData {
   // minute data: price, average price, time, volume
   optional Minute mi = 28;
 
+  optional double volumeDecimal = 29;
+
   message Minute {
     double p = 1; // last price of the minute bar
     double a = 2; // average price of the minute bar
