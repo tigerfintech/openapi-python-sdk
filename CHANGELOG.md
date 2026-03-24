@@ -1,3 +1,14 @@
+## 3.5.6 (2026-03-24)
+### New
+- 新增 CLI 命令行工具 `tigeropen`，支持行情查询、交易管理、账户查看、实时推送等功能，输出格式支持 table/json/csv. 支持一键安装
+- CLI 子命令: config (init/show/set/path), quote (briefs/bars/timeline/ticks/depth/market-status/symbols + option/future/capital/fundamental 子组), trade (order list/get/place/preview/modify/cancel + position/transaction), account (info/assets/analytics), push (quote/order/position/asset)
+- CLI 支持 `tigeropen uninstall` 自动执行卸载
+- 新增 AI Skills 技能集，支持 Claude Code、Cursor 等 AI 编码工具
+- 新增 pyproject.toml，采用现代 Python 打包标准
+### Modify
+- 迁移文档链接至新域名 docs.itigerup.com
+- README 重构为中英双语，新增 CLI / MCP / Skills 使用说明
+
 ## 3.5.5 (2026-03-12)
 ### New
 - `QuoteClient.get_option_analysis` 新增 `require_volatility_list` 参数，支持返回历史波动率列表（`volatility_list`）

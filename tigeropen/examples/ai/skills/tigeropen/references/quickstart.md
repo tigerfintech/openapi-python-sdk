@@ -8,9 +8,9 @@
 老虎量化开放平台 Python SDK (tigeropen) 为个人和机构用户提供交易与行情 API，支持美股、港股、A股、新加坡、澳洲市场的股票、期权、期货等品种。
 The Tiger Open Platform Python SDK (tigeropen) provides trading and market data APIs for stocks, options, futures across US, HK, China A-shares, Singapore, and Australia markets.
 
-- 官方文档 / Docs: https://docs.itigerup.com/docs/prepare (新版) | https://quant.itigerup.com/openapi/zh/python/quickStart/prepare.html (旧版)
-- GitHub: https://github.com/tigerbrokers/openapi-python-sdk
-- SDK Version: 3.5.4 | Python: 3.8 - 3.13
+- 官方文档 / Docs: https://docs.itigerup.com/docs/prepare
+- GitHub: https://github.com/tigerfintech/openapi-python-sdk
+- SDK Version: 3.5.6 | Python: 3.8 - 3.14
 
 ### 支持的市场和品种 / Supported Markets
 
@@ -44,7 +44,7 @@ python -c "import tigeropen; print(tigeropen.__VERSION__)"
 ## 前置条件 / Prerequisites
 
 1. 开通老虎证券账户并入金 / Open a Tiger Brokers account and fund it
-2. 个人用户访问 https://quant.itigerup.com/#developer 激活 API 权限 / Individual users activate API permissions
+2. 个人用户访问 https://developer.itigerup.com/profile 激活 API 权限 / Individual users activate API permissions
    机构用户访问机构账户中心 / Institutional users visit institutional account center
 3. 获取 `tiger_id`、RSA 私钥(PKCS#1格式)和资金账号 / Obtain `tiger_id`, RSA private key (PKCS#1 format), and account
 4. 导出配置文件 `tiger_openapi_config.properties` / Export config file
@@ -57,14 +57,14 @@ python -c "import tigeropen; print(tigeropen.__VERSION__)"
 | 类型 Type | 说明 Description | 推荐 |
 |-----------|-----------------|------|
 | 综合账户 Comprehensive (Live) | 支持所有市场、保证金交易、全品种。**推荐** | ✅ |
-| 全球账户 Global (Live) | 旧账户类型，不支持窝轮/牛熊证 | - |
+| 环球账户 Global (Live) | 环球账户类型，不支持窝轮/牛熊证 | - |
 | 模拟账户 Paper | 测试用，支持美股/港股/A股/期权，无需真实资金 | 测试推荐 |
 
 ## 配置 / Configuration
 
 ### 方式一：配置文件(推荐) / Config File (Recommended)
 
-从开发者网站导出配置文件 `tiger_openapi_config.properties`，放入合适的系统路径。
+从开发者网站导出配置文件 `tiger_openapi_config.properties`，放入合适的系统路径(请不要修改文件名)。
 Export config file from developer website and place it in a suitable path.
 
 配置文件格式 / Config file format:

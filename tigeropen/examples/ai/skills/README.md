@@ -21,6 +21,7 @@
 | [trade](skills/tigeropen/references/trade.md) | 下单(市价/限价/止损/算法单)、订单管理、账户资产、持仓、资金划转 |
 | [option](skills/tigeropen/references/option.md) | 期权链、Greeks、单腿/多腿组合策略、期权计算工具 |
 | [push](skills/tigeropen/references/push.md) | 实时推送(行情/深度/逐笔/K线/订单/持仓/资产变动) |
+| [cli](skills/tigeropen/references/cli.md) | CLI 命令行工具：配置管理、行情查询、交易操作、账户查看、实时推送 |
 | [mcp](skills/tigeropen/references/mcp.md) | MCP Server 配置，集成 Cursor/Claude Code/Trae |
 
 ### 快速安装
@@ -31,7 +32,7 @@
 
 ```bash
 # 添加 marketplace
-/plugin marketplace add tigerbrokers/openapi-python-sdk
+/plugin marketplace add tigerfintech/openapi-python-sdk
 
 # 安装 plugin
 /plugin install tigeropen@tigerbrokers-openapi
@@ -43,7 +44,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/tigerbrokers/openapi-python-sdk.git ~/tiger-sdk
+git clone https://github.com/tigerfintech/openapi-python-sdk.git ~/tiger-sdk
 
 # 启动 Claude Code 时加载 plugin
 claude --plugin-dir ~/tiger-sdk/tigeropen/examples/ai/skills
@@ -53,7 +54,7 @@ claude --plugin-dir ~/tiger-sdk/tigeropen/examples/ai/skills
 
 ```bash
 # 克隆仓库
-git clone https://github.com/tigerbrokers/openapi-python-sdk.git /tmp/openapi-python-sdk
+git clone https://github.com/tigerfintech/openapi-python-sdk.git /tmp/openapi-python-sdk
 
 # 复制 skill 到 Claude Code 个人目录
 cp -r /tmp/openapi-python-sdk/tigeropen/examples/ai/skills/skills/tigeropen ~/.claude/skills/
@@ -73,6 +74,7 @@ rm -rf /tmp/openapi-python-sdk
         ├── trade.md
         ├── option.md
         ├── push.md
+        ├── cli.md
         └── mcp.md
 ```
 
@@ -83,7 +85,7 @@ rm -rf /tmp/openapi-python-sdk
 ```bash
 mkdir -p .claude/skills
 
-git clone https://github.com/tigerbrokers/openapi-python-sdk.git /tmp/openapi-python-sdk
+git clone https://github.com/tigerfintech/openapi-python-sdk.git /tmp/openapi-python-sdk
 cp -r /tmp/openapi-python-sdk/tigeropen/examples/ai/skills/skills/tigeropen .claude/skills/
 rm -rf /tmp/openapi-python-sdk
 ```
@@ -146,6 +148,7 @@ This directory contains a complete AI skill covering the Tiger Brokers OpenAPI P
 | [trade](skills/tigeropen/references/trade.md) | Orders (market/limit/stop/algo), order management, assets, positions, fund transfer |
 | [option](skills/tigeropen/references/option.md) | Option chains, Greeks, single-leg/multi-leg combo strategies, calculator tools |
 | [push](skills/tigeropen/references/push.md) | Real-time push (quotes/depth/ticks/K-line/order/position/asset changes) |
+| [cli](skills/tigeropen/references/cli.md) | CLI tool: config management, market data, trading, account info, real-time push |
 | [mcp](skills/tigeropen/references/mcp.md) | MCP Server setup for Cursor/Claude Code/Trae integration |
 
 ### Quick Install
@@ -156,7 +159,7 @@ In Claude Code, run:
 
 ```bash
 # Add the marketplace
-/plugin marketplace add tigerbrokers/openapi-python-sdk
+/plugin marketplace add tigerfintech/openapi-python-sdk
 
 # Install the plugin
 /plugin install tigeropen@tigerbrokers-openapi
@@ -168,7 +171,7 @@ After installation, the skill is available automatically via `/tigeropen:tigerop
 
 ```bash
 # Clone the repository
-git clone https://github.com/tigerbrokers/openapi-python-sdk.git ~/tiger-sdk
+git clone https://github.com/tigerfintech/openapi-python-sdk.git ~/tiger-sdk
 
 # Start Claude Code with the plugin loaded
 claude --plugin-dir ~/tiger-sdk/tigeropen/examples/ai/skills
@@ -178,7 +181,7 @@ claude --plugin-dir ~/tiger-sdk/tigeropen/examples/ai/skills
 
 ```bash
 # Clone the repository
-git clone https://github.com/tigerbrokers/openapi-python-sdk.git /tmp/openapi-python-sdk
+git clone https://github.com/tigerfintech/openapi-python-sdk.git /tmp/openapi-python-sdk
 
 # Copy skill to Claude Code personal directory
 cp -r /tmp/openapi-python-sdk/tigeropen/examples/ai/skills/skills/tigeropen ~/.claude/skills/
@@ -198,6 +201,7 @@ Resulting structure:
         ├── trade.md
         ├── option.md
         ├── push.md
+        ├── cli.md
         └── mcp.md
 ```
 
@@ -208,7 +212,7 @@ Resulting structure:
 ```bash
 mkdir -p .claude/skills
 
-git clone https://github.com/tigerbrokers/openapi-python-sdk.git /tmp/openapi-python-sdk
+git clone https://github.com/tigerfintech/openapi-python-sdk.git /tmp/openapi-python-sdk
 cp -r /tmp/openapi-python-sdk/tigeropen/examples/ai/skills/skills/tigeropen .claude/skills/
 rm -rf /tmp/openapi-python-sdk
 ```
