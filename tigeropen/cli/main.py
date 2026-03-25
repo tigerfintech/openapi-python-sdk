@@ -13,7 +13,6 @@ from tigeropen.cli.config_cmd import config
 from tigeropen.cli.quote_cmd import quote
 from tigeropen.cli.trade_cmd import trade
 from tigeropen.cli.account_cmd import account
-from tigeropen.cli.push_cmd import push
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -170,7 +169,24 @@ cli.add_command(config)
 cli.add_command(quote)
 cli.add_command(trade)
 cli.add_command(account)
-cli.add_command(push)
+
+
+def _load_push_command():
+    """Lazy-load push command to avoid importing protobuf at startup."""
+    try:
+        from tigeropen.cli.push_cmd import push
+        cli.add_command(push)
+    except ImportError:
+        @cli.command('push')
+        @click.argument('args', nargs=-1)
+        def push_unavailable(args):
+            """Real-time data streaming (requires protobuf>=5.28)."""
+            click.echo('Error: push command requires protobuf>=5.28.\n'
+                        'Please upgrade:  pip install --upgrade protobuf')
+            sys.exit(1)
+
+
+_load_push_command()
 
 
 def main():
