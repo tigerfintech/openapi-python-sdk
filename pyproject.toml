@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=64", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "tigeropen"
@@ -47,7 +47,6 @@ dependencies = [
     "backoff",
     "jproperties",
     "protobuf",
-    "google-cloud",
     "urllib3",
     "click>=8.0",
 ]
