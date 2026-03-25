@@ -1,3 +1,8 @@
+## 3.5.7 (2026-03-25)
+### Fix
+- 修复 pyproject.toml 中 build-backend 使用 `setuptools.backends._legacy:_Backend` 导致旧版 pip/setuptools 安装失败的问题，改为标准的 `setuptools.build_meta`
+- 修复 CLI 启动时无条件导入 push 模块导致 protobuf 版本不兼容时所有命令都无法使用的问题，改为延迟加载 push 命令，protobuf 版本过低时给出升级提示
+
 ## 3.5.6 (2026-03-24)
 ### New
 - 新增 CLI 命令行工具 `tigeropen`，支持行情查询、交易管理、账户查看、实时推送等功能，输出格式支持 table/json/csv. 支持一键安装
