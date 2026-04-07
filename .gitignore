@@ -142,5 +142,4 @@ cython_debug/
 *.properties
 .vscode
 
-CLAUDE.md
 .claude/
