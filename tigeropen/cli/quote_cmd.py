@@ -378,3 +378,214 @@ def earnings(ctx, market, begin_date, end_date):
         click.echo('No earnings data found.')
     else:
         render(result, ctx.obj['format'])
+
+
+# --- Scanner subgroup ---
+
+def _parse_filter(spec):
+    """Parse a filter spec string into a StockFilter.
+
+    Supported formats:
+      FIELD_NAME                        -- include field with no range filter (is_no_filter=True)
+      FIELD_NAME:min:max                -- numeric range filter
+      FIELD_NAME:min:                   -- numeric lower bound only
+      FIELD_NAME::max                   -- numeric upper bound only
+      FIELD_NAME:tag1,tag2              -- MultiTagField tag list
+
+    FIELD_NAME prefix determines the field type:
+      Plain name → StockField (e.g. MarketValue, ChangeRate, PeTTM)
+      acc:NAME   → AccumulateField with optional period suffix NAME:period
+                   e.g. acc:ROE:0.15::ANNUAL  means AccumulateField.ROE min=0.15, period=ANNUAL
+      fin:NAME   → FinancialField (LTM only)
+      tag:NAME   → MultiTagField with tag_list
+
+    Shorthand presets:
+      gainers     → AccumulateField.ChangeRate min=5 (INTRADAY)
+      losers      → AccumulateField.ChangeRate max=-5 (INTRADAY)
+    """
+    from tigeropen.quote.domain.filter import StockFilter
+    from tigeropen.common.consts.filter_fields import (
+        StockField, AccumulateField, FinancialField, MultiTagField,
+        AccumulatePeriod, FinancialPeriod
+    )
+
+    # Presets
+    presets = {
+        'gainers': lambda: StockFilter(AccumulateField.ChangeRate, filter_min=5),
+        'losers': lambda: StockFilter(AccumulateField.ChangeRate, filter_max=-5),
+    }
+    if spec.lower() in presets:
+        return presets[spec.lower()]()
+
+    parts = spec.split(':')
+    raw_name = parts[0].strip()
+
+    # Determine field type and lookup
+    if raw_name.lower().startswith('acc.'):
+        field_name = raw_name[4:]
+        try:
+            field = AccumulateField[field_name]
+        except KeyError:
+            raise click.BadParameter(f"Unknown AccumulateField: {field_name}. Examples: ROE, ChangeRate, NetIncome")
+        filter_min = float(parts[1]) if len(parts) > 1 and parts[1] else None
+        filter_max = float(parts[2]) if len(parts) > 2 and parts[2] else None
+        period = None
+        if len(parts) > 3 and parts[3]:
+            try:
+                period = AccumulatePeriod[parts[3].upper()]
+            except KeyError:
+                raise click.BadParameter(f"Unknown AccumulatePeriod: {parts[3]}. Options: ANNUAL, QUARTERLY, SEMIANNUAL")
+        return StockFilter(field, filter_min=filter_min, filter_max=filter_max, accumulate_period=period)
+
+    elif raw_name.lower().startswith('fin.'):
+        field_name = raw_name[4:]
+        try:
+            field = FinancialField[field_name]
+        except KeyError:
+            raise click.BadParameter(f"Unknown FinancialField: {field_name}. Examples: ReturnOnEquityRate, GrossProfitRate")
+        filter_min = float(parts[1]) if len(parts) > 1 and parts[1] else None
+        filter_max = float(parts[2]) if len(parts) > 2 and parts[2] else None
+        return StockFilter(field, filter_min=filter_min, filter_max=filter_max,
+                           financial_period=FinancialPeriod.LTM)
+
+    elif raw_name.lower().startswith('tag.'):
+        field_name = raw_name[4:]
+        try:
+            field = MultiTagField[field_name]
+        except KeyError:
+            raise click.BadParameter(f"Unknown MultiTagField: {field_name}. Examples: Industry, Concept, OptionsAvailable")
+        tag_list = [t.strip() for t in parts[1].split(',')] if len(parts) > 1 else []
+        return StockFilter(field, tag_list=tag_list)
+
+    else:
+        # Default: StockField
+        try:
+            field = StockField[raw_name]
+        except KeyError:
+            raise click.BadParameter(
+                f"Unknown StockField: {raw_name}. Use acc./fin./tag. prefix for other types. "
+                f"Examples: MarketValue, PeTTM, Volume, TurnoverRate"
+            )
+        if len(parts) == 1:
+            return StockFilter(field, is_no_filter=True)
+        filter_min = float(parts[1]) if len(parts) > 1 and parts[1] else None
+        filter_max = float(parts[2]) if len(parts) > 2 and parts[2] else None
+        return StockFilter(field, filter_min=filter_min, filter_max=filter_max)
+
+
+@quote.command('scanner')
+@click.option('--market', type=click.Choice(['US', 'HK'], case_sensitive=False), default='US',
+              help='Market: US or HK.')
+@click.option('--filter', 'filters', multiple=True,
+              help='Filter spec. Formats: FIELD, FIELD:min:max, acc.FIELD:min:max:PERIOD, '
+                   'fin.FIELD:min:max, tag.FIELD:tag1,tag2. '
+                   'Presets: gainers, losers. '
+                   'Examples: --filter MarketValue:1e9: --filter acc.ROE:0.15::ANNUAL')
+@click.option('--sort', default=None,
+              help='Sort field name (same format as --filter field, e.g. MarketValue or acc.ChangeRate).')
+@click.option('--sort-dir', type=click.Choice(['ASC', 'DESC'], case_sensitive=False), default='DESC',
+              help='Sort direction.')
+@click.option('--limit', type=int, default=20, help='Max results to display.')
+@click.option('--page-size', type=int, default=20, help='Page size per API request.')
+@click.pass_context
+def scanner(ctx, market, filters, sort, sort_dir, limit, page_size):
+    """Scan stocks using filters. Use --filter to add criteria.
+
+    \b
+    Examples:
+      # Top gainers today
+      tigeropen quote scanner --filter gainers --sort acc.ChangeRate --sort-dir DESC
+
+      # Large-cap US stocks with P/E under 20
+      tigeropen quote scanner --filter MarketValue:1e10: --filter PeTTM::20 --sort MarketValue
+
+      # High ROE stocks (annual)
+      tigeropen quote scanner --filter acc.ROE:0.15::ANNUAL --sort acc.ROE:ANNUAL --sort-dir DESC
+
+      # Stocks with options available
+      tigeropen quote scanner --filter tag.OptionsAvailable:1
+    """
+    from tigeropen.quote.domain.filter import StockFilter, SortFilterData
+    from tigeropen.common.consts.filter_fields import (
+        StockField, AccumulateField, FinancialField, AccumulatePeriod, FinancialPeriod
+    )
+    from tigeropen.common.consts import SortDirection, Market
+
+    client = get_quote_client(ctx.obj)
+
+    # Parse filters
+    filter_objects = []
+    for f in filters:
+        filter_objects.append(_parse_filter(f))
+
+    # Parse sort field
+    sort_filter_data = None
+    if sort:
+        sort_parts = sort.split(':')
+        raw_sort = sort_parts[0]
+        sort_period = None
+
+        if raw_sort.lower().startswith('acc.'):
+            sort_field = AccumulateField[raw_sort[4:]]
+            if len(sort_parts) > 1 and sort_parts[1]:
+                try:
+                    sort_period = AccumulatePeriod[sort_parts[1].upper()]
+                except KeyError:
+                    pass
+        elif raw_sort.lower().startswith('fin.'):
+            sort_field = FinancialField[raw_sort[4:]]
+        else:
+            sort_field = StockField[raw_sort]
+
+        sd = SortDirection.DESC if sort_dir.upper() == 'DESC' else SortDirection.ASC
+        sort_filter_data = SortFilterData(sort_field, sort_dir=sd, period=sort_period)
+
+    market_enum = Market.US if market.upper() == 'US' else Market.HK
+
+    # Execute scan
+    result = client.market_scanner(
+        market=market_enum,
+        filters=filter_objects if filter_objects else None,
+        sort_field_data=sort_filter_data,
+        page_size=min(page_size, limit)
+    )
+
+    if not result or not result.items:
+        click.echo('No results found.')
+        return
+
+    # Build output rows
+    rows = []
+    collected = 0
+    cursor_id = result.cursor_id
+
+    while True:
+        for item in result.items:
+            if collected >= limit:
+                break
+            row = {'symbol': item.symbol, 'market': item.market}
+            for f in filter_objects:
+                val = item[f]
+                if val is not None:
+                    row[f.field.name] = val
+            if sort_filter_data:
+                val = item[sort_filter_data.field]
+                if val is not None:
+                    row[sort_filter_data.field.name] = val
+            rows.append(row)
+            collected += 1
+        if collected >= limit or not cursor_id or result.page >= result.total_page - 1:
+            break
+        result = client.market_scanner(
+            market=market_enum,
+            filters=filter_objects if filter_objects else None,
+            sort_field_data=sort_filter_data,
+            page_size=page_size,
+            cursor_id=cursor_id
+        )
+        if not result or not result.items:
+            break
+        cursor_id = result.cursor_id
+
+    click.echo(f"Showing {len(rows)} of {result.total_count} total results")
+    render(rows, ctx.obj['format'])

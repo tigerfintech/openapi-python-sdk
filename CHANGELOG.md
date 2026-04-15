@@ -1,3 +1,7 @@
+## 3.5.8 (2026-04-13)
+### Fix
+- 修复 `_get_props_path()` 传入完整文件路径时文件名被替换为 `tiger_openapi_config.properties` 的问题，现在支持任意文件名
+
 ## 3.5.7 (2026-03-25)
 ### Fix
 - 修复 pyproject.toml 中 build-backend 使用 `setuptools.backends._legacy:_Backend` 导致旧版 pip/setuptools 安装失败的问题，改为标准的 `setuptools.build_meta`

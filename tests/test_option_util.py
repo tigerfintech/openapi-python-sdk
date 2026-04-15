@@ -637,10 +637,8 @@ class TestOptionUtilIntegration(unittest.TestCase):
         from tigeropen.tiger_open_config import TigerOpenClientConfig
         import os
         
-        # This would require actual configuration
-        current_dir = os.path.dirname(__file__)
         client_config = TigerOpenClientConfig(
-            props_path=os.path.join(current_dir, ".config/prod_2015xxxx/")
+            props_path=os.path.expanduser("~/.tigeropen/")
         )
         quote_client = QuoteClient(client_config)
         option_util = OptionUtil(quote_client)
