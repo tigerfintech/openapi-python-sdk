@@ -27,6 +27,28 @@ def account_info(ctx):
         click.echo('No account info available.')
 
 
+def _segment_to_dict(segment):
+    """Serialize a Segment object to a plain dict."""
+    d = {k: v for k, v in segment.__dict__.items() if not k.startswith('_')}
+    d['currency_assets'] = {
+        currency: {k: v for k, v in ca.__dict__.items() if not k.startswith('_')}
+        for currency, ca in segment.currency_assets.items()
+    }
+    return d
+
+
+def _portfolio_account_to_dict(account):
+    """Serialize a PortfolioAccount object to a plain dict."""
+    return {
+        'account': account.account,
+        'update_timestamp': account.update_timestamp,
+        'segments': {
+            key: _segment_to_dict(seg)
+            for key, seg in account._segments.items()
+        },
+    }
+
+
 @account.command('assets')
 @click.option('--currency', default=None, help='Currency filter (USD, HKD, etc.).')
 @click.pass_context
@@ -38,12 +60,7 @@ def account_assets(ctx, currency):
         kwargs['base_currency'] = currency
     result = client.get_prime_assets(**kwargs)
     if not is_empty(result):
-        if hasattr(result, 'to_dict'):
-            render(result.to_dict(), ctx.obj['format'])
-        elif hasattr(result, '__dict__'):
-            render(result.__dict__, ctx.obj['format'])
-        else:
-            render(result, ctx.obj['format'])
+        render(_portfolio_account_to_dict(result), ctx.obj['format'])
     else:
         click.echo('No asset data available.')
 
