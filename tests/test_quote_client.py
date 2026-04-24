@@ -30,9 +30,8 @@ class TestQuoteClient(unittest.TestCase):
 
     def setUp(self):
         self.is_mock = True
-        current_dir = os.path.dirname(__file__)
         self.client_config = TigerOpenClientConfig(
-            props_path=os.path.join(current_dir, ".config/prod_xxxx/"))
+            props_path=os.path.expanduser("~/.tigeropen/"))
         self.client: QuoteClient = QuoteClient(self.client_config,
                                                logger=logger,
                                                is_grab_permission=False)
