@@ -525,17 +525,25 @@ def scanner(ctx, market, filters, sort, sort_dir, limit, page_size):
         raw_sort = sort_parts[0]
         sort_period = None
 
-        if raw_sort.lower().startswith('acc.'):
-            sort_field = AccumulateField[raw_sort[4:]]
-            if len(sort_parts) > 1 and sort_parts[1]:
-                try:
-                    sort_period = AccumulatePeriod[sort_parts[1].upper()]
-                except KeyError:
-                    pass
-        elif raw_sort.lower().startswith('fin.'):
-            sort_field = FinancialField[raw_sort[4:]]
-        else:
-            sort_field = StockField[raw_sort]
+        try:
+            if raw_sort.lower().startswith('acc.'):
+                sort_field = AccumulateField[raw_sort[4:]]
+                if len(sort_parts) > 1 and sort_parts[1]:
+                    try:
+                        sort_period = AccumulatePeriod[sort_parts[1].upper()]
+                    except KeyError:
+                        raise click.BadParameter(
+                            f"Unknown AccumulatePeriod: {sort_parts[1]}. Options: ANNUAL, QUARTERLY, SEMIANNUAL"
+                        )
+            elif raw_sort.lower().startswith('fin.'):
+                sort_field = FinancialField[raw_sort[4:]]
+            else:
+                sort_field = StockField[raw_sort]
+        except KeyError:
+            raise click.BadParameter(
+                f"Unknown sort field: {raw_sort}. Use acc./fin. prefix for accumulate/financial fields. "
+                f"Examples: MarketValue, acc.ROE:ANNUAL, fin.Revenue"
+            )
 
         sd = SortDirection.DESC if sort_dir.upper() == 'DESC' else SortDirection.ASC
         sort_filter_data = SortFilterData(sort_field, sort_dir=sd, period=sort_period)
