@@ -1,4 +1,4 @@
-## 3.5.8 (2026-04-13)
+## 3.5.8 (2026-04-24)
 ### New
 - CLI 新增 `tigeropen quote scanner` 选股命令，支持 `--filter`（数值/累计/财务/标签筛选，预设 `gainers`/`losers`）、`--sort`、`--sort-dir`、`--limit` 参数
 - 新增 Windows PowerShell 一键安装脚本 `install.ps1`（`irm .../install.ps1 | iex`）；`install.sh` 在 MINGW/MSYS/Cygwin 环境下增加 PowerShell 安装提示
