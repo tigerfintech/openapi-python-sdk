@@ -143,3 +143,4 @@ cython_debug/
 .vscode
 
 .claude/
+CLAUDE.md
