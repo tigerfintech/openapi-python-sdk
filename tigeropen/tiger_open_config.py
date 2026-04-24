@@ -325,6 +325,9 @@ class TigerOpenClientConfig:
         if self.props_path is not None:
             if os.path.isdir(self.props_path):
                 full_path = os.path.join(self.props_path, filename)
+            elif filename == DEFAULT_PROPS_FILE and os.path.isfile(self.props_path):
+                # props_path points directly to a file; use it as-is for the config file
+                full_path = self.props_path
             else:
                 dirname = os.path.dirname(self.props_path)
                 full_path = os.path.join(dirname, filename)

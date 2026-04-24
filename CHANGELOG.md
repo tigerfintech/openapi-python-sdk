@@ -1,3 +1,11 @@
+## 3.5.8 (2026-04-24)
+### New
+- CLI 新增 `tigeropen quote scanner` 选股命令，支持 `--filter`（数值/累计/财务/标签筛选，预设 `gainers`/`losers`）、`--sort`、`--sort-dir`、`--limit` 参数
+- 新增 Windows PowerShell 一键安装脚本 `install.ps1`（`irm .../install.ps1 | iex`）；`install.sh` 在 MINGW/MSYS/Cygwin 环境下增加 PowerShell 安装提示
+### Fix
+- 修复 `_get_props_path()` 传入完整文件路径时文件名被替换为 `tiger_openapi_config.properties` 的问题，现在支持任意文件名
+- 修复 `account assets` 命令渲染 `PortfolioAccount` 对象时报错的问题
+
 ## 3.5.7 (2026-03-25)
 ### Fix
 - 修复 pyproject.toml 中 build-backend 使用 `setuptools.backends._legacy:_Backend` 导致旧版 pip/setuptools 安装失败的问题，改为标准的 `setuptools.build_meta`
