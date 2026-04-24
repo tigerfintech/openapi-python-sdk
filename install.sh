@@ -53,7 +53,18 @@ OS=$(uname -s)
 case "$OS" in
     Linux*)  OS="linux" ;;
     Darwin*) OS="macos" ;;
-    MINGW*|MSYS*|CYGWIN*) OS="windows" ;;
+    MINGW*|MSYS*|CYGWIN*)
+        OS="windows"
+        printf '%s\n' ""
+        printf '%s\n' "${yellow}  Windows detected.${reset}"
+        printf '%s\n' "  This shell script works under Git Bash / MSYS2 / Cygwin, but"
+        printf '%s\n' "  the native Windows installer (PowerShell) is recommended:"
+        printf '%s\n' ""
+        printf '%s\n' "    ${cyan}irm https://raw.githubusercontent.com/tigerfintech/openapi-python-sdk/master/install.ps1 | iex${reset}"
+        printf '%s\n' ""
+        printf '%s\n' "  Continuing with shell installer..."
+        printf '%s\n' ""
+        ;;
     *)       warn "unrecognized OS: $OS — proceeding anyway" ;;
 esac
 
@@ -142,8 +153,10 @@ if [ -z "$TIGEROPEN_BIN" ]; then
         "$HOME/.local/bin" \
         "$HOME/Library/Python/${PY_VERSION}/bin" \
         "$HOME/.local/share/pipx/venvs/tigeropen/bin" \
+        "$APPDATA/Python/Scripts" \
+        "$LOCALAPPDATA/Programs/Python/Python${PY_MAJOR}${PY_MINOR}/Scripts" \
         ; do
-        if [ -x "$dir/tigeropen" ]; then
+        if [ -x "$dir/tigeropen" ] || [ -x "$dir/tigeropen.exe" ]; then
             TIGEROPEN_BIN="$dir/tigeropen"
             break
         fi
