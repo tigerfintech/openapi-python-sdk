@@ -31,7 +31,7 @@ def _segment_to_dict(segment):
     """Serialize a Segment object to a plain dict."""
     d = {k: v for k, v in segment.__dict__.items() if not k.startswith('_')}
     d['currency_assets'] = {
-        currency: {k: v for k, v in ca.__dict__.items()}
+        currency: {k: v for k, v in ca.__dict__.items() if not k.startswith('_')}
         for currency, ca in segment.currency_assets.items()
     }
     return d
