@@ -48,4 +48,6 @@ message OrderStatusData {
   double gst = 41;
   repeated string attrList = 42;
   string timeInForce = 43;
+  uint64 updateTime = 44; // timestamp (ms) of order info update
+  uint64 latestTime = 45; // timestamp (ms) of order status update
 }
