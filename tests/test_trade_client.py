@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest.mock import MagicMock
 
-from tigeropen.common.consts import OrderStatus
+from tigeropen.common.consts import OrderStatus, OptionExerciseType
 from tigeropen.common.util import web_utils
 from tigeropen.common.util.contract_utils import stock_contract
 from tigeropen.common.util.order_utils import limit_order
@@ -27,7 +27,13 @@ class TestTradeClient(unittest.TestCase):
     def setUp(self):
         self.is_mock = False
         self.client_config = TigerOpenClientConfig(
-            props_path=os.path.expanduser("~/.tigeropen/"))
+            props_path=os.path.expanduser("~/.tigeropen/demo/"))
+        # todo
+        from tigeropen.tiger_open_config import SANDBOX_TIGER_PUBLIC_KEY
+        self.client_config.server_url = 'http://localhost:8085/gateway'
+        self.client_config.quote_server_url = 'http://localhost:8085/gateway'
+        self.client_config._tiger_public_key = SANDBOX_TIGER_PUBLIC_KEY
+
         self.client: TradeClient = TradeClient(self.client_config,
                                                logger=logger)
         self.origin_do_request = web_utils.do_request
@@ -1409,4 +1415,230 @@ class TestTradeClient(unittest.TestCase):
             self.assertEqual(mock_result[0].transfer_property_infos[0].symbol, "AAPL")
         else:
             result = self.client.get_position_transfer_external_records(account_id="1001", since_date="2025-01-01", to_date="2025-01-02")
+
+    def test_submit_option_exercise(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1755200000000,
+                "data": {
+                    "status": "ok",
+                    "msg": "success",
+                    "trace_id": "abc123",
+                    "data": {
+                        "id": 9876543210,
+                        "success": True,
+                        "message": "Exercise request submitted successfully"
+                    }
+                }
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            # Test with str
+            result = self.client.submit_option_exercise(
+                contract_id=112233,
+                exercise_type="Exercise",
+                quantity=1.0,
+                executing_date="2025-06-20",
+                is_force=False,
+            )
+            self.assertIsNotNone(result)
+            self.assertEqual(result.id, 9876543210)
+            self.assertTrue(result.success)
+
+            # Test with OptionExerciseType enum
+            result_enum = self.client.submit_option_exercise(
+                contract_id=112233,
+                exercise_type=OptionExerciseType.EXERCISE,
+                quantity=1.0,
+                executing_date="2025-06-20",
+                is_force=False,
+            )
+            self.assertIsNotNone(result_enum)
+            self.assertEqual(result_enum.id, 9876543210)
+
+            # Test Expire type via enum
+            result_expire = self.client.submit_option_exercise(
+                contract_id=112233,
+                exercise_type=OptionExerciseType.EXPIRE,
+                quantity=1.0,
+                itm_rate=80,
+            )
+            self.assertIsNotNone(result_expire)
+            self.assertEqual(result_expire.id, 9876543210)
+        else:
+            result = self.client.submit_option_exercise(
+                contract_id=542,
+                exercise_type="Exercise",
+                quantity=1.0,
+                executing_date="2026-06-20",
+                is_force=False,
+            )
+            logger.debug(f"Submit Option Exercise Result: {result}")
+
+    def test_check_option_exercise(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1755200000000,
+                "data": {
+                    "status": "ok",
+                    "msg": "success",
+                    "trace_id": "abc123",
+                    "data": {
+                        "availableQuantity": 5.0,
+                        "position": 5.0,
+                        "stkPosition": 0.0,
+                        "stkPositionChange": 500.0,
+                        "stkPositionBefore": 0.0,
+                        "stkPositionAfter": 500.0,
+                        "symbol": "AAPL"
+                    }
+                }
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            result = self.client.check_option_exercise(
+                contract_id=112233,
+                exercise_type="Exercise",
+                quantity=5.0,
+                executing_date="2025-06-20",
+                is_force=False,
+            )
+            self.assertIsNotNone(result)
+            self.assertEqual(result.available_quantity, 5.0)
+            self.assertEqual(result.symbol, "AAPL")
+            self.assertEqual(result.stk_position_after, 500.0)
+        else:
+            result = self.client.check_option_exercise(
+                contract_id=542,
+                exercise_type="Exercise",
+                quantity=5.0,
+            )
+            logger.debug(f"Check Option Exercise Result: {result}")
+
+    def test_get_option_exercise_records(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1755200000000,
+                "data": {
+                    "status": "ok",
+                    "msg": "success",
+                    "trace_id": "abc123",
+                    "data": {
+                        "items": [
+                            {
+                                "id": 9876543210,
+                                "account": "123123",
+                                "contractId": 112233,
+                                "symbol": "AAPL",
+                                "expiry": "20250620",
+                                "strike": "200.0",
+                                "right": "CALL",
+                                "type": "Exercise",
+                                "quantity": 1.0,
+                                "status": "New",
+                                "executingDate": "2025-06-20",
+                                "isForce": False
+                            }
+                        ],
+                        "itemCount": 1,
+                        "pageNum": 1,
+                        "pageSize": 20
+                    }
+                }
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            result = self.client.get_option_exercise_records(page=1, size=20)
+            self.assertIsNotNone(result)
+            self.assertIsInstance(result, list)
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0].id, 9876543210)
+            self.assertEqual(result[0].symbol, "AAPL")
+            self.assertEqual(result[0].type, "Exercise")
+            self.assertEqual(result[0].status, "New")
+        else:
+            result = self.client.get_option_exercise_records(page=1, size=20)
+            logger.debug(f"Option Exercise Records: {result}")
+
+    def test_get_option_exercise_positions(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1755200000000,
+                "data": {
+                    "status": "ok",
+                    "msg": "success",
+                    "trace_id": "abc123",
+                    "data": {
+                        "items": [
+                            {
+                                "contractId": 112233,
+                                "symbol": "AAPL",
+                                "expiry": "20250620",
+                                "strike": "200.0",
+                                "right": "CALL",
+                                "quantity": 5.0,
+                                "averageCost": 3.5,
+                                "marketPrice": 4.2,
+                                "marketValue": 2100.0,
+                                "unrealizedPnl": 350.0
+                            }
+                        ]
+                    }
+                }
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            # Test with str
+            result = self.client.get_option_exercise_positions(exercise_type="Exercise")
+            self.assertIsNotNone(result)
+            self.assertIsInstance(result, list)
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0].contract_id, 112233)
+            self.assertEqual(result[0].symbol, "AAPL")
+            self.assertEqual(result[0].quantity, 5.0)
+
+            # Test with OptionExerciseType enum
+            result_enum = self.client.get_option_exercise_positions(
+                exercise_type=OptionExerciseType.EXERCISE)
+            self.assertIsNotNone(result_enum)
+            self.assertEqual(result_enum[0].symbol, "AAPL")
+        else:
+            result = self.client.get_option_exercise_positions(
+                exercise_type=OptionExerciseType.EXERCISE)
+            logger.debug(f"Option Exercise Positions: {result}")
+
+    def test_cancel_option_exercise(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1755200000000,
+                "data": {
+                    "status": "ok",
+                    "msg": "success",
+                    "trace_id": "abc123",
+                    "data": {
+                        "id": 9876543210,
+                        "success": True,
+                        "message": "Exercise request cancelled successfully"
+                    }
+                }
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            result = self.client.cancel_option_exercise(exercise_id=9876543210)
+            self.assertIsNotNone(result)
+            self.assertEqual(result.id, 9876543210)
+            self.assertTrue(result.success)
+        else:
+            result = self.client.cancel_option_exercise(exercise_id=9876543210)
+            logger.debug(f"Cancel Option Exercise Result: {result}")
             logger.debug(f"Position Transfer External Records: {result}")
