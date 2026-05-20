@@ -12,13 +12,6 @@ from tigeropen.trade.domain.option_exercise import (
 )
 
 
-def _extract_inner_data(outer_data):
-    """Extract the actual payload from the inner response envelope {status, msg, data, ...}."""
-    if not outer_data or not isinstance(outer_data, dict):
-        return None
-    return outer_data.get('data')
-
-
 class OptionExerciseSubmitResponse(TigerResponse):
     """提交行权/作废申请 响应"""
 
@@ -27,12 +20,11 @@ class OptionExerciseSubmitResponse(TigerResponse):
         self.result = None
 
     def parse_response_content(self, response_content):
-        response = super().parse_response_content(response_content)
+        super().parse_response_content(response_content)
 
-        inner = _extract_inner_data(self.data)
-        if inner and isinstance(inner, dict):
+        if self.data and isinstance(self.data, dict):
             obj = OptionExerciseActionResult()
-            for key, value in inner.items():
+            for key, value in self.data.items():
                 attr = string_utils.camel_to_underline(key)
                 if hasattr(obj, attr):
                     setattr(obj, attr, value)
@@ -47,12 +39,11 @@ class OptionExerciseCheckResponse(TigerResponse):
         self.result = None
 
     def parse_response_content(self, response_content):
-        response = super().parse_response_content(response_content)
+        super().parse_response_content(response_content)
 
-        inner = _extract_inner_data(self.data)
-        if inner and isinstance(inner, dict):
+        if self.data and isinstance(self.data, dict):
             obj = OptionExerciseCheckResult()
-            for key, value in inner.items():
+            for key, value in self.data.items():
                 attr = string_utils.camel_to_underline(key)
                 if hasattr(obj, attr):
                     setattr(obj, attr, value)
@@ -70,14 +61,13 @@ class OptionExercisePageResponse(TigerResponse):
         self.size = None
 
     def parse_response_content(self, response_content):
-        response = super().parse_response_content(response_content)
+        super().parse_response_content(response_content)
 
-        inner = _extract_inner_data(self.data)
-        if inner and isinstance(inner, dict):
-            self.total = inner.get('itemCount')
-            self.page = inner.get('pageNum')
-            self.size = inner.get('pageSize')
-            items = inner.get('items') or []
+        if self.data and isinstance(self.data, dict):
+            self.total = self.data.get('itemCount')
+            self.page = self.data.get('pageNum')
+            self.size = self.data.get('pageSize')
+            items = self.data.get('items') or []
             for item in items:
                 record = OptionExerciseRecord()
                 for key, value in item.items():
@@ -95,11 +85,10 @@ class OptionExercisePositionResponse(TigerResponse):
         self.result = []
 
     def parse_response_content(self, response_content):
-        response = super().parse_response_content(response_content)
+        super().parse_response_content(response_content)
 
-        inner = _extract_inner_data(self.data)
-        if inner:
-            items = inner if isinstance(inner, list) else inner.get('items') or []
+        if self.data:
+            items = self.data if isinstance(self.data, list) else self.data.get('items') or []
             for item in items:
                 pos = OptionExercisePosition()
                 for key, value in item.items():
@@ -117,12 +106,11 @@ class OptionExerciseCancelResponse(TigerResponse):
         self.result = None
 
     def parse_response_content(self, response_content):
-        response = super().parse_response_content(response_content)
+        super().parse_response_content(response_content)
 
-        inner = _extract_inner_data(self.data)
-        if inner and isinstance(inner, dict):
+        if self.data and isinstance(self.data, dict):
             obj = OptionExerciseActionResult()
-            for key, value in inner.items():
+            for key, value in self.data.items():
                 attr = string_utils.camel_to_underline(key)
                 if hasattr(obj, attr):
                     setattr(obj, attr, value)

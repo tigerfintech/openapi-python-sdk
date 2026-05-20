@@ -1423,14 +1423,9 @@ class TestTradeClient(unittest.TestCase):
                 "message": "success",
                 "timestamp": 1755200000000,
                 "data": {
-                    "status": "ok",
-                    "msg": "success",
-                    "trace_id": "abc123",
-                    "data": {
-                        "id": 9876543210,
-                        "success": True,
-                        "message": "Exercise request submitted successfully"
-                    }
+                    "id": 9876543210,
+                    "success": True,
+                    "message": "Exercise request submitted successfully"
                 }
             }
             web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
@@ -1484,18 +1479,13 @@ class TestTradeClient(unittest.TestCase):
                 "message": "success",
                 "timestamp": 1755200000000,
                 "data": {
-                    "status": "ok",
-                    "msg": "success",
-                    "trace_id": "abc123",
-                    "data": {
-                        "availableQuantity": 5.0,
-                        "position": 5.0,
-                        "stkPosition": 0.0,
-                        "stkPositionChange": 500.0,
-                        "stkPositionBefore": 0.0,
-                        "stkPositionAfter": 500.0,
-                        "symbol": "AAPL"
-                    }
+                    "availableQuantity": 5.0,
+                    "position": 5.0,
+                    "stkPosition": 0.0,
+                    "stkPositionChange": 500.0,
+                    "stkPositionBefore": 0.0,
+                    "stkPositionAfter": 500.0,
+                    "symbol": "AAPL"
                 }
             }
             web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
@@ -1526,30 +1516,25 @@ class TestTradeClient(unittest.TestCase):
                 "message": "success",
                 "timestamp": 1755200000000,
                 "data": {
-                    "status": "ok",
-                    "msg": "success",
-                    "trace_id": "abc123",
-                    "data": {
-                        "items": [
-                            {
-                                "id": 9876543210,
-                                "account": "123123",
-                                "contractId": 112233,
-                                "symbol": "AAPL",
-                                "expiry": "20250620",
-                                "strike": "200.0",
-                                "right": "CALL",
-                                "type": "Exercise",
-                                "quantity": 1.0,
-                                "status": "New",
-                                "executingDate": "2025-06-20",
-                                "isForce": False
-                            }
-                        ],
-                        "itemCount": 1,
-                        "pageNum": 1,
-                        "pageSize": 20
-                    }
+                    "items": [
+                        {
+                            "id": 9876543210,
+                            "account": "123123",
+                            "contractId": 112233,
+                            "symbol": "AAPL",
+                            "expiry": "20250620",
+                            "strike": "200.0",
+                            "right": "CALL",
+                            "type": "Exercise",
+                            "quantity": 1.0,
+                            "status": "New",
+                            "executingDate": "2025-06-20",
+                            "isForce": False
+                        }
+                    ],
+                    "itemCount": 1,
+                    "pageNum": 1,
+                    "pageSize": 20
                 }
             }
             web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
@@ -1573,25 +1558,20 @@ class TestTradeClient(unittest.TestCase):
                 "message": "success",
                 "timestamp": 1755200000000,
                 "data": {
-                    "status": "ok",
-                    "msg": "success",
-                    "trace_id": "abc123",
-                    "data": {
-                        "items": [
-                            {
-                                "contractId": 112233,
-                                "symbol": "AAPL",
-                                "expiry": "20250620",
-                                "strike": "200.0",
-                                "right": "CALL",
-                                "quantity": 5.0,
-                                "averageCost": 3.5,
-                                "marketPrice": 4.2,
-                                "marketValue": 2100.0,
-                                "unrealizedPnl": 350.0
-                            }
-                        ]
-                    }
+                    "items": [
+                        {
+                            "contractId": 112233,
+                            "symbol": "AAPL",
+                            "expiry": "20250620",
+                            "strike": "200.0",
+                            "right": "CALL",
+                            "quantity": 5.0,
+                            "averageCost": 3.5,
+                            "marketPrice": 4.2,
+                            "marketValue": 2100.0,
+                            "unrealizedPnl": 350.0
+                        }
+                    ]
                 }
             }
             web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
@@ -1622,14 +1602,9 @@ class TestTradeClient(unittest.TestCase):
                 "message": "success",
                 "timestamp": 1755200000000,
                 "data": {
-                    "status": "ok",
-                    "msg": "success",
-                    "trace_id": "abc123",
-                    "data": {
-                        "id": 9876543210,
-                        "success": True,
-                        "message": "Exercise request cancelled successfully"
-                    }
+                    "id": 9876543210,
+                    "success": True,
+                    "message": "Exercise request cancelled successfully"
                 }
             }
             web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
