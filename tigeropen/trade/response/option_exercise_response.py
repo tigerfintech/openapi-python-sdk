@@ -6,29 +6,25 @@ from tigeropen.common.response import TigerResponse
 from tigeropen.common.util import string_utils
 from tigeropen.trade.domain.option_exercise import (
     OptionExerciseRecord,
+    OptionExercisePageResult,
     OptionExerciseCheckResult,
     OptionExercisePosition,
-    OptionExerciseActionResult,
+    OptionExercisePositionPageResult,
 )
 
 
 class OptionExerciseSubmitResponse(TigerResponse):
-    """提交行权/作废申请 响应"""
-
-    def __init__(self):
-        super().__init__()
-        self.result = None
+    """提交行权/作废申请 响应 — 服务端无业务 data，仅靠 is_success() 判断结果"""
 
     def parse_response_content(self, response_content):
         super().parse_response_content(response_content)
 
-        if self.data and isinstance(self.data, dict):
-            obj = OptionExerciseActionResult()
-            for key, value in self.data.items():
-                attr = string_utils.camel_to_underline(key)
-                if hasattr(obj, attr):
-                    setattr(obj, attr, value)
-            self.result = obj
+
+class OptionExerciseCancelResponse(TigerResponse):
+    """撤销行权申请 响应 — 服务端无业务 data，仅靠 is_success() 判断结果"""
+
+    def parse_response_content(self, response_content):
+        super().parse_response_content(response_content)
 
 
 class OptionExerciseCheckResponse(TigerResponse):
@@ -55,51 +51,29 @@ class OptionExercisePageResponse(TigerResponse):
 
     def __init__(self):
         super().__init__()
-        self.result = []
-        self.total = None
-        self.page = None
-        self.size = None
+        self.result = None
 
     def parse_response_content(self, response_content):
         super().parse_response_content(response_content)
 
         if self.data and isinstance(self.data, dict):
-            self.total = self.data.get('itemCount')
-            self.page = self.data.get('pageNum')
-            self.size = self.data.get('pageSize')
-            items = self.data.get('items') or []
-            for item in items:
+            page_result = OptionExercisePageResult()
+            page_result.page_num = self.data.get('pageNum')
+            page_result.page_size = self.data.get('pageSize')
+            page_result.item_count = self.data.get('itemCount')
+            page_result.page_count = self.data.get('pageCount')
+            for item in self.data.get('items') or []:
                 record = OptionExerciseRecord()
                 for key, value in item.items():
                     attr = string_utils.camel_to_underline(key)
                     if hasattr(record, attr):
                         setattr(record, attr, value)
-                self.result.append(record)
+                page_result.items.append(record)
+            self.result = page_result
 
 
 class OptionExercisePositionResponse(TigerResponse):
     """查询可行权持仓响应"""
-
-    def __init__(self):
-        super().__init__()
-        self.result = []
-
-    def parse_response_content(self, response_content):
-        super().parse_response_content(response_content)
-
-        if self.data:
-            items = self.data if isinstance(self.data, list) else self.data.get('items') or []
-            for item in items:
-                pos = OptionExercisePosition()
-                for key, value in item.items():
-                    attr = string_utils.camel_to_underline(key)
-                    if hasattr(pos, attr):
-                        setattr(pos, attr, value)
-                self.result.append(pos)
-
-
-class OptionExerciseCancelResponse(TigerResponse):
-    """撤销行权申请响应"""
 
     def __init__(self):
         super().__init__()
@@ -109,9 +83,16 @@ class OptionExerciseCancelResponse(TigerResponse):
         super().parse_response_content(response_content)
 
         if self.data and isinstance(self.data, dict):
-            obj = OptionExerciseActionResult()
-            for key, value in self.data.items():
-                attr = string_utils.camel_to_underline(key)
-                if hasattr(obj, attr):
-                    setattr(obj, attr, value)
-            self.result = obj
+            page_result = OptionExercisePositionPageResult()
+            page_result.page_num = self.data.get('pageNum')
+            page_result.page_size = self.data.get('pageSize')
+            page_result.item_count = self.data.get('itemCount')
+            page_result.page_count = self.data.get('pageCount')
+            for item in self.data.get('items') or []:
+                pos = OptionExercisePosition()
+                for key, value in item.items():
+                    attr = string_utils.camel_to_underline(key)
+                    if hasattr(pos, attr):
+                        setattr(pos, attr, value)
+                page_result.items.append(pos)
+            self.result = page_result

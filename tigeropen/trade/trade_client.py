@@ -12,14 +12,16 @@ from tigeropen.trade.domain.position import Position
 from tigeropen.trade.domain.prime_account import PortfolioAccount
 
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency, Language, OPEN_API_SERVICE_VERSION_V3, \
-    SegmentType, OrderStatus, OrderSortBy
+    SegmentType, OrderStatus, OrderSortBy, OptionExerciseType
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
     PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET, SEGMENT_FUND_AVAILABLE, SEGMENT_FUND_HISTORY, \
     TRANSFER_FUND, \
     TRANSFER_SEGMENT_FUND, CANCEL_SEGMENT_FUND, PLACE_FOREX_ORDER, ESTIMATE_TRADABLE_QUANTITY, AGGREGATE_ASSETS, \
     FUND_DETAILS, POSITION_TRANSFER, POSITION_TRANSFER_RECORDS, POSITION_TRANSFER_DETAIL, \
-    POSITION_TRANSFER_EXTERNAL_RECORDS
+    POSITION_TRANSFER_EXTERNAL_RECORDS, \
+    OPTION_EXERCISE_SUBMIT, OPTION_EXERCISE_CHECK, OPTION_EXERCISE_PAGE, OPTION_EXERCISE_POSITION, \
+    OPTION_EXERCISE_CANCEL
 from tigeropen.common.exceptions import ApiException
 from tigeropen.common.util.common_utils import get_enum_value, date_str_to_timestamp
 from tigeropen.common.request import OpenApiRequest
@@ -29,7 +31,9 @@ from tigeropen.trade.domain.order import Order, Transaction
 from tigeropen.trade.request.model import ContractParams, AccountsParams, AssetParams, PositionParams, OrdersParams, \
     OrderParams, PlaceModifyOrderParams, CancelOrderParams, TransactionsParams, AnalyticsAssetParams, SegmentFundParams, \
     ForexTradeOrderParams, EstimateTradableQuantityModel, FundingHistoryParams, AggregateAssetParams, FundDetailsParams, \
-    PositionTransferParams, PositionTransferRecordsParams, PositionTransferDetailParams
+    PositionTransferParams, PositionTransferRecordsParams, PositionTransferDetailParams, \
+    OptionExerciseSubmitParams, OptionExerciseCheckParams, OptionExercisePageParams, \
+    OptionExercisePositionParams, OptionExerciseCancelParams
 from tigeropen.trade.response.account_profile_response import ProfilesResponse
 from tigeropen.trade.response.aggregate_assets_response import AggregateAssetsResponse
 from tigeropen.trade.response.analytics_asset_response import AnalyticsAssetResponse
@@ -51,6 +55,15 @@ from tigeropen.trade.response.transfer_response import PositionTransferResponse,
 from tigeropen.trade.domain.transfer import PositionTransfer, PositionTransferRecord, PositionTransferDetail, \
     PositionTransferExternalRecord, TransferItem
 from tigeropen.trade.response.funding_history_response import FundingHistoryResponse
+from tigeropen.trade.response.option_exercise_response import (
+    OptionExerciseSubmitResponse, OptionExerciseCheckResponse,
+    OptionExercisePageResponse, OptionExercisePositionResponse,
+    OptionExerciseCancelResponse,
+)
+from tigeropen.trade.domain.option_exercise import (
+    OptionExerciseRecord, OptionExercisePageResult, OptionExerciseCheckResult,
+    OptionExercisePosition, OptionExercisePositionPageResult,
+)
 
 
 class TradeClient(TigerOpenClient):
@@ -1531,6 +1544,193 @@ class TradeClient(TigerOpenClient):
             else:
                 raise ApiException(response.code, response.message)
         return None
+
+    def submit_option_exercise(
+            self,
+            contract_id: int,
+            exercise_type: Union[OptionExerciseType, str],
+            quantity: float,
+            account: Optional[str] = None,
+            executing_date: Optional[str] = None,
+            is_force: Optional[bool] = None,
+            itm_rate: Optional[int] = None,
+            lang: Optional[Union[Language, str]] = None) -> bool:
+        """
+        提交期权行权或作废申请 / Submit an option early exercise or expire (abandon) request.
+
+        :param contract_id: 期权合约 ID
+        :param exercise_type: 行权类型. OptionExerciseType.EXERCISE = 提前行权; OptionExerciseType.EXPIRE = 作废/放弃行权
+        :param quantity: 行权数量 (> 0)
+        :param account: 交易账户. 为空时使用默认账户
+        :param executing_date: 行权执行日期, 格式 'yyyy-MM-dd'. exercise_type=EXERCISE 时必填
+        :param is_force: 是否强制行权. exercise_type=EXERCISE 时必填
+        :param itm_rate: 价内率 0-100. exercise_type=EXPIRE 时必填
+        :param lang: 语言
+        :return: True if successful
+        """
+        params = OptionExerciseSubmitParams()
+        params.account = account if account else self._account
+        params.contract_id = contract_id
+        params.type = get_enum_value(exercise_type)
+        params.quantity = quantity
+        params.executing_date = executing_date
+        params.is_force = is_force
+        params.itm_rate = itm_rate
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+
+        request = OpenApiRequest(OPTION_EXERCISE_SUBMIT, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = OptionExerciseSubmitResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return True
+            else:
+                raise ApiException(response.code, response.message)
+        return False
+
+    def check_option_exercise(
+            self,
+            contract_id: int,
+            exercise_type: Union[OptionExerciseType, str],
+            account: Optional[str] = None,
+            quantity: Optional[float] = None,
+            executing_date: Optional[str] = None,
+            is_force: Optional[bool] = None,
+            lang: Optional[Union[Language, str]] = None) -> Optional['OptionExerciseCheckResult']:
+        """
+        行权检验（预估行权后的持仓变化）/ Validate and preview the effect of an exercise request.
+
+        :param contract_id: 期权合约 ID
+        :param exercise_type: 行权类型. OptionExerciseType.EXERCISE | OptionExerciseType.EXPIRE
+        :param account: 交易账户. 为空时使用默认账户
+        :param quantity: 行权数量
+        :param executing_date: 行权执行日期, 格式 'yyyy-MM-dd'
+        :param is_force: 是否强制行权
+        :param lang: 语言
+        :return: OptionExerciseCheckResult
+        """
+        params = OptionExerciseCheckParams()
+        params.account = account if account else self._account
+        params.contract_id = contract_id
+        params.type = get_enum_value(exercise_type)
+        params.quantity = quantity
+        params.executing_date = executing_date
+        params.is_force = is_force
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+
+        request = OpenApiRequest(OPTION_EXERCISE_CHECK, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = OptionExerciseCheckResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_option_exercise_records(
+            self,
+            account: Optional[str] = None,
+            page: int = 1,
+            size: int = 20,
+            status: Optional[str] = None,
+            exercise_type: Optional[Union[OptionExerciseType, str]] = None,
+            symbol: Optional[str] = None,
+            order_by: Optional[str] = None,
+            lang: Optional[Union[Language, str]] = None) -> Optional['OptionExercisePageResult']:
+        """
+        分页查询行权申请记录 / Query option exercise records with pagination.
+
+        :param account: 交易账户. 为空时使用默认账户
+        :param page: 页码, 从 1 开始
+        :param size: 每页数量, 1-100
+        :param status: 行权状态过滤, 如 'New'
+        :param exercise_type: 行权类型过滤. OptionExerciseType.EXERCISE | OptionExerciseType.EXPIRE
+        :param symbol: 标的股票代码过滤
+        :param order_by: 排序字段. 'symbol' | 'expire_date' | 'strike' | 'is_call'
+        :param lang: 语言
+        :return: OptionExercisePageResult (items, page_num, page_size, item_count, page_count)
+        """
+        params = OptionExercisePageParams()
+        params.account = account if account else self._account
+        params.page = page
+        params.size = size
+        params.status = status
+        params.type = get_enum_value(exercise_type) if exercise_type else None
+        params.symbol = symbol
+        params.order_by = order_by
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+
+        request = OpenApiRequest(OPTION_EXERCISE_PAGE, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = OptionExercisePageResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def get_option_exercise_positions(
+            self,
+            exercise_type: Union[OptionExerciseType, str],
+            account: Optional[str] = None,
+            lang: Optional[Union[Language, str]] = None) -> Optional['OptionExercisePositionPageResult']:
+        """
+        查询可行权持仓 / Query option positions available for exercise or expiry.
+
+        :param exercise_type: 行权类型. OptionExerciseType.EXERCISE | OptionExerciseType.EXPIRE
+        :param account: 交易账户. 为空时使用默认账户
+        :param lang: 语言
+        :return: OptionExercisePositionPageResult (items, page_num, page_size, item_count, page_count)
+        """
+        params = OptionExercisePositionParams()
+        params.account = account if account else self._account
+        params.type = get_enum_value(exercise_type)
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+
+        request = OpenApiRequest(OPTION_EXERCISE_POSITION, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = OptionExercisePositionResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+        return None
+
+    def cancel_option_exercise(
+            self,
+            exercise_id: int,
+            account: Optional[str] = None,
+            lang: Optional[Union[Language, str]] = None) -> bool:
+        """
+        撤销行权申请 / Cancel a pending option exercise request.
+
+        :param exercise_id: 行权申请 ID
+        :param account: 交易账户. 为空时使用默认账户
+        :param lang: 语言
+        :return: True if successful
+        """
+        params = OptionExerciseCancelParams()
+        params.account = account if account else self._account
+        params.id = exercise_id
+        params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
+
+        request = OpenApiRequest(OPTION_EXERCISE_CANCEL, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = OptionExerciseCancelResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return True
+            else:
+                raise ApiException(response.code, response.message)
+        return False
 
     def __fetch_data(self, request):
         try:

@@ -27,7 +27,7 @@ class TestTradeClient(unittest.TestCase):
     def setUp(self):
         self.is_mock = False
         self.client_config = TigerOpenClientConfig(
-            props_path=os.path.expanduser("~/.tigeropen/demo/"))
+            props_path=os.path.expanduser("/Users/sukai/Documents/Areas/tigerbrokers/openapi/openapi_test/qa8"))
         # todo
         from tigeropen.tiger_open_config import SANDBOX_TIGER_PUBLIC_KEY
         self.client_config.server_url = 'http://localhost:8085/gateway'
@@ -277,7 +277,7 @@ class TestTradeClient(unittest.TestCase):
             self.assertEqual(mock_result.tick_sizes[1]['type'], 'OPEN')
             self.assertEqual(mock_result.tick_sizes[1]['tick_size'], 0.01)
         else:
-            result = self.client.get_contract(symbol="NVDA")
+            result = self.client.get_contract(symbol="NVDA", sec_type='OPT', expiry='20260605', strike=220, put_call='CALL')
             logger.debug(f"Contracts: {result.to_dict()}")
 
     def test_get_orders(self):
@@ -1422,11 +1422,7 @@ class TestTradeClient(unittest.TestCase):
                 "code": 0,
                 "message": "success",
                 "timestamp": 1755200000000,
-                "data": {
-                    "id": 9876543210,
-                    "success": True,
-                    "message": "Exercise request submitted successfully"
-                }
+                "data": None
             }
             web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
 
@@ -1438,9 +1434,7 @@ class TestTradeClient(unittest.TestCase):
                 executing_date="2025-06-20",
                 is_force=False,
             )
-            self.assertIsNotNone(result)
-            self.assertEqual(result.id, 9876543210)
-            self.assertTrue(result.success)
+            self.assertTrue(result)
 
             # Test with OptionExerciseType enum
             result_enum = self.client.submit_option_exercise(
@@ -1450,8 +1444,7 @@ class TestTradeClient(unittest.TestCase):
                 executing_date="2025-06-20",
                 is_force=False,
             )
-            self.assertIsNotNone(result_enum)
-            self.assertEqual(result_enum.id, 9876543210)
+            self.assertTrue(result_enum)
 
             # Test Expire type via enum
             result_expire = self.client.submit_option_exercise(
@@ -1460,15 +1453,15 @@ class TestTradeClient(unittest.TestCase):
                 quantity=1.0,
                 itm_rate=80,
             )
-            self.assertIsNotNone(result_expire)
-            self.assertEqual(result_expire.id, 9876543210)
+            self.assertTrue(result_expire)
         else:
             result = self.client.submit_option_exercise(
-                contract_id=542,
+                contract_id=2701923713,
                 exercise_type="Exercise",
                 quantity=1.0,
-                executing_date="2026-06-20",
+                executing_date="2026-06-01",
                 is_force=False,
+
             )
             logger.debug(f"Submit Option Exercise Result: {result}")
 
@@ -1491,7 +1484,7 @@ class TestTradeClient(unittest.TestCase):
             web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
 
             result = self.client.check_option_exercise(
-                contract_id=112233,
+                contract_id=2702385833,
                 exercise_type="Exercise",
                 quantity=5.0,
                 executing_date="2025-06-20",
@@ -1503,9 +1496,11 @@ class TestTradeClient(unittest.TestCase):
             self.assertEqual(result.stk_position_after, 500.0)
         else:
             result = self.client.check_option_exercise(
-                contract_id=542,
+                contract_id=2701923713,
                 exercise_type="Exercise",
-                quantity=5.0,
+                executing_date="2026-06-01",
+                quantity=1.0,
+                is_force=False,
             )
             logger.debug(f"Check Option Exercise Result: {result}")
 
@@ -1514,39 +1509,70 @@ class TestTradeClient(unittest.TestCase):
             mock_data = {
                 "code": 0,
                 "message": "success",
-                "timestamp": 1755200000000,
+                "timestamp": 1779795108734,
                 "data": {
+                    "pageNum": 1,
+                    "pageSize": 20,
+                    "itemCount": 2,
+                    "pageCount": 1,
                     "items": [
                         {
-                            "id": 9876543210,
-                            "account": "123123",
-                            "contractId": 112233,
-                            "symbol": "AAPL",
-                            "expiry": "20250620",
-                            "strike": "200.0",
-                            "right": "CALL",
+                            "id": 302,
                             "type": "Exercise",
-                            "quantity": 1.0,
                             "status": "New",
-                            "executingDate": "2025-06-20",
+                            "contractId": 2701923713,
+                            "symbol": "AAPL",
+                            "stkSymbol": "AAPL",
+                            "expireDate": "20260605",
+                            "strike": "305.0",
+                            "callPut": "PUT",
+                            "accountId": 600021133765,
+                            "requestQuantity": 1.0,
+                            "quantity": 0.0,
+                            "executingDate": "20260513",
+                            "itmRate": 0,
                             "isForce": False
+                        },
+                        {
+                            "id": 226,
+                            "type": "Exercise",
+                            "status": "Success",
+                            "contractId": 2506306537,
+                            "symbol": "AAPL",
+                            "stkSymbol": "AAPL",
+                            "expireDate": "20260501",
+                            "strike": "225.0",
+                            "callPut": "CALL",
+                            "accountId": 600021133765,
+                            "requestQuantity": 10.0,
+                            "quantity": 10.0,
+                            "executingDate": "20260416",
+                            "itmRate": 9,
+                            "isForce": True
                         }
-                    ],
-                    "itemCount": 1,
-                    "pageNum": 1,
-                    "pageSize": 20
+                    ]
                 }
             }
             web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
 
             result = self.client.get_option_exercise_records(page=1, size=20)
             self.assertIsNotNone(result)
-            self.assertIsInstance(result, list)
-            self.assertEqual(len(result), 1)
-            self.assertEqual(result[0].id, 9876543210)
-            self.assertEqual(result[0].symbol, "AAPL")
-            self.assertEqual(result[0].type, "Exercise")
-            self.assertEqual(result[0].status, "New")
+            self.assertEqual(result.page_num, 1)
+            self.assertEqual(result.page_size, 20)
+            self.assertEqual(result.item_count, 2)
+            self.assertEqual(result.page_count, 1)
+            self.assertEqual(len(result.items), 2)
+            record = result.items[0]
+            self.assertEqual(record.id, 302)
+            self.assertEqual(record.symbol, "AAPL")
+            self.assertEqual(record.stk_symbol, "AAPL")
+            self.assertEqual(record.type, "Exercise")
+            self.assertEqual(record.status, "New")
+            self.assertEqual(record.call_put, "PUT")
+            self.assertEqual(record.expire_date, "20260605")
+            self.assertEqual(record.account_id, 600021133765)
+            self.assertEqual(record.request_quantity, 1.0)
+            self.assertEqual(record.is_force, False)
         else:
             result = self.client.get_option_exercise_records(page=1, size=20)
             logger.debug(f"Option Exercise Records: {result}")
@@ -1556,40 +1582,65 @@ class TestTradeClient(unittest.TestCase):
             mock_data = {
                 "code": 0,
                 "message": "success",
-                "timestamp": 1755200000000,
+                "timestamp": 1779798601559,
                 "data": {
+                    "pageNum": 1,
+                    "pageSize": 4,
+                    "itemCount": 4,
+                    "pageCount": 1,
                     "items": [
                         {
-                            "contractId": 112233,
+                            "market": "US",
+                            "contractId": 1684414425,
+                            "stkSymbol": "AAPL",
                             "symbol": "AAPL",
-                            "expiry": "20250620",
-                            "strike": "200.0",
-                            "right": "CALL",
-                            "quantity": 5.0,
-                            "averageCost": 3.5,
-                            "marketPrice": 4.2,
-                            "marketValue": 2100.0,
-                            "unrealizedPnl": 350.0
+                            "expireDate": "20260417",
+                            "strike": "280.0",
+                            "callPut": "PUT",
+                            "accountId": 600021133765,
+                            "position": 10.0,
+                            "availableQuantity": 10.0
+                        },
+                        {
+                            "market": "US",
+                            "contractId": 2701923713,
+                            "stkSymbol": "AAPL",
+                            "symbol": "AAPL",
+                            "expireDate": "20260605",
+                            "strike": "305.0",
+                            "callPut": "PUT",
+                            "accountId": 600021133765,
+                            "position": 197.0,
+                            "availableQuantity": 197.0
                         }
                     ]
                 }
             }
             web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
 
-            # Test with str
             result = self.client.get_option_exercise_positions(exercise_type="Exercise")
             self.assertIsNotNone(result)
-            self.assertIsInstance(result, list)
-            self.assertEqual(len(result), 1)
-            self.assertEqual(result[0].contract_id, 112233)
-            self.assertEqual(result[0].symbol, "AAPL")
-            self.assertEqual(result[0].quantity, 5.0)
+            self.assertEqual(result.page_num, 1)
+            self.assertEqual(result.page_size, 4)
+            self.assertEqual(result.item_count, 4)
+            self.assertEqual(result.page_count, 1)
+            self.assertEqual(len(result.items), 2)
+            pos = result.items[0]
+            self.assertEqual(pos.contract_id, 1684414425)
+            self.assertEqual(pos.market, "US")
+            self.assertEqual(pos.symbol, "AAPL")
+            self.assertEqual(pos.stk_symbol, "AAPL")
+            self.assertEqual(pos.call_put, "PUT")
+            self.assertEqual(pos.expire_date, "20260417")
+            self.assertEqual(pos.account_id, 600021133765)
+            self.assertEqual(pos.position, 10.0)
+            self.assertEqual(pos.available_quantity, 10.0)
 
             # Test with OptionExerciseType enum
             result_enum = self.client.get_option_exercise_positions(
                 exercise_type=OptionExerciseType.EXERCISE)
             self.assertIsNotNone(result_enum)
-            self.assertEqual(result_enum[0].symbol, "AAPL")
+            self.assertEqual(result_enum.items[0].symbol, "AAPL")
         else:
             result = self.client.get_option_exercise_positions(
                 exercise_type=OptionExerciseType.EXERCISE)
@@ -1601,18 +1652,12 @@ class TestTradeClient(unittest.TestCase):
                 "code": 0,
                 "message": "success",
                 "timestamp": 1755200000000,
-                "data": {
-                    "id": 9876543210,
-                    "success": True,
-                    "message": "Exercise request cancelled successfully"
-                }
+                "data": None
             }
             web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
 
             result = self.client.cancel_option_exercise(exercise_id=9876543210)
-            self.assertIsNotNone(result)
-            self.assertEqual(result.id, 9876543210)
-            self.assertTrue(result.success)
+            self.assertTrue(result)
         else:
             result = self.client.cancel_option_exercise(exercise_id=9876543210)
             logger.debug(f"Cancel Option Exercise Result: {result}")
