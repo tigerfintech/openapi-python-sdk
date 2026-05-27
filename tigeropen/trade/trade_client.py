@@ -1564,7 +1564,7 @@ class TradeClient(TigerOpenClient):
         :param account: 交易账户. 为空时使用默认账户
         :param executing_date: 行权执行日期, 格式 'yyyy-MM-dd'. exercise_type=EXERCISE 时必填
         :param is_force: 是否强制行权. exercise_type=EXERCISE 时必填
-        :param itm_rate: 价内率 0-100. exercise_type=EXPIRE 时必填
+        :param itm_rate: 价内率 0-10. exercise_type=EXPIRE 时可选，不传默认 0
         :param lang: 语言
         :return: True if successful
         """
