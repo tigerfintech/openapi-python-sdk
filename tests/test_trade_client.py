@@ -1446,24 +1446,35 @@ class TestTradeClient(unittest.TestCase):
             )
             self.assertTrue(result_enum)
 
-            # Test Expire type via enum
+            # Test Expire type via enum, itm_rate optional (0-10), defaults to 0
             result_expire = self.client.submit_option_exercise(
                 contract_id=112233,
                 exercise_type=OptionExerciseType.EXPIRE,
                 quantity=1.0,
-                itm_rate=80,
+                itm_rate=5,
             )
             self.assertTrue(result_expire)
         else:
-            result = self.client.submit_option_exercise(
+            # 场景1: 提交提前行权 (Exercise)
+            result_exercise = self.client.submit_option_exercise(
                 contract_id=2701923713,
                 exercise_type="Exercise",
                 quantity=1.0,
                 executing_date="2026-06-01",
                 is_force=False,
-
             )
-            logger.debug(f"Submit Option Exercise Result: {result}")
+            self.assertTrue(result_exercise)
+            logger.debug(f"Submit Exercise Result: {result_exercise}")
+
+            # 场景2: 提交放弃行权 (Expire) — itm_rate 有效范围约 0~10
+            result_expire = self.client.submit_option_exercise(
+                contract_id=2701923713,
+                exercise_type=OptionExerciseType.EXPIRE,
+                quantity=1.0,
+                itm_rate=5,
+            )
+            self.assertTrue(result_expire)
+            logger.debug(f"Submit Expire Result: {result_expire}")
 
     def test_check_option_exercise(self):
         if self.is_mock:
@@ -1502,6 +1513,9 @@ class TestTradeClient(unittest.TestCase):
                 quantity=1.0,
                 is_force=False,
             )
+            self.assertIsNotNone(result)
+            self.assertIsNotNone(result.available_quantity)
+            self.assertIsNotNone(result.symbol)
             logger.debug(f"Check Option Exercise Result: {result}")
 
     def test_get_option_exercise_records(self):
@@ -1575,6 +1589,14 @@ class TestTradeClient(unittest.TestCase):
             self.assertEqual(record.is_force, False)
         else:
             result = self.client.get_option_exercise_records(page=1, size=20)
+            self.assertIsNotNone(result)
+            self.assertIsNotNone(result.items)
+            self.assertIsInstance(result.items, list)
+            if result.items:
+                r = result.items[0]
+                self.assertIsNotNone(r.id)
+                self.assertIsNotNone(r.type)
+                self.assertIsNotNone(r.status)
             logger.debug(f"Option Exercise Records: {result}")
 
     def test_get_option_exercise_positions(self):
@@ -1644,6 +1666,13 @@ class TestTradeClient(unittest.TestCase):
         else:
             result = self.client.get_option_exercise_positions(
                 exercise_type=OptionExerciseType.EXERCISE)
+            self.assertIsNotNone(result)
+            self.assertIsNotNone(result.items)
+            if result.items:
+                pos = result.items[0]
+                self.assertIsNotNone(pos.contract_id)
+                self.assertIsNotNone(pos.symbol)
+                self.assertIsNotNone(pos.available_quantity)
             logger.debug(f"Option Exercise Positions: {result}")
 
     def test_cancel_option_exercise(self):
@@ -1659,6 +1688,20 @@ class TestTradeClient(unittest.TestCase):
             result = self.client.cancel_option_exercise(exercise_id=9876543210)
             self.assertTrue(result)
         else:
-            result = self.client.cancel_option_exercise(exercise_id=9876543210)
+            # 先提交一条再取消，确保 id 是 New 状态
+            submit_ok = self.client.submit_option_exercise(
+                contract_id=2701923713,
+                exercise_type="Exercise",
+                quantity=1.0,
+                executing_date="2026-06-01",
+                is_force=False,
+            )
+            self.assertTrue(submit_ok)
+            # 查询最新记录，取第一条 New 状态的 id
+            records = self.client.get_option_exercise_records(page=1, size=20)
+            new_record = next((r for r in records.items if r.status == "New"), None)
+            self.assertIsNotNone(new_record, "No New exercise record found to cancel")
+            logger.debug(f"Cancelling exercise id={new_record.id}")
+            result = self.client.cancel_option_exercise(exercise_id=new_record.id)
+            self.assertTrue(result)
             logger.debug(f"Cancel Option Exercise Result: {result}")
-            logger.debug(f"Position Transfer External Records: {result}")
