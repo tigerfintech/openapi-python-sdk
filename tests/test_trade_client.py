@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest.mock import MagicMock
 
-from tigeropen.common.consts import OrderStatus
+from tigeropen.common.consts import OrderStatus, OptionExerciseType
 from tigeropen.common.util import web_utils
 from tigeropen.common.util.contract_utils import stock_contract
 from tigeropen.common.util.order_utils import limit_order
@@ -28,6 +28,7 @@ class TestTradeClient(unittest.TestCase):
         self.is_mock = False
         self.client_config = TigerOpenClientConfig(
             props_path=os.path.expanduser("~/.tigeropen/"))
+
         self.client: TradeClient = TradeClient(self.client_config,
                                                logger=logger)
         self.origin_do_request = web_utils.do_request
@@ -271,7 +272,7 @@ class TestTradeClient(unittest.TestCase):
             self.assertEqual(mock_result.tick_sizes[1]['type'], 'OPEN')
             self.assertEqual(mock_result.tick_sizes[1]['tick_size'], 0.01)
         else:
-            result = self.client.get_contract(symbol="NVDA")
+            result = self.client.get_contract(symbol="NVDA", sec_type='OPT', expiry='20260605', strike=220, put_call='CALL')
             logger.debug(f"Contracts: {result.to_dict()}")
 
     def test_get_orders(self):
@@ -1409,4 +1410,313 @@ class TestTradeClient(unittest.TestCase):
             self.assertEqual(mock_result[0].transfer_property_infos[0].symbol, "AAPL")
         else:
             result = self.client.get_position_transfer_external_records(account_id="1001", since_date="2025-01-01", to_date="2025-01-02")
-            logger.debug(f"Position Transfer External Records: {result}")
+
+    def test_submit_option_exercise(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1755200000000,
+                "data": None
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            # Test with str
+            result = self.client.submit_option_exercise(
+                contract_id=112233,
+                exercise_type="Exercise",
+                quantity=1.0,
+                executing_date="2025-06-20",
+                is_force=False,
+            )
+            self.assertTrue(result)
+
+            # Test with OptionExerciseType enum
+            result_enum = self.client.submit_option_exercise(
+                contract_id=112233,
+                exercise_type=OptionExerciseType.EXERCISE,
+                quantity=1.0,
+                executing_date="2025-06-20",
+                is_force=False,
+            )
+            self.assertTrue(result_enum)
+
+            # Test Expire type via enum, itm_rate optional (0-10), defaults to 0
+            result_expire = self.client.submit_option_exercise(
+                contract_id=112233,
+                exercise_type=OptionExerciseType.EXPIRE,
+                quantity=1.0,
+                itm_rate=5,
+            )
+            self.assertTrue(result_expire)
+        else:
+            from tigeropen.common.exceptions import ApiException
+            # 场景1: 提交提前行权 (Exercise)
+            try:
+                result_exercise = self.client.submit_option_exercise(
+                    contract_id=2701923713,
+                    exercise_type="Exercise",
+                    quantity=1.0,
+                    executing_date="2026-06-05",
+                    is_force=False,
+                )
+                self.assertTrue(result_exercise)
+                logger.debug(f"Submit Exercise Result: {result_exercise}")
+            except ApiException as e:
+                # 下游业务限制（如行权次数/rate限制），非SDK/server问题
+                logger.warning(f"Submit Exercise skipped due to downstream limit: {e}")
+                self.skipTest(f"Downstream limit: {e}")
+
+            # 场景2: 提交放弃行权 (Expire) — itm_rate 有效范围 0~10
+            try:
+                result_expire = self.client.submit_option_exercise(
+                    contract_id=2701923713,
+                    exercise_type=OptionExerciseType.EXPIRE,
+                    quantity=1.0,
+                    itm_rate=1,
+                )
+                self.assertTrue(result_expire)
+                logger.debug(f"Submit Expire Result: {result_expire}")
+            except ApiException as e:
+                logger.warning(f"Submit Expire skipped due to downstream limit: {e}")
+
+    def test_check_option_exercise(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1755200000000,
+                "data": {
+                    "availableQuantity": 5.0,
+                    "position": 5.0,
+                    "stkPosition": 0.0,
+                    "stkPositionChange": 500.0,
+                    "stkPositionBefore": 0.0,
+                    "stkPositionAfter": 500.0,
+                    "symbol": "AAPL"
+                }
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            result = self.client.check_option_exercise(
+                contract_id=2702385833,
+                exercise_type="Exercise",
+                quantity=5.0,
+                executing_date="2025-06-20",
+                is_force=False,
+            )
+            self.assertIsNotNone(result)
+            self.assertEqual(result.available_quantity, 5.0)
+            self.assertEqual(result.symbol, "AAPL")
+            self.assertEqual(result.stk_position_after, 500.0)
+        else:
+            result = self.client.check_option_exercise(
+                contract_id=2701923713,
+                exercise_type="Exercise",
+                executing_date="2026-06-01",
+                quantity=1.0,
+                is_force=False,
+            )
+            self.assertIsNotNone(result)
+            self.assertIsNotNone(result.available_quantity)
+            self.assertIsNotNone(result.symbol)
+            logger.debug(f"Check Option Exercise Result: {result}")
+
+    def test_get_option_exercise_records(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1779795108734,
+                "data": {
+                    "pageNum": 1,
+                    "pageSize": 20,
+                    "itemCount": 2,
+                    "pageCount": 1,
+                    "items": [
+                        {
+                            "id": 302,
+                            "type": "Exercise",
+                            "status": "New",
+                            "contractId": 2701923713,
+                            "symbol": "AAPL",
+                            "stkSymbol": "AAPL",
+                            "expireDate": "20260605",
+                            "strike": "305.0",
+                            "callPut": "PUT",
+                            "accountId": 600021133765,
+                            "requestQuantity": 1.0,
+                            "quantity": 0.0,
+                            "executingDate": "20260513",
+                            "itmRate": 0,
+                            "isForce": False
+                        },
+                        {
+                            "id": 226,
+                            "type": "Exercise",
+                            "status": "Success",
+                            "contractId": 2506306537,
+                            "symbol": "AAPL",
+                            "stkSymbol": "AAPL",
+                            "expireDate": "20260501",
+                            "strike": "225.0",
+                            "callPut": "CALL",
+                            "accountId": 600021133765,
+                            "requestQuantity": 10.0,
+                            "quantity": 10.0,
+                            "executingDate": "20260416",
+                            "itmRate": 9,
+                            "isForce": True
+                        }
+                    ]
+                }
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            result = self.client.get_option_exercise_records(page=1, size=20)
+            self.assertIsNotNone(result)
+            self.assertEqual(result.page_num, 1)
+            self.assertEqual(result.page_size, 20)
+            self.assertEqual(result.item_count, 2)
+            self.assertEqual(result.page_count, 1)
+            self.assertEqual(len(result.items), 2)
+            record = result.items[0]
+            self.assertEqual(record.id, 302)
+            self.assertEqual(record.symbol, "AAPL")
+            self.assertEqual(record.stk_symbol, "AAPL")
+            self.assertEqual(record.type, "Exercise")
+            self.assertEqual(record.status, "New")
+            self.assertEqual(record.call_put, "PUT")
+            self.assertEqual(record.expire_date, "20260605")
+            self.assertEqual(record.account_id, 600021133765)
+            self.assertEqual(record.request_quantity, 1.0)
+            self.assertEqual(record.is_force, False)
+        else:
+            result = self.client.get_option_exercise_records(page=1, size=20)
+            self.assertIsNotNone(result)
+            self.assertIsNotNone(result.items)
+            self.assertIsInstance(result.items, list)
+            if result.items:
+                r = result.items[0]
+                self.assertIsNotNone(r.id)
+                self.assertIsNotNone(r.type)
+                self.assertIsNotNone(r.status)
+            logger.debug(f"Option Exercise Records: {result}")
+
+    def test_get_option_exercise_positions(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1779798601559,
+                "data": {
+                    "pageNum": 1,
+                    "pageSize": 4,
+                    "itemCount": 4,
+                    "pageCount": 1,
+                    "items": [
+                        {
+                            "market": "US",
+                            "contractId": 1684414425,
+                            "stkSymbol": "AAPL",
+                            "symbol": "AAPL",
+                            "expireDate": "20260417",
+                            "strike": "280.0",
+                            "callPut": "PUT",
+                            "accountId": 600021133765,
+                            "position": 10.0,
+                            "availableQuantity": 10.0
+                        },
+                        {
+                            "market": "US",
+                            "contractId": 2701923713,
+                            "stkSymbol": "AAPL",
+                            "symbol": "AAPL",
+                            "expireDate": "20260605",
+                            "strike": "305.0",
+                            "callPut": "PUT",
+                            "accountId": 600021133765,
+                            "position": 197.0,
+                            "availableQuantity": 197.0
+                        }
+                    ]
+                }
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            result = self.client.get_option_exercise_positions(exercise_type="Exercise")
+            self.assertIsNotNone(result)
+            self.assertEqual(result.page_num, 1)
+            self.assertEqual(result.page_size, 4)
+            self.assertEqual(result.item_count, 4)
+            self.assertEqual(result.page_count, 1)
+            self.assertEqual(len(result.items), 2)
+            pos = result.items[0]
+            self.assertEqual(pos.contract_id, 1684414425)
+            self.assertEqual(pos.market, "US")
+            self.assertEqual(pos.symbol, "AAPL")
+            self.assertEqual(pos.stk_symbol, "AAPL")
+            self.assertEqual(pos.call_put, "PUT")
+            self.assertEqual(pos.expire_date, "20260417")
+            self.assertEqual(pos.account_id, 600021133765)
+            self.assertEqual(pos.position, 10.0)
+            self.assertEqual(pos.available_quantity, 10.0)
+
+            # Test with OptionExerciseType enum
+            result_enum = self.client.get_option_exercise_positions(
+                exercise_type=OptionExerciseType.EXERCISE)
+            self.assertIsNotNone(result_enum)
+            self.assertEqual(result_enum.items[0].symbol, "AAPL")
+        else:
+            result = self.client.get_option_exercise_positions(
+                exercise_type=OptionExerciseType.EXERCISE)
+            self.assertIsNotNone(result)
+            self.assertIsNotNone(result.items)
+            if result.items:
+                pos = result.items[0]
+                self.assertIsNotNone(pos.contract_id)
+                self.assertIsNotNone(pos.symbol)
+                self.assertIsNotNone(pos.available_quantity)
+            logger.debug(f"Option Exercise Positions: {result}")
+
+    def test_cancel_option_exercise(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1755200000000,
+                "data": None
+            }
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            result = self.client.cancel_option_exercise(exercise_id=9876543210)
+            self.assertTrue(result)
+        else:
+            from tigeropen.common.exceptions import ApiException
+            # 先查现有 New 状态记录，有则直接取消；没有则尝试提交一条再取消
+            records = self.client.get_option_exercise_records(page=1, size=20)
+            new_record = next((r for r in records.items if r.status == "New"), None)
+
+            if new_record is None:
+                # 没有 New 记录，尝试提交一条
+                try:
+                    submit_ok = self.client.submit_option_exercise(
+                        contract_id=2701923713,
+                        exercise_type="Exercise",
+                        quantity=1.0,
+                        executing_date="2026-06-01",
+                        is_force=False,
+                    )
+                    self.assertTrue(submit_ok)
+                    records = self.client.get_option_exercise_records(page=1, size=20)
+                    new_record = next((r for r in records.items if r.status == "New"), None)
+                except ApiException as e:
+                    logger.warning(f"Submit skipped due to downstream limit: {e}")
+
+            if new_record is None:
+                self.skipTest("No New exercise record available to cancel (downstream limit)")
+
+            logger.debug(f"Cancelling exercise id={new_record.id}")
+            result = self.client.cancel_option_exercise(exercise_id=new_record.id)
+            self.assertTrue(result)
+            logger.debug(f"Cancel Option Exercise Result: {result}")

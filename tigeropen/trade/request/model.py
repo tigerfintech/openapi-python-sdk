@@ -1775,3 +1775,388 @@ class PositionTransferDetailParams(BaseParams):
         if self.secret_key:
             params['secret_key'] = self.secret_key
         return params
+
+
+class OptionExerciseSubmitParams(BaseParams):
+    """提交期权行权或作废申请"""
+
+    def __init__(self):
+        super().__init__()
+        self._account = None
+        self._contract_id = None
+        self._type = None
+        self._quantity = None
+        self._executing_date = None
+        self._is_force = None
+        self._itm_rate = None
+        self._secret_key = None
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def contract_id(self):
+        return self._contract_id
+
+    @contract_id.setter
+    def contract_id(self, value):
+        self._contract_id = value
+
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        self._type = value
+
+    @property
+    def quantity(self):
+        return self._quantity
+
+    @quantity.setter
+    def quantity(self, value):
+        self._quantity = value
+
+    @property
+    def executing_date(self):
+        return self._executing_date
+
+    @executing_date.setter
+    def executing_date(self, value):
+        self._executing_date = value
+
+    @property
+    def is_force(self):
+        return self._is_force
+
+    @is_force.setter
+    def is_force(self, value):
+        self._is_force = value
+
+    @property
+    def itm_rate(self):
+        return self._itm_rate
+
+    @itm_rate.setter
+    def itm_rate(self, value):
+        self._itm_rate = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self._account:
+            params['account'] = self._account
+        if self._contract_id is not None:
+            params['contract_id'] = self._contract_id
+        if self._type:
+            params['type'] = self._type
+        if self._quantity is not None:
+            params['quantity'] = self._quantity
+        if self._executing_date:
+            params['executing_date'] = self._executing_date
+        if self._is_force is not None:
+            params['is_force'] = self._is_force
+        if self._itm_rate is not None:
+            params['itm_rate'] = self._itm_rate
+        if self._secret_key:
+            params['secret_key'] = self._secret_key
+        return params
+
+
+class OptionExerciseCheckParams(BaseParams):
+    """行权检验（预估行权结果）"""
+
+    def __init__(self):
+        super().__init__()
+        self._account = None
+        self._contract_id = None
+        self._type = None
+        self._quantity = None
+        self._executing_date = None
+        self._is_force = None
+        self._itm_rate = None
+        self._secret_key = None
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def contract_id(self):
+        return self._contract_id
+
+    @contract_id.setter
+    def contract_id(self, value):
+        self._contract_id = value
+
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        self._type = value
+
+    @property
+    def quantity(self):
+        return self._quantity
+
+    @quantity.setter
+    def quantity(self, value):
+        self._quantity = value
+
+    @property
+    def executing_date(self):
+        return self._executing_date
+
+    @executing_date.setter
+    def executing_date(self, value):
+        self._executing_date = value
+
+    @property
+    def is_force(self):
+        return self._is_force
+
+    @is_force.setter
+    def is_force(self, value):
+        self._is_force = value
+
+    @property
+    def itm_rate(self):
+        return self._itm_rate
+
+    @itm_rate.setter
+    def itm_rate(self, value):
+        self._itm_rate = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self._account:
+            params['account'] = self._account
+        if self._contract_id is not None:
+            params['contract_id'] = self._contract_id
+        if self._type:
+            params['type'] = self._type
+        if self._quantity is not None:
+            params['quantity'] = self._quantity
+        if self._executing_date:
+            params['executing_date'] = self._executing_date
+        if self._is_force is not None:
+            params['is_force'] = self._is_force
+        if self._itm_rate is not None:
+            params['itm_rate'] = self._itm_rate
+        if self._secret_key:
+            params['secret_key'] = self._secret_key
+        return params
+
+
+class OptionExercisePageParams(BaseParams):
+    """分页查询行权记录"""
+
+    def __init__(self):
+        super().__init__()
+        self._account = None
+        self._page = None
+        self._size = None
+        self._status = None
+        self._type = None
+        self._symbol = None
+        self._order_by = None
+        self._secret_key = None
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def page(self):
+        return self._page
+
+    @page.setter
+    def page(self, value):
+        self._page = value
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, value):
+        self._size = value
+
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, value):
+        self._status = value
+
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        self._type = value
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        self._symbol = value
+
+    @property
+    def order_by(self):
+        return self._order_by
+
+    @order_by.setter
+    def order_by(self, value):
+        self._order_by = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self._account:
+            params['account'] = self._account
+        if self._page is not None:
+            params['page'] = self._page
+        if self._size is not None:
+            params['size'] = self._size
+        if self._status:
+            params['status'] = self._status
+        if self._type:
+            params['type'] = self._type
+        if self._symbol:
+            params['symbol'] = self._symbol
+        if self._order_by:
+            params['order_by'] = self._order_by
+        if self._secret_key:
+            params['secret_key'] = self._secret_key
+        return params
+
+
+class OptionExercisePositionParams(BaseParams):
+    """查询可行权持仓"""
+
+    def __init__(self):
+        super().__init__()
+        self._account = None
+        self._type = None
+        self._secret_key = None
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        self._type = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self._account:
+            params['account'] = self._account
+        if self._type:
+            params['type'] = self._type
+        if self._secret_key:
+            params['secret_key'] = self._secret_key
+        return params
+
+
+class OptionExerciseCancelParams(BaseParams):
+    """撤销行权申请"""
+
+    def __init__(self):
+        super().__init__()
+        self._account = None
+        self._id = None
+        self._secret_key = None
+
+    @property
+    def secret_key(self):
+        return self._secret_key
+
+    @secret_key.setter
+    def secret_key(self, value):
+        self._secret_key = value
+
+    @property
+    def account(self):
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
+
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id = value
+
+    def to_openapi_dict(self):
+        params = super().to_openapi_dict()
+        if self._account:
+            params['account'] = self._account
+        if self._id is not None:
+            params['id'] = self._id
+        if self._secret_key:
+            params['secret_key'] = self._secret_key
+        return params
