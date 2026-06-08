@@ -1554,6 +1554,7 @@ class TradeClient(TigerOpenClient):
             executing_date: Optional[str] = None,
             is_force: Optional[bool] = None,
             itm_rate: Optional[int] = None,
+            secret_key: Optional[str] = None,
             lang: Optional[Union[Language, str]] = None) -> bool:
         """
         提交期权行权或作废申请 / Submit an option early exercise or expire (abandon) request.
@@ -1564,7 +1565,8 @@ class TradeClient(TigerOpenClient):
         :param account: 交易账户. 为空时使用默认账户
         :param executing_date: 行权执行日期, 格式 'yyyy-MM-dd'. exercise_type=EXERCISE 时必填
         :param is_force: 是否强制行权. exercise_type=EXERCISE 时必填
-        :param itm_rate: 价内率 0-10. exercise_type=EXPIRE 时可选，不传默认 0
+        :param itm_rate: 价内率 0-10. exercise_type=EXPIRE 时可选
+        :param secret_key: 账户密钥. 为空时使用 client config 中的默认值
         :param lang: 语言
         :return: True if successful
         """
@@ -1575,7 +1577,9 @@ class TradeClient(TigerOpenClient):
         params.quantity = quantity
         params.executing_date = executing_date
         params.is_force = is_force
-        params.itm_rate = itm_rate
+        if itm_rate is not None:
+            params.itm_rate = itm_rate
+        params.secret_key = secret_key if secret_key is not None else self._secret_key
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
 
         request = OpenApiRequest(OPTION_EXERCISE_SUBMIT, biz_model=params)
@@ -1597,6 +1601,8 @@ class TradeClient(TigerOpenClient):
             quantity: Optional[float] = None,
             executing_date: Optional[str] = None,
             is_force: Optional[bool] = None,
+            itm_rate: Optional[int] = None,
+            secret_key: Optional[str] = None,
             lang: Optional[Union[Language, str]] = None) -> Optional['OptionExerciseCheckResult']:
         """
         行权检验（预估行权后的持仓变化）/ Validate and preview the effect of an exercise request.
@@ -1607,6 +1613,8 @@ class TradeClient(TigerOpenClient):
         :param quantity: 行权数量
         :param executing_date: 行权执行日期, 格式 'yyyy-MM-dd'
         :param is_force: 是否强制行权
+        :param itm_rate: 价内率阈值 (0-10), 仅 EXPIRE 类型需要
+        :param secret_key: 账户密钥. 为空时使用 client config 中的默认值
         :param lang: 语言
         :return: OptionExerciseCheckResult
         """
@@ -1617,6 +1625,8 @@ class TradeClient(TigerOpenClient):
         params.quantity = quantity
         params.executing_date = executing_date
         params.is_force = is_force
+        params.itm_rate = itm_rate
+        params.secret_key = secret_key if secret_key is not None else self._secret_key
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
 
         request = OpenApiRequest(OPTION_EXERCISE_CHECK, biz_model=params)
@@ -1639,6 +1649,7 @@ class TradeClient(TigerOpenClient):
             exercise_type: Optional[Union[OptionExerciseType, str]] = None,
             symbol: Optional[str] = None,
             order_by: Optional[str] = None,
+            secret_key: Optional[str] = None,
             lang: Optional[Union[Language, str]] = None) -> Optional['OptionExercisePageResult']:
         """
         分页查询行权申请记录 / Query option exercise records with pagination.
@@ -1650,6 +1661,7 @@ class TradeClient(TigerOpenClient):
         :param exercise_type: 行权类型过滤. OptionExerciseType.EXERCISE | OptionExerciseType.EXPIRE
         :param symbol: 标的股票代码过滤
         :param order_by: 排序字段. 'symbol' | 'expire_date' | 'strike' | 'is_call'
+        :param secret_key: 账户密钥. 为空时使用 client config 中的默认值
         :param lang: 语言
         :return: OptionExercisePageResult (items, page_num, page_size, item_count, page_count)
         """
@@ -1661,6 +1673,7 @@ class TradeClient(TigerOpenClient):
         params.type = get_enum_value(exercise_type) if exercise_type else None
         params.symbol = symbol
         params.order_by = order_by
+        params.secret_key = secret_key if secret_key is not None else self._secret_key
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
 
         request = OpenApiRequest(OPTION_EXERCISE_PAGE, biz_model=params)
@@ -1678,18 +1691,21 @@ class TradeClient(TigerOpenClient):
             self,
             exercise_type: Union[OptionExerciseType, str],
             account: Optional[str] = None,
+            secret_key: Optional[str] = None,
             lang: Optional[Union[Language, str]] = None) -> Optional['OptionExercisePositionPageResult']:
         """
         查询可行权持仓 / Query option positions available for exercise or expiry.
 
         :param exercise_type: 行权类型. OptionExerciseType.EXERCISE | OptionExerciseType.EXPIRE
         :param account: 交易账户. 为空时使用默认账户
+        :param secret_key: 账户密钥. 为空时使用 client config 中的默认值
         :param lang: 语言
         :return: OptionExercisePositionPageResult (items, page_num, page_size, item_count, page_count)
         """
         params = OptionExercisePositionParams()
         params.account = account if account else self._account
         params.type = get_enum_value(exercise_type)
+        params.secret_key = secret_key if secret_key is not None else self._secret_key
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
 
         request = OpenApiRequest(OPTION_EXERCISE_POSITION, biz_model=params)
@@ -1707,18 +1723,21 @@ class TradeClient(TigerOpenClient):
             self,
             exercise_id: int,
             account: Optional[str] = None,
+            secret_key: Optional[str] = None,
             lang: Optional[Union[Language, str]] = None) -> bool:
         """
         撤销行权申请 / Cancel a pending option exercise request.
 
         :param exercise_id: 行权申请 ID
         :param account: 交易账户. 为空时使用默认账户
+        :param secret_key: 账户密钥. 为空时使用 client config 中的默认值
         :param lang: 语言
         :return: True if successful
         """
         params = OptionExerciseCancelParams()
         params.account = account if account else self._account
         params.id = exercise_id
+        params.secret_key = secret_key if secret_key is not None else self._secret_key
         params.lang = get_enum_value(lang) if lang else get_enum_value(self._lang)
 
         request = OpenApiRequest(OPTION_EXERCISE_CANCEL, biz_model=params)

@@ -272,3 +272,8 @@ class AssetQuoteType(Enum):
     RTH = "RTH"
     # Includes night session trading data. For night session, the night session trading data is used for calculation.
     OVERNIGHT = "OVERNIGHT"
+
+
+class OptionExerciseType(Enum):
+    EXERCISE = "Exercise"  # 提前行权
+    EXPIRE = "Expire"      # 作废/放弃行权
