@@ -62,7 +62,7 @@ class AddonEntitlement:
     def __init__(self):
         self.user_level = None  # 用户等级 / User level
         self.active_plan = None  # 当前生效套餐 / ActivePlan object
-        self.addons = None  # 附加套餐列表 / List of AddonInfo
+        self.addons = []  # 附加套餐列表 / List of AddonInfo
         self.effective_entitlement = None  # 生效权益额度 / Entitlement object
 
     def __repr__(self):
