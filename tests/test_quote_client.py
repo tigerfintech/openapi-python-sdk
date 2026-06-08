@@ -2569,3 +2569,65 @@ class TestQuoteClient(unittest.TestCase):
         else:
             result = self.client.get_kline_quota()
             logger.debug(f"Kline Quota:\n {result}")
+
+    def test_get_addon_entitlement(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1753444350498,
+                "data": {
+                    "userLevel": "PRO",
+                    "activePlan": {
+                        "planType": "USQuotePro",
+                        "expireTime": 1735660800000
+                    },
+                    "addons": [
+                        {
+                            "planType": "HKLv2",
+                            "active": True,
+                            "startTime": 1700000000000,
+                            "expireTime": 1735660800000
+                        },
+                        {
+                            "planType": "USOption",
+                            "active": False,
+                            "startTime": None,
+                            "expireTime": None
+                        }
+                    ],
+                    "effectiveEntitlement": {
+                        "historyStockLimit": 1000,
+                        "historyStockRemaining": 998,
+                        "subscribeLimit": 50,
+                        "subscribeRemaining": 49,
+                        "subscribeDepthLimit": 5,
+                        "subscribeDepthRemaining": 5,
+                        "highFreqLimit": 10,
+                        "midFreqLimit": 20,
+                        "lowFreqLimit": 30,
+                        "rateMultiple": 2
+                    }
+                }
+            }
+            web_utils.do_request = MagicMock(
+                return_value=json.dumps(mock_data).encode())
+            result = self.client.get_addon_entitlement()
+            self.assertIsNotNone(result)
+            self.assertEqual(result.user_level, "PRO")
+            self.assertEqual(result.active_plan.plan_type, "USQuotePro")
+            self.assertEqual(result.active_plan.expire_time, 1735660800000)
+            self.assertEqual(len(result.addons), 2)
+            self.assertEqual(result.addons[0].plan_type, "HKLv2")
+            self.assertTrue(result.addons[0].active)
+            self.assertFalse(result.addons[1].active)
+            self.assertEqual(result.effective_entitlement.history_stock_remaining, 998)
+            self.assertEqual(result.effective_entitlement.subscribe_depth_limit, 5)
+            self.assertEqual(result.effective_entitlement.rate_multiple, 2)
+        else:
+            result = self.client.get_addon_entitlement()
+            logger.debug(f"Addon Entitlement:\n {result}")
+
+
+if __name__ == '__main__':
+    unittest.main()
