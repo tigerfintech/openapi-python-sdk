@@ -40,6 +40,13 @@ POSITION_TRANSFER_RECORDS = "position_transfer_records"  # 内部转股记录
 POSITION_TRANSFER_DETAIL = "position_transfer_detail"  # 内部转股详情
 POSITION_TRANSFER_EXTERNAL_RECORDS = "position_transfer_external_records"  # 外部转股记录
 
+# 期权行权
+OPTION_EXERCISE_SUBMIT = "option_exercise_submit"  # 提交行权/作废申请
+OPTION_EXERCISE_CHECK = "option_exercise_check"  # 行权检验（预估结果）
+OPTION_EXERCISE_PAGE = "option_exercise_record"  # 分页查询行权记录
+OPTION_EXERCISE_POSITION = "option_exercise_position"  # 查询可行权持仓
+OPTION_EXERCISE_CANCEL = "option_exercise_cancel"  # 撤销行权申请
+
 USER_LICENSE = "user_license"
 
 """

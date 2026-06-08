@@ -1,3 +1,11 @@
+## 3.5.9 (2026-06-08)
+### New
+- `TradeClient.submit_option_exercise` 提交期权提前行权或放弃行权申请
+- `TradeClient.cancel_option_exercise` 撤销期权行权申请
+- `TradeClient.check_option_exercise` 行权检验，预估行权后持仓变化
+- `TradeClient.get_option_exercise_records` 分页查询行权申请记录，支持按状态、行权类型、标的代码过滤
+- `TradeClient.get_option_exercise_positions` 查询可行权持仓
+
 ## 3.5.8 (2026-04-24)
 ### New
 - CLI 新增 `tigeropen quote scanner` 选股命令，支持 `--filter`（数值/累计/财务/标签筛选，预设 `gainers`/`losers`）、`--sort`、`--sort-dir`、`--limit` 参数
