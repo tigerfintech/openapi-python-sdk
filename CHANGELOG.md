@@ -1,3 +1,7 @@
+## 3.5.9 (2026-05-07)
+### New
+- `OrderStatusData` 推送消息新增字段：`updateTime` (44, 订单信息更新时间戳 ms)、`latestTime` (45, 订单状态更新时间戳 ms)
+
 ## 3.5.8 (2026-04-24)
 ### New
 - CLI 新增 `tigeropen quote scanner` 选股命令，支持 `--filter`（数值/累计/财务/标签筛选，预设 `gainers`/`losers`）、`--sort`、`--sort-dir`、`--limit` 参数
