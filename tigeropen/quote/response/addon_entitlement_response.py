@@ -41,7 +41,7 @@ class AddonEntitlementResponse(TigerResponse):
             if key == 'activePlan' and isinstance(value, dict):
                 entitlement.active_plan = self._fill(ActivePlan(), value)
             elif key == 'addons' and isinstance(value, list):
-                entitlement.addons = [self._fill(AddonInfo(), item) for item in value]
+                entitlement.addons = [self._fill(AddonInfo(), item) for item in value if isinstance(item, dict)]
             elif key == 'effectiveEntitlement' and isinstance(value, dict):
                 entitlement.effective_entitlement = self._fill(Entitlement(), value)
             else:
