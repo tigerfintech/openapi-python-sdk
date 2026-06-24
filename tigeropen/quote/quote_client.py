@@ -24,7 +24,7 @@ from tigeropen.common.consts.service_types import GRAB_QUOTE_PERMISSION, QUOTE_D
     STOCK_BROKER, CAPITAL_FLOW, CAPITAL_DISTRIBUTION, WARRANT_REAL_TIME_QUOTE, WARRANT_FILTER, MARKET_SCANNER_TAGS, \
     KLINE_QUOTA, FUND_ALL_SYMBOLS, FUND_CONTRACTS, FUND_QUOTE, FUND_HISTORY_QUOTE, FINANCIAL_CURRENCY, \
     FINANCIAL_EXCHANGE_RATE, ALL_HK_OPTION_SYMBOLS, OPTION_DEPTH, BROKER_HOLD, OPTION_TIMELINE, FUTURE_DEPTH, \
-    FUTURE_HISTORY_MAIN_CONTRACT, OPTION_ANALYSIS
+    FUTURE_HISTORY_MAIN_CONTRACT, OPTION_ANALYSIS, ADDON_ENTITLEMENTS
 from tigeropen.common.consts.service_types import MARKET_STATE, ALL_SYMBOLS, ALL_SYMBOL_NAMES, BRIEF, \
     TIMELINE, KLINE, TRADE_TICK, OPTION_EXPIRATION, OPTION_CHAIN, FUTURE_EXCHANGE, OPTION_BRIEF, \
     OPTION_KLINE, OPTION_TRADE_TICK, FUTURE_KLINE, FUTURE_TICK, FUTURE_CONTRACT_BY_EXCHANGE_CODE, \
@@ -47,6 +47,7 @@ from tigeropen.fundamental.response.financial_exchange_rate_response import Fina
 from tigeropen.fundamental.response.financial_report_response import FinancialReportResponse
 from tigeropen.fundamental.response.industry_response import IndustryListResponse, IndustryStocksResponse, \
     StockIndustryResponse
+from tigeropen.quote.domain.addon_entitlement import AddonEntitlement
 from tigeropen.quote.domain.capital_distribution import CapitalDistribution
 from tigeropen.quote.domain.filter import SortFilterData, StockFilter, OptionFilter, ScannerResult
 from tigeropen.quote.domain.market_status import MarketStatus
@@ -57,6 +58,7 @@ from tigeropen.quote.request.model import MarketParams, MultipleQuoteParams, Mul
     SingleOptionQuoteParams, DepthQuoteParams, OptionChainParams, TradingCalendarParams, MarketScannerParams, \
     StockBrokerParams, CapitalParams, WarrantFilterParams, KlineQuotaParams, SymbolsParams, OptionContractsParams, \
     BrokerHoldParams, OptionAnalysisParams
+from tigeropen.quote.response.addon_entitlement_response import AddonEntitlementResponse
 from tigeropen.quote.response.broker_hold_response import BrokerHoldResponse
 from tigeropen.quote.response.capital_distribution_response import CapitalDistributionResponse
 from tigeropen.quote.response.capital_flow_response import CapitalFlowResponse
@@ -2732,6 +2734,41 @@ class QuoteClient(TigerOpenClient):
                 return response.permissions
             else:
                 raise ApiException(response.code, response.message)
+
+    def get_addon_entitlement(self) -> Optional[AddonEntitlement]:
+        """
+        Query add-on package entitlement. 查询附加套餐权益.
+
+        :return: AddonEntitlement object with attributes:
+            user_level: User level. 用户等级.
+            active_plan: ActivePlan object. 当前生效套餐. Attributes:
+                plan_type: Plan type. 套餐类型.
+                expire_time: Expire time in milliseconds. 过期时间(毫秒).
+            addons: list of AddonInfo. 附加套餐列表. Each AddonInfo attributes:
+                plan_type: Plan type. 套餐类型.
+                active: Whether it is active. 是否生效.
+                start_time: Start time in milliseconds. 生效时间(毫秒).
+                expire_time: Expire time in milliseconds. 过期时间(毫秒).
+            effective_entitlement: Entitlement object. 生效权益额度. Attributes:
+                history_stock_limit / history_stock_remaining: History stock quote quota. 历史股票行情额度/剩余.
+                history_future_limit / history_future_remaining: History future quote quota. 历史期货行情额度/剩余.
+                history_option_limit / history_option_remaining: History option quote quota. 历史期权行情额度/剩余.
+                subscribe_limit / subscribe_remaining: Subscribe quota. 订阅额度/剩余.
+                subscribe_depth_limit / subscribe_depth_remaining: Subscribe depth quota. 深度行情订阅额度/剩余.
+                high_freq_limit / mid_freq_limit / low_freq_limit: Request frequency limits. 高/中/低频请求额度.
+                rate_multiple: Rate multiple. 频率倍数.
+        """
+        request = OpenApiRequest(ADDON_ENTITLEMENTS)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = AddonEntitlementResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.result
+            else:
+                raise ApiException(response.code, response.message)
+
+        return None
 
     def get_trading_calendar(
             self,

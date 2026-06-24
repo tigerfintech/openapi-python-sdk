@@ -77,6 +77,7 @@ GRAB_QUOTE_PERMISSION = "grab_quote_permission"  # 抢占行情
 MARKET_SCANNER = "market_scanner"  # 选股器
 MARKET_SCANNER_TAGS = "market_scanner_tags"
 GET_QUOTE_PERMISSION = "get_quote_permission"
+ADDON_ENTITLEMENTS = "addon_entitlements"  # 附加套餐权益查询
 TRADING_CALENDAR = "trading_calendar"
 STOCK_BROKER = "stock_broker"  # 港股股票实时经纪队列
 BROKER_HOLD = "broker_hold"
