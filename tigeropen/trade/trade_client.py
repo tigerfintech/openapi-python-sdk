@@ -975,6 +975,12 @@ class TradeClient(TigerOpenClient):
         params.total_cash_amount = order.total_cash_amount
         params.trading_session_type = get_enum_value(
             order.trading_session_type)
+        params.display_size = order.display_size
+        params.min_display_size = order.min_display_size
+        params.check_intervals = order.check_intervals
+        params.price_type = order.price_type
+        params.start_time = order.start_time
+        params.end_time = order.end_time
 
         request = OpenApiRequest(PLACE_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -1050,6 +1056,12 @@ class TradeClient(TigerOpenClient):
         params.adjust_limit = kwargs.get('adjust_limit', order.adjust_limit)
         params.lang = get_enum_value(lang) if lang else get_enum_value(
             self._lang)
+        params.display_size = kwargs.get('display_size', order.display_size)
+        params.min_display_size = kwargs.get('min_display_size', order.min_display_size)
+        params.check_intervals = kwargs.get('check_intervals', order.check_intervals)
+        params.price_type = kwargs.get('price_type', order.price_type)
+        params.start_time = kwargs.get('start_time', order.start_time)
+        params.end_time = kwargs.get('end_time', order.end_time)
         request = OpenApiRequest(MODIFY_ORDER, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:

@@ -144,3 +144,7 @@ cython_debug/
 
 .claude/
 CLAUDE.md
+
+# Local credential / account config (symlink to ~/.tigeropen: private keys, tiger_id account dirs)
+.config
+.config/
