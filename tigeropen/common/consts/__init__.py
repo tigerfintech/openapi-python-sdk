@@ -219,6 +219,15 @@ class OrderType(Enum):
     TWAP = 'TWAP'  # 'Time Weighted Average Price' 时间加权平均价格算法
     VWAP = 'VWAP'  # 'Volume Weighted Average Price'  成交量加权平均价格算法
     OCA = 'OCA'
+    ICEBERG = 'ICEBERG'  # 冰山订单
+
+
+@unique
+class PriceType(Enum):
+    LIMIT_PRICE = 'LIMIT_PRICE'      # 限价
+    ASK_PRICE = 'ASK_PRICE'          # 卖一价
+    BID_PRICE = 'BID_PRICE'          # 买一价
+    LATEST_PRICE = 'LATEST_PRICE'    # 最新价
 
 
 @unique

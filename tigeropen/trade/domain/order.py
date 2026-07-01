@@ -20,7 +20,8 @@ class Order:
                  "update_time", "expire_time", "can_modify", "external_id", "combo_type", "combo_type_desc", 'is_open',
                  "contract_legs", "filled_scale", "total_cash_amount", "filled_cash_amount",
                  "refund_cash_amount", "attr_list", "latest_price", "orders", "gst", "quantity_scale",
-                 "trading_session_type", "charges"]
+                 "trading_session_type", "charges",
+                 "display_size", "min_display_size", "check_intervals", "price_type", "start_time", "end_time"]
 
     def __init__(self, account, contract, action, order_type=None, quantity=None, limit_price=None, aux_price=None,
                  trail_stop_price=None, trailing_percent=None, percent_offset=None, time_in_force=None,
@@ -65,6 +66,12 @@ class Order:
         :param sub_ids id list of sub orders.
         :param user_mark: user's remark
         :param expire_time: GTD order's expire time
+        :param display_size: 冰山订单每次显示的数量
+        :param min_display_size: 冰山订单最小显示数量，不能超过 display_size
+        :param check_intervals: 冰山订单价格检查间隔（秒）
+        :param price_type: 冰山订单价格类型，可选值：LIMIT_PRICE / ASK_PRICE / BID_PRICE / LATEST_PRICE
+        :param start_time: 冰山订单生效开始时间（时间戳，毫秒）
+        :param end_time: 冰山订单生效结束时间（时间戳，毫秒），必须大于 start_time
         """
 
         self.id = id
@@ -121,6 +128,12 @@ class Order:
         self.gst = kwargs.get('gst')
         self.trading_session_type = kwargs.get('trading_session_type')
         self.charges = kwargs.get('charges')
+        self.display_size = kwargs.get('display_size')
+        self.min_display_size = kwargs.get('min_display_size')
+        self.check_intervals = kwargs.get('check_intervals')
+        self.price_type = kwargs.get('price_type')
+        self.start_time = kwargs.get('start_time')
+        self.end_time = kwargs.get('end_time')
 
     def to_dict(self):
         dct = {name: getattr(self, name) for name in self.__slots__ if name not in ORDER_FIELDS_TO_IGNORE}

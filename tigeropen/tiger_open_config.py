@@ -15,7 +15,10 @@ from jproperties import Properties
 from pytz import timezone
 from tigeropen import __VERSION__
 from tigeropen.common.consts import Language, ServiceType, License
-from tigeropen.common.consts.params import ACCOUNT, LICENSE, PRIVATE_KEY, TIGER_ID, ENV, DATA, TOKEN, SECRET_KEY
+from tigeropen.common.consts.params import ACCOUNT, LICENSE, PRIVATE_KEY, TIGER_ID, ENV, DATA, TOKEN, SECRET_KEY, \
+    SERVER_URL as PROPS_SERVER_URL, TIMEOUT as PROPS_TIMEOUT, \
+    TOKEN_REFRESH_DURATION as PROPS_TOKEN_REFRESH_DURATION, SOCKET_HOST_PORT as PROPS_SOCKET_HOST_PORT, \
+    USE_FULL_TICK as PROPS_USE_FULL_TICK, TIMEZONE as PROPS_TIMEZONE, LANGUAGE as PROPS_LANGUAGE
 from tigeropen.common.util.account_util import AccountUtil
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.common.util.signature_utils import read_private_key
@@ -30,6 +33,13 @@ TIGEROPEN_PRIVATE_KEY = ENV_PREFIX + 'PRIVATE_KEY'
 TIGEROPEN_LICENSE = ENV_PREFIX + 'LICENSE'
 TIGEROPEN_TOKEN = ENV_PREFIX + 'TOKEN'
 TIGEROPEN_PROPS_PATH = ENV_PREFIX + 'PROPS_PATH'
+TIGEROPEN_SERVER_URL = ENV_PREFIX + 'SERVER_URL'
+TIGEROPEN_TIMEOUT = ENV_PREFIX + 'TIMEOUT'
+TIGEROPEN_TOKEN_REFRESH_DURATION = ENV_PREFIX + 'TOKEN_REFRESH_DURATION'
+TIGEROPEN_SOCKET_HOST_PORT = ENV_PREFIX + 'SOCKET_HOST_PORT'
+TIGEROPEN_USE_FULL_TICK = ENV_PREFIX + 'USE_FULL_TICK'
+TIGEROPEN_TIMEZONE = ENV_PREFIX + 'TIMEZONE'
+TIGEROPEN_LANGUAGE = ENV_PREFIX + 'LANGUAGE'
 
 DEFAULT_DOMAIN = 'openapi.tigerfintech.com'
 DEFAULT_US_DOMAIN = 'openapi.tradeup.com'
@@ -107,21 +117,21 @@ class TigerOpenClientConfig:
         # 请求字符集，默认utf-8
         self._charset = CHARSET
         # 语言
-        self._language = LANGUAGE
+        self._language = None
         # timezone
         self._timezone = None
         # 请求读取超时，单位秒，默认15s
-        self._timeout = TIMEOUT
+        self._timeout = None
         self._sandbox_debug = sandbox_debug
         # subscribed trade tick data, Whether to use the full version of the tick
-        self.use_full_tick = False
+        self.use_full_tick = None
 
         # 老虎证券开放平台公钥
         self._tiger_public_key = TIGER_PUBLIC_KEY
         # 老虎证券开放平台网关地址
-        self._server_url = SERVER_URL
-        self._quote_server_url = SERVER_URL
-        self._socket_host_port = SOCKET_HOST_PORT
+        self._server_url = None
+        self._quote_server_url = None
+        self._socket_host_port = None
 
         self._device_id = self.__get_device_id()
         self._token = None
@@ -133,17 +143,16 @@ class TigerOpenClientConfig:
         self.callback_thread_pool_size = None
         
         # token 刷新间隔周期， 单位秒
-        self._token_refresh_duration = TOKEN_REFRESH_DURATION
+        self._token_refresh_duration = None
         self.token_check_interval = TOKEN_CHECK_INTERVAL
 
         self.props_path = None
         # 优先从环境变量加载配置
         self._load_env_vars()
-        if not self.props_path and props_path:
-            self.props_path = props_path
         if not self.props_path:
-            self.props_path = '.'
+            self.props_path = props_path or '.'
         self._load_props()
+        self._apply_defaults()
         if not self._token:
             twofa_token = self.load_token()
             if twofa_token:
@@ -151,12 +160,11 @@ class TigerOpenClientConfig:
 
         self.domain_conf = dict()
         self.enable_dynamic_domain = enable_dynamic_domain
-        if self._sandbox_debug:
+        if self._sandbox_debug and self.enable_dynamic_domain:
             raise NotImplementedError('Sandbox debug mode is deprecated, please set to False')
-        if self.is_us():
-            self.server_url = US_SERVER_URL
-            self.quote_server_url = US_SERVER_URL
-            self.socket_host_port = US_SOCKET_HOST_PORT
+        if self._sandbox_debug:
+            self._tiger_public_key = SANDBOX_TIGER_PUBLIC_KEY
+            logging.warning('sandbox_debug is set; using sandbox public key. This mode is deprecated.')
         if self.enable_dynamic_domain:
             self.domain_conf = self.query_domains()
             self.refresh_server_info()
@@ -335,57 +343,134 @@ class TigerOpenClientConfig:
         return None
 
     def _load_env_vars(self):
-        if os.environ.get(TIGEROPEN_PROPS_PATH):
-            self.props_path = os.environ.get(TIGEROPEN_PROPS_PATH)
+        def env(key):
+            return os.environ.get(key)
 
-        if not self.tiger_id and os.environ.get(TIGEROPEN_TIGER_ID):
-            self.tiger_id = os.environ.get(TIGEROPEN_TIGER_ID)
-
-        if not self.private_key and os.environ.get(TIGEROPEN_PRIVATE_KEY):
-            private_key_content = os.environ.get(TIGEROPEN_PRIVATE_KEY)
-            if os.path.exists(private_key_content):
-                self.private_key = read_private_key(private_key_content)
-            else:
-                self.private_key = private_key_content
-
-        if not self.account and os.environ.get(TIGEROPEN_ACCOUNT):
-            self.account = os.environ.get(TIGEROPEN_ACCOUNT)
-
-        if not self.secret_key and os.environ.get(TIGEROPEN_SECRET_KEY):
-            self.secret_key = os.environ.get(TIGEROPEN_SECRET_KEY)
-
-        if not self.license and os.environ.get(TIGEROPEN_LICENSE):
-            self.license = os.environ.get(TIGEROPEN_LICENSE)
-
-        if not self._token and os.environ.get(TIGEROPEN_TOKEN):
-            self._token = os.environ.get(TIGEROPEN_TOKEN)
+        if v := env(TIGEROPEN_PROPS_PATH):
+            self.props_path = v
+        if not self.tiger_id and (v := env(TIGEROPEN_TIGER_ID)):
+            self.tiger_id = v
+        if not self.private_key and (v := env(TIGEROPEN_PRIVATE_KEY)):
+            self.private_key = read_private_key(v) if os.path.exists(v) else v
+        if not self.account and (v := env(TIGEROPEN_ACCOUNT)):
+            self.account = v
+        if not self.secret_key and (v := env(TIGEROPEN_SECRET_KEY)):
+            self.secret_key = v
+        if not self.license and (v := env(TIGEROPEN_LICENSE)):
+            self.license = v
+        if not self._token and (v := env(TIGEROPEN_TOKEN)):
+            self._token = v
+        if not self._server_url and (v := env(TIGEROPEN_SERVER_URL)):
+            self._server_url = v
+        if not self._timeout and (v := env(TIGEROPEN_TIMEOUT)):
+            try:
+                self._timeout = int(v)
+            except ValueError:
+                pass
+        if self._token_refresh_duration is None and (v := env(TIGEROPEN_TOKEN_REFRESH_DURATION)):
+            try:
+                self._token_refresh_duration = int(v)
+            except ValueError:
+                pass
+        if not self._socket_host_port and (v := env(TIGEROPEN_SOCKET_HOST_PORT)):
+            try:
+                # format: "ssl,openapi.tigerfintech.com,9883"
+                parts = v.split(',')
+                self._socket_host_port = (parts[0].strip(), parts[1].strip(), int(parts[2].strip()))
+            except (ValueError, IndexError):
+                pass
+        if self.use_full_tick is None and (v := env(TIGEROPEN_USE_FULL_TICK)):
+            self.use_full_tick = v.lower() in ('true', '1', 'yes')
+        if not self._timezone and (v := env(TIGEROPEN_TIMEZONE)):
+            self.timezone = v
+        if not self._language and (v := env(TIGEROPEN_LANGUAGE)):
+            try:
+                self._language = Language(v)
+            except ValueError:
+                pass
 
     def _load_props(self):
         full_path = self._get_props_path(DEFAULT_PROPS_FILE)
-        if full_path and os.path.exists(full_path):
-            try:
-                p = Properties()
-                with open(full_path, "rb") as f:
-                    p.load(f, "utf-8")
-                    if not self.tiger_id:
-                        self.tiger_id = getattr(p.get(TIGER_ID), DATA, '')
-                    if not self.private_key:
-                        self.private_key = getattr(p.get(f'{PRIVATE_KEY}_pk1'), DATA, '')
-                        if not self.private_key:
-                            self.private_key = getattr(p.get(f'{PRIVATE_KEY}_pk8'), DATA, '')
-                    if not self.account:
-                        self.account = getattr(p.get(ACCOUNT), DATA, '')
-                    if not self.license:
-                        self.license = getattr(p.get(LICENSE), DATA, '')
-                    if not self._sandbox_debug:
-                        is_sandbox_env = getattr(p.get(ENV), DATA, '').upper() == 'SANDBOX'
-                        self._sandbox_debug = is_sandbox_env
-                    if not self.secret_key:
-                        self.secret_key = getattr(p.get(SECRET_KEY), DATA, '')
-                    if not self._token:
-                        self._token = getattr(p.get(TOKEN), DATA, '')
-            except Exception as e:
-                logging.error(e, exc_info=True)
+        if not full_path or not os.path.exists(full_path):
+            return
+        try:
+            p = Properties()
+            with open(full_path, "rb") as f:
+                p.load(f, "utf-8")
+
+            def prop(key):
+                return getattr(p.get(key), DATA, '') or None
+
+            if not self.tiger_id:
+                self.tiger_id = prop(TIGER_ID) or ''
+            if not self.private_key:
+                self.private_key = (prop(PRIVATE_KEY)
+                                    or prop(f'{PRIVATE_KEY}_pk8')
+                                    or prop(f'{PRIVATE_KEY}_pk1')
+                                    or '')
+            if not self.account:
+                self.account = prop(ACCOUNT) or ''
+            if not self.license:
+                self.license = prop(LICENSE) or ''
+            if not self._sandbox_debug:
+                self._sandbox_debug = (prop(ENV) or '').upper() in ('SANDBOX', 'TEST')
+            if not self.secret_key:
+                self.secret_key = prop(SECRET_KEY) or ''
+            if not self._token:
+                self._token = prop(TOKEN)
+            if not self._server_url:
+                self._server_url = prop(PROPS_SERVER_URL)
+            if not self._timeout and (v := prop(PROPS_TIMEOUT)):
+                try:
+                    self._timeout = int(v)
+                except ValueError:
+                    pass
+            if self._token_refresh_duration is None and (v := prop(PROPS_TOKEN_REFRESH_DURATION)):
+                try:
+                    self._token_refresh_duration = int(v)
+                except ValueError:
+                    pass
+            if not self._socket_host_port and (v := prop(PROPS_SOCKET_HOST_PORT)):
+                try:
+                    # format: "ssl,openapi.tigerfintech.com,9883"
+                    parts = v.split(',')
+                    self._socket_host_port = (parts[0].strip(), parts[1].strip(), int(parts[2].strip()))
+                except (ValueError, IndexError):
+                    pass
+            if self.use_full_tick is None and (v := prop(PROPS_USE_FULL_TICK)):
+                self.use_full_tick = v.lower() in ('true', '1', 'yes')
+            if not self._timezone and (v := prop(PROPS_TIMEZONE)):
+                self.timezone = v
+            if not self._language and (v := prop(PROPS_LANGUAGE)):
+                try:
+                    self._language = Language(v)
+                except ValueError:
+                    pass
+        except Exception as e:
+            logging.error(e, exc_info=True)
+
+    def _apply_defaults(self):
+        if not self._server_url:
+            self._server_url = SERVER_URL
+        if not self._quote_server_url:
+            self._quote_server_url = self._server_url
+        if not self._timeout:
+            self._timeout = TIMEOUT
+        if self._token_refresh_duration is None:
+            self._token_refresh_duration = TOKEN_REFRESH_DURATION
+        if not self._socket_host_port:
+            self._socket_host_port = SOCKET_HOST_PORT
+        if self.use_full_tick is None:
+            self.use_full_tick = False
+        if not self._language:
+            self._language = LANGUAGE
+        if self.is_us():
+            if self._server_url == SERVER_URL:
+                self._server_url = US_SERVER_URL
+            if self._quote_server_url in (SERVER_URL, self._server_url):
+                self._quote_server_url = US_SERVER_URL
+            if self._socket_host_port == SOCKET_HOST_PORT:
+                self._socket_host_port = US_SOCKET_HOST_PORT
 
     def get_token_path(self):
         return self._get_props_path(DEFAULT_TOKEN_FILE)
@@ -546,7 +631,10 @@ def get_client_config(private_key_path=None, tiger_id=None, account=None, sandbo
     - TIGEROPEN_ACCOUNT: 授权账户
     - TIGEROPEN_PRIVATE_KEY: 私钥内容或私钥文件路径
     - TIGEROPEN_SECRET_KEY: 机构交易员专有密钥
+    - TIGEROPEN_SERVER_URL: 网关地址（覆盖默认值，同时作用于 quote_server_url）
+    - TIGEROPEN_TIMEOUT: 请求超时时间（秒，整数）
     - TIGEROPEN_PROPS_PATH: 配置文件路径
+    properties 文件中同样支持 server_url 和 timeout 字段
     """
     config = TigerOpenClientConfig(sandbox_debug=sandbox_debug, enable_dynamic_domain=enable_dynamic_domain,
                                    props_path=props_path)

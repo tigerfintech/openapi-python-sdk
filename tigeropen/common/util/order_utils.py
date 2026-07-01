@@ -6,7 +6,7 @@ Created on 2018/11/1
 """
 from tigeropen.trade.domain.contract import ContractLeg
 from tigeropen.trade.domain.order import Order, OrderLeg, AlgoParams
-from tigeropen.common.consts import OrderStatus, OrderType
+from tigeropen.common.consts import OrderStatus, OrderType, PriceType
 
 
 def market_order(account, contract, action, quantity, time_in_force='DAY'):
@@ -163,6 +163,34 @@ def limit_order_with_legs(account, contract, action, quantity, limit_price, orde
     if order_legs and len(order_legs) > 2:
         raise Exception('2 order legs at most')
     return Order(account, contract, action, 'LMT', quantity, limit_price=limit_price, order_legs=order_legs,
+                 time_in_force=time_in_force)
+
+
+def iceberg_order(account, contract, action, quantity, limit_price,
+                  display_size, min_display_size=None, check_intervals=None,
+                  price_type=PriceType.LIMIT_PRICE, start_time=None, end_time=None,
+                  time_in_force='DAY'):
+    """
+    冰山单 Iceberg Order
+    :param account:
+    :param contract:
+    :param action: BUY/SELL
+    :param quantity: 总委托数量
+    :param limit_price: 限价价格
+    :param display_size: 每次显示/报出的数量（必填）
+    :param min_display_size: 最小显示数量，不填则等于 display_size
+    :param check_intervals: 刷新间隔（秒），不填则由服务端决定
+    :param price_type: 价格类型，PriceType 枚举或字符串，默认 PriceType.LIMIT_PRICE
+    :param start_time: 生效开始时间（时间戳毫秒），可选
+    :param end_time: 生效结束时间（时间戳毫秒），可选
+    :param time_in_force: 订单有效期，默认 'DAY'
+    :return: Order
+    """
+    price_type_val = price_type.value if isinstance(price_type, PriceType) else price_type
+    return Order(account, contract, action, OrderType.ICEBERG.value, quantity,
+                 limit_price=limit_price, display_size=display_size,
+                 min_display_size=min_display_size, check_intervals=check_intervals,
+                 price_type=price_type_val, start_time=start_time, end_time=end_time,
                  time_in_force=time_in_force)
 
 
