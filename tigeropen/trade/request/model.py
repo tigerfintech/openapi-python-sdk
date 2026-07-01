@@ -923,6 +923,12 @@ class PlaceModifyOrderParams(BaseParams):
         self.total_cash_amount = None
         self.oca_orders = None
         self.trading_session_type = None
+        self.display_size = None
+        self.min_display_size = None
+        self.check_intervals = None
+        self.price_type = None
+        self.start_time = None
+        self.end_time = None
 
     def _parse_contract_param(self):
         params = dict()
@@ -1004,6 +1010,18 @@ class PlaceModifyOrderParams(BaseParams):
             params['combo_type'] = self.combo_type
         if self.trading_session_type:
             params['trading_session_type'] = self.trading_session_type
+        if self.display_size is not None:
+            params['display_size'] = self.display_size
+        if self.min_display_size is not None:
+            params['min_display_size'] = self.min_display_size
+        if self.check_intervals is not None:
+            params['check_intervals'] = self.check_intervals
+        if self.price_type is not None:
+            params['price_type'] = self.price_type
+        if self.start_time is not None:
+            params['start_time'] = self.start_time
+        if self.end_time is not None:
+            params['end_time'] = self.end_time
         return params
 
     def _parse_leg_param(self):

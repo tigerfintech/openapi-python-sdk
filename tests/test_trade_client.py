@@ -4,10 +4,10 @@ import os
 import unittest
 from unittest.mock import MagicMock
 
-from tigeropen.common.consts import OrderStatus, OptionExerciseType
+from tigeropen.common.consts import OrderStatus, OptionExerciseType, PriceType
 from tigeropen.common.util import web_utils
 from tigeropen.common.util.contract_utils import stock_contract
-from tigeropen.common.util.order_utils import limit_order
+from tigeropen.common.util.order_utils import limit_order, iceberg_order
 from tigeropen.tiger_open_config import TigerOpenClientConfig
 from tigeropen.trade.domain.contract import Contract
 from tigeropen.trade.domain.order import Order
@@ -25,7 +25,7 @@ logger.setLevel(logging.DEBUG)
 class TestTradeClient(unittest.TestCase):
 
     def setUp(self):
-        self.is_mock = False
+        self.is_mock = True
         self.client_config = TigerOpenClientConfig(
             props_path=os.path.expanduser("~/.tigeropen/"))
 
@@ -1185,6 +1185,131 @@ class TestTradeClient(unittest.TestCase):
                                 quantity=2)
             result = self.client.place_order(order=order)
             logger.debug(f"Order Result: {result}")
+
+    def test_place_iceberg_order(self):
+        if self.is_mock:
+            mock_data = {
+                "code": 0,
+                "message": "success",
+                "timestamp": 1755086932402,
+                "data": {
+                    "id": 40132638459956225,
+                    "subIds": [],
+                    "order_id": 1170,
+                    "orders": [{
+                        "symbol": "AAPL",
+                        "market": "US",
+                        "secType": "STK",
+                        "currency": "USD",
+                        "identifier": "AAPL",
+                        "id": 40132638459956225,
+                        "orderId": 1170,
+                        "account": "123123",
+                        "action": "BUY",
+                        "orderType": "ICEBERG",
+                        "limitPrice": 180.0,
+                        "totalQuantity": 1000,
+                        "totalQuantityScale": 0,
+                        "filledQuantity": 0,
+                        "filledQuantityScale": 0,
+                        "filledCashAmount": 0.0,
+                        "avgFillPrice": 0.0,
+                        "timeInForce": "DAY",
+                        "outsideRth": False,
+                        "commission": 0.0,
+                        "gst": 0.0,
+                        "realizedPnl": 0.0,
+                        "remark": "",
+                        "liquidation": False,
+                        "openTime": 1755086932000,
+                        "updateTime": 1755086932000,
+                        "latestTime": 1755086932000,
+                        "status": "Initial",
+                        "source": "OpenApi",
+                        "canModify": True,
+                        "canCancel": True,
+                        "isOpen": True,
+                        "display_size": 100,
+                        "min_display_size": 50,
+                        "check_intervals": 30,
+                        "price_type": "LIMIT_PRICE",
+                        "start_time": 1700000000000,
+                        "end_time": 1700086400000,
+                    }]
+                }
+            }
+
+            mock_contract = Contract()
+            mock_contract.symbol = "AAPL"
+            mock_contract.currency = "USD"
+            mock_contract.sec_type = "STK"
+
+            mock_order = iceberg_order(
+                account="123123",
+                contract=mock_contract,
+                action="BUY",
+                quantity=1000,
+                limit_price=180.0,
+                display_size=100,
+                min_display_size=50,
+                check_intervals=30,
+                price_type=PriceType.LIMIT_PRICE,
+                start_time=1700000000000,
+                end_time=1700086400000,
+            )
+
+            web_utils.do_request = MagicMock(
+                return_value=json.dumps(mock_data).encode())
+            mock_result = self.client.place_order(order=mock_order)
+
+            self.assertIsNotNone(mock_result)
+            self.assertEqual(mock_result, 40132638459956225)
+            self.assertEqual(mock_order.id, 40132638459956225)
+
+            # 验证冰山字段已正确写入请求参数
+            # POST 请求通过 params body 传参，biz_content 在 params['biz_content'] 里
+            call_args = web_utils.do_request.call_args
+            params = call_args.kwargs.get('params') or call_args[1].get('params')
+            biz_content = json.loads(params['biz_content'])
+            self.assertEqual(biz_content['order_type'], 'ICEBERG')
+            self.assertEqual(biz_content['display_size'], 100)
+            self.assertEqual(biz_content['min_display_size'], 50)
+            self.assertEqual(biz_content['check_intervals'], 30)
+            self.assertEqual(biz_content['price_type'], 'LIMIT_PRICE')
+            self.assertEqual(biz_content['start_time'], 1700000000000)
+            self.assertEqual(biz_content['end_time'], 1700086400000)
+
+            # 验证 response 中的冰山字段回填到 order
+            submitted_order = mock_order.orders[0]
+            self.assertEqual(submitted_order['orderType'], 'ICEBERG')
+            self.assertEqual(submitted_order['display_size'], 100)
+            self.assertEqual(submitted_order['price_type'], 'LIMIT_PRICE')
+
+        else:
+            import time
+            now_ms = int(time.time() * 1000)
+            start_time = now_ms
+            end_time = now_ms + 3600_000
+
+            contract = stock_contract(symbol='AAPL', currency='USD')
+            order = iceberg_order(
+                account=self.client_config.account,
+                contract=contract,
+                action='BUY',
+                quantity=1000,
+                limit_price=180.0,
+                display_size=100,
+                min_display_size=50,
+                check_intervals=30,
+                start_time=start_time,
+                end_time=end_time,
+            )
+            result = self.client.place_order(order=order)
+            logger.debug(f"place_order result (orderId): {result}")
+            logger.debug(f"  order.id={order.id} order_type={order.order_type}")
+            logger.debug(f"  start_time from server: {order.start_time}  expected: {start_time}")
+            logger.debug(f"  end_time   from server: {order.end_time}  expected: {end_time}")
+            logger.debug(f"  display_size={order.display_size} min_display_size={order.min_display_size} check_intervals={order.check_intervals}")
 
     def test_cancel_order(self):
         if self.is_mock:
