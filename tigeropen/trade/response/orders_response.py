@@ -6,29 +6,16 @@ Created on 2018/10/31
 """
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.util.order_utils import get_order_status
-from tigeropen.common.util.string_utils import camel_to_underline_obj
+from tigeropen.common.util.string_utils import camel_to_underline, camel_to_underline_obj
 from tigeropen.trade.domain.contract import Contract, OrderContractLeg
 from tigeropen.trade.domain.order import Order, AlgoParams, Charge
 from tigeropen.trade.response import CONTRACT_FIELDS
 
-ORDER_FIELD_MAPPINGS = {'parentId': 'parent_id', 'orderId': 'order_id', 'orderType': 'order_type',
-                        'limitPrice': 'limit_price', 'auxPrice': 'aux_price', 'avgFillPrice': 'avg_fill_price',
-                        'totalQuantity': 'quantity', 'filledQuantity': 'filled', 'lastFillPrice': 'last_fill_price',
-                        'realizedPnl': 'realized_pnl', 'secType': 'sec_type',
+ORDER_FIELD_MAPPINGS = {'totalQuantity': 'quantity', 'filledQuantity': 'filled',
                         'remark': 'reason',
-                        'localSymbol': 'local_symbol', 'originSymbol': 'origin_symbol', 'outsideRth': 'outside_rth',
-                        'timeInForce': 'time_in_force', 'openTime': 'order_time', 'latestTime': 'trade_time',
-                        'contractId': 'contract_id', 'algoStrategy': 'algo_strategy',
-                        'trailStopPrice': 'trail_stop_price', 'trailingPercent': 'trailing_percent',
-                        'percentOffset': 'percent_offset', 'identifier': 'identifier', 'algoParameters': 'algo_params',
-                        'userMark': 'user_mark', 'updateTime': 'update_time', 'expireTime': 'expire_time',
-                        'canModify': 'can_modify', 'externalId': 'external_id', 'isOpen': 'is_open',
-                        'comboType': 'combo_type', 'comboTypeDesc': 'combo_type_desc',
-                        'totalCashAmount': 'total_cash_amount', 'filledCashAmount': 'filled_cash_amount',
-                        'refundCashAmount': 'refund_cash_amount', 'filledQuantityScale': 'filled_scale',
-                        'totalQuantityScale': 'quantity_scale',
-                        'attrList': 'attr_list', 'latestPrice': 'latest_price',
-                        'tradingSessionType': 'trading_session_type',
+                        'openTime': 'order_time', 'latestTime': 'trade_time',
+                        'algoParameters': 'algo_params',
+                        'filledQuantityScale': 'filled_scale', 'totalQuantityScale': 'quantity_scale',
                         }
 
 
@@ -64,7 +51,7 @@ class OrdersResponse(TigerResponse):
         for key, value in item.items():
             if value is None:
                 continue
-            tag = ORDER_FIELD_MAPPINGS[key] if key in ORDER_FIELD_MAPPINGS else key
+            tag = ORDER_FIELD_MAPPINGS[key] if key in ORDER_FIELD_MAPPINGS else camel_to_underline(key)
             if tag in CONTRACT_FIELDS:
                 contract_fields[tag] = value
             else:
@@ -127,6 +114,12 @@ class OrdersResponse(TigerResponse):
         attr_list = order_fields.get('attr_list')
         gst = order_fields.get('gst')
         trading_session_type = order_fields.get('trading_session_type')
+        display_size = order_fields.get('display_size')
+        min_display_size = order_fields.get('min_display_size')
+        check_intervals = order_fields.get('check_intervals')
+        price_type = order_fields.get('price_type')
+        start_time = order_fields.get('start_time')
+        end_time = order_fields.get('end_time')
 
         order = Order(account, contract, action, order_type, quantity, limit_price=limit_price, aux_price=aux_price,
                       trail_stop_price=trail_stop_price, trailing_percent=trailing_percent,
@@ -139,7 +132,9 @@ class OrdersResponse(TigerResponse):
                       combo_type_desc=combo_type_desc, filled_scale=filled_scale, quantity_scale=quantity_scale,
                       total_cash_amount=total_cash_amount,
                       filled_cash_amount=filled_cash_amount, refund_cash_amount=refund_cash_amount, attr_list=attr_list,
-                      gst=gst, trading_session_type=trading_session_type)
+                      gst=gst, trading_session_type=trading_session_type,
+                      display_size=display_size, min_display_size=min_display_size, check_intervals=check_intervals,
+                      price_type=price_type, start_time=start_time, end_time=end_time)
         if 'order_time' in order_fields:
             order.order_time = order_fields.get('order_time')
         if 'trade_time' in order_fields:

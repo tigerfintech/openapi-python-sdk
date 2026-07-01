@@ -1,3 +1,9 @@
+## 3.6.0 (2026-06-24)
+### New
+- 新增冰山单辅助函数 `iceberg_order(account, contract, action, quantity, limit_price, display_size)`，支持 `min_display_size`、`check_intervals`、`price_type`、`start_time`/`end_time`（epoch ms）
+- 新增 `PriceType` 枚举常量（`LIMIT_PRICE`、`ASK_PRICE`、`BID_PRICE`、`LATEST_PRICE`）
+- 新增冰山单单元测试（`tests/test_trade_client.py` iceberg 相关用例），覆盖基础构造、完整参数、零值省略
+
 ## 3.5.9 (2026-06-08)
 ### New
 - `TradeClient.submit_option_exercise` 提交期权提前行权或放弃行权申请
