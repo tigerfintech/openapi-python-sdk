@@ -25,7 +25,7 @@ logger.setLevel(logging.DEBUG)
 class TestTradeClient(unittest.TestCase):
 
     def setUp(self):
-        self.is_mock = True
+        self.is_mock = os.environ.get("TIGER_RUN_INTEG", "").lower() != "true"
         self.client_config = TigerOpenClientConfig(
             props_path=os.path.expanduser("~/.tigeropen/"))
 

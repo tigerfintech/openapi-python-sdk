@@ -1,3 +1,10 @@
+## 3.7.0 (2026-07-23)
+### New
+- `get_corporate_symbol_change` — 股票代码变更查询
+- `get_corporate_delisting` — 退市事件查询
+- `get_corporate_ipo` — 新股上市查询
+- `CorporateActionType` 新增：`SYMBOL_CHANGE`、`DELISTING`、`IPO`
+
 ## 3.6.0 (2026-06-24)
 ### New
 - 新增冰山单辅助函数 `iceberg_order(account, contract, action, quantity, limit_price, display_size)`，支持 `min_display_size`、`check_intervals`、`price_type`、`start_time`/`end_time`（epoch ms）
