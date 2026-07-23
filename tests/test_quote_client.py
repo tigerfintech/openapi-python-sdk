@@ -29,7 +29,7 @@ pd.set_option('display.width', 5000)
 class TestQuoteClient(unittest.TestCase):
 
     def setUp(self):
-        self.is_mock = True
+        self.is_mock = os.environ.get("TIGER_RUN_INTEG", "").lower() != "true"
         self.client_config = TigerOpenClientConfig(
             props_path=os.path.expanduser("~/.tigeropen/"))
         self.client: QuoteClient = QuoteClient(self.client_config,
@@ -2260,6 +2260,114 @@ class TestQuoteClient(unittest.TestCase):
                                                      begin_date="2024-01-01",
                                                      end_date="2024-12-31")
             logger.debug(f"Corporate Action Split:\n {result}")
+
+    def test_get_corporate_symbol_change(self):
+        """测试获取股票代码变更数据"""
+        if self.is_mock:
+            mock_data = {"code": 0, "message": "success", "timestamp": 1755070680167,
+                         "data": {"X": [
+                             {"symbol": "X", "market": "US", "exchange": "NYSE", "executeDate": "2022-10-28",
+                              "actionType": "SYMBOL_CHANGE", "oldSymbol": "TWTR", "newSymbol": "X"}]}}
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            result = self.client.get_corporate_symbol_change(symbols=['X', 'TWTR'],
+                                                             market='US',
+                                                             begin_date="2022-01-01",
+                                                             end_date="2023-12-31")
+            logger.debug(f"Corporate Symbol Change:\n {result}")
+
+            self.assertIsNotNone(result)
+            self.assertIsInstance(result, pd.DataFrame)
+            self.assertFalse(result.empty)
+
+            expected_columns = ['symbol', 'action_type', 'old_symbol', 'new_symbol', 'execute_date', 'market', 'exchange']
+            for col in expected_columns:
+                self.assertIn(col, result.columns)
+
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result['symbol'][0], 'X')
+            self.assertEqual(result['action_type'][0], 'SYMBOL_CHANGE')
+            self.assertEqual(result['old_symbol'][0], 'TWTR')
+            self.assertEqual(result['new_symbol'][0], 'X')
+            self.assertEqual(result['execute_date'][0], '2022-10-28')
+        else:
+            result = self.client.get_corporate_symbol_change(symbols=['X', 'TWTR'],
+                                                             market='US',
+                                                             begin_date="2020-01-01",
+                                                             end_date="2025-12-31")
+            logger.debug(f"Corporate Symbol Change:\n {result}")
+
+    def test_get_corporate_delisting(self):
+        """测试获取股票退市数据"""
+        if self.is_mock:
+            mock_data = {"code": 0, "message": "success", "timestamp": 1755070680167,
+                         "data": {"TWTR": [
+                             {"symbol": "TWTR", "market": "US", "exchange": "NYSE", "executeDate": "2022-10-28",
+                              "actionType": "DELISTING", "announcedDate": "2022-10-04", "reason": "voluntary"}]}}
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            result = self.client.get_corporate_delisting(symbols=['TWTR', 'GME'],
+                                                         market='US',
+                                                         begin_date="2022-01-01",
+                                                         end_date="2023-12-31")
+            logger.debug(f"Corporate Delisting:\n {result}")
+
+            self.assertIsNotNone(result)
+            self.assertIsInstance(result, pd.DataFrame)
+            self.assertFalse(result.empty)
+
+            expected_columns = ['symbol', 'action_type', 'announced_date', 'reason', 'execute_date', 'market', 'exchange']
+            for col in expected_columns:
+                self.assertIn(col, result.columns)
+
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result['symbol'][0], 'TWTR')
+            self.assertEqual(result['action_type'][0], 'DELISTING')
+            self.assertEqual(result['announced_date'][0], '2022-10-04')
+            self.assertEqual(result['reason'][0], 'voluntary')
+        else:
+            result = self.client.get_corporate_delisting(symbols=['TWTR', 'GME'],
+                                                         market='US',
+                                                         begin_date="2018-01-01",
+                                                         end_date="2025-12-31")
+            logger.debug(f"Corporate Delisting:\n {result}")
+
+    def test_get_corporate_ipo(self):
+        """测试获取新股上市数据"""
+        if self.is_mock:
+            mock_data = {"code": 0, "message": "success", "timestamp": 1755070680167,
+                         "data": {"RIVN": [
+                             {"symbol": "RIVN", "market": "US", "exchange": "NASDAQ", "executeDate": "2021-11-10",
+                              "actionType": "IPO", "ipoName": "Rivian Automotive", "listingDate": "2021-11-10",
+                              "listingPrice": 78.0, "currency": "USD"}]}}
+            web_utils.do_request = MagicMock(return_value=json.dumps(mock_data).encode())
+
+            result = self.client.get_corporate_ipo(symbols=['RIVN', 'ABNB'],
+                                                   market='US',
+                                                   begin_date="2020-01-01",
+                                                   end_date="2022-12-31")
+            logger.debug(f"Corporate IPO:\n {result}")
+
+            self.assertIsNotNone(result)
+            self.assertIsInstance(result, pd.DataFrame)
+            self.assertFalse(result.empty)
+
+            expected_columns = ['symbol', 'action_type', 'ipo_name', 'listing_date', 'listing_price',
+                                 'execute_date', 'market', 'exchange']
+            for col in expected_columns:
+                self.assertIn(col, result.columns)
+
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result['symbol'][0], 'RIVN')
+            self.assertEqual(result['action_type'][0], 'IPO')
+            self.assertEqual(result['ipo_name'][0], 'Rivian Automotive')
+            self.assertAlmostEqual(result['listing_price'][0], 78.0, places=3)
+        else:
+            result = self.client.get_corporate_ipo(symbols=['RIVN', 'ABNB', 'COIN'],
+                                                   market='US',
+                                                   begin_date="2018-01-01",
+                                                   end_date="2025-12-31")
+            logger.debug(f"Corporate IPO:\n {result}")
 
     def test_get_financial_daily(self):
         """测试获取日级财务数据"""
