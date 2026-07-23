@@ -41,6 +41,9 @@ from tigeropen.fundamental.request.model import FinancialDailyParams, FinancialR
 from tigeropen.fundamental.response.corporate_dividend_response import CorporateDividendResponse
 from tigeropen.fundamental.response.corporate_earnings_calendar_response import EarningsCalendarResponse
 from tigeropen.fundamental.response.corporate_split_response import CorporateSplitResponse
+from tigeropen.fundamental.response.corporate_symbol_change_response import CorporateSymbolChangeResponse
+from tigeropen.fundamental.response.corporate_delisting_response import CorporateDelistingResponse
+from tigeropen.fundamental.response.corporate_ipo_response import CorporateIpoResponse
 from tigeropen.fundamental.response.dataframe_response import DataframeResponse
 from tigeropen.fundamental.response.financial_daily_response import FinancialDailyResponse
 from tigeropen.fundamental.response.financial_exchange_rate_response import FinancialExchangeRateResponse
@@ -2230,6 +2233,134 @@ class QuoteClient(TigerOpenClient):
             response.parse_response_content(response_content)
             if response.is_success():
                 return response.corporate_split
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_corporate_symbol_change(self,
+                                    symbols: Union[str, list[str]],
+                                    market: Union[Market, str],
+                                    begin_date: Union[int, str],
+                                    end_date: Union[int, str],
+                                    timezone: Optional[str] = None) -> pd.DataFrame:
+        """
+        Get stock symbol change data. 获取股票代码变更数据
+
+        :param symbols: Stock symbols list or a single symbol. 证券代码列表或单个代码
+        :param market: Market to query. 查询的市场. Available values: US/HK/CN, from tigeropen.common.consts.Market
+        :param begin_date: Begin date. Can be 13-digit timestamp (milliseconds) or datetime string like "2019-01-01".
+        :param end_date: End date. Same format as begin_date.
+        :param timezone: Timezone for processing dates.
+        :return: pandas.DataFrame with columns:
+            symbol: Current stock symbol (new symbol after rename). 变更后的证券代码
+            action_type: Fixed as "SYMBOL_CHANGE".
+            old_symbol: Symbol before the rename. 变更前的证券代码
+            new_symbol: Symbol after the rename (same as symbol). 变更后的证券代码
+            execute_date: Date the change took effect. 变更生效日期
+            market: Market. 所属市场
+            exchange: Exchange. 所属交易所
+        """
+        params = CorporateActionParams()
+        params.action_type = CorporateActionType.SYMBOL_CHANGE.value
+        params.symbols = self._format_to_list(symbols)
+        params.market = get_enum_value(market)
+        params.begin_date = date_str_to_timestamp(begin_date, self._parse_timezone(timezone))
+        params.end_date = date_str_to_timestamp(end_date, self._parse_timezone(timezone))
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(CORPORATE_ACTION, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = CorporateSymbolChangeResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.corporate_symbol_change
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_corporate_delisting(self,
+                                symbols: Union[str, list[str]],
+                                market: Union[Market, str],
+                                begin_date: Union[int, str],
+                                end_date: Union[int, str],
+                                timezone: Optional[str] = None) -> pd.DataFrame:
+        """
+        Get stock delisting data. 获取股票退市数据
+
+        :param symbols: Stock symbols list or a single symbol. 证券代码列表或单个代码
+        :param market: Market to query. 查询的市场. Available values: US/HK/CN, from tigeropen.common.consts.Market
+        :param begin_date: Begin date. Can be 13-digit timestamp (milliseconds) or datetime string like "2019-01-01".
+        :param end_date: End date. Same format as begin_date.
+        :param timezone: Timezone for processing dates.
+        :return: pandas.DataFrame with columns:
+            symbol: Stock symbol. 证券代码
+            action_type: Fixed as "DELISTING".
+            announced_date: Date the delisting was announced. 公告日期
+            reason: Reason for delisting. 退市原因
+            execute_date: Date the delisting took effect. 退市执行日期
+            market: Market. 所属市场
+            exchange: Exchange. 所属交易所
+        """
+        params = CorporateActionParams()
+        params.action_type = CorporateActionType.DELISTING.value
+        params.symbols = self._format_to_list(symbols)
+        params.market = get_enum_value(market)
+        params.begin_date = date_str_to_timestamp(begin_date, self._parse_timezone(timezone))
+        params.end_date = date_str_to_timestamp(end_date, self._parse_timezone(timezone))
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(CORPORATE_ACTION, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = CorporateDelistingResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.corporate_delisting
+            else:
+                raise ApiException(response.code, response.message)
+
+    def get_corporate_ipo(self,
+                          symbols: Union[str, list[str]],
+                          market: Union[Market, str],
+                          begin_date: Union[int, str],
+                          end_date: Union[int, str],
+                          timezone: Optional[str] = None) -> pd.DataFrame:
+        """
+        Get IPO data. 获取新股上市数据
+
+        :param symbols: Stock symbols list or a single symbol. 证券代码列表或单个代码
+        :param market: Market to query. 查询的市场. Available values: US/HK/CN, from tigeropen.common.consts.Market
+        :param begin_date: Begin date. Can be 13-digit timestamp (milliseconds) or datetime string like "2019-01-01".
+        :param end_date: End date. Same format as begin_date.
+        :param timezone: Timezone for processing dates.
+        :return: pandas.DataFrame with columns:
+            symbol: Stock symbol. 证券代码
+            action_type: Fixed as "IPO".
+            ipo_name: IPO name. IPO 名称
+            listing_date: Listing date. 上市日期
+            listing_price: Listing price. 上市价格
+            shares_outstanding: Total shares outstanding. 总股本
+            shares_float: Floating shares. 流通股本
+            offer_amount: Total offer amount. 募集金额
+            price_range: IPO price range. 询价区间
+            currency: Currency. 货币
+            min_purchase_quantity: Minimum purchase quantity. 最小认购数量
+            leverage_ratio: Leverage ratio. 杠杆倍数
+            execute_date: IPO execution date. 执行日期
+            market: Market. 所属市场
+            exchange: Exchange. 所属交易所
+        """
+        params = CorporateActionParams()
+        params.action_type = CorporateActionType.IPO.value
+        params.symbols = self._format_to_list(symbols)
+        params.market = get_enum_value(market)
+        params.begin_date = date_str_to_timestamp(begin_date, self._parse_timezone(timezone))
+        params.end_date = date_str_to_timestamp(end_date, self._parse_timezone(timezone))
+        params.lang = get_enum_value(self._lang)
+        request = OpenApiRequest(CORPORATE_ACTION, biz_model=params)
+        response_content = self.__fetch_data(request)
+        if response_content:
+            response = CorporateIpoResponse()
+            response.parse_response_content(response_content)
+            if response.is_success():
+                return response.corporate_ipo
             else:
                 raise ApiException(response.code, response.message)
 
