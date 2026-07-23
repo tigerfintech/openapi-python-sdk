@@ -1,0 +1,13 @@
+stages:
+  - integration
+
+integ:python:
+  stage: integration
+  image: python:3.11-slim
+  tags:
+    - sdk-integ
+  variables:
+    TIGER_RUN_INTEG: "true"
+  script:
+    - pip install -e . pytest -q
+    - pytest tests/test_trade_client.py tests/test_quote_client.py -v --tb=short

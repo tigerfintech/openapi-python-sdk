@@ -148,3 +148,6 @@ CLAUDE.md
 # Local credential / account config (symlink to ~/.tigeropen: private keys, tiger_id account dirs)
 .config
 .config/
+
+# local memory / ephemeral data (not for version control)
+.data/
