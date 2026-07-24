@@ -2275,6 +2275,7 @@ class QuoteClient(TigerOpenClient):
                 return response.corporate_symbol_change
             else:
                 raise ApiException(response.code, response.message)
+        return pd.DataFrame()
 
     def get_corporate_delisting(self,
                                 symbols: Union[str, list[str]],
@@ -2315,6 +2316,7 @@ class QuoteClient(TigerOpenClient):
                 return response.corporate_delisting
             else:
                 raise ApiException(response.code, response.message)
+        return pd.DataFrame()
 
     def get_corporate_ipo(self,
                           symbols: Union[str, list[str]],
@@ -2363,6 +2365,7 @@ class QuoteClient(TigerOpenClient):
                 return response.corporate_ipo
             else:
                 raise ApiException(response.code, response.message)
+        return pd.DataFrame()
 
     def get_corporate_dividend(self,
                                symbols,
