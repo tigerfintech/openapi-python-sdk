@@ -173,9 +173,9 @@ class CorporateActionType(Enum):
     SPLIT = 'split'  # 拆合股
     DIVIDEND = 'dividend'  # 分红
     EARNINGS_CALENDAR = 'earning'  # 财报日历
-    SYMBOL_CHANGE = 'SYMBOL_CHANGE'  # 股票代码变更
-    DELISTING = 'DELISTING'  # 退市
-    IPO = 'IPO'  # 新股上市
+    SYMBOL_CHANGE = 'symbol_change'  # 股票代码变更
+    DELISTING = 'delisting'  # 退市
+    IPO = 'ipo'  # 新股上市
 
 
 @unique
