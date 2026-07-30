@@ -3,7 +3,7 @@
 # @Date    : 2023/6/1
 # @Author  : sukai
 class TradeTickItem:
-    def __int__(self):
+    def __init__(self):
         self.tick_type = None
         self.price = None
         self.volume = None
@@ -17,7 +17,7 @@ class TradeTickItem:
         return f'TradeTickItem<{self.__dict__}>'
 
 class TradeTick:
-    def __int__(self):
+    def __init__(self):
         self.symbol = None
         self.sec_type = None
         self.quote_level = None
