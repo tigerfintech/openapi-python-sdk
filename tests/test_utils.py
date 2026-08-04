@@ -6,6 +6,12 @@ import unittest
 
 from tigeropen.common.util.price_util import PriceUtil
 
+import pytest
+
+
+# 纯单测：永远不碰真实接口，contract / integ job 会跳过
+pytestmark = pytest.mark.unit
+
 
 class TestUtils(unittest.TestCase):
     def test_price_util(self):

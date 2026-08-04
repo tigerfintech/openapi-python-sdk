@@ -7,6 +7,12 @@ from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 import pandas as pd
 
+import pytest
+
+
+# 纯单测：永远不碰真实接口，contract / integ job 会跳过
+pytestmark = pytest.mark.unit
+
 
 def make_mock_obj(**kwargs):
     """Create a simple object with given attributes as instance attrs."""

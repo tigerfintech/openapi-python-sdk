@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import unittest
 from datetime import datetime
 from unittest.mock import MagicMock
@@ -13,7 +12,8 @@ from tigeropen.common.util import web_utils
 from tigeropen.quote.domain.filter import StockFilter, SortFilterData, OptionFilter
 from tigeropen.quote.domain.quote_brief import QuoteBrief
 from tigeropen.quote.quote_client import QuoteClient
-from tigeropen.tiger_open_config import TigerOpenClientConfig
+
+from tests.support import client_config, is_integ_run
 
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler()
@@ -29,9 +29,11 @@ pd.set_option('display.width', 5000)
 class TestQuoteClient(unittest.TestCase):
 
     def setUp(self):
-        self.is_mock = os.environ.get("TIGER_RUN_INTEG", "").lower() != "true"
-        self.client_config = TigerOpenClientConfig(
-            props_path=os.path.expanduser("~/.tigeropen/"))
+        self.is_mock = not is_integ_run()
+        logger.setLevel(logging.DEBUG if self.is_mock else logging.INFO)
+        # mock 模式下拿到的是完全离线的 config（内存私钥、动态域名关闭），
+        # 不读 ~/.tigeropen/，构造过程零网络。详见 tests/support.py
+        self.client_config = client_config()
         self.client: QuoteClient = QuoteClient(self.client_config,
                                                logger=logger,
                                                is_grab_permission=False)
@@ -52,10 +54,6 @@ class TestQuoteClient(unittest.TestCase):
                 return_value=json.dumps(mock_data).encode())
             mock_result = self.client.get_symbols(market='US')
             self.assertIn("AAPL", mock_result)
-        else:
-            result = self.client.get_symbols(market='US')
-            logger.debug(f"Symbols: {result}")
-
     def test_get_market_status(self):
         if self.is_mock:
             mock_data = {
@@ -92,10 +90,6 @@ class TestQuoteClient(unittest.TestCase):
                 self.assertIsNotNone(item.open_time)
                 self.assertIn(item.trading_status, ['NOT_YET_OPEN', 'TRADING'])
                 self.assertTrue(isinstance(item.open_time, datetime))
-        else:
-            result = self.client.get_market_status(market=Market.US)
-            logger.debug(f"Market Status: {result}")
-
     def test_get_symbol_names(self):
         if self.is_mock:
             mock_data = {
@@ -125,10 +119,6 @@ class TestQuoteClient(unittest.TestCase):
                 self.assertIn(
                     item[1],
                     ['Apple Inc.', 'Microsoft Corporation', 'Alphabet Inc.'])
-        else:
-            result = self.client.get_symbol_names(market='US')
-            logger.debug(f"Symbol Names: {result}")
-
     def test_get_trade_metas(self):
         if self.is_mock:
             mock_data = {
@@ -159,10 +149,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertIn('MSFT', mock_result['symbol'].values)
             self.assertEqual(mock_result['lot_size'].iloc[0], 1)
             self.assertEqual(mock_result['min_tick'].iloc[0], 0.01)
-        else:
-            result = self.client.get_trade_metas(symbols=['AAPL', 'MSFT'])
-            logger.debug(f"Trade Metas:\n {result}")
-
     def test_get_stock_briefs(self):
         if self.is_mock:
             mock_data = {
@@ -228,11 +214,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(mock_result.iloc[0]['hour_trading_volume'], 5841)
             self.assertEqual(mock_result.iloc[0]['hour_trading_timestamp'],
                              1754987488932)
-        else:
-            result = self.client.get_stock_briefs(symbols=['AAPL'],
-                                                  include_hour_trading=True)
-            logger.debug(f"Stock Briefs:\n {result}")
-
     def test_get_briefs(self):
         if self.is_mock:
             mock_data = {
@@ -285,12 +266,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(mock_result[0].hour_trading.trading_session,
                              TradingSession.AfterHours)
 
-        else:
-            result = self.client.get_briefs(symbols=['AAPL'],
-                                            include_hour_trading=True,
-                                            include_ask_bid=True)
-            logger.debug(f"Briefs: {result}")
-
     def test_get_stock_delay_briefs(self):
         if self.is_mock:
             mock_data = {
@@ -325,10 +300,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(mock_result.iloc[0].low, 224.76)
             self.assertEqual(mock_result.iloc[0].close, 227.18)
             self.assertEqual(mock_result.iloc[0].volume, 61806132)
-        else:
-            result = self.client.get_stock_delay_briefs(symbols=['AAPL'])
-            logger.debug(f"Stock Delay Briefs:\n {result}")
-
     def test_get_timeline(self):
         if self.is_mock:
             mock_data = {
@@ -377,12 +348,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(first_row['pre_close'], 229.09)
             self.assertEqual(first_row['volume'], 1656620)
             self.assertEqual(first_row['trade_session'], 'Regular')
-        else:
-            result = self.client.get_timeline(symbols=['AAPL'],
-                                              # trade_session=TradingSession.OverNight
-                                              )
-            logger.debug(f"Timeline (real):\n {result}")
-
     def test_get_timeline_history(self):
         if self.is_mock:
             mock_data = {
@@ -413,13 +378,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertAlmostEqual(first_row['price'], 171.1, places=2)
             self.assertAlmostEqual(first_row['avg_price'], 171.0484, places=5)
             self.assertEqual(first_row['volume'], 654691)
-        else:
-            result = self.client.get_timeline_history(symbols=['AAPL'],
-                                                      date="2025-08-21",
-                                                      trade_session=TradingSession.OverNight
-                                                      )
-            logger.debug(f"Timeline History (real):\n {result}")
-
     def test_get_bars(self):
         if self.is_mock:
             mock_data = {
@@ -483,15 +441,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(last_row['high'], 229.56)
             self.assertEqual(last_row['low'], 224.76)
             self.assertEqual(last_row['volume'], 61806132)
-        else:
-            result = self.client.get_bars(symbols=['AAPL', 'MSFT'],
-                                          period=BarPeriod.DAY,
-                                          limit=10,
-                                          page_token='',
-                                          # trade_session=TradingSession.OverNight
-                                          )
-            logger.debug(f"Bars (real):\n {result}")
-
     def test_get_trade_ticks(self):
         if self.is_mock:
             mock_data = {
@@ -545,21 +494,11 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(second_row['volume'], 26215)
             self.assertEqual(second_row['direction'], '-')
             self.assertEqual(second_row['index'], 482300)
-        else:
-            result = self.client.get_trade_ticks(symbols=['AAPL'],
-                                                 # trade_session=TradingSession.OverNight
-                                                 )
-            logger.debug(f"Trade Ticks (real): \n {result}")
-
     def test_get_short_interest(self):
         if self.is_mock:
             mock_data = {}
             web_utils.do_request = MagicMock(
                 return_value=json.dumps(mock_data).encode())
-
-        else:
-            result = self.client.get_short_interest(symbols=['AAPL'])
-            logger.debug(f"Short Interest:\n {result}")
 
     def test_get_depth_quote(self):
         if self.is_mock:
@@ -655,14 +594,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(mock_result['bids'][0][0], 226.30)  # 价格
             self.assertEqual(mock_result['bids'][0][1], 700)  # 数量
             self.assertEqual(mock_result['bids'][0][2], 5)  # 订单数
-        else:
-            # 实际调用API
-            result = self.client.get_depth_quote(symbols=['AAPL', 'MSFT'],
-                                                 market=Market.US,
-                                                 # trade_session=TradingSession.OverNight
-                                                 )
-            logger.debug(f"Depth Quote (real):\n {result}")
-
     def test_get_option_expirations(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1754998100471,
@@ -701,11 +632,6 @@ class TestQuoteClient(unittest.TestCase):
             # 验证第二行和第三行
             self.assertEqual(mock_result['date'].iloc[1], '2025-08-22')
             self.assertEqual(mock_result['period_tag'].iloc[1], 'w')
-        else:
-            result = self.client.get_option_expirations(symbols=['AAPL'],
-                                                        market=Market.US)  # todo hk stock
-            logger.debug(f"Option Expirations (real):\n {result}")
-
     def test_get_option_chain(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1754999649552,
@@ -786,18 +712,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertAlmostEqual(put_90['theta'], -0.016986, places=6)
             self.assertAlmostEqual(put_90['vega'], 0.000482, places=6)
             self.assertAlmostEqual(put_90['rho'], -0.000014, places=6)
-        else:
-            option_filter = OptionFilter(implied_volatility_min=0.05, implied_volatility_max=1, delta_min=0,
-                                         delta_max=1,
-                                         open_interest_min=10, open_interest_max=20000, in_the_money=True)
-            result = self.client.get_option_chain(symbol='AAPL',
-                                                  expiry=1755230400000,
-                                                  market=Market.US,
-                                                  timezone='America/New_York',
-                                                  option_filter=option_filter,
-                                                  return_greek_value=True)
-            logger.debug(f"Option Chain (real):\n {result}")
-
     def test_get_option_brief(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755001774695,
@@ -854,11 +768,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(first_row['mark_timestamp'], 1755001774100)
             self.assertAlmostEqual(first_row['pre_mark_price'], 1.2)
             self.assertAlmostEqual(first_row['selling_return'], 0.15)
-        else:
-            result = self.client.get_option_briefs(
-                identifiers=['PDD 260121C00090000'])
-            logger.debug(f"Option Brief (real):\n {result}")
-
     def test_get_option_bars(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755002577624,
@@ -922,15 +831,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(second_bar['volume'], 18)
             self.assertEqual(second_bar['open_interest'], 9)
 
-        else:
-            # result = self.client.get_option_bars(
-            #     identifiers=['AAPL 250815C00200000'], period=BarPeriod.DAY, limit=5)
-            result = self.client.get_option_bars(
-                identifiers=['TCH.HK250828C00590000'], period=BarPeriod.DAY, limit=5,
-                end_time='2025-08-22', timezone='Asia/Hong_Kong'
-            )
-            logger.debug(f"Option Bars (real):\n {result}")
-
     def test_get_option_trade_ticks(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755052112739,
@@ -982,11 +882,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(last_tick['price'], 28.6)
             self.assertEqual(last_tick['volume'], 1)
 
-        else:
-            result = self.client.get_option_trade_ticks(
-                identifiers=['AAPL250829P00200000'])
-            logger.debug(f"Option Trade Ticks (real):\n {result}")
-
     def test_get_option_symbols(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755054108505,
@@ -1011,10 +906,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(first_symbol['symbol'], 'ALC.HK')
             self.assertEqual(first_symbol['name'], 'ALC')
             self.assertEqual(first_symbol['underlying_symbol'], '02600')
-
-        else:
-            result = self.client.get_option_symbols(market=Market.HK)
-            logger.debug(f"Option Symbols (real):\n {result}")
 
     def test_get_option_depth(self):
         if self.is_mock:
@@ -1121,11 +1012,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertIn('asks', mock_single_result)
             self.assertIn('bids', mock_single_result)
 
-        else:
-            result = self.client.get_option_depth(identifiers=['AAPL 250815C00210000', 'AAPL 250815P00200000'],
-                                                  market=Market.US)
-            logger.debug(f"Option Depth (real): {result}")
-
     def test_get_option_timeline(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755057863524,
@@ -1195,10 +1081,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertAlmostEqual(last_record['avg_price'], 2.9843256, places=6)
             self.assertEqual(last_record['time'], 1755048900000)
             self.assertEqual(last_record['volume'], 76)
-        else:
-            result = self.client.get_option_timeline(identifiers=['TCH.HK 250828C00610000'], market=Market.HK)
-            logger.debug(f"Option Timeline (real):\n {result}")
-
     def test_get_option_analysis(self):
         """Test get_option_analysis method with various input formats"""
         if self.is_mock:
@@ -1318,17 +1200,8 @@ class TestQuoteClient(unittest.TestCase):
             tsla_mixed = next(a for a in result_mixed if a.symbol == 'TSLA')
             self.assertEqual(tsla_mixed.iv_metric.period, '26week')
 
-        else:
-            # Real API tests
-            result = self.client.get_option_analysis(
-                symbols=['AAPL', 'TSLA'],
-                period=OptionAnalysisPeriod.FIFTY_TWO_WEEK,
-                market=Market.US
-            )
-            logger.debug(f"Option Analysis (real):\n {result}")
-
     def test_get_future_exchanges(self):
-        if not self.is_mock:
+        if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755062040054,
                          "data": [{"code": "CME", "name": "CME", "zoneId": "America/Chicago"},
                                   {"code": "NYMEX", "name": "NYMEX", "zoneId": "America/New_York"},
@@ -1373,10 +1246,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(last_exchange['code'], 'EUREX')
             self.assertEqual(last_exchange['name'], 'EUREX')
             self.assertEqual(last_exchange['zone'], 'Europe/Berlin')
-        else:
-            result = self.client.get_future_exchanges()
-            logger.debug(f"Future Exchanges (real):\n {result}")
-
     def test_get_future_contracts(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755062339514,
@@ -1444,10 +1313,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(first_contract['delivery_mode'], 'Physical')
             self.assertEqual(first_contract['product_type'], 'FX')
 
-        else:
-            result = self.client.get_future_contracts(exchange='CME')
-            logger.debug(f"Future Contracts (real):\n {result}")
-
     def test_get_future_contract(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755065781016,
@@ -1490,10 +1355,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(mock_result.iloc[0]['symbol'], 'CL')
             self.assertEqual(mock_result.iloc[0]['trade'], True)
             self.assertEqual(mock_result.iloc[0]['type'], 'CL')
-
-        else:
-            result = self.client.get_future_contract(contract_code='CLmain')
-            logger.debug(f"Future Contract (real):\n {result}")
 
     def test_get_future_continuous_contracts(self):
         if self.is_mock:
@@ -1549,10 +1410,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(contract['product_worth'], 'US$1,000 x futures price')
             self.assertEqual(contract['delivery_mode'], 'Physical')
             self.assertEqual(contract['product_type'], 'Energy')
-        else:
-            result = self.client.get_future_continuous_contracts(future_type='CL')
-            logger.debug(f"Future Continuous Contracts (real):\n {result}")
-
     def test_get_current_future_contract(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755063553419,
@@ -1608,10 +1465,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(contract['product_worth'], 'US$50 USD per index point')
             self.assertEqual(contract['delivery_mode'], 'Cash')
             self.assertEqual(contract['product_type'], 'Equity Index')
-        else:
-            result = self.client.get_current_future_contract(future_type='ES')
-            logger.debug(f"Future Current Contract (real):\n {result}")
-
     def test_get_future_history_main_contract(self):
         if self.is_mock:
             mock_data = {"code":0,
@@ -1655,12 +1508,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(first_record['contract_code'], 'CLmain')
             self.assertEqual(int(first_record['time']), 1757710800000)
             self.assertEqual(first_record['refer_contract_code'], 'CL2510')
-
-        else:
-            result = self.client.get_future_history_main_contract(identifiers=['CLmain'],
-                                                                  begin_time=1755035100000,
-                                                                  end_time=1765035100000)
-            logger.debug(f"Future History Main Contract (real):\n {result}")
 
     def test_get_all_future_contracts(self):
         if self.is_mock:
@@ -1724,10 +1571,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertIsNotNone(mock_result)
             self.assertFalse(mock_result.empty)
             self.assertEqual(len(mock_result), 2)
-        else:
-            result = self.client.get_all_future_contracts(future_type='ES')
-            logger.debug(f"All Future Contracts (real):\n {result}")
-
     def test_get_future_trading_times(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755064389047,
@@ -1758,10 +1601,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(mock_result.iloc[1]['trading'], True)
             self.assertEqual(mock_result.iloc[1]['bidding'], False)
             self.assertEqual(mock_result.iloc[1]['zone'], 'America/New_York')
-        else:
-            result = self.client.get_future_trading_times(identifier='CL2609')
-            logger.debug(f"Future Trading Times: \n {result}")
-
     def test_get_future_bars(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755066247698, "data": [
@@ -1821,11 +1660,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(mock_result.iloc[4]['volume'], 762)
             self.assertEqual(mock_result.iloc[4]['open_interest'], 46535)
 
-        else:
-            result = self.client.get_future_bars(identifiers=['CL2609'],
-                                                 period='day', limit=5)
-            logger.debug(f"Future Bars: \n{result}")
-
     def test_get_future_trade_ticks(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755066650865,
@@ -1862,10 +1696,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(result['index'].iloc[4], 4)
             self.assertEqual(result['price'].iloc[4], 63.05)
             self.assertEqual(result['volume'].iloc[4], 6)
-        else:
-            result = self.client.get_future_trade_ticks(identifier='CL2509')
-            logger.debug(f"Future Ticks:\n {result}")
-
     def test_get_future_brief(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755067666670, "data": [
@@ -1909,10 +1739,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(result['settlement'].iloc[0], 6468.50)
             self.assertEqual(result['limit_up'].iloc[0], 6919.50)
             self.assertEqual(result['limit_down'].iloc[0], 6017.50)
-        else:
-            result = self.client.get_future_brief(identifiers=['ES2509'])
-            logger.debug(f"Future Brief: \n {result}")
-
     def test_get_future_depth(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755847046112, "data": [
@@ -1966,10 +1792,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(result_multi['ES2512']['asks'][0], (6440.75, 2))
             self.assertEqual(result_multi['ES2512']['bids'][0], (6439.75, 1))
 
-        else:
-            result = self.client.get_future_depth(identifiers=['ES2509', 'ES2512'])
-            logger.debug(f"Future Depth: \n {result}")
-
     def test_get_trading_calendar(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755068224574,
@@ -2013,10 +1835,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(sequential_days[0]['date'], '2025-08-13')
             self.assertEqual(sequential_days[1]['date'], '2025-08-14')
             self.assertEqual(sequential_days[2]['date'], '2025-08-15')
-        else:
-            result = self.client.get_trading_calendar(market='US')
-            logger.debug(f"Trading Calendar:\n {result}")
-
     def test_get_stock_broker(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755068617474,
@@ -2083,11 +1901,6 @@ class TestQuoteClient(unittest.TestCase):
             # 验证第一个卖方券商
             self.assertEqual(first_ask_level.broker[0].id, '8594')
             self.assertEqual(first_ask_level.broker[0].name, 'KGI Asia')
-        else:
-            # 实际调用API
-            result = self.client.get_stock_broker(symbol='00700')
-            logger.debug(f"Stock Broker (real):\n {result}")
-
     def test_get_broker_hold(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755073236671,
@@ -2122,10 +1935,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(mock_result['buy_amount20'].iloc[0], -1925856646)
             self.assertEqual(mock_result['buy_amount60'].iloc[0], -11992723448)
             self.assertEqual(mock_result['market'].iloc[0], 'HK')
-        else:
-            result = self.client.get_broker_hold()
-            logger.debug(f"Broker Hold:\n {result}")
-
     def test_market_scanner(self):
         """测试市场扫描器功能"""
         if self.is_mock:
@@ -2195,24 +2004,6 @@ class TestQuoteClient(unittest.TestCase):
             for symbol in expected_symbols:
                 self.assertIn(symbol, result.symbols)
 
-        else:
-            # 创建筛选条件和排序设置
-            base_filter = StockFilter(StockField.current_ChangeRate,
-                                      filter_min=0.01,
-                                      filter_max=0.5)
-            sort_field_data = SortFilterData(StockField.current_ChangeRate,
-                                             sort_dir=SortDirection.DESC)
-            page_size = 5
-            # 调用市场扫描器方法
-            result = self.client.market_scanner(
-                market=Market.US,
-                filters=[base_filter],
-                sort_field_data=sort_field_data,
-                page_size=page_size,
-
-            )
-            logger.debug(f"Market Scanner (real): {result}")
-
     def test_get_corporate_split(self):
         """测试获取公司拆合股数据"""
         if self.is_mock:
@@ -2253,14 +2044,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(result['execute_date'][0], '2024-04-11')
             self.assertEqual(result['market'][0], 'US')
             self.assertEqual(result['exchange'][0], 'CBOE')
-        else:
-            # 实际调用API
-            result = self.client.get_corporate_split(symbols=['UVXY'],
-                                                     market='US',
-                                                     begin_date="2024-01-01",
-                                                     end_date="2024-12-31")
-            logger.debug(f"Corporate Action Split:\n {result}")
-
     def test_get_corporate_symbol_change(self):
         """测试获取股票代码变更数据"""
         if self.is_mock:
@@ -2290,13 +2073,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(result['old_symbol'][0], 'TWTR')
             self.assertEqual(result['new_symbol'][0], 'X')
             self.assertEqual(result['execute_date'][0], '2022-10-28')
-        else:
-            result = self.client.get_corporate_symbol_change(symbols=['X', 'TWTR'],
-                                                             market='US',
-                                                             begin_date="2020-01-01",
-                                                             end_date="2025-12-31")
-            logger.debug(f"Corporate Symbol Change:\n {result}")
-
     def test_get_corporate_delisting(self):
         """测试获取股票退市数据"""
         if self.is_mock:
@@ -2325,13 +2101,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(result['action_type'][0], 'DELISTING')
             self.assertEqual(result['announced_date'][0], '2022-10-04')
             self.assertEqual(result['reason'][0], 'voluntary')
-        else:
-            result = self.client.get_corporate_delisting(symbols=['TWTR', 'GME'],
-                                                         market='US',
-                                                         begin_date="2018-01-01",
-                                                         end_date="2025-12-31")
-            logger.debug(f"Corporate Delisting:\n {result}")
-
     def test_get_corporate_ipo(self):
         """测试获取新股上市数据"""
         if self.is_mock:
@@ -2362,13 +2131,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(result['action_type'][0], 'IPO')
             self.assertEqual(result['ipo_name'][0], 'Rivian Automotive')
             self.assertAlmostEqual(result['listing_price'][0], 78.0, places=3)
-        else:
-            result = self.client.get_corporate_ipo(symbols=['RIVN', 'ABNB', 'COIN'],
-                                                   market='US',
-                                                   begin_date="2018-01-01",
-                                                   end_date="2025-12-31")
-            logger.debug(f"Corporate IPO:\n {result}")
-
     def test_get_financial_daily(self):
         """测试获取日级财务数据"""
         if self.is_mock:
@@ -2408,16 +2170,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(result['date'][0], 1672502400000)  # 验证时间戳
             self.assertIsInstance(result['value'][0], float)
             self.assertAlmostEqual(result['value'][0], 1.5908118e+10, delta=1e+5)
-        else:
-            # 实际调用API
-            result = self.client.get_financial_daily(
-                symbols=['AAPL'],
-                market='US',
-                fields=[Valuation.shares_outstanding],
-                begin_date="2023-01-01",
-                end_date="2023-12-31")
-            logger.debug(f"Financial Daily:\n {result}")
-
     def test_get_financial_report(self):
         """
         测试获取财务报表数据
@@ -2469,23 +2221,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(mock_result.iloc[3]['period_end_date'], '2023-12-30')
             self.assertEqual(mock_result.iloc[3]['filing_date'], '2025-01-31')
 
-        else:
-            result = self.client.get_financial_report(
-                symbols=['AAPL'],
-                market='US',
-                fields=[Income.net_income],
-                period_type=FinancialPeriod.LTM,
-                begin_date="2023-01-01",
-                end_date="2023-12-31")
-            logger.debug(f"Financial Report: \n {result}")
-
-            # 验证真实API调用的基本结构
-            self.assertIsInstance(result, pd.DataFrame)
-            self.assertFalse(result.empty, "Financial report data should not be empty")
-            expected_columns = ['symbol', 'currency', 'field', 'value', 'period_end_date', 'filing_date']
-            for col in expected_columns:
-                self.assertIn(col, result.columns, f"Expected column {col} not found in result")
-
     def test_get_industry_list(self):
         """
         测试获取行业列表
@@ -2536,10 +2271,6 @@ class TestQuoteClient(unittest.TestCase):
                 for field in required_fields:
                     self.assertIn(field, industry, f"Field '{field}' missing in industry {industry}")
 
-        else:
-            result = self.client.get_industry_list()
-            logger.debug(f"Industry List: {result}")
-
     def test_get_capital_flow(self):
         """
         测试获取资金流向数据
@@ -2586,12 +2317,6 @@ class TestQuoteClient(unittest.TestCase):
             # 验证净流入数据类型是浮点数
             self.assertIsInstance(mock_result['net_inflow'].iloc[0], float)
 
-        else:
-            result = self.client.get_capital_flow(symbol="AAPL",
-                                                  market='US',
-                                                  period=CapitalPeriod.DAY)
-            logger.debug(f"Capital Flow: \n{result}")
-
     def test_get_capital_distribution(self):
         """
         测试获取资金分布数据
@@ -2636,10 +2361,6 @@ class TestQuoteClient(unittest.TestCase):
                                    mock_result.in_all, places=2)
             self.assertAlmostEqual(mock_result.out_big + mock_result.out_mid + mock_result.out_small,
                                    mock_result.out_all, places=2)
-        else:
-            result = self.client.get_capital_distribution(symbol="AAPL", market='US')
-            logger.debug(f"Capital Distribution: \n {result}")
-
     def test_get_kline_quota(self):
         if self.is_mock:
             mock_data = {"code": 0, "message": "success", "timestamp": 1755072687500,
@@ -2674,10 +2395,6 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(mock_result[2]['method'], 'option_kline')
             self.assertEqual(mock_result[2]['remain'], 5000)
             self.assertEqual(mock_result[2]['used'], 0)
-        else:
-            result = self.client.get_kline_quota()
-            logger.debug(f"Kline Quota:\n {result}")
-
     def test_get_addon_entitlement(self):
         if self.is_mock:
             mock_data = {
@@ -2732,10 +2449,5 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(result.effective_entitlement.history_stock_remaining, 998)
             self.assertEqual(result.effective_entitlement.subscribe_depth_limit, 5)
             self.assertEqual(result.effective_entitlement.rate_multiple, 2)
-        else:
-            result = self.client.get_addon_entitlement()
-            logger.debug(f"Addon Entitlement:\n {result}")
-
-
 if __name__ == '__main__':
     unittest.main()

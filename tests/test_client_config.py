@@ -17,6 +17,12 @@ from tigeropen.tiger_open_config import (
     SANDBOX_TIGER_PUBLIC_KEY, TIGER_PUBLIC_KEY,
 )
 
+import pytest
+
+
+# 纯单测：永远不碰真实接口，contract / integ job 会跳过
+pytestmark = pytest.mark.unit
+
 
 def make_config(**kwargs) -> TigerOpenClientConfig:
     """构造一个不触发 query_domains 的 config 实例"""
@@ -292,8 +298,11 @@ class TestRefreshServerInfo(unittest.TestCase):
     }
 
     def test_refresh_server_info(self):
-        config = TigerOpenClientConfig()
+        # 构造时先关掉动态域名，避免 __init__ 里的 query_domains() 发真实请求；
+        # 随后再打开并注入 mock 的域名表，验证的是 refresh_server_info 本身的逻辑
+        config = TigerOpenClientConfig(enable_dynamic_domain=False)
         config.query_domains = MagicMock(name='query_domains', return_value=self.domain_map)
+        config.enable_dynamic_domain = True
         config.domain_conf = config.query_domains()
 
         self.assertEqual('https://openapi.tigerfintech.com' + GATEWAY_SUFFIX, config.server_url)

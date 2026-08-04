@@ -8,6 +8,12 @@ import math
 from tigeropen.examples.option_helpers.probability_calculator import ProbabilityCalculator
 from tigeropen.examples.option_helpers.extra_calculator import ExtraCalculator
 
+import pytest
+
+
+# 纯单测：永远不碰真实接口，contract / integ job 会跳过
+pytestmark = pytest.mark.unit
+
 
 class TestProbabilityCalculator(unittest.TestCase):
     """Test all methods of ProbabilityCalculator class"""

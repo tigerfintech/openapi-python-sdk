@@ -1,13 +1,60 @@
-stages:
-  - integration
+# 测试分层见 tests/conftest.py。三个 stage 对应三层：
+#
+#   unit        L1  零凭据、零网络，每次 push 必跑，红了就阻断
+#   contract    L2  真实接口只读，断言字段与类型，红了也阻断
+#   integ       L3  真实接口写操作，手动触发，允许失败
+#
+# unit stage 故意不注入任何 TIGEROPEN_* / TIGER_* 变量。这是强制 L1 与凭据解耦的机制：
+# 谁写了依赖凭据或网络的单测，这个 job 会立刻红。
 
-integ:python:
-  stage: integration
+stages:
+  - unit
+  - contract
+  - integ
+
+# contract / integ 的凭据来自 runner 上的配置目录（含 tiger_openapi_config.properties），
+# 通过 TIGEROPEN_PROPS_PATH 指向它。文件里的 tiger_id / private_key / account 会被
+# TigerOpenClientConfig._load_props() 自动加载，不需要额外定义 test-specific 环境变量。
+# 这与 Java SDK 用 TIGER_CONFIG_PATH 指向同一目录是等价的。
+
+.python_base:
   image: python:3.11-slim
+  before_script:
+    - pip install --quiet -e .
+    - pip install --quiet pytest pytest-cov
+
+unit:python:
+  extends: .python_base
+  stage: unit
+  script:
+    - pytest tests/ --ignore=tests/integ -q --cov=tigeropen --cov-report=term --cov-report=xml
+  coverage: '/^TOTAL.*\s(\d+)%$/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    expire_in: 1 week
+
+contract:python:
+  extends: .python_base
+  stage: contract
   tags:
     - sdk-integ
   variables:
     TIGER_RUN_INTEG: "true"
   script:
-    - pip install -e . pytest -q
-    - pytest tests/test_trade_client.py tests/test_quote_client.py -v --tb=short
+    - pytest tests/integ/ -v --tb=short
+
+integ:python:
+  extends: .python_base
+  stage: integ
+  tags:
+    - sdk-integ
+  when: manual
+  allow_failure: true
+  variables:
+    TIGER_RUN_INTEG: "true"
+  script:
+    - pytest tests/integ/ -v --tb=short -m "integ"

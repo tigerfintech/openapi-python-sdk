@@ -5,9 +5,11 @@ Unit tests for OptionUtil class
 @Author  : sukai
 """
 import unittest
+
+import pytest
 from unittest.mock import Mock, patch
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 try:
     import QuantLib as ql
@@ -17,7 +19,22 @@ except ImportError:
 
 from tigeropen.examples.option_helpers.util import OptionUtil, OptionMetric
 from tigeropen.quote.quote_client import QuoteClient
+
+from tests.support import integ_client_config, is_integ_run
 from tigeropen.trade.trade_client import TradeClient
+
+# Option expiry used by the fixtures below. This MUST stay in the future:
+# get_option_metrics() silently skips any contract whose days_to_expiry <= 0,
+# which would bypass the Greeks/margin code paths these tests assert on.
+# Derive it from today rather than hardcoding a date so the suite cannot rot.
+FUTURE_EXPIRY_DATE = (datetime.now(timezone.utc) + timedelta(days=180)).date()
+FUTURE_EXPIRY_TIMESTAMP = int(
+    datetime(
+        FUTURE_EXPIRY_DATE.year, FUTURE_EXPIRY_DATE.month, FUTURE_EXPIRY_DATE.day,
+        tzinfo=timezone.utc,
+    ).timestamp() * 1000
+)
+FUTURE_EXPIRY_IDENTIFIER = 'AAPL {}C00200000'.format(FUTURE_EXPIRY_DATE.strftime('%y%m%d'))
 
 
 class TestOptionMetric(unittest.TestCase):
@@ -26,11 +43,11 @@ class TestOptionMetric(unittest.TestCase):
     def test_create_option_metric(self):
         """Test creating an OptionMetric object"""
         metric = OptionMetric(
-            identifier='AAPL 260116C00200000',
+            identifier=FUTURE_EXPIRY_IDENTIFIER,
             symbol='AAPL',
             strike=200.0,
             put_call='CALL',
-            expiry=1768540800000,
+            expiry=FUTURE_EXPIRY_TIMESTAMP,
             multiplier=100,
             latest_price=10.5,
             delta=0.5,
@@ -40,7 +57,7 @@ class TestOptionMetric(unittest.TestCase):
             rho=0.08
         )
         
-        self.assertEqual(metric.identifier, 'AAPL 260116C00200000')
+        self.assertEqual(metric.identifier, FUTURE_EXPIRY_IDENTIFIER)
         self.assertEqual(metric.symbol, 'AAPL')
         self.assertEqual(metric.strike, 200.0)
         self.assertEqual(metric.put_call, 'CALL')
@@ -50,28 +67,28 @@ class TestOptionMetric(unittest.TestCase):
     def test_option_metric_to_dict(self):
         """Test converting OptionMetric to dictionary"""
         metric = OptionMetric(
-            identifier='AAPL 260116C00200000',
+            identifier=FUTURE_EXPIRY_IDENTIFIER,
             symbol='AAPL',
             strike=200.0,
             put_call='CALL',
-            expiry=1768540800000,
+            expiry=FUTURE_EXPIRY_TIMESTAMP,
             multiplier=100,
             latest_price=10.5
         )
         
         result = metric.to_dict()
         self.assertIsInstance(result, dict)
-        self.assertEqual(result['identifier'], 'AAPL 260116C00200000')
+        self.assertEqual(result['identifier'], FUTURE_EXPIRY_IDENTIFIER)
         self.assertEqual(result['strike'], 200.0)
     
     def test_option_metric_str(self):
         """Test string representation of OptionMetric"""
         metric = OptionMetric(
-            identifier='AAPL 260116C00200000',
+            identifier=FUTURE_EXPIRY_IDENTIFIER,
             symbol='AAPL',
             strike=200.0,
             put_call='CALL',
-            expiry=1768540800000,
+            expiry=FUTURE_EXPIRY_TIMESTAMP,
             multiplier=100,
             latest_price=10.5,
             delta=0.5,
@@ -79,7 +96,7 @@ class TestOptionMetric(unittest.TestCase):
         )
         
         str_repr = str(metric)
-        self.assertIn('AAPL 260116C00200000', str_repr)
+        self.assertIn(FUTURE_EXPIRY_IDENTIFIER, str_repr)
         self.assertIn('200.0', str_repr)
 
 
@@ -96,18 +113,25 @@ class TestOptionUtil(unittest.TestCase):
         self.option_util = OptionUtil(self.mock_quote_client)
     
     def _create_mock_option_briefs(self):
-        """Create mock option briefs DataFrame"""
+        """Create mock option briefs DataFrame
+
+        Prices must be economically consistent with the 210 underlying / 200 strike
+        contract below. A 6-month call that far in the money is worth roughly 23.5
+        (implied vol ~0.30); quoting it near intrinsic (~10.5) makes the implied vol
+        solver unable to bracket a root, so get_option_metrics() skips the row and
+        never reaches the Greeks or margin code these tests exercise.
+        """
         return pd.DataFrame({
-            'identifier': ['AAPL 260116C00200000'],
+            'identifier': [FUTURE_EXPIRY_IDENTIFIER],
             'symbol': ['AAPL'],
             'strike': [200.0],
             'put_call': ['CALL'],
-            'expiry': [1768540800000],  # 2026-01-16
+            'expiry': [FUTURE_EXPIRY_TIMESTAMP],
             'multiplier': [100],
-            'latest_price': [10.5],
-            'mark_price': [10.55],
-            'ask_price': [10.6],
-            'bid_price': [10.4],
+            'latest_price': [23.4],
+            'mark_price': [23.5],
+            'ask_price': [23.6],
+            'bid_price': [23.3],
             'currency': ['USD'],
             'rates_bonds': [0.02],
             'volatility': [0.3]
@@ -142,7 +166,7 @@ class TestOptionUtil(unittest.TestCase):
         self.mock_quote_client.get_option_briefs.return_value = pd.DataFrame()
         
         with self.assertRaises(ValueError):
-            self.option_util.get_option_metrics(['AAPL 260116C00200000'])
+            self.option_util.get_option_metrics([FUTURE_EXPIRY_IDENTIFIER])
         self.mock_quote_client.get_option_briefs.assert_called_once()
 
     def test_get_option_metrics_empty_briefs_list_return(self):
@@ -152,7 +176,7 @@ class TestOptionUtil(unittest.TestCase):
         
         with self.assertRaises(ValueError):
             self.option_util.get_option_metrics(
-                ['AAPL 260116C00200000'],
+                [FUTURE_EXPIRY_IDENTIFIER],
                 return_type='list'
             )
 
@@ -173,7 +197,7 @@ class TestOptionUtil(unittest.TestCase):
             'latest_price': [210.0]
         })
         result = self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER],
             return_type='dataframe'
         )
         
@@ -205,7 +229,7 @@ class TestOptionUtil(unittest.TestCase):
             'latest_price': [210.0]
         })
         result = self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER],
             return_type='list'
         )
         
@@ -213,7 +237,7 @@ class TestOptionUtil(unittest.TestCase):
         self.assertIsInstance(result, list)
         self.assertGreater(len(result), 0)
         self.assertIsInstance(result[0], OptionMetric)
-        self.assertEqual(result[0].identifier, 'AAPL 260116C00200000')
+        self.assertEqual(result[0].identifier, FUTURE_EXPIRY_IDENTIFIER)
         self.assertEqual(result[0].symbol, 'AAPL')
     
     def test_get_option_metrics_with_dividend_rate(self):
@@ -228,7 +252,7 @@ class TestOptionUtil(unittest.TestCase):
             'latest_price': [210.0]
         })
         result = self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER],
             dividend_rate=0.01
         )
         
@@ -237,7 +261,7 @@ class TestOptionUtil(unittest.TestCase):
         # Should not call get_stock_fundamental when dividend_rate is provided
         with self.assertRaises(ValueError):
             self.option_util.get_option_metrics(
-                ['AAPL 260116C00200000']
+                [FUTURE_EXPIRY_IDENTIFIER]
             )
 
     def test_get_option_metrics_automatic_dividend_rate(self):
@@ -252,7 +276,7 @@ class TestOptionUtil(unittest.TestCase):
         
         # Call method without dividend_rate
         result = self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER],
             underlying_price=210.0,
             dividend_rate=None
         )
@@ -264,11 +288,11 @@ class TestOptionUtil(unittest.TestCase):
         """Test market parameter usage"""
         # Test with default market='US'
         mock_briefs_us = pd.DataFrame({
-            'identifier': ['AAPL 260116C00200000'],
+            'identifier': [FUTURE_EXPIRY_IDENTIFIER],
             'symbol': ['AAPL'],
             'strike': [200.0],
             'put_call': ['CALL'],
-            'expiry': [1768540800000],
+            'expiry': [FUTURE_EXPIRY_TIMESTAMP],
             'multiplier': [100],
             'latest_price': [10.5]
         })
@@ -284,7 +308,7 @@ class TestOptionUtil(unittest.TestCase):
             'latest_price': [210.0]
         })
         self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000']
+            [FUTURE_EXPIRY_IDENTIFIER]
         )
         
         # Check if get_stock_fundamental was called with US market (default)
@@ -294,7 +318,7 @@ class TestOptionUtil(unittest.TestCase):
         # Test with explicit HK market
         self.mock_quote_client.get_stock_fundamental.reset_mock()
         self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER],
             underlying_price=210.0,
             market='HK'
         )
@@ -339,7 +363,7 @@ class TestOptionUtil(unittest.TestCase):
     def test_timestamp_to_ql_date(self):
         """Test _timestamp_to_ql_date conversion"""
         # 2026-01-16 00:00:00 UTC
-        timestamp_ms = 1768540800000
+        timestamp_ms = FUTURE_EXPIRY_TIMESTAMP
         
         ql_date = self.option_util._timestamp_to_ql_date(timestamp_ms)
         
@@ -353,7 +377,7 @@ class TestOptionUtil(unittest.TestCase):
     def test_timestamp_to_date_str(self):
         """Test _timestamp_to_date_str conversion"""
         # 2026-01-16 00:00:00 UTC
-        timestamp_ms = 1768540800000
+        timestamp_ms = FUTURE_EXPIRY_TIMESTAMP
         
         date_str = self.option_util._timestamp_to_date_str(timestamp_ms)
         
@@ -367,11 +391,11 @@ class TestOptionUtil(unittest.TestCase):
         """Test _dataframe_to_metrics conversion"""
         # Create test DataFrame
         test_df = pd.DataFrame({
-            'identifier': ['AAPL 260116C00200000', 'AAPL 260116P00200000'],
+            'identifier': [FUTURE_EXPIRY_IDENTIFIER, 'AAPL 260116P00200000'],
             'symbol': ['AAPL', 'AAPL'],
             'strike': [200.0, 200.0],
             'put_call': ['CALL', 'PUT'],
-            'expiry': [1768540800000, 1768540800000],
+            'expiry': [FUTURE_EXPIRY_TIMESTAMP, FUTURE_EXPIRY_TIMESTAMP],
             'multiplier': [100, 100],
             'latest_price': [10.5, 8.5],
             'delta': [0.5, -0.4],
@@ -390,7 +414,7 @@ class TestOptionUtil(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], OptionMetric)
         self.assertIsInstance(result[1], OptionMetric)
-        self.assertEqual(result[0].identifier, 'AAPL 260116C00200000')
+        self.assertEqual(result[0].identifier, FUTURE_EXPIRY_IDENTIFIER)
         self.assertEqual(result[1].identifier, 'AAPL 260116P00200000')
         self.assertEqual(result[0].put_call, 'CALL')
         self.assertEqual(result[1].put_call, 'PUT')
@@ -399,11 +423,11 @@ class TestOptionUtil(unittest.TestCase):
         """Test error handling in get_option_metrics"""
         # Setup mock data with invalid values
         mock_briefs = pd.DataFrame({
-            'identifier': ['AAPL 260116C00200000'],
+            'identifier': [FUTURE_EXPIRY_IDENTIFIER],
             'symbol': ['AAPL'],
             'strike': [None],  # Invalid strike
             'put_call': ['CALL'],
-            'expiry': [1768540800000],
+            'expiry': [FUTURE_EXPIRY_TIMESTAMP],
             'multiplier': [100],
             'latest_price': [None]  # Invalid price
         })
@@ -419,7 +443,7 @@ class TestOptionUtil(unittest.TestCase):
             'divide_rate': [0.0]
         })
         result = self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000']
+            [FUTURE_EXPIRY_IDENTIFIER]
         )
         
         self.assertIsInstance(result, pd.DataFrame)
@@ -428,11 +452,11 @@ class TestOptionUtil(unittest.TestCase):
         """Test get_option_metrics with multiple identifiers"""
         # Setup mock data with multiple options
         mock_briefs = pd.DataFrame({
-            'identifier': ['AAPL 260116C00200000', 'AAPL 260116C00210000', 'AAPL 260116P00200000'],
+            'identifier': [FUTURE_EXPIRY_IDENTIFIER, 'AAPL 260116C00210000', 'AAPL 260116P00200000'],
             'symbol': ['AAPL', 'AAPL', 'AAPL'],
             'strike': [200.0, 210.0, 200.0],
             'put_call': ['CALL', 'CALL', 'PUT'],
-            'expiry': [1768540800000, 1768540800000, 1768540800000],
+            'expiry': [FUTURE_EXPIRY_TIMESTAMP, FUTURE_EXPIRY_TIMESTAMP, FUTURE_EXPIRY_TIMESTAMP],
             'multiplier': [100, 100, 100],
             'latest_price': [10.5, 5.5, 8.5],
             'ask_price': [10.6, 5.6, 8.6],
@@ -451,7 +475,7 @@ class TestOptionUtil(unittest.TestCase):
             'latest_price': [210.0]
         })
         result = self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000', 'AAPL 260116C00210000', 'AAPL 260116P00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER, 'AAPL 260116C00210000', 'AAPL 260116P00200000'],
             return_type='list'
         )
         
@@ -482,7 +506,7 @@ class TestOptionUtil(unittest.TestCase):
         })
 
         result = option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER],
             return_type='dataframe'
         )
 
@@ -511,7 +535,7 @@ class TestOptionUtil(unittest.TestCase):
         
         # Call method
         result = self.option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER],
             return_type='dataframe'
         )
         
@@ -539,7 +563,7 @@ class TestOptionUtil(unittest.TestCase):
         })
 
         result = option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER],
             return_type='dataframe'
         )
 
@@ -567,7 +591,7 @@ class TestOptionUtil(unittest.TestCase):
         })
 
         result = option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER],
             return_type='dataframe'
         )
 
@@ -593,7 +617,7 @@ class TestOptionUtil(unittest.TestCase):
             'symbol': ['AAPL'],
             'strike': [200.0],
             'put_call': ['PUT'],  # PUT option
-            'expiry': [1768540800000],
+            'expiry': [FUTURE_EXPIRY_TIMESTAMP],
             'multiplier': [100],
             'latest_price': [8.5],
             'mark_price': [8.55],
@@ -631,21 +655,17 @@ class TestOptionUtil(unittest.TestCase):
 class TestOptionUtilIntegration(unittest.TestCase):
     """Integration tests for OptionUtil (requires actual QuoteClient configuration)"""
     
-    @unittest.skip("Requires actual API credentials")
+    @pytest.mark.integ
     def test_real_option_metrics(self):
-        """Test with real QuoteClient (skip by default)"""
-        from tigeropen.tiger_open_config import TigerOpenClientConfig
-        import os
-        
-        client_config = TigerOpenClientConfig(
-            props_path=os.path.expanduser("~/.tigeropen/")
-        )
-        quote_client = QuoteClient(client_config)
+        """Test with real QuoteClient。配置路径从 TIGER_CONFIG_PATH 取，不硬编码本机路径"""
+        if not is_integ_run():
+            self.skipTest("requires real credentials; set TIGER_RUN_INTEG=true")
+        quote_client = QuoteClient(integ_client_config())
         option_util = OptionUtil(quote_client)
         
         # Test with real data
         result = option_util.get_option_metrics(
-            ['AAPL 260116C00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER],
             return_type='dataframe'
         )
         

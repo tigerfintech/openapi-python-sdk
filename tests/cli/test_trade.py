@@ -6,6 +6,12 @@ import unittest
 from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 
+import pytest
+
+
+# 纯单测：永远不碰真实接口，contract / integ job 会跳过
+pytestmark = pytest.mark.unit
+
 
 def make_mock_obj(**kwargs):
     """Create a simple object with given attributes as instance attrs."""
@@ -305,8 +311,13 @@ class TestAccountAssets(unittest.TestCase):
         """account assets should call get_prime_assets."""
         from tigeropen.cli.main import cli
         mock_client = MagicMock()
+        # _portfolio_account_to_dict() reads account/update_timestamp/_segments, so the
+        # stub has to carry all three: make_mock_obj() builds a bare object with no
+        # attribute fallback, and a missing one surfaces as exit code 1.
         mock_asset = make_mock_obj(
             account='DU123456',
+            update_timestamp=1700000000000,
+            _segments={},
             net_liquidation=100000.0,
             buying_power=50000.0,
         )
@@ -315,6 +326,8 @@ class TestAccountAssets(unittest.TestCase):
 
         result = self.runner.invoke(cli, ['account', 'assets'])
         self.assertEqual(result.exit_code, 0)
+        mock_client.get_prime_assets.assert_called_once()
+        self.assertIn('DU123456', result.output)
 
 
 class TestAccountAnalytics(unittest.TestCase):

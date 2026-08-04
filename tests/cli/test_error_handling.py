@@ -8,6 +8,12 @@ from click.testing import CliRunner
 
 from tigeropen.common.exceptions import ApiException
 
+import pytest
+
+
+# 纯单测：永远不碰真实接口，contract / integ job 会跳过
+pytestmark = pytest.mark.unit
+
 
 class TestApiExceptionHandling(unittest.TestCase):
     """Commands should catch ApiException and show user-friendly errors."""
