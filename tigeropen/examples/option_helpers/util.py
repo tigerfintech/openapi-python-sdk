@@ -316,6 +316,19 @@ class OptionUtil:
             # Calculate implied volatility
             try:
                 implied_vol = helper.implied_volatility(option_price)
+                # implied_volatility() reports failure by returning 0 rather than
+                # raising (e.g. when the price is outside the solvable range). A zero
+                # vol degenerates the FD pricing grid, making every Greek below either
+                # meaningless or a hard QuantLib extrapolation error, so treat it as a
+                # failed solve and skip this contract.
+                if not implied_vol or implied_vol <= 0:
+                    logger.warning(
+                        "  Implied vol solve did not converge for %s (option price %s "
+                        "may be outside the solvable range); skipping metrics",
+                        row.get('identifier', 'unknown'),
+                        option_price
+                    )
+                    continue
                 helper.update_implied_volatility(implied_vol)
                 briefs.loc[idx, 'implied_vol'] = implied_vol
             except Exception as e:
