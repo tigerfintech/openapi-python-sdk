@@ -39,3 +39,42 @@ integration:python:
     TIGER_RUN_INTEG: "true"
   script:
     - pytest tests/integ/ -v --tb=short
+
+# Pipeline result notification via a generic webhook (chat incoming
+# webhook). WEBHOOK_URL is a masked CI Variable set in GitLab Settings; forks
+# and PRs that don't configure it skip silently. notify failure never blocks.
+notify:webhook:
+  stage: .post
+  when: always
+  allow_failure: true
+  dependencies: []
+  script:
+    - |
+      if [ -z "$WEBHOOK_URL" ]; then
+        echo "WEBHOOK_URL not configured, skipping notification"
+        exit 0
+      fi
+      TITLE="✅ Pipeline passed"
+      COLOR="green"
+      if [ "$CI_PIPELINE_STATUS" = "failed" ]; then
+        TITLE="❌ Pipeline failed"
+        COLOR="red"
+      fi
+      PAYLOAD=$(cat <<EOF
+      {
+        "msg_type": "interactive",
+        "card": {
+          "header": {
+            "title": {"tag": "plain_text", "content": "$TITLE #${CI_PIPELINE_IID} — ${CI_PROJECT_NAME}"},
+            "template": "$COLOR"
+          },
+          "elements": [
+            {"tag": "div", "text": {"tag": os.environ["CARD_CONTENT_TAG"], "content": "**Repo:** ${CI_PROJECT_NAME}\n**Branch:** ${CI_COMMIT_REF_NAME}\n**Commit:** ${CI_COMMIT_SHORT_SHA}\n[View pipeline](${CI_PROJECT_URL}/-/pipelines/${CI_PIPELINE_ID})"}}
+          ]
+        }
+      }
+      EOF
+      )
+      curl --fail -sS -X POST "$WEBHOOK_URL" \
+        -H 'Content-Type: application/json' \
+        -d "$PAYLOAD"
