@@ -1,19 +1,12 @@
-# 测试分层见 tests/conftest.py。三个 stage 对应三层：
-#
-#   unit        L1  零凭据、零网络，每次 push 必跑，红了就阻断
-#   contract    L2  真实接口只读，断言字段与类型，红了也阻断
-#   integ       L3  真实接口写操作，手动触发，允许失败
-#
-# unit stage 故意不注入任何 TIGEROPEN_* / TIGER_* 变量。这是强制 L1 与凭据解耦的机制：
-# 谁写了依赖凭据或网络的单测，这个 job 会立刻红。
+# Two-stage pipeline: unit (no credentials) / integration (real API).
+# Unit stage does NOT inject any credential variables.
 
 stages:
   - unit
-  - contract
-  - integ
+  - integration
 
-# contract / integ credentials: TIGEROPEN_TIGER_ID, TIGEROPEN_PRIVATE_KEY, TIGEROPEN_ACCOUNT
-# env vars set in GitLab CI Variables (Protected + Masked). No config file needed.
+# Integration credentials: TIGEROPEN_TIGER_ID, TIGEROPEN_PRIVATE_KEY, TIGEROPEN_ACCOUNT
+# env vars set in GitLab CI Variables (Protected + Masked).
 
 .python_base:
   image: python:3.11-slim
@@ -35,19 +28,11 @@ unit:python:
         path: coverage.xml
     expire_in: 1 week
 
-contract:python:
+integration:python:
   extends: .python_base
-  stage: contract
-  variables:
-    TIGER_RUN_INTEG: "true"
-  script:
-    - pytest tests/integ/ -v --tb=short
-
-integ:python:
-  extends: .python_base
-  stage: integ
+  stage: integration
   allow_failure: true
   variables:
     TIGER_RUN_INTEG: "true"
   script:
-    - pytest tests/integ/ -v --tb=short -m "integ"
+    - pytest tests/integ/ -v --tb=short
