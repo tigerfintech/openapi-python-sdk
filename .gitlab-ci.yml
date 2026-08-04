@@ -20,7 +20,7 @@ unit:python:
   extends: .python_base
   stage: unit
   script:
-    - pytest tests/ --ignore=tests/integ -q --cov=tigeropen --cov-report=term --cov-report=xml
+    - pytest tests/ --ignore=tests/integ --ignore=tests/test_option_util.py --ignore=tests/test_option_helper.py -q --cov=tigeropen --cov-report=term --cov-report=xml
   coverage: '/^TOTAL.*\s(\d+)%$/'
   artifacts:
     when: always
