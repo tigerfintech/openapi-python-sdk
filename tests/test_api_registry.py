@@ -1,26 +1,5 @@
 # -*- coding: utf-8 -*-
-"""本仓自查测试：wire method 注册表与契约覆盖完整性。
-
-这三个用例不测任何具体接口，测的是「有没有漏」。它们全部基于对本仓源码的静态分析，
-不发请求、不依赖凭据，也不依赖用例执行顺序。
-
-各语言 SDK 各自持有自己的测试资产，没有跨仓共享的接口清单，因此「某个接口在本仓
-漏实现或漏测」这件事必须由本仓的测试自己发现。跨语言之间的完整性（某接口只在一个
-语言里实现了）不在这里，由 review-sdk skill 负责，那需要人判断是否有意不支持。
-
-三个用例：
-
-1. ``test_no_dangling_wire_method_constant``
-   service_types.py 里每个常量都必须被某个 client 方法用上。悬空常量意味着服务端
-   接口已下线，或方法被删了却忘了清常量。
-
-2. ``test_public_client_method_has_wire_method``
-   client 的公开方法要么发起一个 wire 调用，要么是纯本地封装（在允许清单里）。
-
-3. ``test_wire_method_is_exercised_by_test``
-   每个 wire method 至少被一个用例调用过。未覆盖项由棘轮清单管理：清单只能变短。
-   新增接口不写用例 → 不在清单里 → 红；补齐了用例但忘了从清单删 → 也红。
-"""
+"""本仓自查测试：wire method 注册表与契约覆盖完整性。."""
 import ast
 import re
 from pathlib import Path
@@ -122,7 +101,7 @@ def _client_methods_called_in_tests():
 
 
 def test_no_dangling_wire_method_constant():
-    """service_types.py 里不应存在没人用的常量。"""
+    """No dangling constants in service_types.py."""
     method_to_wire, _ = _scan_clients()
     declared = _wire_method_constants()
     referenced = set().union(*method_to_wire.values())
@@ -137,7 +116,7 @@ def test_no_dangling_wire_method_constant():
 
 
 def test_public_client_method_has_wire_method():
-    """公开方法要么发 wire 调用，要么在本地封装允许清单里。"""
+    """Public methods must either make a wire call or be in the local-only list."""
     method_to_wire, public_methods = _scan_clients()
 
     without_wire = {m for m in public_methods if m not in method_to_wire}
@@ -153,7 +132,7 @@ def test_public_client_method_has_wire_method():
 
 
 def test_wire_method_is_exercised_by_test():
-    """每个 wire method 至少被一个用例调用过；未覆盖项只能变少。"""
+    """Every wire method must be exercised by at least one test."""
     method_to_wire, _ = _scan_clients()
     referenced = set().union(*method_to_wire.values())
     called_methods = _client_methods_called_in_tests()
