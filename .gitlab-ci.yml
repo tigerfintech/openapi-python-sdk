@@ -10,6 +10,8 @@ stages:
 
 .python_base:
   image: python:3.11-slim
+  tags:
+    - platform-openapi
   before_script:
     - pip install --quiet -e .
     - pip install --quiet pytest pytest-cov
