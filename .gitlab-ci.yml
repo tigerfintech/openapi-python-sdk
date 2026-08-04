@@ -40,8 +40,6 @@ unit:python:
 contract:python:
   extends: .python_base
   stage: contract
-  tags:
-    - sdk-integ
   variables:
     TIGER_RUN_INTEG: "true"
   script:
@@ -50,8 +48,6 @@ contract:python:
 integ:python:
   extends: .python_base
   stage: integ
-  tags:
-    - sdk-integ
   when: manual
   allow_failure: true
   variables:
