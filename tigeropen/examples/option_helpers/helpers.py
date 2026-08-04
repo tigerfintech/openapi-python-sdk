@@ -8,8 +8,13 @@ from typing import List
 
 try:
     import QuantLib as ql
-except ImportError:
-    pass
+except ImportError as e:
+    # The class definitions below evaluate `ql.*` at import time (base classes and
+    # default argument values), so a missing QuantLib cannot be tolerated lazily.
+    # Fail with an actionable message instead of a bare NameError.
+    raise ImportError(
+        "QuantLib is required for this module to work. Please install QuantLib (>=1.40)."
+    ) from e
 
 
 class FDDividendOptionHelper(ql.VanillaOption):
@@ -115,7 +120,11 @@ class FDDividendOptionHelper(ql.VanillaOption):
             if try_times == 0:
                 return 0
             elif 'root not bracketed' in str(e):
-                return self.implied_volatility(price, accuracy, max_evaluations, min_vol, max_vol * 2, try_times - 1)
+                # Pass every argument by keyword: the original code forwarded these
+                # positionally, which shifted `accuracy` into the `price` slot and
+                # made each retry solve for the wrong price.
+                return self.implied_volatility(price, accuracy=accuracy, max_evaluations=max_evaluations,
+                                               min_vol=min_vol, max_vol=max_vol * 2, try_times=try_times - 1)
             else:
                 raise e
 
@@ -131,7 +140,11 @@ class FDDividendOptionHelper(ql.VanillaOption):
         :return:
         """
         sigma0 = quote.value()
-        h = sigma0 * 1E-4
+        # A purely relative step collapses to 0 when sigma0 is 0, which happens in
+        # practice: implied_volatility() returns 0 when the solver fails to bracket
+        # a root, and a risk-free rate of 0 is a normal input for rho(). Fall back to
+        # an absolute step so the central difference below stays well defined.
+        h = abs(sigma0) * 1E-4 or 1E-7
         quote.setValue(sigma0 - h)
         p_minus = self.NPV()
         quote.setValue(sigma0 + h)

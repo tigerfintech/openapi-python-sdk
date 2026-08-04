@@ -12,10 +12,8 @@ stages:
   - contract
   - integ
 
-# contract / integ 的凭据来自 runner 上的配置目录（含 tiger_openapi_config.properties），
-# 通过 TIGEROPEN_PROPS_PATH 指向它。文件里的 tiger_id / private_key / account 会被
-# TigerOpenClientConfig._load_props() 自动加载，不需要额外定义 test-specific 环境变量。
-# 这与 Java SDK 用 TIGER_CONFIG_PATH 指向同一目录是等价的。
+# contract / integ credentials: TIGEROPEN_TIGER_ID, TIGEROPEN_PRIVATE_KEY, TIGEROPEN_ACCOUNT
+# env vars set in GitLab CI Variables (Protected + Masked). No config file needed.
 
 .python_base:
   image: python:3.11-slim
@@ -48,7 +46,6 @@ contract:python:
 integ:python:
   extends: .python_base
   stage: integ
-  when: manual
   allow_failure: true
   variables:
     TIGER_RUN_INTEG: "true"

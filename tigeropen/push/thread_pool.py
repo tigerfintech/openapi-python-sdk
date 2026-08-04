@@ -57,3 +57,9 @@ class CallbackThreadPoolExecutor:
     def _max_workers(self):
         # Expose _max_workers for compatibility with tests or inspection
         return self._max_workers_count
+
+
+# Backwards-compatible alias: this class was originally named
+# OrderedThreadPoolExecutor. Keep the old name importable so existing user code
+# and tests continue to work.
+OrderedThreadPoolExecutor = CallbackThreadPoolExecutor
