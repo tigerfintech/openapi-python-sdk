@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Integration tests - require real API credentials.
-
-Run with: TIGER_RUN_INTEG=true pytest tests/integ/ -v
-"""
+"""Integration tests - require real API credentials."""
 import logging
 import unittest
 
