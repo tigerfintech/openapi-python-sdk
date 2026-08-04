@@ -6,6 +6,12 @@ import unittest
 from unittest.mock import patch, MagicMock, call
 from click.testing import CliRunner
 
+import pytest
+
+
+# 纯单测：永远不碰真实接口，contract / integ job 会跳过
+pytestmark = pytest.mark.unit
+
 
 class TestPushQuote(unittest.TestCase):
     """Tests for 'tigeropen push quote'."""

@@ -7,6 +7,12 @@ import json
 import unittest
 import pandas as pd
 
+import pytest
+
+
+# 纯单测：永远不碰真实接口，contract / integ job 会跳过
+pytestmark = pytest.mark.unit
+
 
 class TestRenderTable(unittest.TestCase):
     """Tests for table format rendering."""

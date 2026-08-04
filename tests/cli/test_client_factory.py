@@ -7,6 +7,12 @@ import unittest
 import tempfile
 import shutil
 
+import pytest
+
+
+# 纯单测：永远不碰真实接口，contract / integ job 会跳过
+pytestmark = pytest.mark.unit
+
 
 class TestResolvePrivateKey(unittest.TestCase):
     """Tests for private key resolution: file path, string content, env var."""

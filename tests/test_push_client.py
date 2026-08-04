@@ -15,6 +15,12 @@ from tigeropen.push.network.transport import Transport
 from tigeropen.push.pb.SocketCommon_pb2 import SocketCommon
 from tigeropen.push.thread_pool import OrderedThreadPoolExecutor
 
+import pytest
+
+
+# 纯单测：永远不碰真实接口，contract / integ job 会跳过
+pytestmark = pytest.mark.unit
+
 
 class _ImmediateExecutor:
 
@@ -142,7 +148,9 @@ class TestPushClientThreadPool(unittest.TestCase):
     @patch('tigeropen.push.protobuf_push_client._patch_ssl')
     def test_init_with_config(self, mock_patch_ssl):
         """Test initialization with client_config"""
-        config = TigerOpenClientConfig()
+        # enable_dynamic_domain=False：默认值 True 会在构造时去拉域名配置，
+        # 这是个纯单测，不应该产生任何网络请求
+        config = TigerOpenClientConfig(enable_dynamic_domain=False)
         config.callback_thread_pool_size = 5
 
         client = PushClient(self.host, self.port, use_protobuf=True, client_config=config)
