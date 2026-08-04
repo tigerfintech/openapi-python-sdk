@@ -56,10 +56,28 @@ notify:webhook:
       fi
       TITLE="✅ Pipeline passed"
       COLOR="green"
+      FAILED_JOBS=""
       if [ "$CI_PIPELINE_STATUS" = "failed" ]; then
         TITLE="❌ Pipeline failed"
         COLOR="red"
+        API="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}"
+        JOBS_JSON=$(curl -sS --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "${API}/pipelines/${CI_PIPELINE_ID}/jobs" 2>/dev/null || echo "[]")
+        # jobs API returns name+status only (no trace content, no secrets).
+        # allow_failure soft-fails don't block the pipeline, so don't list them.
+        FAILED_JOBS=$(printf '%s' "$JOBS_JSON" | python3 -c "import sys,json
+      try:
+        js=json.load(sys.stdin)
+        failed=[j['name'] for j in js if j.get('status')=='failed' and not j.get('allow_failure')]
+        print(', '.join(failed))
+      except Exception:
+        print('')
+      " 2>/dev/null)
       fi
+      CONTENT="**Repo:** ${CI_PROJECT_NAME}\n**Branch:** ${CI_COMMIT_REF_NAME}\n**Commit:** ${CI_COMMIT_SHORT_SHA}\n"
+      if [ -n "$FAILED_JOBS" ]; then
+        CONTENT="${CONTENT}\n**Failed jobs:** ${FAILED_JOBS}\n"
+      fi
+      CONTENT="${CONTENT}[View pipeline](${CI_PROJECT_URL}/-/pipelines/${CI_PIPELINE_ID})"
       PAYLOAD=$(cat <<EOF
       {
         "msg_type": "interactive",
@@ -69,7 +87,7 @@ notify:webhook:
             "template": "$COLOR"
           },
           "elements": [
-            {"tag": "div", "text": {"tag": os.environ["CARD_CONTENT_TAG"], "content": "**Repo:** ${CI_PROJECT_NAME}\n**Branch:** ${CI_COMMIT_REF_NAME}\n**Commit:** ${CI_COMMIT_SHORT_SHA}\n[View pipeline](${CI_PROJECT_URL}/-/pipelines/${CI_PIPELINE_ID})"}}
+            {"tag": "div", "text": {"tag": os.environ["CARD_CONTENT_TAG"], "content": "$CONTENT"}}
           ]
         }
       }
