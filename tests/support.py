@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """测试基础设施：client config 构造与运行模式判断。."""
+import atexit
 import base64
 import os
+import shutil
 import tempfile
 from contextlib import contextmanager
 
@@ -31,6 +33,7 @@ TEST_PRIVATE_KEY = _generate_private_key()
 
 # tiger_openapi_config.properties；指向一个确定为空的目录，保证结果不随运行目录变化。
 _EMPTY_PROPS_DIR = tempfile.mkdtemp(prefix='tigeropen-test-props-')
+atexit.register(shutil.rmtree, _EMPTY_PROPS_DIR, ignore_errors=True)
 
 
 def is_integ_run():
