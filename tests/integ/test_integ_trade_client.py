@@ -5,6 +5,15 @@ import unittest
 
 import pytest
 
+from tigeropen.common.consts import OptionExerciseType
+from tigeropen.common.util.contract_utils import stock_contract
+from tigeropen.common.util.order_utils import limit_order, iceberg_order
+from tigeropen.trade.domain.contract import Contract
+from tigeropen.trade.domain.order import Order
+from tigeropen.trade.domain.position import Position
+from tigeropen.trade.domain.transfer import TransferItem, PositionTransferDetail, PositionTransferRecord, \
+    PositionTransferExternalRecord
+from tigeropen.trade.domain.prime_account import PortfolioAccount
 from tigeropen.trade.trade_client import TradeClient
 from tests.support import integ_client_config, is_integ_run
 
@@ -21,22 +30,56 @@ class TestIntegTradeClient(unittest.TestCase):
 
     def test_get_positions(self):
         result = self.client.get_positions()
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            pos = result[0]
+            self.assertIsInstance(pos, Position)
+            self.assertIsNotNone(pos.account)
+            self.assertIsNotNone(pos.contract)
+            self.assertIsNotNone(pos.quantity)
         logger.debug(f"Positions: {result}")
 
     def test_get_contract(self):
         result = self.client.get_contract(symbol="NVDA", sec_type='OPT', expiry='20260605', strike=220, put_call='CALL')
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, Contract)
+        self.assertEqual(result.symbol, 'NVDA')
+        self.assertEqual(result.sec_type, 'OPT')
+        self.assertEqual(result.strike, 220)
+        self.assertEqual(result.put_call, 'CALL')
+        self.assertIsNotNone(result.contract_id)
         logger.debug(f"Contracts: {result.to_dict()}")
 
     def test_get_orders(self):
         result = self.client.get_orders(limit=2)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            order = result[0]
+            self.assertIsInstance(order, Order)
+            self.assertIsNotNone(order.id)
+            self.assertIsNotNone(order.account)
+            self.assertIsNotNone(order.action)
+            self.assertIsNotNone(order.order_type)
         logger.debug(f"Orders: {result}")
 
     def test_get_order(self):
         result = self.client.get_order(id=40130857465156608)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, Order)
+        self.assertEqual(result.id, 40130857465156608)
+        self.assertIsNotNone(result.account)
+        self.assertIsNotNone(result.contract)
+        self.assertIsNotNone(result.action)
         logger.debug(f"Order: {result.to_dict()}")
 
     def test_get_prime_assets(self):
         result = self.client.get_prime_assets()
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, PortfolioAccount)
+        self.assertIsNotNone(result.account)
+        self.assertIsNotNone(result.segments)
         logger.debug(f"Prime Assets: {result}")
 
     @pytest.mark.integ
@@ -103,14 +146,33 @@ class TestIntegTradeClient(unittest.TestCase):
 
     def test_get_position_transfer_records(self):
         result = self.client.get_position_transfer_records(since_date="2025-01-01", to_date="2025-01-02")
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            record = result[0]
+            self.assertIsInstance(record, PositionTransferRecord)
+            self.assertIsNotNone(record.id)
+            self.assertIsNotNone(record.status)
         logger.debug(f"Position Transfer Records: {result}")
 
     def test_get_position_transfer_detail(self):
         result = self.client.get_position_transfer_detail(account_id="1001", transfer_id="12345")
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, PositionTransferDetail)
+        self.assertIsNotNone(result.id)
+        self.assertIsNotNone(result.status)
         logger.debug(f"Position Transfer Detail: {result}")
 
     def test_get_position_transfer_external_records(self):
         result = self.client.get_position_transfer_external_records(account_id="1001", since_date="2025-01-01", to_date="2025-01-02")
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            record = result[0]
+            self.assertIsInstance(record, PositionTransferExternalRecord)
+            self.assertIsNotNone(record.id)
+            self.assertIsNotNone(record.status)
+        logger.debug(f"Position Transfer External Records: {result}")
 
     @pytest.mark.integ
     def test_submit_option_exercise(self):
