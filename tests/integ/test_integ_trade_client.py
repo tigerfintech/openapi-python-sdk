@@ -11,7 +11,7 @@ from tigeropen.common.util.order_utils import limit_order, iceberg_order
 from tigeropen.trade.domain.contract import Contract
 from tigeropen.trade.domain.order import Order
 from tigeropen.trade.domain.position import Position
-from tigeropen.trade.domain.transfer import TransferItem, PositionTransferDetail, PositionTransferRecord, \
+from tigeropen.trade.domain.transfer import TransferItem, PositionTransfer, PositionTransferDetail, PositionTransferRecord, \
     PositionTransferExternalRecord
 from tigeropen.trade.domain.prime_account import PortfolioAccount
 from tigeropen.trade.trade_client import TradeClient
@@ -92,6 +92,10 @@ class TestIntegTradeClient(unittest.TestCase):
                             quantity=2)
         result = self.client.place_order(order=order)
         logger.debug(f"Order Result: {result}")
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, int)
+        self.assertGreater(result, 0)
+        self.assertEqual(order.id, result)
 
     @pytest.mark.integ
     def test_place_iceberg_order(self):
@@ -119,11 +123,19 @@ class TestIntegTradeClient(unittest.TestCase):
         logger.debug(f"  start_time from server: {order.start_time}  expected: {start_time}")
         logger.debug(f"  end_time   from server: {order.end_time}  expected: {end_time}")
         logger.debug(f"  display_size={order.display_size} min_display_size={order.min_display_size} check_intervals={order.check_intervals}")
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, int)
+        self.assertGreater(result, 0)
+        self.assertEqual(order.id, result)
+        self.assertEqual(order.order_type, 'ICEBERG')
 
     @pytest.mark.integ
     def test_cancel_order(self):
         result = self.client.cancel_order(id=40132638459956224)
         logger.debug(f"Cancel Order Result: {result}")
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, int)
+        self.assertGreater(result, 0)
 
     @pytest.mark.integ
     def test_modify_order(self):
@@ -135,14 +147,24 @@ class TestIntegTradeClient(unittest.TestCase):
                             quantity=2)
         result = self.client.place_order(order=order)
         logger.debug(f"Place Order Result: {result}")
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, int)
+        self.assertGreater(result, 0)
         oid = self.client.modify_order(order, limit_price=100.5)
         logger.debug(f"Modify Order Result: {oid}")
+        self.assertIsNotNone(oid)
+        self.assertIsInstance(oid, int)
+        self.assertGreater(oid, 0)
 
     @pytest.mark.integ
     def test_transfer_position(self):
         transfers = [TransferItem(symbol="AAPL", quantity=10)]
         result = self.client.transfer_position(from_account="1001", to_account="1002", transfers=transfers, market="US")
         logger.debug(f"Transfer Position Result: {result}")
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, PositionTransfer)
+        self.assertIsNotNone(result.id)
+        self.assertIsNotNone(result.status)
 
     def test_get_position_transfer_records(self):
         result = self.client.get_position_transfer_records(since_date="2025-01-01", to_date="2025-01-02")
