@@ -5,6 +5,11 @@ omit =
     tigeropen/examples/*
     # protoc 生成，不手写不测
     tigeropen/push/pb/*_pb2.py
+    # push/socket 长连接客户端，需真实服务端，无法 unit 测
+    tigeropen/push/stomp_push_client.py
+    tigeropen/push/protobuf_push_client.py
+    tigeropen/push/network/transport.py
+    tigeropen/push/network/listener.py
 
 [report]
 exclude_lines =
