@@ -21,7 +21,7 @@ unit:python:
   stage: unit
   script:
     - unset TIGEROPEN_TIGER_ID TIGEROPEN_PRIVATE_KEY TIGEROPEN_ACCOUNT TIGEROPEN_PROPS_PATH
-    - pytest tests/ --ignore=tests/integ --ignore=tests/test_option_util.py --ignore=tests/test_option_helper.py -q --cov=tigeropen --cov-report=term --cov-report=xml
+    - pytest tests/ --ignore=tests/integ -q --cov=tigeropen --cov-report=term --cov-report=xml
   coverage: '/^TOTAL.*\s(\d+)%$/'
   artifacts:
     when: always
