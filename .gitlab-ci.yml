@@ -1,24 +1,59 @@
 # Two-stage pipeline: unit (no credentials) / integration (real API).
 # Unit stage does NOT inject any credential variables.
+#
+# Note: the default runner is a shell executor that ignores the `image:`
+# directive and ships only Python 3.6 (too old — setuptools>=64 / PEP 517
+# builds fail). We download a self-contained CPython tarball from
+# python-build-standalone in before_script, mirroring the Go SDK's .go_setup.
+#
+# Integration credentials: TIGEROPEN_TIGER_ID, TIGEROPEN_PRIVATE_KEY,
+# TIGEROPEN_ACCOUNT env vars set in GitLab CI Variables (Protected + Masked).
 
 stages:
   - unit
   - integration
 
-# Integration credentials: TIGEROPEN_TIGER_ID, TIGEROPEN_PRIVATE_KEY, TIGEROPEN_ACCOUNT
-# env vars set in GitLab CI Variables (Protected + Masked).
-
-.python_base:
-  image: python:3.11-slim
-  tags:
-    - platform-openapi
-  before_script:
-    - pip install --quiet -e .
-    - pip install --quiet pytest pytest-cov
+.python_setup: &python_setup
+  - |
+    PY_MIN_MAJOR=3
+    PY_MIN_MINOR=9
+    need_download="yes"
+    if command -v python3 >/dev/null 2>&1; then
+      PY_VER=$(python3 -c 'import sys;print("%d.%d"%(sys.version_info[0],sys.version_info[1]))' 2>/dev/null || echo "0.0")
+      PY_MAJOR=$(printf '%s' "$PY_VER" | cut -d. -f1)
+      PY_MINOR=$(printf '%s' "$PY_VER" | cut -d. -f2)
+      if [ "$PY_MAJOR" -gt "$PY_MIN_MAJOR" ] || { [ "$PY_MAJOR" -eq "$PY_MIN_MAJOR" ] && [ "$PY_MINOR" -ge "$PY_MIN_MINOR" ]; }; then
+        echo "Using preinstalled python: $(python3 --version)"
+        need_download="no"
+      else
+        echo "Preinstalled python is ${PY_VER} (< ${PY_MIN_MAJOR}.${PY_MIN_MINOR}), downloading a newer toolchain"
+      fi
+    else
+      echo "python3 not found, downloading a toolchain"
+    fi
+    if [ "$need_download" = "yes" ]; then
+      PY_VERSION="3.11.9"
+      PY_RELEASE="20240415"
+      ARCH=$(uname -m | sed 's/x86_64/x86_64/; s/aarch64/aarch64/')
+      TARBALL="cpython-${PY_VERSION}+${PY_RELEASE}-${ARCH}-unknown-linux-gnu-install_only.tar.gz"
+      DOWNLOAD_URL="https://github.com/astral-sh/python-build-standalone/releases/download/${PY_RELEASE}/${TARBALL}"
+      # ghproxy.com mirror first (reliable from domestic runner), fallback to GitHub.
+      # --fail so a soft-404 / HTML error page triggers the fallback instead of
+      # leaving a bogus tarball for `tar` to choke on.
+      curl --fail -sSL --retry 3 "https://ghproxy.com/${DOWNLOAD_URL}" -o /tmp/python.tar.gz \
+        || curl --fail -sSL --retry 3 "${DOWNLOAD_URL}" -o /tmp/python.tar.gz
+      tar -C /tmp -xzf /tmp/python.tar.gz
+      export PATH="/tmp/python/bin:${PATH}"
+    fi
+  - python3 --version
+  - python3 -m pip install --quiet --upgrade pip
+  - pip install --quiet -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
+  - pip install --quiet pytest pytest-cov -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 unit:python:
-  extends: .python_base
   stage: unit
+  before_script:
+    - *python_setup
   script:
     - unset TIGEROPEN_TIGER_ID TIGEROPEN_PRIVATE_KEY TIGEROPEN_ACCOUNT TIGEROPEN_PROPS_PATH
     - pytest tests/ --ignore=tests/integ -q --cov=tigeropen --cov-report=term --cov-report=xml
@@ -32,11 +67,12 @@ unit:python:
     expire_in: 1 week
 
 integration:python:
-  extends: .python_base
   stage: integration
   allow_failure: true
   variables:
     TIGER_RUN_INTEG: "true"
+  before_script:
+    - *python_setup
   script:
     - pytest tests/integ/ -v --tb=short
 
