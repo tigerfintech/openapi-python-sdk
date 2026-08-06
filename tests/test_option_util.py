@@ -7,6 +7,7 @@ Unit tests for OptionUtil class
 import unittest
 
 import pytest
+pytest.importorskip("QuantLib", reason="optional dependency; module skipped without it")
 from unittest.mock import Mock, patch
 import pandas as pd
 from datetime import datetime, timedelta, timezone
