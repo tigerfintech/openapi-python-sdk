@@ -5,7 +5,7 @@ import unittest
 
 import pytest
 
-from tigeropen.common.consts import OptionExerciseType
+from tigeropen.common.consts import OptionExerciseType, SegmentType, Currency, SecurityType
 from tigeropen.common.util.contract_utils import stock_contract
 from tigeropen.common.util.order_utils import limit_order, iceberg_order
 from tigeropen.trade.domain.contract import Contract
@@ -295,3 +295,152 @@ class TestIntegTradeClient(unittest.TestCase):
         result = self.client.cancel_option_exercise(exercise_id=new_record.id)
         self.assertTrue(result)
         logger.debug(f"Cancel Option Exercise Result: {result}")
+
+    # ── Missing trade interface tests ──────────────────────────────
+
+    def test_get_managed_accounts(self):
+        result = self.client.get_managed_accounts()
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            first = result[0]
+            self.assertIsNotNone(first.account)
+            self.assertIsNotNone(first.capability)
+            self.assertIsNotNone(first.status)
+        logger.debug(f"Managed Accounts: {result}")
+
+    def test_get_contracts(self):
+        result = self.client.get_contracts(symbol=['AAPL', 'MSFT'],
+                                            sec_type='STK',
+                                            currency='USD')
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            first = result[0]
+            self.assertIsInstance(first, Contract)
+            self.assertIn(first.symbol, ['AAPL', 'MSFT'])
+        logger.debug(f"Contracts: {result}")
+
+    def test_get_derivative_contracts(self):
+        result = self.client.get_derivative_contracts(symbol='AAPL',
+                                                      sec_type=SecurityType.OPT,
+                                                      expiry='20260605')
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            first = result[0]
+            self.assertIsInstance(first, Contract)
+            self.assertEqual(first.sec_type, 'OPT')
+        logger.debug(f"Derivative Contracts: {result}")
+
+    def test_get_assets(self):
+        result = self.client.get_assets(segment=True, market_value=True)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            first = result[0]
+            self.assertIsNotNone(first.account)
+            self.assertIsNotNone(first.summary)
+            self.assertIsNotNone(first.summary.net_liquidation)
+        logger.debug(f"Assets: {result}")
+
+    def test_get_aggregate_assets(self):
+        result = self.client.get_aggregate_assets(seg_type=SegmentType.SEC,
+                                                   base_currency=Currency.USD)
+        self.assertIsNotNone(result)
+        logger.debug(f"Aggregate Assets: {result}")
+
+    def test_get_open_orders(self):
+        result = self.client.get_open_orders(limit=5)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            order = result[0]
+            self.assertIsInstance(order, Order)
+            self.assertIsNotNone(order.id)
+        logger.debug(f"Open Orders: {result}")
+
+    def test_get_cancelled_orders(self):
+        result = self.client.get_cancelled_orders(limit=5)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            order = result[0]
+            self.assertIsInstance(order, Order)
+            self.assertIsNotNone(order.id)
+        logger.debug(f"Cancelled Orders: {result}")
+
+    def test_get_filled_orders(self):
+        result = self.client.get_filled_orders(limit=5)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            order = result[0]
+            self.assertIsInstance(order, Order)
+            self.assertIsNotNone(order.id)
+        logger.debug(f"Filled Orders: {result}")
+
+    def test_get_transactions(self):
+        result = self.client.get_transactions(start_time="2025-01-01",
+                                              end_time="2025-12-31",
+                                              limit=5)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        logger.debug(f"Transactions: {result}")
+
+    def test_get_analytics_asset(self):
+        result = self.client.get_analytics_asset(start_date="2025-01-01",
+                                                 end_date="2025-06-30",
+                                                 seg_type=SegmentType.SEC,
+                                                 currency=Currency.USD)
+        self.assertIsNotNone(result)
+        logger.debug(f"Analytics Asset: {result}")
+
+    def test_get_segment_fund_available(self):
+        result = self.client.get_segment_fund_available(from_segment=SegmentType.FUT,
+                                                         currency=Currency.USD)
+        self.assertIsNotNone(result)
+        logger.debug(f"Segment Fund Available: {result}")
+
+    def test_get_segment_fund_history(self):
+        result = self.client.get_segment_fund_history(limit=5)
+        self.assertIsNotNone(result)
+        logger.debug(f"Segment Fund History: {result}")
+
+    def test_get_funding_history(self):
+        result = self.client.get_funding_history(seg_type=SegmentType.SEC)
+        self.assertIsNotNone(result)
+        logger.debug(f"Funding History: {result}")
+
+    def test_get_fund_details(self):
+        result = self.client.get_fund_details(seg_types=[SegmentType.SEC],
+                                              currency=Currency.USD,
+                                              start=0,
+                                              limit=5)
+        self.assertIsNotNone(result)
+        logger.debug(f"Fund Details: {result}")
+
+    def test_get_estimate_tradable_quantity(self):
+        contract = stock_contract(symbol='AAPL', currency='USD')
+        order = limit_order(account=self.client_config.account,
+                            contract=contract,
+                            action='BUY',
+                            limit_price=90.5,
+                            quantity=2)
+        result = self.client.get_estimate_tradable_quantity(order=order,
+                                                            seg_type=SegmentType.SEC)
+        self.assertIsNotNone(result)
+        logger.debug(f"Estimate Tradable Quantity: {result}")
+
+    def test_preview_order(self):
+        """Preview order is a read-only operation — does not place a real order."""
+        contract = stock_contract(symbol='AAPL', currency='USD')
+        order = limit_order(account=self.client_config.account,
+                            contract=contract,
+                            action='BUY',
+                            limit_price=90.5,
+                            quantity=2)
+        result = self.client.preview_order(order=order)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+        logger.debug(f"Preview Order: {result}")
