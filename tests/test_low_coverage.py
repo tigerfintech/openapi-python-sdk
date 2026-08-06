@@ -218,7 +218,7 @@ class TestAnalyticsAssetResponse(unittest.TestCase):
             'data': {
                 'totalValue': 100000,
                 'history': [
-                    {'date': 1700000000000, 'value': 99000},
+                    {'date': 1700006400000, 'value': 99000},
                     {'date': 1700086400000, 'value': 100000},
                 ],
             },
