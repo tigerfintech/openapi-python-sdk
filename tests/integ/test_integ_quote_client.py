@@ -8,7 +8,7 @@ import pytest
 
 from tigeropen.common.consts import Market, TradingSession, BarPeriod, CapitalPeriod, Valuation, Income, \
     OptionAnalysisPeriod, SortDirection
-from tigeropen.common.consts.filter_fields import StockField, FinancialPeriod
+from tigeropen.common.consts.filter_fields import StockField, FinancialPeriod, MultiTagField
 from tigeropen.quote.domain.filter import StockFilter, SortFilterData, OptionFilter
 from tigeropen.quote.domain.quote_brief import QuoteBrief
 from tigeropen.quote.domain.option_analysis import OptionAnalysis
@@ -755,3 +755,212 @@ class TestIntegQuoteClient(unittest.TestCase):
         self.assertIsNotNone(result.active_plan)
         self.assertIsNotNone(result.effective_entitlement)
         logger.debug(f"Addon Entitlement:\n {result}")
+
+    # ── Missing quote interface tests ──────────────────────────────
+
+    def test_get_stock_details(self):
+        result = self.client.get_stock_details(symbols=['AAPL'])
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty)
+        self.assertIn('symbol', result.columns)
+        self.assertIn('latest_price', result.columns)
+        first = result.iloc[0]
+        self.assertEqual(first['symbol'], 'AAPL')
+        self.assertGreater(first['latest_price'], 0)
+        logger.debug(f"Stock Details:\n {result}")
+
+    def test_get_bars_by_page(self):
+        result = self.client.get_bars_by_page(symbol='AAPL',
+                                              period=BarPeriod.DAY,
+                                              total=3,
+                                              page_size=2)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty)
+        self.assertIn('symbol', result.columns)
+        self.assertIn('time', result.columns)
+        first = result.iloc[0]
+        self.assertEqual(first['symbol'], 'AAPL')
+        self.assertGreater(first['open'], 0)
+        self.assertGreater(first['close'], 0)
+        logger.debug(f"Bars By Page:\n {result}")
+
+    def test_get_corporate_dividend(self):
+        result = self.client.get_corporate_dividend(symbols=['AAPL'],
+                                                    market='US',
+                                                    begin_date="2024-01-01",
+                                                    end_date="2025-12-31")
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertIn('symbol', result.columns)
+        self.assertIn('action_type', result.columns)
+        self.assertIn('amount', result.columns)
+        if not result.empty:
+            first = result.iloc[0]
+            self.assertEqual(first['symbol'], 'AAPL')
+            self.assertEqual(first['action_type'], 'DIVIDEND')
+            self.assertIsNotNone(first['amount'])
+        logger.debug(f"Corporate Dividend:\n {result}")
+
+    def test_get_corporate_earnings_calendar(self):
+        result = self.client.get_corporate_earnings_calendar(market='US',
+                                                              begin_date="2025-01-01",
+                                                              end_date="2025-12-31")
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertIn('symbol', result.columns)
+        self.assertIn('action_type', result.columns)
+        if not result.empty:
+            first = result.iloc[0]
+            self.assertEqual(first['action_type'], 'EARNINGS_CALENDAR')
+            self.assertTrue(len(str(first['symbol']).strip()) > 0)
+        logger.debug(f"Corporate Earnings Calendar:\n {result}")
+
+    def test_get_financial_currency(self):
+        result = self.client.get_financial_currency(symbols=['AAPL', 'MSFT'],
+                                                    market='US')
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertIn('symbol', result.columns)
+        self.assertIn('currency', result.columns)
+        self.assertIn('company_currency', result.columns)
+        if not result.empty:
+            first = result.iloc[0]
+            self.assertTrue(len(str(first['symbol']).strip()) > 0)
+            self.assertIsNotNone(first['currency'])
+        logger.debug(f"Financial Currency:\n {result}")
+
+    def test_get_financial_exchange_rate(self):
+        result = self.client.get_financial_exchange_rate(currency_list=['HKD', 'USD'],
+                                                         begin_date="2025-01-01",
+                                                         end_date="2025-01-02")
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertIn('currency', result.columns)
+        self.assertIn('date', result.columns)
+        self.assertIn('value', result.columns)
+        if not result.empty:
+            first = result.iloc[0]
+            self.assertTrue(len(str(first['currency']).strip()) > 0)
+            self.assertIsNotNone(first['value'])
+        logger.debug(f"Financial Exchange Rate:\n {result}")
+
+    def test_get_industry_stocks(self):
+        industries = self.client.get_industry_list()
+        self.assertGreater(len(industries), 0)
+        industry_id = industries[0]['id']
+        result = self.client.get_industry_stocks(industry=industry_id,
+                                                 market=Market.US)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            first = result[0]
+            self.assertIsInstance(first, dict)
+            self.assertIn('symbol', first)
+            self.assertTrue(len(str(first['symbol']).strip()) > 0)
+        logger.debug(f"Industry Stocks (industry={industry_id}):\n {result}")
+
+    def test_get_stock_industry(self):
+        result = self.client.get_stock_industry(symbol='AAPL', market=Market.US)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        self.assertGreater(len(result), 0)
+        first = result[0]
+        self.assertIsInstance(first, dict)
+        self.assertIn('industry_level', first)
+        self.assertIn('id', first)
+        self.assertTrue(len(str(first['id']).strip()) > 0)
+        logger.debug(f"Stock Industry:\n {result}")
+
+    def test_get_market_scanner_tags(self):
+        result = self.client.get_market_scanner_tags(market=Market.US)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            first = result[0]
+            self.assertIsInstance(first, dict)
+        logger.debug(f"Market Scanner Tags:\n {result}")
+
+    def test_get_quote_permission(self):
+        result = self.client.get_quote_permission()
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        logger.debug(f"Quote Permission:\n {result}")
+
+    def test_get_warrant_filter(self):
+        result = self.client.get_warrant_filter(symbol='00700',
+                                                page=0,
+                                                page_size=5)
+        self.assertIsNotNone(result)
+        if result:
+            first = result[0]
+            self.assertIsInstance(first, dict)
+            self.assertIn('symbol', first)
+        logger.debug(f"Warrant Filter:\n {result}")
+
+    def test_get_warrant_briefs(self):
+        # First get warrant symbols from warrant_filter
+        warrant_list = self.client.get_warrant_filter(symbol='00700', page=0, page_size=5)
+        if not warrant_list:
+            self.skipTest("No warrant data available for 00700")
+        warrant_symbol = warrant_list[0].get('symbol') or warrant_list[0].get('warrant_symbol')
+        if not warrant_symbol:
+            self.skipTest("No warrant symbol found in filter result")
+        result = self.client.get_warrant_briefs(symbols=[warrant_symbol])
+        self.assertIsNotNone(result)
+        logger.debug(f"Warrant Briefs:\n {result}")
+
+    def test_get_fund_symbols(self):
+        result = self.client.get_fund_symbols()
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        logger.debug(f"Fund Symbols count: {len(result) if result else 0}")
+
+    def test_get_fund_contracts(self):
+        # Get a fund symbol first
+        fund_symbols = self.client.get_fund_symbols()
+        if not fund_symbols:
+            self.skipTest("No fund symbols available")
+        symbol = fund_symbols[0]
+        result = self.client.get_fund_contracts(symbols=[symbol])
+        self.assertIsNotNone(result)
+        logger.debug(f"Fund Contracts:\n {result}")
+
+    def test_get_fund_quote(self):
+        fund_symbols = self.client.get_fund_symbols()
+        if not fund_symbols:
+            self.skipTest("No fund symbols available")
+        symbol = fund_symbols[0]
+        result = self.client.get_fund_quote(symbols=[symbol])
+        self.assertIsNotNone(result)
+        logger.debug(f"Fund Quote:\n {result}")
+
+    def test_get_fund_history_quote(self):
+        fund_symbols = self.client.get_fund_symbols()
+        if not fund_symbols:
+            self.skipTest("No fund symbols available")
+        symbol = fund_symbols[0]
+        result = self.client.get_fund_history_quote(symbols=[symbol],
+                                                    begin_time="2025-01-01",
+                                                    end_time="2025-06-30",
+                                                    limit=5)
+        self.assertIsNotNone(result)
+        logger.debug(f"Fund History Quote:\n {result}")
+
+    def test_get_stock_fundamental(self):
+        result = self.client.get_stock_fundamental(symbols=['AAPL', 'MSFT'],
+                                                   market='US')
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty)
+        self.assertIn('symbol', result.columns)
+        self.assertIn('ttm_pe_rate', result.columns)
+        self.assertIn('market_cap', result.columns)
+        first = result.iloc[0]
+        self.assertIn(first['symbol'], ['AAPL', 'MSFT'])
+        self.assertIsNotNone(first['market_cap'])
+        logger.debug(f"Stock Fundamental:\n {result}")
+
+    def test_get_trade_rank(self):
+        result = self.client.get_trade_rank(market='US')
+        self.assertIsNotNone(result)
+        logger.debug(f"Trade Rank:\n {result}")
+
+    def test_get_quote_overnight(self):
+        result = self.client.get_quote_overnight(symbols=['AAPL'])
+        self.assertIsNotNone(result)
+        logger.debug(f"Quote Overnight:\n {result}")
