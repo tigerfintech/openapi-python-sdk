@@ -17,8 +17,8 @@ stages:
   tags:
     - openapi
   before_script:
-    - pip install --quiet -e .
-    - pip install --quiet pytest pytest-cov
+    - pip install --quiet -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
+    - pip install --quiet pytest pytest-cov -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 unit:python:
   extends: .python_base
