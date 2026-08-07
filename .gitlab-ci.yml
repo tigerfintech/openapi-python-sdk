@@ -30,6 +30,8 @@ unit:python:
   coverage: '/^TOTAL.*\s(\d+)%$/'
   artifacts:
     when: always
+    paths:
+      - test-results/
     reports:
       coverage_report:
         coverage_format: cobertura
@@ -49,6 +51,8 @@ integration:python:
     - pytest tests/integ/ -v --tb=short --junitxml=test-results/integ.xml
   artifacts:
     when: always
+    paths:
+      - test-results/
     reports:
       junit:
         - test-results/integ.xml
