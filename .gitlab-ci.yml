@@ -84,6 +84,14 @@ notify:webhook:
       if [ -n "$FAILED_JOBS" ]; then
         CONTENT="${CONTENT}\n**Failed jobs:** ${FAILED_JOBS}\n"
       fi
+      TEST_REPORT=$(curl --fail -sS --max-time 10 --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "${API}/pipelines/${CI_PIPELINE_ID}/test_report" 2>/dev/null || echo "")
+      TEST_STATS=""
+      if [ -n "$TEST_REPORT" ] && command -v python3 >/dev/null 2>&1; then
+        TEST_STATS=$(printf '%s' "$TEST_REPORT" | python3 -c "import sys,json; r=json.load(sys.stdin); t=r.get('total',{}); print(f"{t.get('count',0)} tests: {t.get('success',0)} passed, {t.get('failed',0)} failed, {t.get('skipped',0)} skipped")" 2>/dev/null)
+      fi
+      if [ -n "$TEST_STATS" ]; then
+        CONTENT="${CONTENT}\n**Tests:** ${TEST_STATS}\n"
+      fi
       CONTENT="${CONTENT}[View pipeline](${CI_PROJECT_URL}/-/pipelines/${CI_PIPELINE_ID})"
       PAYLOAD=$(cat <<EOF
       {
