@@ -59,7 +59,7 @@ notify:webhook:
         exit 0
       fi
       API="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}"
-      JOBS_JSON=$(curl --fail -sS --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "${API}/pipelines/${CI_PIPELINE_ID}/jobs" 2>/dev/null || echo "")
+      JOBS_JSON=$(curl --fail -sS --max-time 10 --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "${API}/pipelines/${CI_PIPELINE_ID}/jobs" 2>/dev/null || echo "")
       # Decide pass/fail from job statuses rather than CI_PIPELINE_STATUS,
       # which may still read "running" in a .post when:always job (GitLab
       # known behaviour). jobs API returns name+status only — no trace/secrets.
@@ -72,7 +72,7 @@ notify:webhook:
         FAILED_JOBS=$(printf '%s\n' "$OUT" | sed -n '2p')
       else
         echo "jobs API or python3 unavailable, falling back to CI_PIPELINE_STATUS"
-        if [ "$CI_PIPELINE_STATUS" = "failed" ]; then HAS_FAILED="yes"; fi
+        if [ "$CI_PIPELINE_STATUS" != "success" ]; then HAS_FAILED="yes"; fi
       fi
       TITLE="✅ Pipeline passed"
       COLOR="green"
@@ -100,6 +100,6 @@ notify:webhook:
       }
       EOF
       )
-      curl --fail -sS -X POST "$WEBHOOK_URL" \
+      curl --fail -sS --max-time 10 -X POST "$WEBHOOK_URL" \
         -H 'Content-Type: application/json' \
         -d "$PAYLOAD"
