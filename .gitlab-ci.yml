@@ -25,7 +25,8 @@ unit:python:
   stage: unit
   script:
     - unset TIGEROPEN_TIGER_ID TIGEROPEN_PRIVATE_KEY TIGEROPEN_ACCOUNT TIGEROPEN_PROPS_PATH
-    - pytest tests/ --ignore=tests/integ -q --cov=tigeropen --cov-report=term --cov-report=xml
+    - mkdir -p test-results
+    - pytest tests/ --ignore=tests/integ -q --cov=tigeropen --cov-report=term --cov-report=xml --junitxml=test-results/unit.xml
   coverage: '/^TOTAL.*\s(\d+)%$/'
   artifacts:
     when: always
@@ -33,6 +34,8 @@ unit:python:
       coverage_report:
         coverage_format: cobertura
         path: coverage.xml
+      junit:
+        - test-results/unit.xml
     expire_in: 1 week
 
 integration:python:
@@ -42,7 +45,14 @@ integration:python:
   variables:
     TIGER_RUN_INTEG: "true"
   script:
-    - pytest tests/integ/ -v --tb=short
+    - mkdir -p test-results
+    - pytest tests/integ/ -v --tb=short --junitxml=test-results/integ.xml
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - test-results/integ.xml
+    expire_in: 1 week
 
 # Pipeline result notification via a generic webhook (Feishu/Lark incoming
 # webhook). WEBHOOK_URL is a masked CI Variable set in GitLab Settings; forks
