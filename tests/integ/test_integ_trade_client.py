@@ -2,6 +2,7 @@
 """Integration tests - require real API credentials."""
 import logging
 import unittest
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -41,7 +42,8 @@ class TestIntegTradeClient(unittest.TestCase):
         logger.debug(f"Positions: {result}")
 
     def test_get_contract(self):
-        result = self.client.get_contract(symbol="NVDA", sec_type='OPT', expiry='20260605', strike=220, put_call='CALL')
+        future_expiry = (datetime.now() + timedelta(days=180)).strftime('%Y%m%d')
+        result = self.client.get_contract(symbol="NVDA", sec_type='OPT', expiry=future_expiry, strike=220, put_call='CALL')
         self.assertIsNotNone(result)
         self.assertIsInstance(result, Contract)
         self.assertEqual(result.symbol, 'NVDA')
@@ -178,7 +180,12 @@ class TestIntegTradeClient(unittest.TestCase):
         logger.debug(f"Position Transfer Records: {result}")
 
     def test_get_position_transfer_detail(self):
-        result = self.client.get_position_transfer_detail(account_id="1001", transfer_id="12345")
+        records = self.client.get_position_transfer_records(since_date="2025-01-01", to_date="2025-12-31")
+        if not records:
+            self.skipTest("No position transfer records available to query detail")
+        record = records[0]
+        result = self.client.get_position_transfer_detail(account_id=record.account_id,
+                                                          transfer_id=record.id)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, PositionTransferDetail)
         self.assertIsNotNone(result.id)
@@ -227,6 +234,7 @@ class TestIntegTradeClient(unittest.TestCase):
             logger.debug(f"Submit Expire Result: {result_expire}")
         except ApiException as e:
             logger.warning(f"Submit Expire skipped due to downstream limit: {e}")
+            self.skipTest(f"Downstream limit: {e}")
 
     def test_check_option_exercise(self):
         result = self.client.check_option_exercise(
@@ -322,9 +330,10 @@ class TestIntegTradeClient(unittest.TestCase):
         logger.debug(f"Contracts: {result}")
 
     def test_get_derivative_contracts(self):
+        future_expiry = (datetime.now() + timedelta(days=180)).strftime('%Y%m%d')
         result = self.client.get_derivative_contracts(symbol='AAPL',
                                                       sec_type=SecurityType.OPT,
-                                                      expiry='20260605')
+                                                      expiry=future_expiry)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
         if result:
