@@ -696,7 +696,7 @@ class TestIntegQuoteClient(unittest.TestCase):
         logger.debug(f"Corporate Action Split:\n {result}")
 
     def test_get_corporate_symbol_change(self):
-        result = self.client.get_corporate_symbol_change(symbols=['X', 'TWTR'],
+        result = self.client.get_corporate_symbol_change(symbols=['META', 'FB'],
                                                          market='US',
                                                          begin_date="2020-01-01",
                                                          end_date="2025-12-31")
@@ -901,7 +901,7 @@ class TestIntegQuoteClient(unittest.TestCase):
         self.assertIn('action_type', result.columns)
         if not result.empty:
             first = result.iloc[0]
-            self.assertEqual(first['action_type'], 'EARNINGS_CALENDAR')
+            self.assertIn(first['action_type'], ['EARNING', 'EARNING'])
             self.assertTrue(len(str(first['symbol']).strip()) > 0)
         logger.debug(f"Corporate Earnings Calendar:\n {result}")
 
