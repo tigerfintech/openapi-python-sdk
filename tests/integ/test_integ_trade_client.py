@@ -437,9 +437,11 @@ class TestIntegTradeClient(unittest.TestCase):
         logger.debug(f"Cancelled Orders: {result}")
 
     def test_get_filled_orders(self):
+        end_dt = datetime.now()
+        start_dt = end_dt - timedelta(days=60)
         result = self.client.get_filled_orders(limit=5,
-                                               start_time="2025-01-01",
-                                               end_time="2025-12-31")
+                                               start_time=start_dt.strftime('%Y-%m-%d'),
+                                               end_time=end_dt.strftime('%Y-%m-%d'))
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
         if result:
@@ -449,7 +451,8 @@ class TestIntegTradeClient(unittest.TestCase):
         logger.debug(f"Filled Orders: {result}")
 
     def test_get_transactions(self):
-        result = self.client.get_transactions(since_date="20250101",
+        result = self.client.get_transactions(symbol="AAPL",
+                                              since_date="20250101",
                                               to_date="20251231",
                                               limit=5)
         self.assertIsNotNone(result)
