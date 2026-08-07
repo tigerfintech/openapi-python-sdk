@@ -29,6 +29,26 @@ class TestIntegTradeClient(unittest.TestCase):
         cls.client_config = integ_client_config()
         cls.client = TradeClient(cls.client_config, logger=logger)
 
+    def _get_option_contract_id(self):
+        """Dynamically fetch an option contract_id from exercise positions or derivative contracts."""
+        # Try exercise positions first
+        try:
+            positions = self.client.get_option_exercise_positions(
+                exercise_type=OptionExerciseType.EXERCISE)
+            if positions and positions.items:
+                return positions.items[0].contract_id
+        except Exception as e:
+            logger.warning(f"get_option_exercise_positions failed: {e}")
+
+        # Fall back to derivative contracts
+        future_expiry = (datetime.now() + timedelta(days=180)).strftime('%Y%m%d')
+        contracts = self.client.get_derivative_contracts(symbol='AAPL',
+                                                       sec_type=SecurityType.OPT,
+                                                       expiry=future_expiry)
+        if contracts:
+            return contracts[0].contract_id
+        return None
+
     def test_get_positions(self):
         result = self.client.get_positions()
         self.assertIsNotNone(result)
@@ -67,10 +87,15 @@ class TestIntegTradeClient(unittest.TestCase):
         logger.debug(f"Orders: {result}")
 
     def test_get_order(self):
-        result = self.client.get_order(id=40130857465156608)
+        # Dynamically fetch an order ID instead of hardcoding
+        orders = self.client.get_orders(limit=5)
+        if not orders:
+            self.skipTest("No orders available to test get_order")
+        order_id = orders[0].id
+        result = self.client.get_order(id=order_id)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, Order)
-        self.assertEqual(result.id, 40130857465156608)
+        self.assertEqual(result.id, order_id)
         self.assertIsNotNone(result.account)
         self.assertIsNotNone(result.contract)
         self.assertIsNotNone(result.action)
@@ -133,7 +158,20 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_cancel_order(self):
-        result = self.client.cancel_order(id=40132638459956224)
+        # Place an order first, then cancel it — no hardcoded order ID
+        contract = stock_contract(symbol='AAPL', currency='USD')
+        order = limit_order(account=self.client_config.account,
+                            contract=contract,
+                            action='BUY',
+                            limit_price=90.5,
+                            quantity=2)
+        order_id = self.client.place_order(order=order)
+        logger.debug(f"Place Order Result: {order_id}")
+        self.assertIsNotNone(order_id)
+        self.assertIsInstance(order_id, int)
+        self.assertGreater(order_id, 0)
+
+        result = self.client.cancel_order(id=order_id)
         logger.debug(f"Cancel Order Result: {result}")
         self.assertIsNotNone(result)
         self.assertIsInstance(result, int)
@@ -206,26 +244,32 @@ class TestIntegTradeClient(unittest.TestCase):
     @pytest.mark.integ
     def test_submit_option_exercise(self):
         from tigeropen.common.exceptions import ApiException
-        # 场景1: 提交提前行权 (Exercise)
+        contract_id = self._get_option_contract_id()
+        if contract_id is None:
+            self.skipTest("No option contract available to test exercise")
+        # Use a future date instead of hardcoded value
+        executing_date = (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
+
+        # Scenario 1: submit early exercise (Exercise)
         try:
             result_exercise = self.client.submit_option_exercise(
-                contract_id=2701923713,
+                contract_id=contract_id,
                 exercise_type="Exercise",
                 quantity=1.0,
-                executing_date="2026-06-05",
+                executing_date=executing_date,
                 is_force=False,
             )
             self.assertTrue(result_exercise)
             logger.debug(f"Submit Exercise Result: {result_exercise}")
         except ApiException as e:
-            # 下游业务限制（如行权次数/rate限制），非SDK/server问题
+            # downstream business limit (exercise count/rate limit), not SDK/server issue
             logger.warning(f"Submit Exercise skipped due to downstream limit: {e}")
             self.skipTest(f"Downstream limit: {e}")
 
-        # 场景2: 提交放弃行权 (Expire) — itm_rate 有效范围 0~10
+        # Scenario 2: submit expire exercise — itm_rate valid range 0~10
         try:
             result_expire = self.client.submit_option_exercise(
-                contract_id=2701923713,
+                contract_id=contract_id,
                 exercise_type=OptionExerciseType.EXPIRE,
                 quantity=1.0,
                 itm_rate=1,
@@ -237,10 +281,14 @@ class TestIntegTradeClient(unittest.TestCase):
             self.skipTest(f"Downstream limit: {e}")
 
     def test_check_option_exercise(self):
+        contract_id = self._get_option_contract_id()
+        if contract_id is None:
+            self.skipTest("No option contract available to test check_exercise")
+        executing_date = (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
         result = self.client.check_option_exercise(
-            contract_id=2701923713,
+            contract_id=contract_id,
             exercise_type="Exercise",
-            executing_date="2026-06-01",
+            executing_date=executing_date,
             quantity=1.0,
             is_force=False,
         )
@@ -276,18 +324,22 @@ class TestIntegTradeClient(unittest.TestCase):
     @pytest.mark.integ
     def test_cancel_option_exercise(self):
         from tigeropen.common.exceptions import ApiException
-        # 先查现有 New 状态记录，有则直接取消；没有则尝试提交一条再取消
+        # Find an existing New-status record to cancel; if none, try submit then cancel
         records = self.client.get_option_exercise_records(page=1, size=20)
         new_record = next((r for r in records.items if r.status == "New"), None)
 
         if new_record is None:
-            # 没有 New 记录，尝试提交一条
+            # No New record — try submitting one
+            contract_id = self._get_option_contract_id()
+            if contract_id is None:
+                self.skipTest("No option contract available to test cancel_exercise")
+            executing_date = (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
             try:
                 submit_ok = self.client.submit_option_exercise(
-                    contract_id=2701923713,
+                    contract_id=contract_id,
                     exercise_type="Exercise",
                     quantity=1.0,
-                    executing_date="2026-06-01",
+                    executing_date=executing_date,
                     is_force=False,
                 )
                 self.assertTrue(submit_ok)
