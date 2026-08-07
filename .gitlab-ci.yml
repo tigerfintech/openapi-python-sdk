@@ -55,7 +55,7 @@ integration:python:
     expire_in: 1 week
 
 # Pipeline result notification via Feishu/Lark webhook.
-# Uses python3 urllib (no curl dependency) for all HTTP calls.
+# Parses JUnit XML artifacts directly (no GitLab API dependency).
 notify:webhook:
   image: python:3.11-slim
   tags:
@@ -63,54 +63,52 @@ notify:webhook:
   stage: .post
   when: always
   allow_failure: true
-  dependencies: []
+  needs:
+    - job: unit:python
+      artifacts: true
+    - job: integration:python
+      artifacts: true
   script:
     - |
       python3 << 'PYEOF'
-      import os, json, urllib.request, urllib.error
+      import os, json, urllib.request, glob
+      import xml.etree.ElementTree as ET
 
       webhook_url = os.environ.get("WEBHOOK_URL", "")
       if not webhook_url:
           print("WEBHOOK_URL not configured, skipping notification")
           exit(0)
 
-      api_base = os.environ["CI_API_V4_URL"]
-      project_id = os.environ["CI_PROJECT_ID"]
-      pipeline_id = os.environ["CI_PIPELINE_ID"]
-      job_token = os.environ["CI_JOB_TOKEN"]
-      headers = {"JOB-TOKEN": job_token}
+      # 1. Parse JUnit XML artifacts for test stats
+      total = 0
+      passed = 0
+      failed = 0
+      skipped = 0
+      for xml_file in glob.glob("test-results/*.xml"):
+          try:
+              tree = ET.parse(xml_file)
+              root = tree.getroot()
+              # JUnit XML: <testsuite tests="N" failures="M" errors="E" skipped="S">
+              for suite in root.iter("testsuite"):
+                  t = int(suite.get("tests", 0))
+                  f = int(suite.get("failures", 0)) + int(suite.get("errors", 0))
+                  s = int(suite.get("skipped", 0))
+                  total += t
+                  failed += f
+                  skipped += s
+              passed = total - failed - skipped
+          except Exception as e:
+              print(f"Failed to parse {xml_file}: {e}")
 
-      # 1. Fetch jobs status
-      has_failed = False
-      failed_jobs = []
-      try:
-          url = f"{api_base}/projects/{project_id}/pipelines/{pipeline_id}/jobs"
-          req = urllib.request.Request(url, headers=headers)
-          with urllib.request.urlopen(req, timeout=10) as resp:
-              jobs = json.loads(resp.read())
-              failed_jobs = [j["name"] for j in jobs if j.get("status") == "failed" and not j.get("allow_failure")]
-              has_failed = len(failed_jobs) > 0
-      except Exception as e:
-          print(f"jobs API failed: {e}, falling back to CI_PIPELINE_STATUS")
-          status = os.environ.get("CI_PIPELINE_STATUS", "")
-          has_failed = status != "success"
-
-      # 2. Fetch test report
       test_stats = ""
-      try:
-          url = f"{api_base}/projects/{project_id}/pipelines/{pipeline_id}/test_report"
-          req = urllib.request.Request(url, headers=headers)
-          with urllib.request.urlopen(req, timeout=10) as resp:
-              report = json.loads(resp.read())
-              t = report.get("total", {})
-              count = t.get("count", 0)
-              success = t.get("success", 0)
-              failed = t.get("failed", 0)
-              skipped = t.get("skipped", 0)
-              if count > 0:
-                  test_stats = f"{count} tests: {success} passed, {failed} failed, {skipped} skipped"
-      except Exception as e:
-          print(f"test_report API failed: {e}")
+      if total > 0:
+          test_stats = f"{total} tests: {passed} passed, {failed} failed, {skipped} skipped"
+
+      # 2. Determine pass/fail from CI_PIPELINE_STATUS
+      # In .post when:always, CI_PIPELINE_STATUS may be "running" —
+      # only "failed" means actual failure.
+      status = os.environ.get("CI_PIPELINE_STATUS", "unknown")
+      has_failed = status == "failed"
 
       # 3. Build Feishu card
       title = "❌ Pipeline failed" if has_failed else "✅ Pipeline passed"
@@ -122,8 +120,6 @@ notify:webhook:
       pipeline_url = os.environ.get("CI_PROJECT_URL", "") + "/-/pipelines/" + os.environ.get("CI_PIPELINE_ID", "")
 
       content = f"**Repo:** {project_name}\n**Branch:** {branch}\n**Commit:** {commit}\n"
-      if failed_jobs:
-          content += f"\n**Failed jobs:** {', '.join(failed_jobs)}\n"
       if test_stats:
           content += f"\n**Tests:** {test_stats}\n"
       content += f"[View pipeline]({pipeline_url})"
