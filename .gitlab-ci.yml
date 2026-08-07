@@ -54,75 +54,100 @@ integration:python:
         - test-results/integ.xml
     expire_in: 1 week
 
-# Pipeline result notification via a generic webhook (chat incoming
-# webhook). WEBHOOK_URL is a masked CI Variable set in GitLab Settings; forks
-# and PRs that don't configure it skip silently. notify failure never blocks.
+# Pipeline result notification via chat webhook.
+# Uses python3 urllib (no curl dependency) for all HTTP calls.
 notify:webhook:
   image: python:3.11-slim
   tags:
     - openapi
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq curl
   stage: .post
   when: always
   allow_failure: true
   dependencies: []
   script:
     - |
-      if [ -z "$WEBHOOK_URL" ]; then
-        echo "WEBHOOK_URL not configured, skipping notification"
-        exit 0
-      fi
-      API="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}"
-      JOBS_JSON=$(curl --fail -sS --max-time 10 --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "${API}/pipelines/${CI_PIPELINE_ID}/jobs" 2>/dev/null || echo "")
-      # Decide pass/fail from job statuses rather than CI_PIPELINE_STATUS,
-      # which may still read "running" in a .post when:always job (GitLab
-      # known behaviour). jobs API returns name+status only — no trace/secrets.
-      # allow_failure soft-fails don't block the pipeline, so don't list them.
-      HAS_FAILED="no"
-      FAILED_JOBS=""
-      if [ -n "$JOBS_JSON" ] && command -v python3 >/dev/null 2>&1; then
-        OUT=$(printf '%s' "$JOBS_JSON" | python3 -c 'import sys,json; js=json.load(sys.stdin); failed=[j["name"] for j in js if j.get("status")=="failed" and not j.get("allow_failure")]; print("yes" if failed else "no"); print(", ".join(failed))' 2>/dev/null || printf 'no\n')
-        HAS_FAILED=$(printf '%s\n' "$OUT" | sed -n '1p')
-        FAILED_JOBS=$(printf '%s\n' "$OUT" | sed -n '2p')
-      else
-        echo "jobs API or python3 unavailable, falling back to CI_PIPELINE_STATUS"
-        if [ "$CI_PIPELINE_STATUS" != "success" ]; then HAS_FAILED="yes"; fi
-      fi
-      TITLE="✅ Pipeline passed"
-      COLOR="green"
-      if [ "$HAS_FAILED" = "yes" ]; then
-        TITLE="❌ Pipeline failed"
-        COLOR="red"
-      fi
-      CONTENT="**Repo:** ${CI_PROJECT_NAME}\n**Branch:** ${CI_COMMIT_REF_NAME}\n**Commit:** ${CI_COMMIT_SHORT_SHA}\n"
-      if [ -n "$FAILED_JOBS" ]; then
-        CONTENT="${CONTENT}\n**Failed jobs:** ${FAILED_JOBS}\n"
-      fi
-      TEST_REPORT=$(curl --fail -sS --max-time 10 --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "${API}/pipelines/${CI_PIPELINE_ID}/test_report" 2>/dev/null || echo "")
-      TEST_STATS=""
-      if [ -n "$TEST_REPORT" ] && command -v python3 >/dev/null 2>&1; then
-        TEST_STATS=$(printf '%s' "$TEST_REPORT" | python3 -c 'import sys,json; r=json.load(sys.stdin); t=r.get("total",{}); print(str(t.get("count",0))+" tests: "+str(t.get("success",0))+" passed, "+str(t.get("failed",0))+" failed, "+str(t.get("skipped",0))+" skipped")' 2>/dev/null)
-      fi
-      if [ -n "$TEST_STATS" ]; then
-        CONTENT="${CONTENT}\n**Tests:** ${TEST_STATS}\n"
-      fi
-      CONTENT="${CONTENT}[View pipeline](${CI_PROJECT_URL}/-/pipelines/${CI_PIPELINE_ID})"
-      PAYLOAD=$(cat <<EOF
-      {
-        "msg_type": "interactive",
-        "card": {
-          "header": {
-            "title": {"tag": "plain_text", "content": "$TITLE #${CI_PIPELINE_IID} — ${CI_PROJECT_NAME}"},
-            "template": "$COLOR"
-          },
-          "elements": [
-            {"tag": "div", "text": {"tag": os.environ["CARD_CONTENT_TAG"], "content": "$CONTENT"}}
-          ]
-        }
+      python3 << 'PYEOF'
+      import os, json, urllib.request, urllib.error
+
+      webhook_url = os.environ.get("WEBHOOK_URL", "")
+      if not webhook_url:
+          print("WEBHOOK_URL not configured, skipping notification")
+          exit(0)
+      card_content_tag = os.environ["CARD_CONTENT_TAG"]
+
+      api_base = os.environ["CI_API_V4_URL"]
+      project_id = os.environ["CI_PROJECT_ID"]
+      pipeline_id = os.environ["CI_PIPELINE_ID"]
+      job_token = os.environ["CI_JOB_TOKEN"]
+      headers = {"JOB-TOKEN": job_token}
+
+      # 1. Fetch jobs status
+      has_failed = False
+      failed_jobs = []
+      try:
+          url = f"{api_base}/projects/{project_id}/pipelines/{pipeline_id}/jobs"
+          req = urllib.request.Request(url, headers=headers)
+          with urllib.request.urlopen(req, timeout=10) as resp:
+              jobs = json.loads(resp.read())
+              failed_jobs = [j["name"] for j in jobs if j.get("status") == "failed" and not j.get("allow_failure")]
+              has_failed = len(failed_jobs) > 0
+      except Exception as e:
+          print(f"jobs API failed: {e}, falling back to CI_PIPELINE_STATUS")
+          status = os.environ.get("CI_PIPELINE_STATUS", "")
+          has_failed = status != "success"
+
+      # 2. Fetch test report
+      test_stats = ""
+      try:
+          url = f"{api_base}/projects/{project_id}/pipelines/{pipeline_id}/test_report"
+          req = urllib.request.Request(url, headers=headers)
+          with urllib.request.urlopen(req, timeout=10) as resp:
+              report = json.loads(resp.read())
+              t = report.get("total", {})
+              count = t.get("count", 0)
+              success = t.get("success", 0)
+              failed = t.get("failed", 0)
+              skipped = t.get("skipped", 0)
+              if count > 0:
+                  test_stats = f"{count} tests: {success} passed, {failed} failed, {skipped} skipped"
+      except Exception as e:
+          print(f"test_report API failed: {e}")
+
+      # 3. Build notification card
+      title = "❌ Pipeline failed" if has_failed else "✅ Pipeline passed"
+      color = "red" if has_failed else "green"
+      project_name = os.environ.get("CI_PROJECT_NAME", "")
+      branch = os.environ.get("CI_COMMIT_REF_NAME", "")
+      commit = os.environ.get("CI_COMMIT_SHORT_SHA", "")
+      pipeline_iid = os.environ.get("CI_PIPELINE_IID", "")
+      pipeline_url = os.environ.get("CI_PROJECT_URL", "") + "/-/pipelines/" + os.environ.get("CI_PIPELINE_ID", "")
+
+      content = f"**Repo:** {project_name}\n**Branch:** {branch}\n**Commit:** {commit}\n"
+      if failed_jobs:
+          content += f"\n**Failed jobs:** {', '.join(failed_jobs)}\n"
+      if test_stats:
+          content += f"\n**Tests:** {test_stats}\n"
+      content += f"[View pipeline]({pipeline_url})"
+
+      payload = {
+          "msg_type": "interactive",
+          "card": {
+              "header": {
+                  "title": {"tag": "plain_text", "content": f"{title} #{pipeline_iid} — {project_name}"},
+                  "template": color
+              },
+              "elements": [
+                  {"tag": "div", "text": {"tag": card_content_tag, "content": content}}
+              ]
+          }
       }
-      EOF
-      )
-      curl --fail -sS --max-time 10 -X POST "$WEBHOOK_URL" \
-        -H 'Content-Type: application/json' \
-        -d "$PAYLOAD"
+
+      data = json.dumps(payload).encode("utf-8")
+      req = urllib.request.Request(webhook_url, data=data, headers={"Content-Type": "application/json"})
+      try:
+          with urllib.request.urlopen(req, timeout=10) as resp:
+              result = json.loads(resp.read())
+              print(f"Webhook response: {result}")
+      except Exception as e:
+          print(f"Webhook request failed: {e}")
+      PYEOF
