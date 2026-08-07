@@ -73,7 +73,6 @@ notify:webhook:
     - job: integration:python
       artifacts: true
   script:
-    - ls -la test-results/ 2>/dev/null || echo "no test-results dir"
     - |
       python3 << 'PYEOF'
       import os, json, urllib.request, glob
@@ -85,38 +84,31 @@ notify:webhook:
           exit(0)
       card_content_tag = os.environ["CARD_CONTENT_TAG"]
 
-      # 1. Parse JUnit XML artifacts for test stats
-      total = 0
-      passed = 0
-      failed = 0
-      skipped = 0
-      xml_files = glob.glob("test-results/*.xml")
-      print(f"Found XML files: {xml_files}")
-      for xml_file in xml_files:
+      # 1. Parse JUnit XML artifacts — split unit/integration stats
+      def parse_xml(path):
+          t, f, s = 0, 0, 0
           try:
-              tree = ET.parse(xml_file)
+              tree = ET.parse(path)
               root = tree.getroot()
               for suite in root.iter("testsuite"):
-                  t = int(suite.get("tests", 0))
-                  f = int(suite.get("failures", 0)) + int(suite.get("errors", 0))
-                  s = int(suite.get("skipped", 0))
-                  total += t
-                  failed += f
-                  skipped += s
-              passed = total - failed - skipped
-              print(f"Parsed {xml_file}: total={total} failed={failed} skipped={skipped}")
+                  t += int(suite.get("tests", 0))
+                  f += int(suite.get("failures", 0)) + int(suite.get("errors", 0))
+                  s += int(suite.get("skipped", 0))
           except Exception as e:
-              print(f"Failed to parse {xml_file}: {e}")
+              print(f"Failed to parse {path}: {e}")
+          return t, t - f - s, f, s
 
-      test_stats = ""
-      if total > 0:
-          test_stats = f"{total} tests: {passed} passed, {failed} failed, {skipped} skipped"
-          print(f"Test stats: {test_stats}")
+      unit_t, unit_p, unit_f, unit_s = parse_xml("test-results/unit.xml")
+      integ_t, integ_p, integ_f, integ_s = parse_xml("test-results/integ.xml")
 
-      # 2. Determine pass/fail from CI_PIPELINE_STATUS
-      status = os.environ.get("CI_PIPELINE_STATUS", "unknown")
-      has_failed = status == "failed"
-      print(f"Pipeline status: {status}, has_failed: {has_failed}")
+      unit_stats = f"Unit: {unit_t} tests: {unit_p} passed, {unit_f} failed, {unit_s} skipped" if unit_t > 0 else ""
+      integ_stats = f"Integration: {integ_t} tests: {integ_p} passed, {integ_f} failed, {integ_s} skipped" if integ_t > 0 else ""
+
+      # 2. Determine pass/fail: unit test failures = pipeline failed
+      has_failed = unit_f > 0
+      status = os.environ.get("CI_PIPELINE_STATUS", "")
+      if status == "failed":
+          has_failed = True
 
       # 3. Build notification card
       title = "❌ Pipeline failed" if has_failed else "✅ Pipeline passed"
@@ -128,8 +120,10 @@ notify:webhook:
       pipeline_url = os.environ.get("CI_PROJECT_URL", "") + "/-/pipelines/" + os.environ.get("CI_PIPELINE_ID", "")
 
       content = f"**Repo:** {project_name}\n**Branch:** {branch}\n**Commit:** {commit}\n"
-      if test_stats:
-          content += f"\n**Tests:** {test_stats}\n"
+      if unit_stats:
+          content += f"\n**Unit tests:** {unit_stats}\n"
+      if integ_stats:
+          content += f"**Integration tests:** {integ_stats}\n"
       content += f"[View pipeline]({pipeline_url})"
 
       payload = {
