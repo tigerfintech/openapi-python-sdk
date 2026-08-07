@@ -69,6 +69,7 @@ notify:webhook:
     - job: integration:python
       artifacts: true
   script:
+    - ls -la test-results/ 2>/dev/null || echo "no test-results dir"
     - |
       python3 << 'PYEOF'
       import os, json, urllib.request, glob
@@ -84,11 +85,12 @@ notify:webhook:
       passed = 0
       failed = 0
       skipped = 0
-      for xml_file in glob.glob("test-results/*.xml"):
+      xml_files = glob.glob("test-results/*.xml")
+      print(f"Found XML files: {xml_files}")
+      for xml_file in xml_files:
           try:
               tree = ET.parse(xml_file)
               root = tree.getroot()
-              # JUnit XML: <testsuite tests="N" failures="M" errors="E" skipped="S">
               for suite in root.iter("testsuite"):
                   t = int(suite.get("tests", 0))
                   f = int(suite.get("failures", 0)) + int(suite.get("errors", 0))
@@ -97,18 +99,19 @@ notify:webhook:
                   failed += f
                   skipped += s
               passed = total - failed - skipped
+              print(f"Parsed {xml_file}: total={total} failed={failed} skipped={skipped}")
           except Exception as e:
               print(f"Failed to parse {xml_file}: {e}")
 
       test_stats = ""
       if total > 0:
           test_stats = f"{total} tests: {passed} passed, {failed} failed, {skipped} skipped"
+          print(f"Test stats: {test_stats}")
 
       # 2. Determine pass/fail from CI_PIPELINE_STATUS
-      # In .post when:always, CI_PIPELINE_STATUS may be "running" —
-      # only "failed" means actual failure.
       status = os.environ.get("CI_PIPELINE_STATUS", "unknown")
       has_failed = status == "failed"
+      print(f"Pipeline status: {status}, has_failed: {has_failed}")
 
       # 3. Build Feishu card
       title = "❌ Pipeline failed" if has_failed else "✅ Pipeline passed"
