@@ -39,6 +39,15 @@ _PERMISSION_ERROR_KEYWORDS = (
     "access forbidden", "forbidden", "no permission", "not supported",
     "license", "not open", "not enabled", "not available for this account",
     "no token", "TBNZ",
+    # Symbol / instrument-level boundaries — the SDK marshaled fine, the
+    # server just refuses this particular symbol for this account.
+    "don't support trading of this stock",
+    "don’t support trading",  # smart quote variant
+    "unsupported instrument", "instrument not tradable",
+    # Session/state boundaries where only certain order types are accepted.
+    "only limit orders are supported",
+    "outside of regular trading hours",
+    "market is closed",
 )
 
 # Error messages we treat as terminal-order tolerance (order state race).
@@ -46,6 +55,12 @@ _TERMINAL_ORDER_KEYWORDS = (
     "cannot be modified", "cannot be cancelled", "cannot be canceled",
     "already cancelled", "already canceled", "already filled",
     "not in a modifiable state", "invalid order status",
+)
+
+# Rate-limit signal — retry with backoff instead of failing.
+_RATE_LIMIT_KEYWORDS = (
+    "too_many_requests", "rate limit", "requestrateexceedlimit",
+    "rate exceeded",
 )
 
 logger = logging.getLogger(__name__)
@@ -218,6 +233,27 @@ class TestIntegTradeClient(unittest.TestCase):
                 raise
             logger.info(f"Order {order_id} already terminated — skipping cancel: {e}")
 
+    def _place_with_rate_limit_retry(self, order, *, context, max_retries=3):
+        """place_order with exponential backoff on 'too_many_requests'.
+
+        Returns order id on success; None if we hit a permission boundary
+        (test should treat as skip).
+        """
+        import time
+        delay = 1.0
+        for attempt in range(max_retries):
+            try:
+                return self.client.place_order(order=order)
+            except ApiException as e:
+                msg = str(e).lower()
+                if any(k in msg for k in _RATE_LIMIT_KEYWORDS) and attempt < max_retries - 1:
+                    logger.info(f"{context}: rate-limited (attempt {attempt+1}), backing off {delay}s")
+                    time.sleep(delay)
+                    delay *= 2
+                    continue
+                # Not rate-limit, or ran out of retries — surface to caller.
+                raise
+
     def _preview_and_place(self, order, *, context=""):
         """Preview → place → cancel round-trip; skip on permission errors.
 
@@ -233,7 +269,7 @@ class TestIntegTradeClient(unittest.TestCase):
 
         # 2. Place, then cancel.
         try:
-            order_id = self.client.place_order(order=order)
+            order_id = self._place_with_rate_limit_retry(order, context=context)
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, f"{context} place")
             return None
