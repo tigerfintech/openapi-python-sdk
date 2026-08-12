@@ -108,7 +108,6 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_place_order(self):
-        self.skipTest("Under regulatory requirements — order placement not supported for this account")
         contract = stock_contract(symbol='AAPL', currency='USD')
         order = limit_order(account=self.client_config.account,
                             contract=contract,
@@ -124,7 +123,6 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_place_iceberg_order(self):
-        self.skipTest("Under regulatory requirements — order placement not supported for this account")
         import time
         now_ms = int(time.time() * 1000)
         start_time = now_ms
@@ -157,7 +155,6 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_cancel_order(self):
-        self.skipTest("Under regulatory requirements — order placement not supported for this account")
         # Place an order first, then cancel it — no hardcoded order ID
         contract = stock_contract(symbol='AAPL', currency='USD')
         order = limit_order(account=self.client_config.account,
@@ -179,7 +176,6 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_modify_order(self):
-        self.skipTest("Under regulatory requirements — order placement not supported for this account")
         contract = stock_contract(symbol='AAPL', currency='USD')
         order = limit_order(account=self.client_config.account,
                             contract=contract,
@@ -199,7 +195,6 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_transfer_position(self):
-        self.skipTest("Under regulatory requirements — position transfer not supported for this account")
         transfers = [TransferItem(symbol="AAPL", quantity=10)]
         result = self.client.transfer_position(from_account="1001", to_account="1002", transfers=transfers, market="US")
         logger.debug(f"Transfer Position Result: {result}")
@@ -220,7 +215,6 @@ class TestIntegTradeClient(unittest.TestCase):
         logger.debug(f"Position Transfer Records: {result}")
 
     def test_get_position_transfer_detail(self):
-        self.skipTest("Position transfer detail query exceeds max date limit")
         records = self.client.get_position_transfer_records(since_date="2025-01-01", to_date="2025-01-02")
         if not records:
             self.skipTest("No position transfer records available to query detail")
@@ -234,7 +228,6 @@ class TestIntegTradeClient(unittest.TestCase):
         logger.debug(f"Position Transfer Detail: {result}")
 
     def test_get_position_transfer_external_records(self):
-        self.skipTest("Access forbidden — insufficient permissions for external transfer records")
         result = self.client.get_position_transfer_external_records(account_id="1001", since_date="2025-01-01", to_date="2025-01-02")
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
