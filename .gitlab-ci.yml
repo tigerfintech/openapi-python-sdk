@@ -23,7 +23,12 @@ stages:
     # the runner cannot reach from inside the container.
     PIP_INDEX_URL: "https://pypi.tuna.tsinghua.edu.cn/simple"
   before_script:
-    - pip install --quiet -e .
+    # Pre-install setuptools/wheel so `pip install -e .` can use them via
+    # --no-build-isolation. Build isolation would spawn an ephemeral venv
+    # that ignores PIP_INDEX_URL under some pip versions, causing the
+    # subprocess to hit pypi.org (unreachable from this runner).
+    - pip install --quiet --upgrade "setuptools>=64" wheel
+    - pip install --quiet --no-build-isolation -e .
     - pip install --quiet pytest pytest-cov
 
 unit:python:
