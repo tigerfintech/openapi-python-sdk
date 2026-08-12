@@ -16,9 +16,15 @@ stages:
   image: python:3.11-slim
   tags:
     - openapi
+  variables:
+    # Use PIP_INDEX_URL so build-system subprocesses (setuptools, wheel, …)
+    # inherit the mirror; the `-i` flag applies only to the outer pip call
+    # and setuptools>=64 would otherwise be looked up at pypi.org — which
+    # the runner cannot reach from inside the container.
+    PIP_INDEX_URL: "https://pypi.tuna.tsinghua.edu.cn/simple"
   before_script:
-    - pip install --quiet -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
-    - pip install --quiet pytest pytest-cov -i https://pypi.tuna.tsinghua.edu.cn/simple
+    - pip install --quiet -e .
+    - pip install --quiet pytest pytest-cov
 
 unit:python:
   extends: .python_base
