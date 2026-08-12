@@ -48,6 +48,9 @@ _PERMISSION_ERROR_KEYWORDS = (
     "only limit orders are supported",
     "outside of regular trading hours",
     "market is closed",
+    # Cash-order-by-amount restricted to market order on this account tier.
+    "only trade cash order by market order",
+    "cash order by market order",
 )
 
 # Error messages we treat as terminal-order tolerance (order state race).
