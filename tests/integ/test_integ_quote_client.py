@@ -972,11 +972,11 @@ class TestIntegQuoteClient(unittest.TestCase):
 
     def test_get_quote_permission(self):
         result = self.client.get_quote_permission()
-        # Quote permission may be None if account has no active permissions
+        # Permission entries may be None if the account has no active market data access
         if result is None:
-            self.skipTest("Quote permission is None — account may have no active permissions")
+            self.skipTest("Permission entries are unavailable; the account may have no active market data access")
         self.assertIsInstance(result, list)
-        logger.debug(f"Quote Permission:\n {result}")
+        logger.debug(f"Market data permissions:\n {result}")
 
     def test_get_warrant_filter(self):
         result = self.client.get_warrant_filter(symbol='00700',
@@ -1065,3 +1065,163 @@ class TestIntegQuoteClient(unittest.TestCase):
         result = self.client.get_quote_overnight(symbols=['AAPL'])
         self.assertIsNotNone(result)
         logger.debug(f"Quote Overnight:\n {result}")
+
+    # ── K线时间范围与OHLC约束测试 ───────────────────────────────────────
+
+    def test_get_bars_daily_30day_ohlc_us_hk(self):
+        """30天日K，断言 bar 数量、时间戳升序、OHLC 合法性 (US + HK)"""
+        import time as _time
+        end_time = int(_time.time() * 1000)
+        begin_time = end_time - 30 * 24 * 3600 * 1000  # 30 calendar days ago
+        for symbol in ['AAPL', '00700']:
+            with self.subTest(symbol=symbol):
+                result = self.client.get_bars(
+                    symbols=[symbol],
+                    period=BarPeriod.DAY,
+                    begin_time=begin_time,
+                    end_time=end_time,
+                )
+                self.assertIsInstance(result, pd.DataFrame)
+                self._skip_if_empty(result, f'Daily Bars ({symbol})')
+                self.assertGreaterEqual(
+                    len(result), 15,
+                    f"{symbol}: expected >= 15 trading bars in a 30-day window")
+                # Timestamps strictly ascending
+                times = result['time'].tolist()
+                for i in range(1, len(times)):
+                    self.assertGreater(
+                        times[i], times[i - 1],
+                        f"{symbol}: bar timestamps must be strictly ascending (index {i})")
+                # OHLC integrity: High >= max(Open,Close) >= min(Open,Close) >= Low, Volume >= 0
+                for idx, row in result.iterrows():
+                    hi, lo = row['high'], row['low']
+                    op, cl = row['open'], row['close']
+                    self.assertGreaterEqual(
+                        hi, max(op, cl),
+                        f"{symbol} bar@{row['time']}: high({hi}) < max(open,close)({max(op,cl)})")
+                    self.assertLessEqual(
+                        lo, min(op, cl),
+                        f"{symbol} bar@{row['time']}: low({lo}) > min(open,close)({min(op,cl)})")
+                    self.assertGreaterEqual(
+                        row['volume'], 0,
+                        f"{symbol} bar@{row['time']}: volume must be >= 0")
+        logger.debug("30-day daily OHLC constraint test passed for AAPL and 00700")
+
+    def test_get_bars_60min_5day_ohlc_us_hk(self):
+        """5天60分钟K，断言 bar 数量、时间戳升序、OHLC 合法性 (US + HK)"""
+        import time as _time
+        end_time = int(_time.time() * 1000)
+        begin_time = end_time - 5 * 24 * 3600 * 1000  # 5 calendar days ago
+        for symbol in ['AAPL', '00700']:
+            with self.subTest(symbol=symbol):
+                result = self.client.get_bars(
+                    symbols=[symbol],
+                    period=BarPeriod.ONE_HOUR,
+                    begin_time=begin_time,
+                    end_time=end_time,
+                )
+                self.assertIsInstance(result, pd.DataFrame)
+                self._skip_if_empty(result, f'60min Bars ({symbol})')
+                self.assertGreaterEqual(
+                    len(result), 5,
+                    f"{symbol}: expected >= 5 bars in a 5-day 60min window")
+                # Timestamps strictly ascending
+                times = result['time'].tolist()
+                for i in range(1, len(times)):
+                    self.assertGreater(
+                        times[i], times[i - 1],
+                        f"{symbol}: bar timestamps must be strictly ascending (index {i})")
+                # OHLC integrity
+                for idx, row in result.iterrows():
+                    hi, lo = row['high'], row['low']
+                    op, cl = row['open'], row['close']
+                    self.assertGreaterEqual(
+                        hi, max(op, cl),
+                        f"{symbol} bar@{row['time']}: high({hi}) < max(open,close)({max(op,cl)})")
+                    self.assertLessEqual(
+                        lo, min(op, cl),
+                        f"{symbol} bar@{row['time']}: low({lo}) > min(open,close)({min(op,cl)})")
+                    self.assertGreaterEqual(
+                        row['volume'], 0,
+                        f"{symbol} bar@{row['time']}: volume must be >= 0")
+        logger.debug("5-day 60min OHLC constraint test passed for AAPL and 00700")
+
+    # ── 盘口价格合理性测试 ──────────────────────────────────────────────
+
+    def test_get_depth_quote_spread_us_hk(self):
+        """盘口合理性: asks 升序、bids 降序、lowestAsk >= highestBid、所有价格 > 0 (AAPL + 00700)"""
+        test_cases = [
+            ('AAPL', Market.US),
+            ('00700', Market.HK),
+        ]
+        for symbol, market in test_cases:
+            with self.subTest(symbol=symbol, market=market):
+                result = self.client.get_depth_quote(symbols=[symbol], market=market)
+                self.assertIsNotNone(result)
+                # Single-symbol call: result may be the order book dict directly
+                # or keyed by symbol — normalise to order_book
+                if isinstance(result, dict) and 'asks' in result:
+                    order_book = result
+                elif isinstance(result, dict) and symbol in result:
+                    order_book = result[symbol]
+                else:
+                    self.skipTest(
+                        f"Depth quote data unavailable for {symbol} — non-trading hours or unsupported")
+                    return
+                asks = order_book.get('asks', [])
+                bids = order_book.get('bids', [])
+                if not asks or not bids:
+                    self.skipTest(
+                        f"Depth quote asks/bids empty for {symbol} — non-trading hours")
+                    return
+                ask_prices = [a[0] for a in asks]
+                bid_prices = [b[0] for b in bids]
+                # All prices > 0
+                for p in ask_prices:
+                    self.assertGreater(p, 0, f"{symbol}: ask price {p} must be > 0")
+                for p in bid_prices:
+                    self.assertGreater(p, 0, f"{symbol}: bid price {p} must be > 0")
+                # Asks sorted ascending by price
+                self.assertEqual(
+                    ask_prices, sorted(ask_prices),
+                    f"{symbol}: asks must be sorted ascending by price, got {ask_prices}")
+                # Bids sorted descending by price
+                self.assertEqual(
+                    bid_prices, sorted(bid_prices, reverse=True),
+                    f"{symbol}: bids must be sorted descending by price, got {bid_prices}")
+                # Spread non-negative: lowest ask >= highest bid
+                lowest_ask = ask_prices[0]
+                highest_bid = bid_prices[0]
+                self.assertGreaterEqual(
+                    lowest_ask, highest_bid,
+                    f"{symbol}: lowestAsk({lowest_ask}) < highestBid({highest_bid}) — negative spread")
+        logger.debug("Depth quote spread test passed for AAPL(US) and 00700(HK)")
+
+    # ── 多市场实时行情 ─────────────────────────────────────────────────
+
+    def test_get_briefs_multi_market_realtime(self):
+        """多市场实时行情: LatestPrice > 0, High >= Low, AskPrice >= BidPrice (AAPL/00700/09988)"""
+        result = self.client.get_briefs(
+            symbols=['AAPL', '00700', '09988'],
+            include_hour_trading=True,
+            include_ask_bid=True,
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        self._skip_if_empty(result, 'Multi-market Realtime Briefs')
+        for brief in result:
+            self.assertIsInstance(brief, QuoteBrief)
+            self.assertGreater(
+                brief.latest_price, 0,
+                f"{brief.symbol}: latest_price({brief.latest_price}) must be > 0")
+            # High >= Low when both non-zero
+            if brief.high_price and brief.low_price:
+                self.assertGreaterEqual(
+                    brief.high_price, brief.low_price,
+                    f"{brief.symbol}: high({brief.high_price}) < low({brief.low_price})")
+            # AskPrice >= BidPrice when both non-zero
+            if brief.ask_price and brief.bid_price:
+                self.assertGreaterEqual(
+                    brief.ask_price, brief.bid_price,
+                    f"{brief.symbol}: ask({brief.ask_price}) < bid({brief.bid_price})")
+        logger.debug(f"Multi-market Realtime Briefs:\n {result}")
