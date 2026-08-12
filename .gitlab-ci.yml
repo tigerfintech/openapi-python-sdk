@@ -17,18 +17,16 @@ stages:
   tags:
     - openapi
   variables:
-    # Use PIP_INDEX_URL so build-system subprocesses (setuptools, wheel, …)
-    # inherit the mirror; the `-i` flag applies only to the outer pip call
-    # and setuptools>=64 would otherwise be looked up at pypi.org — which
-    # the runner cannot reach from inside the container.
-    PIP_INDEX_URL: "https://pypi.tuna.tsinghua.edu.cn/simple"
+    # Runner sits inside Aliyun; the aliyun PyPI mirror is more reliable
+    # than tsinghua from this network. PIP_INDEX_URL is inherited by any
+    # spawned pip subprocess (build isolation, etc.).
+    PIP_INDEX_URL: "https://mirrors.aliyun.com/pypi/simple/"
+    PIP_TRUSTED_HOST: "mirrors.aliyun.com"
   before_script:
-    # Pre-install setuptools/wheel so `pip install -e .` can use them via
-    # --no-build-isolation. Build isolation would spawn an ephemeral venv
-    # that ignores PIP_INDEX_URL under some pip versions, causing the
-    # subprocess to hit pypi.org (unreachable from this runner).
+    # Sanity check: prove pip can reach the index at all before installing.
+    - pip config list
     - pip install --quiet --upgrade "setuptools>=64" wheel
-    - pip install --quiet --no-build-isolation -e .
+    - pip install -v -e . 2>&1 | tail -80
     - pip install --quiet pytest pytest-cov
 
 unit:python:
