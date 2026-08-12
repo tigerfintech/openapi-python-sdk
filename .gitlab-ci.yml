@@ -23,10 +23,8 @@ stages:
     PIP_INDEX_URL: "https://mirrors.aliyun.com/pypi/simple/"
     PIP_TRUSTED_HOST: "mirrors.aliyun.com"
   before_script:
-    # Sanity check: prove pip can reach the index at all before installing.
-    - pip config list
     - pip install --quiet --upgrade "setuptools>=64" wheel
-    - pip install -v -e . 2>&1 | tail -80
+    - pip install --quiet -e .
     - pip install --quiet pytest pytest-cov
 
 unit:python:
