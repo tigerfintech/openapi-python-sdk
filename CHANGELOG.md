@@ -563,8 +563,8 @@ QuoteClient 期货实时行情接口增加字段 `open_interest_change`
 ### Breaking
 - 下单 `TradeClient.place_order`, 改单 `TradeClient.modify_order`, 撤单 `TradeClient.cancel_order` 三个接口返回值，由之前的
   `True` 或 `False` 改为订单 id
-- 行情权限抢占，改为在 `QuoteClient` 初始化时默认自动抢占，提供参数 `is_grab_permission` 可配置为不自动抢占。若该参数设置为 `False`, 
-  则需用户自行调用 `QuoteClient.grab_quote_permission()` 进行行情权限抢占
+- 抢占行情设备访问权，改为在 `QuoteClient` 初始化时默认自动执行，提供参数 `is_grab_permission` 可配置为不自动抢占。若该参数设置为 `False`,
+  则需用户自行调用 `QuoteClient.grab_quote_permission()` 抢占行情设备访问权
 
 
 ## 2.0.7 (2022-01-31)
@@ -598,7 +598,7 @@ QuoteClient 期货实时行情接口增加字段 `open_interest_change`
 - 去除 pandas 固定版本号, 方便安装时灵活指定版本
 
 ### Breaking
-- 行情权限抢占接口 QuoteClient.grab_quote_permission 返回的数据项中，'expireAt' 字段格式转换为 'expire_at'
+- 抢占行情设备访问权接口 `QuoteClient.grab_quote_permission` 返回的数据项中，`expireAt` 字段格式转换为 `expire_at`
 
 ## 2.0.4 (2021-12-08)
 ### New
@@ -621,7 +621,7 @@ QuoteClient 期货实时行情接口增加字段 `open_interest_change`
 ## 1.4.0 (2021-06-28)
 ### New
 -  新增深度行情查询及订阅
--  新增行情权限抢占接口
+-  新增抢占行情设备访问权接口
 
 ## 1.2.0 (2020-04-02)
 ### New

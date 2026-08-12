@@ -129,7 +129,7 @@ class QuoteClient(TigerOpenClient):
         self.permissions = None
         if is_grab_permission and self.permissions is None:
             self.permissions = self.grab_quote_permission()
-            self.logger.info('Grab quote permission. Permissions:' +
+            self.logger.info('Claimed market data device access. Permission entries:' +
                              str(self.permissions))
 
     def __fetch_data(self, request):
@@ -2833,7 +2833,7 @@ class QuoteClient(TigerOpenClient):
 
     def grab_quote_permission(self):
         """
-        抢占行情权限
+        抢占行情设备访问权
         :return: 权限列表。expire_at 为-1时表示长期有效
         示例: [{'name': 'usQuoteBasic', 'expire_at': 1621931026000},
               {'name': 'usStockQuoteLv2Totalview', 'expire_at': 1621931026000},
@@ -2852,7 +2852,7 @@ class QuoteClient(TigerOpenClient):
 
     def get_quote_permission(self):
         """
-        查询行情权限。query quote permissions
+        查询行情权限。Query market data permission entries.
         :return: 权限列表。expire_at 为-1时表示长期有效
         示例: [{'name': 'usQuoteBasic', 'expire_at': 1621931026000},
               {'name': 'usStockQuoteLv2Totalview', 'expire_at': 1621931026000},
