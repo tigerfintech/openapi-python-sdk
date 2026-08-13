@@ -975,3 +975,157 @@ class TestIntegTradeClient(unittest.TestCase):
         except (ApiException, ValueError, Exception) as e:
             logger.debug(f"Preview correctly rejected invalid price: {e}")
             # Do not assert; both accept + reject are semantically valid here.
+
+    # ==================================================================
+    # Phase 2 — HK / CN / SG market coverage
+    # ==================================================================
+    # HK safe prices differ from US because HKD prices sit in the 1-1000
+    # HKD range; SAFE_BUY_PRICE=0.01 works, SAFE_SELL_PRICE=999999 works.
+    # HK STK lot sizes vary (typically 100/200/500); use quantity=100 as
+    # a safe default for the tested symbols.
+
+    @pytest.mark.integ
+    def test_place_hk_stk_limit(self):
+        """HK STK — LMT, Tencent (00700)."""
+        contract = stock_contract(symbol='00700', currency='HKD')
+        order = limit_order(account=self.client_config.account,
+                            contract=contract, action='BUY', quantity=100,
+                            limit_price=SAFE_BUY_PRICE)
+        try:
+            self._preview_and_place(order, context="HK STK LMT")
+        except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, "HK STK LMT")
+
+    @pytest.mark.integ
+    def test_place_hk_stk_auction_limit(self):
+        """HK STK — Auction Limit (AL) — only accepted during HK auction sessions."""
+        contract = stock_contract(symbol='00700', currency='HKD')
+        order = auction_limit_order(account=self.client_config.account,
+                                    contract=contract, action='BUY',
+                                    quantity=100, limit_price=SAFE_BUY_PRICE)
+        try:
+            self._preview_and_place(order, context="HK STK AL")
+        except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, "HK STK AL")
+
+    @pytest.mark.integ
+    def test_place_hk_stk_auction_market(self):
+        """HK STK — Auction Market (AM) — preview only (AM would fill at auction)."""
+        contract = stock_contract(symbol='00700', currency='HKD')
+        order = auction_market_order(account=self.client_config.account,
+                                     contract=contract, action='BUY',
+                                     quantity=100)
+        try:
+            result = self.client.preview_order(order=order)
+            self.assertIsNotNone(result)
+            logger.debug(f"HK STK AM preview: {result}")
+        except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, "HK STK AM preview")
+
+    @pytest.mark.integ
+    def test_place_hk_stk_bracket_with_legs(self):
+        """HK STK — LMT + attached profit/loss legs (bracket order)."""
+        contract = stock_contract(symbol='00700', currency='HKD')
+        legs = [
+            order_leg(leg_type='PROFIT', price=SAFE_SELL_PRICE,
+                     time_in_force='GTC'),
+            order_leg(leg_type='LOSS', price=SAFE_BUY_PRICE,
+                     time_in_force='GTC'),
+        ]
+        order = limit_order_with_legs(account=self.client_config.account,
+                                      contract=contract, action='BUY',
+                                      quantity=100, limit_price=SAFE_BUY_PRICE,
+                                      order_legs=legs)
+        try:
+            self._preview_and_place(order, context="HK STK LMT+legs")
+        except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, "HK STK LMT+legs")
+
+    @pytest.mark.integ
+    def test_place_hk_opt_limit(self):
+        """HK OPT — LMT, best-effort discovery of a Tencent option contract."""
+        try:
+            future_expiry = (datetime.now() + timedelta(days=60)).strftime('%Y%m%d')
+            contracts = self.client.get_derivative_contracts(
+                symbol='00700', sec_type=SecurityType.OPT, expiry=future_expiry)
+            if not contracts:
+                self.skipTest("No HK option contracts available for 00700")
+            c = contracts[0]
+            contract = option_contract_by_symbol(
+                symbol=c.symbol or '00700', expiry=c.expiry,
+                strike=c.strike, put_call=c.put_call,
+                currency='HKD', multiplier=c.multiplier or 100,
+                contract_id=c.contract_id)
+        except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, "HK OPT discovery")
+            return
+
+        order = limit_order(account=self.client_config.account,
+                            contract=contract, action='BUY', quantity=1,
+                            limit_price=SAFE_BUY_PRICE)
+        try:
+            self._preview_and_place(order, context="HK OPT LMT")
+        except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, "HK OPT LMT")
+
+    @pytest.mark.integ
+    def test_place_hk_war_limit(self):
+        """HK WAR (warrant) — LMT."""
+        contract = self._resolve_hk_warrant_contract()
+        if contract is None:
+            self.skipTest("Could not resolve an HK warrant contract")
+        order = limit_order(account=self.client_config.account,
+                            contract=contract, action='BUY', quantity=100,
+                            limit_price=SAFE_BUY_PRICE)
+        try:
+            self._preview_and_place(order, context="HK WAR LMT")
+        except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, "HK WAR LMT")
+
+    @pytest.mark.integ
+    def test_place_hk_iopt_limit(self):
+        """HK IOPT (callable bull/bear) — LMT."""
+        contract = self._resolve_hk_iopt_contract()
+        if contract is None:
+            self.skipTest("Could not resolve an HK IOPT contract")
+        order = limit_order(account=self.client_config.account,
+                            contract=contract, action='BUY', quantity=100,
+                            limit_price=SAFE_BUY_PRICE)
+        try:
+            self._preview_and_place(order, context="HK IOPT LMT")
+        except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, "HK IOPT LMT")
+
+    @pytest.mark.integ
+    def test_place_cn_stk_limit(self):
+        """CN STK (A-share) — LMT. Uses Ping An Bank 000001.SZ.
+
+        CN stocks trade in 100-share lots (手). Account may lack Stock
+        Connect / A-share license — expect auto-skip if so.
+        """
+        # A-share symbols use exchange suffix (.SH / .SZ). SDK helper
+        # accepts them as regular symbol strings.
+        contract = stock_contract(symbol='000001', currency='CNH',
+                                  exchange='SEHKSZSE')
+        order = limit_order(account=self.client_config.account,
+                            contract=contract, action='BUY', quantity=100,
+                            limit_price=SAFE_BUY_PRICE)
+        try:
+            self._preview_and_place(order, context="CN STK LMT")
+        except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, "CN STK LMT")
+
+    @pytest.mark.integ
+    def test_place_sg_stk_limit(self):
+        """SG STK — LMT. Uses DBS Group (D05).
+
+        SG market permission likely account-tier dependent.
+        """
+        contract = stock_contract(symbol='D05', currency='SGD')
+        order = limit_order(account=self.client_config.account,
+                            contract=contract, action='BUY', quantity=100,
+                            limit_price=SAFE_BUY_PRICE)
+        try:
+            self._preview_and_place(order, context="SG STK LMT")
+        except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, "SG STK LMT")
