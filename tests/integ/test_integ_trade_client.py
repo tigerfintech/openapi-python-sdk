@@ -48,6 +48,15 @@ _PERMISSION_ERROR_KEYWORDS = (
     "only limit orders are supported",
     "outside of regular trading hours",
     "market is closed",
+    "only limit orders can be placed",
+    "only limit, stop or stop-limit orders are allowed",
+    "at non-trading hour",
+    "orders cannot be placed at this moment",
+    "auction order is not allowed at this moment",
+    # Account-level market permission (e.g. no A-share license).
+    "does not support stock long",
+    "does not support stock short",
+    "does not support",
     # Cash-order-by-amount restricted to market order on this account tier.
     "only trade cash order by market order",
     "cash order by market order",
