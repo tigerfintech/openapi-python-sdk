@@ -1226,6 +1226,7 @@ class TestIntegTradeClient(unittest.TestCase):
             account=self.client_config.account,
             contract=contract, action='BUY', quantity=10,
             limit_price=SAFE_BUY_PRICE, display_size=2,
+            min_display_size=1, check_intervals=30,
             start_time=now_ms, end_time=now_ms + 3_600_000,
         )
         try:
