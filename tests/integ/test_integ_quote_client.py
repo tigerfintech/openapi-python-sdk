@@ -884,6 +884,248 @@ class TestIntegQuoteClient(unittest.TestCase):
         self.assertIsNotNone(first['method'])
         logger.debug(f"Kline Quota:\n {result}")
 
+    # ── get_kline tests (US daily, US weekly, HK daily) ───────────────
+
+    def test_get_kline_us_daily(self):
+        """US daily kline — assert volume and open fields."""
+        import time as _time
+        end_time = int(_time.time() * 1000)
+        begin_time = end_time - 30 * 24 * 3600 * 1000
+        result = self.client.get_kline(symbols=['AAPL'],
+                                       period=BarPeriod.DAY,
+                                       begin_time=begin_time,
+                                       end_time=end_time,
+                                       limit=10)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty)
+        self.assertIn('symbol', result.columns)
+        self.assertIn('open', result.columns)
+        self.assertIn('volume', result.columns)
+        first = result.iloc[0]
+        self.assertEqual(first['symbol'], 'AAPL')
+        self.assertGreater(first['open'], 0)
+        self.assertGreaterEqual(first['volume'], 0)
+        logger.debug(f"Kline US daily:\n {result}")
+
+    def test_get_kline_us_weekly(self):
+        """US weekly kline — period=week variant."""
+        import time as _time
+        end_time = int(_time.time() * 1000)
+        begin_time = end_time - 180 * 24 * 3600 * 1000
+        result = self.client.get_kline(symbols=['AAPL'],
+                                       period=BarPeriod.WEEK,
+                                       begin_time=begin_time,
+                                       end_time=end_time,
+                                       limit=10)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty)
+        self.assertIn('open', result.columns)
+        self.assertIn('volume', result.columns)
+        first = result.iloc[0]
+        self.assertGreater(first['open'], 0)
+        self.assertGreaterEqual(first['volume'], 0)
+        logger.debug(f"Kline US weekly:\n {result}")
+
+    def test_get_kline_hk_daily(self):
+        """HK daily kline — market=HK variant."""
+        import time as _time
+        end_time = int(_time.time() * 1000)
+        begin_time = end_time - 30 * 24 * 3600 * 1000
+        result = self.client.get_kline(symbols=['00700'],
+                                       period=BarPeriod.DAY,
+                                       begin_time=begin_time,
+                                       end_time=end_time,
+                                       limit=10,
+                                       market=Market.HK)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty)
+        self.assertIn('open', result.columns)
+        self.assertIn('volume', result.columns)
+        first = result.iloc[0]
+        self.assertGreater(first['open'], 0)
+        self.assertGreaterEqual(first['volume'], 0)
+        logger.debug(f"Kline HK daily:\n {result}")
+
+    # ── get_quote_real_time tests (US + HK) ───────────────────────────
+
+    def test_get_quote_real_time_us(self):
+        """US real-time quote — assert latest_price field."""
+        result = self.client.get_quote_real_time(symbols=['AAPL'],
+                                                  market=Market.US)
+        self.assertIsInstance(result, pd.DataFrame)
+        self._skip_if_empty(result, 'Quote Real Time US')
+        self.assertIn('latest_price', result.columns)
+        first = result.iloc[0]
+        self.assertGreater(first['latest_price'], 0)
+        logger.debug(f"Quote Real Time US:\n {result}")
+
+    def test_get_quote_real_time_hk(self):
+        """HK real-time quote — market=HK variant."""
+        result = self.client.get_quote_real_time(symbols=['00700'],
+                                                  market=Market.HK)
+        self.assertIsInstance(result, pd.DataFrame)
+        self._skip_if_empty(result, 'Quote Real Time HK', market='HK')
+        self.assertIn('latest_price', result.columns)
+        first = result.iloc[0]
+        self.assertGreater(first['latest_price'], 0)
+        logger.debug(f"Quote Real Time HK:\n {result}")
+
+    # ── get_option_chain: expiry field assertion ───────────────────────
+
+    def test_get_option_chain_expiry_field(self):
+        """Option chain — assert strike and expiry fields are populated."""
+        expiry = self._get_option_expiry(symbol='AAPL', market=Market.US)
+        if expiry is None:
+            if is_market_trading(self.client, 'US'):
+                self.fail("get_option_expirations returned empty for AAPL during US main session")
+            self.skipTest("No option expiry available for AAPL — US market closed")
+        option_filter = OptionFilter(implied_volatility_min=0.05, implied_volatility_max=1,
+                                     delta_min=0, delta_max=1,
+                                     open_interest_min=10, open_interest_max=20000,
+                                     in_the_money=True)
+        result = self.client.get_option_chain(symbol='AAPL',
+                                              expiry=expiry,
+                                              market=Market.US,
+                                              timezone='America/New_York',
+                                              option_filter=option_filter,
+                                              return_greek_value=True)
+        self.assertIsInstance(result, pd.DataFrame)
+        self._skip_if_empty(result, 'Option Chain expiry field', market='US')
+        self.assertIn('strike', result.columns)
+        self.assertIn('expiry', result.columns)
+        first = result.iloc[0]
+        self.assertIsNotNone(first['strike'])
+        self.assertGreater(float(first['strike']), 0)
+        self.assertIsNotNone(first['expiry'])
+        logger.debug(f"Option Chain expiry field:\n {result}")
+
+    # ── get_stock_detail: latest_price assertion ───────────────────────
+
+    def test_get_stock_detail_latest_price(self):
+        """Stock detail — assert latest_price is populated."""
+        result = self.client.get_stock_detail(symbols=['AAPL'])
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty)
+        self.assertIn('symbol', result.columns)
+        self.assertIn('latest_price', result.columns)
+        first = result.iloc[0]
+        self.assertEqual(first['symbol'], 'AAPL')
+        self.assertGreater(first['latest_price'], 0)
+        logger.debug(f"Stock Detail latest_price:\n {result}")
+
+    # ── get_trade_tick: price assertion ───────────────────────────────
+
+    def test_get_trade_tick_price(self):
+        """Trade tick — assert price field > 0."""
+        result = self.client.get_trade_ticks(symbols=['AAPL'])
+        self.assertIsInstance(result, pd.DataFrame)
+        self._skip_if_empty(result, 'Trade Tick price')
+        self.assertIn('price', result.columns)
+        first = result.iloc[0]
+        self.assertGreater(first['price'], 0)
+        logger.debug(f"Trade Tick price:\n {result}")
+
+    # ── get_future_real_time_quote: latest_price assertion ────────────
+
+    def test_get_future_real_time_quote_latest_price(self):
+        """Future real-time quote — assert latest_price field."""
+        contract_code = self._get_future_contract_code(exchange='CME')
+        if contract_code is None:
+            self.skipTest("No future contract code available from CME")
+        result = self.client.get_future_real_time_quote(identifiers=[contract_code])
+        self.assertIsInstance(result, pd.DataFrame)
+        self._skip_if_empty(result, 'Future Real Time Quote')
+        self.assertIn('latest_price', result.columns)
+        first = result.iloc[0]
+        self.assertGreater(first['latest_price'], 0)
+        logger.debug(f"Future Real Time Quote latest_price:\n {result}")
+
+    # ── get_market_state: status field assertion ───────────────────────
+
+    def test_get_market_state_status(self):
+        """Market state — assert status field is populated."""
+        result = self.client.get_market_state(symbols=['AAPL'], market=Market.US)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, (list, pd.DataFrame))
+        if isinstance(result, pd.DataFrame):
+            self.assertFalse(result.empty)
+            self.assertIn('status', result.columns)
+            first = result.iloc[0]
+            self.assertIsNotNone(first['status'])
+        else:
+            self.assertGreater(len(result), 0)
+            first = result[0]
+            # support both dict and object
+            status = first.get('status') if isinstance(first, dict) else getattr(first, 'status', None)
+            self.assertIsNotNone(status)
+        logger.debug(f"Market State status:\n {result}")
+
+    # ── get_timeline HK variant ───────────────────────────────────────
+
+    def test_get_timeline_hk(self):
+        """HK timeline — market=HK variant."""
+        result = self.client.get_timeline(symbols=['00700'])
+        self.assertIsInstance(result, pd.DataFrame)
+        self._skip_if_empty(result, 'Timeline HK', market='HK')
+        self.assertIn('symbol', result.columns)
+        self.assertIn('price', result.columns)
+        first = result.iloc[0]
+        self.assertGreater(first['price'], 0)
+        logger.debug(f"Timeline HK:\n {result}")
+
+    # ── get_quote_depth HK variant ────────────────────────────────────
+
+    def test_get_quote_depth_hk(self):
+        """HK depth quote — market=HK variant."""
+        result = self.client.get_depth_quote(symbols=['00700'],
+                                              market=Market.HK)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+        self._skip_if_empty(result, 'Quote Depth HK', market='HK')
+        self.assertIn('00700', result)
+        hk = result['00700']
+        self.assertIsInstance(hk['asks'], list)
+        self.assertIsInstance(hk['bids'], list)
+        logger.debug(f"Quote Depth HK:\n {result}")
+
+    # ── get_financial_report: quarterly variant ───────────────────────
+
+    def test_get_financial_report_quarterly(self):
+        """Financial report — period=quarterly variant."""
+        result = self.client.get_financial_report(
+            symbols=['AAPL'],
+            market='US',
+            fields=[Income.net_income],
+            period_type=FinancialPeriod.QUARTERLY,
+            begin_date="2023-01-01",
+            end_date="2023-12-31")
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, "Financial report quarterly data should not be empty")
+        expected_columns = ['symbol', 'field', 'value', 'period_end_date']
+        for col in expected_columns:
+            self.assertIn(col, result.columns, f"Expected column {col} not found")
+        first = result.iloc[0]
+        self.assertEqual(first['symbol'], 'AAPL')
+        self.assertEqual(first['field'], 'net_income')
+        self.assertIsNotNone(first['period_end_date'])
+        logger.debug(f"Financial Report quarterly:\n {result}")
+
+    # ── get_orders: status=FILLED filter variant ──────────────────────
+
+    def test_get_orders_filled_filter(self):
+        """Quote-side: get_orders with status=FILLED filter — param variant."""
+        # get_orders may not be a quote client method; skip gracefully if absent.
+        if not hasattr(self.client, 'get_orders'):
+            self.skipTest("QuoteClient does not expose get_orders")
+        from tigeropen.common.exceptions import ApiException
+        try:
+            result = self.client.get_orders(status='FILLED', limit=5)
+        except ApiException as e:
+            self.skipTest(f"get_orders FILLED filter not supported: {e}")
+        self.assertIsNotNone(result)
+        logger.debug(f"Orders FILLED filter:\n {result}")
+
+
     def test_get_addon_entitlement(self):
         result = self.client.get_addon_entitlement()
         self.assertIsNotNone(result)

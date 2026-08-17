@@ -406,6 +406,8 @@ class TestIntegTradeClient(unittest.TestCase):
             self.assertIsNotNone(pos.account)
             self.assertIsNotNone(pos.contract)
             self.assertIsNotNone(pos.quantity)
+            self.assertIsNotNone(pos.average_cost)
+            self.assertIsNotNone(pos.market_value)
         logger.debug(f"Positions: {result}")
 
     def test_get_contract(self):
@@ -428,7 +430,27 @@ class TestIntegTradeClient(unittest.TestCase):
             self.assertIsNotNone(order.account)
             self.assertIsNotNone(order.action)
             self.assertIsNotNone(order.order_type)
+            self.assertIsNotNone(order.status)
         logger.debug(f"Orders: {result}")
+
+    def test_get_orders_filled_filter(self):
+        """get_orders with status=FILLED filter — param variant."""
+        end_dt = datetime.now()
+        start_dt = end_dt - timedelta(days=90)
+        result = self.client.get_orders(
+            status='FILLED',
+            start_time=start_dt.strftime('%Y-%m-%d'),
+            end_time=end_dt.strftime('%Y-%m-%d'),
+            limit=5)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        if result:
+            order = result[0]
+            self.assertIsInstance(order, Order)
+            self.assertIsNotNone(order.id)
+            self.assertIsNotNone(order.order_type)
+            self.assertIsNotNone(order.status)
+        logger.debug(f"Orders FILLED filter: {result}")
 
     def test_get_order(self):
         # Dynamically fetch an order ID instead of hardcoding
@@ -1471,3 +1493,28 @@ class TestIntegTradeClient(unittest.TestCase):
             logger.debug(f"SELL SHORT preview: {preview}")
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, "SELL SHORT preview")
+
+    @pytest.mark.integ
+    def test_place_order_hk(self):
+        """HK STK — place_order (Mode A) using limit_order for Tencent (00700).
+
+        Follows the same Mode A pattern as test_place_order: place then cancel.
+        Uses a safe buy price far below market so the order never fills.
+        """
+        contract = stock_contract(symbol='00700', currency='HKD')
+        order = limit_order(account=self.client_config.account,
+                            contract=contract,
+                            action='BUY',
+                            limit_price=SAFE_BUY_PRICE,
+                            quantity=100)
+        try:
+            result = place_order_with_rate_limit_handling(self.client, order)
+        except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, "HK STK place_order")
+            return
+        logger.debug(f"HK place_order result: {result}")
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, int)
+        self.assertGreater(result, 0)
+        self.assertEqual(order.id, result)
+        self._cancel_tolerating_terminal(result)
