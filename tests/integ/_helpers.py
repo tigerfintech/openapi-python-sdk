@@ -6,6 +6,9 @@
   盘中时集成测试必须实跑;非盘中时可以合法 skip.
 - ``resolve_us_option_identifier`` / ``resolve_hk_option_symbol``:
   动态从行情接口拉最新期权合约,避免依赖已过期的硬编码 identifier.
+- ``place_order_with_rate_limit_handling``:
+  在网关限流(``too_many_requests``)时先做指数退避重试,重试仍失败
+  则以 ``pytest.skip`` 标记为合法边界,而不是让集成测试报红。
 
 上述接口调用会缓存在进程内(``functools.lru_cache``),同一 test session
 内不会重复打网关.
@@ -13,13 +16,81 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime
 from functools import lru_cache
 from typing import Optional
 
+import pytest
 import pytz
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Rate-limit-aware place_order wrapper
+# ---------------------------------------------------------------------------
+
+# 网关限流关键词。命中任一片段时视为限流,按退避 / skip 处理。
+_RATE_LIMIT_KEYWORDS = (
+    "too_many_requests",
+    "rate limit",
+    "requestrateexceedlimit",
+    "rate exceeded",
+)
+
+
+def place_order_with_rate_limit_handling(
+    client,
+    order,
+    *,
+    retries: int = 2,
+    initial_backoff: float = 1.0,
+    pre_delay: float = 0.5,
+):
+    """调用 ``client.place_order(order=order)``,自动处理网关限流。
+
+    - 每次调用前先 ``sleep(pre_delay)`` 平滑请求节奏。
+    - 命中限流关键词时按指数退避重试 ``retries`` 次。
+    - 重试后仍限流:调用 ``pytest.skip`` 把测试标记为跳过 —
+      账户级 QPS 上限是合法 CI 边界,不应误报为 fail。
+    - 其它 ``ApiException`` / 异常原样上抛。
+
+    返回 ``client.place_order`` 的返回值(通常是 int order id)。
+    """
+    # Import inside the function to keep module import cheap and avoid
+    # any circular-import risk with tigeropen internals.
+    from tigeropen.common.exceptions import ApiException
+
+    if pre_delay and pre_delay > 0:
+        time.sleep(pre_delay)
+
+    delay = initial_backoff
+    last_exc: Optional[Exception] = None
+    for attempt in range(retries + 1):
+        try:
+            return client.place_order(order=order)
+        except ApiException as e:
+            msg = str(e).lower()
+            if not any(k in msg for k in _RATE_LIMIT_KEYWORDS):
+                # Not a rate-limit error — surface immediately.
+                raise
+            last_exc = e
+            if attempt < retries:
+                logger.info(
+                    "place_order rate-limited (attempt %d/%d); backing off %.1fs",
+                    attempt + 1, retries + 1, delay,
+                )
+                time.sleep(delay)
+                delay *= 2
+                continue
+            # Retries exhausted — skip rather than fail.
+            pytest.skip(
+                f"gateway rate limit hit after {retries + 1} attempts: {e}"
+            )
+
+    # Defensive: pytest.skip raises, so we normally never reach here.
+    pytest.skip(f"gateway rate limit hit: {last_exc}")
 
 
 # ``trading_status`` 枚举来源:见 tigeropen.quote.quote_client.get_market_status

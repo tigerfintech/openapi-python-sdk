@@ -29,6 +29,7 @@ from tigeropen.trade.trade_client import TradeClient
 from tests.integ._helpers import (
     is_market_open_including_extended,
     is_market_trading,
+    place_order_with_rate_limit_handling,
     resolve_hk_option_symbol,
 )
 from tests.support import integ_client_config, is_integ_run
@@ -251,25 +252,17 @@ class TestIntegTradeClient(unittest.TestCase):
             logger.info(f"Order {order_id} already terminated — skipping cancel: {e}")
 
     def _place_with_rate_limit_retry(self, order, *, context, max_retries=3):
-        """place_order with exponential backoff on 'too_many_requests'.
+        """place_order with backoff-then-skip on 'too_many_requests'.
 
-        Returns order id on success; None if we hit a permission boundary
-        (test should treat as skip).
+        Delegates to the shared module-level helper so every test uses the
+        same rate-limit semantics: retry a couple of times, then skip
+        (never fail) if the gateway keeps returning too_many_requests.
+
+        Returns order id on success; may raise ``pytest.skip`` on rate limit.
         """
-        import time
-        delay = 1.0
-        for attempt in range(max_retries):
-            try:
-                return self.client.place_order(order=order)
-            except ApiException as e:
-                msg = str(e).lower()
-                if any(k in msg for k in _RATE_LIMIT_KEYWORDS) and attempt < max_retries - 1:
-                    logger.info(f"{context}: rate-limited (attempt {attempt+1}), backing off {delay}s")
-                    time.sleep(delay)
-                    delay *= 2
-                    continue
-                # Not rate-limit, or ran out of retries — surface to caller.
-                raise
+        _ = context  # kept for backwards-compat logging by callers
+        return place_order_with_rate_limit_handling(
+            self.client, order, retries=max_retries - 1)
 
     def _preview_and_place(self, order, *, context=""):
         """Preview → place → cancel round-trip; skip on permission errors.
@@ -360,7 +353,7 @@ class TestIntegTradeClient(unittest.TestCase):
                             action='BUY',
                             limit_price=90.5,
                             quantity=2)
-        result = self.client.place_order(order=order)
+        result = place_order_with_rate_limit_handling(self.client, order)
         logger.debug(f"Order Result: {result}")
         self.assertIsNotNone(result)
         self.assertIsInstance(result, int)
@@ -387,7 +380,7 @@ class TestIntegTradeClient(unittest.TestCase):
             start_time=start_time,
             end_time=end_time,
         )
-        result = self.client.place_order(order=order)
+        result = place_order_with_rate_limit_handling(self.client, order)
         logger.debug(f"place_order result (orderId): {result}")
         logger.debug(f"  order.id={order.id} order_type={order.order_type}")
         logger.debug(f"  start_time from server: {order.start_time}  expected: {start_time}")
@@ -408,7 +401,7 @@ class TestIntegTradeClient(unittest.TestCase):
                             action='BUY',
                             limit_price=90.5,
                             quantity=2)
-        order_id = self.client.place_order(order=order)
+        order_id = place_order_with_rate_limit_handling(self.client, order)
         logger.debug(f"Place Order Result: {order_id}")
         self.assertIsNotNone(order_id)
         self.assertIsInstance(order_id, int)
@@ -429,7 +422,7 @@ class TestIntegTradeClient(unittest.TestCase):
                             action='BUY',
                             limit_price=90.5,
                             quantity=2)
-        result = self.client.place_order(order=order)
+        result = place_order_with_rate_limit_handling(self.client, order)
         logger.debug(f"Place Order Result: {result}")
         self.assertIsNotNone(result)
         self.assertIsInstance(result, int)
