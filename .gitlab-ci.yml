@@ -55,7 +55,7 @@ integration:python:
   stage: integration
   allow_failure: true
   tags:
-    - sdk-integ
+    - openapi
   variables:
     TIGER_RUN_INTEG: "true"
   script:
