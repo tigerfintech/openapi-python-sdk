@@ -6,6 +6,8 @@
   盘中时集成测试必须实跑;非盘中时可以合法 skip.
 - ``resolve_us_option_identifier`` / ``resolve_hk_option_symbol``:
   动态从行情接口拉最新期权合约,避免依赖已过期的硬编码 identifier.
+  HK 优先走 ``quote_client.get_option_chain`` (无 entitlement 要求),
+  ``get_derivative_contracts`` 作为兜底.
 - ``place_order_with_rate_limit_handling``:
   在网关限流(``too_many_requests``)时先做指数退避重试,重试仍失败
   则以 ``pytest.skip`` 标记为合法边界,而不是让集成测试报红。
@@ -326,16 +328,115 @@ def resolve_us_option_identifiers(quote_client, symbol: str = 'AAPL',
     return result
 
 
-def resolve_hk_option_symbol(trade_client, underlying: str = '00700') -> Optional[str]:
-    """Return the first available HK option contract_id for ``underlying``.
+def _hk_option_from_quote_chain(quote_client, underlying: str):
+    """Try to resolve an HK option contract via ``quote_client.get_option_chain``.
 
-    Uses ``get_derivative_contracts`` with a 60-day forward expiry window."""
+    The quote endpoint is more widely available than trade's
+    ``get_derivative_contracts`` (which requires an entitlement flag), so it's
+    preferred as the primary path. Returns a ``SimpleNamespace`` exposing the
+    attributes the test consumes (symbol/expiry/strike/put_call/multiplier/
+    contract_id), or ``None`` when the chain is empty."""
+    from types import SimpleNamespace
+
+    from tigeropen.common.consts import Market
+
+    # ``00700`` -> ``00700.HK`` so quote_client can route to the HK market.
+    quote_symbol = underlying if underlying.endswith('.HK') else f'{underlying}.HK'
+
+    try:
+        expirations = quote_client.get_option_expirations(
+            symbols=[quote_symbol], market=Market.HK)
+    except Exception as e:  # noqa: BLE001
+        logger.warning('get_option_expirations(%s) failed: %s', quote_symbol, e)
+        return None
+
+    if expirations is None or expirations.empty or 'timestamp' not in expirations.columns:
+        return None
+    try:
+        expiry_ts = int(expirations.iloc[0]['timestamp'])
+    except (KeyError, ValueError, TypeError):
+        return None
+
+    try:
+        chain = quote_client.get_option_chain(
+            symbol=quote_symbol, expiry=expiry_ts,
+            market=Market.HK, timezone='Asia/Hong_Kong',
+            return_greek_value=False)
+    except Exception as e:  # noqa: BLE001
+        logger.warning('get_option_chain(%s, %s) failed: %s',
+                       quote_symbol, expiry_ts, e)
+        return None
+
+    row = _pick_atm_row(chain)
+    if row is None:
+        return None
+
+    def _cell(name):
+        try:
+            v = row.get(name) if hasattr(row, 'get') else row[name]
+        except (KeyError, IndexError):
+            return None
+        # pandas returns NaN for missing numerics — treat as None.
+        try:
+            import math
+            if isinstance(v, float) and math.isnan(v):
+                return None
+        except Exception:  # noqa: BLE001
+            pass
+        return v
+
+    strike = _cell('strike')
+    if strike is None:
+        return None
+    try:
+        strike = float(strike)
+    except (TypeError, ValueError):
+        return None
+
+    return SimpleNamespace(
+        symbol=underlying.split('.')[0],
+        expiry=_cell('expiry'),
+        strike=strike,
+        put_call=(_cell('put_call') or 'CALL'),
+        multiplier=_cell('multiplier'),
+        contract_id=_cell('contract_id') or _cell('conid'),
+    )
+
+
+def resolve_hk_option_symbol(quote_client, trade_client=None,
+                             underlying: str = '00700'):
+    """Return an HK option contract descriptor for ``underlying``.
+
+    Strategy:
+      1. Prefer ``quote_client.get_option_chain`` — universally available and
+         does not require the trade-side derivative-contract entitlement.
+      2. Fall back to ``trade_client.get_derivative_contracts`` (60-day window)
+         when the quote path yields nothing and ``trade_client`` is provided.
+
+    Returns an object exposing ``symbol``, ``expiry``, ``strike``, ``put_call``,
+    ``multiplier`` and ``contract_id`` attributes, or ``None`` when both paths
+    are empty. Callers should treat ``None`` as "not resolvable in this
+    environment" and ``skipTest`` rather than fail — the account may simply
+    lack HK option data/trade permissions.
+    """
+    cache_key = ('hk_option', underlying,
+                 id(quote_client), id(trade_client) if trade_client else None)
+    if cache_key in _OPTION_CACHE:
+        return _OPTION_CACHE[cache_key]
+
+    result = _hk_option_from_quote_chain(quote_client, underlying)
+    if result is not None:
+        _OPTION_CACHE[cache_key] = result
+        return result
+
+    # Fallback: trade-side derivative contracts (requires entitlement).
+    if trade_client is None:
+        _OPTION_CACHE[cache_key] = None
+        return None
+
     from datetime import timedelta
 
     from tigeropen.common.consts import SecurityType
-    cache_key = ('hk_option', underlying, id(trade_client))
-    if cache_key in _OPTION_CACHE:
-        return _OPTION_CACHE[cache_key]
 
     future_expiry = (datetime.now() + timedelta(days=60)).strftime('%Y%m%d')
     try:
