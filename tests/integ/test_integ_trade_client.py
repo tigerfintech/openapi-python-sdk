@@ -27,6 +27,7 @@ from tigeropen.trade.domain.transfer import TransferItem, PositionTransfer, Posi
 from tigeropen.trade.domain.prime_account import PortfolioAccount
 from tigeropen.trade.trade_client import TradeClient
 from tests.integ._helpers import (
+    _is_trading_hours_error,
     is_market_open_including_extended,
     is_market_trading,
     place_order_with_rate_limit_handling,
@@ -281,6 +282,67 @@ class TestIntegTradeClient(unittest.TestCase):
         try:
             order_id = self._place_with_rate_limit_retry(order, context=context)
         except ApiException as e:
+            self._skip_or_raise_on_permission_error(e, f"{context} place")
+            return None
+        self.assertIsNotNone(order_id, f"{context}: place_order returned None")
+        logger.info(f"{context}: placed order id={order_id}")
+        self._cancel_tolerating_terminal(order_id)
+        return order_id
+
+    def _preview_and_place_hours_aware(self, order, *, context="",
+                                       market='US',
+                                       trading_session='main'):
+        """Like ``_preview_and_place`` but never skips on trading-hours reasons.
+
+        Always exercises the full wire path (preview → place → cancel).
+        - Out-of-hours + trading-hours refusal → test passes (return None);
+          the SDK's marshaling + auth + response parsing were all validated
+          by the server actually parsing the payload and rejecting it for a
+          schedule reason.
+        - In-hours → placement must succeed.
+        - Other errors → still delegated to ``_skip_or_raise_on_permission_error``
+          so genuine account/entitlement boundaries continue to skip.
+
+        ``trading_session`` selects the hours window:
+        - ``'main'``  — only main session counts as in-hours (STP_LMT, TRAIL,
+          LMT-by-amount).
+        - ``'extended'`` — main OR pre/post-market counts as in-hours (TWAP,
+          VWAP can span extended hours).
+        """
+        qc = self._quote_client()
+        if trading_session == 'extended':
+            in_hours = is_market_open_including_extended(qc, market)
+        else:
+            in_hours = is_market_trading(qc, market)
+
+        # 1. Preview — validates SDK marshaling. Preview can also be refused
+        # outside a valid session, so honour the same trading-hours contract.
+        try:
+            preview = self.client.preview_order(order=order)
+            self.assertIsNotNone(preview, f"{context}: preview returned None")
+            logger.debug(f"{context} preview: {preview}")
+        except ApiException as e:
+            if _is_trading_hours_error(e):
+                if not in_hours:
+                    logger.info(
+                        "%s: out-of-hours preview refusal validates wire path: %s",
+                        context, e)
+                    return None
+                raise
+            self._skip_or_raise_on_permission_error(e, f"{context} preview")
+
+        # 2. Place — the real wire exercise. Out-of-hours schedule refusal
+        # still counts as a successful wire-path validation.
+        try:
+            order_id = self._place_with_rate_limit_retry(order, context=context)
+        except ApiException as e:
+            if _is_trading_hours_error(e):
+                if not in_hours:
+                    logger.info(
+                        "%s: out-of-hours place refusal validates wire path: %s",
+                        context, e)
+                    return None
+                raise
             self._skip_or_raise_on_permission_error(e, f"{context} place")
             return None
         self.assertIsNotNone(order_id, f"{context}: place_order returned None")
@@ -813,17 +875,18 @@ class TestIntegTradeClient(unittest.TestCase):
     def test_place_us_stk_limit_by_amount(self):
         """LMT by-amount order — safe price, place + cancel.
 
-        Server enforces "regular trading hours" for cash orders by amount;
-        outside main session the gateway refuses with a permission error, so
-        skip early. In-hours we require an actual placement.
+        Server enforces "regular trading hours" for cash orders by amount.
+        Test always runs: in-hours we require an actual placement; out-of-hours
+        a matching trading-hours refusal from the server is accepted as
+        successful wire-path validation.
         """
-        if not is_market_trading(self._quote_client(), 'US'):
-            self.skipTest("skipped: US market not in main trading session")
         contract = stock_contract(symbol='AAPL', currency='USD')
         order = limit_order_by_amount(account=self.client_config.account,
                                       contract=contract, action='BUY',
                                       amount=100, limit_price=SAFE_BUY_PRICE)
-        self._preview_and_place(order, context="US STK LMT-by-amount")
+        self._preview_and_place_hours_aware(order,
+                                            context="US STK LMT-by-amount",
+                                            trading_session='main')
 
     @pytest.mark.integ
     def test_place_us_stk_stop(self):
@@ -839,30 +902,33 @@ class TestIntegTradeClient(unittest.TestCase):
         """STP_LMT — trigger and limit price both far from market.
 
         Server rejects STP_LMT outside main session ("only limit orders can
-        be placed" during pre/post market). Gate on trading hours.
+        be placed" during pre/post market). Test always runs: in-hours must
+        place successfully, out-of-hours accepts the schedule refusal as
+        successful wire-path validation.
         """
-        if not is_market_trading(self._quote_client(), 'US'):
-            self.skipTest("skipped: US market not in main trading session")
         contract = stock_contract(symbol='AAPL', currency='USD')
         order = stop_limit_order(account=self.client_config.account,
                                  contract=contract, action='BUY', quantity=1,
                                  limit_price=SAFE_BUY_PRICE,
                                  aux_price=SAFE_STOP_BUY_TRIGGER)
-        self._preview_and_place(order, context="US STK STP_LMT")
+        self._preview_and_place_hours_aware(order,
+                                            context="US STK STP_LMT",
+                                            trading_session='main')
 
     @pytest.mark.integ
     def test_place_us_stk_trail(self):
         """TRAIL trailing stop — 50% trailing pct so it can't trigger.
 
-        Trailing stops disallowed outside RTH.
+        Trailing stops disallowed outside RTH. Test always runs; out-of-hours
+        the server's trading-hours refusal validates the SDK wire path.
         """
-        if not is_market_trading(self._quote_client(), 'US'):
-            self.skipTest("skipped: US market not in main trading session")
         contract = stock_contract(symbol='AAPL', currency='USD')
         order = trail_order(account=self.client_config.account,
                             contract=contract, action='SELL', quantity=1,
                             trailing_percent=50.0)
-        self._preview_and_place(order, context="US STK TRAIL")
+        self._preview_and_place_hours_aware(order,
+                                            context="US STK TRAIL",
+                                            trading_session='main')
 
     @pytest.mark.integ
     def test_place_us_stk_bracket_with_legs(self):
@@ -905,12 +971,10 @@ class TestIntegTradeClient(unittest.TestCase):
     def test_place_us_stk_twap(self):
         """TWAP algo order — limit price safe.
 
-        TWAP is only accepted during a live session window; gate on trading
-        hours (allow pre/post since TWAP scheduling can span extended hours).
+        TWAP is only accepted during a live session window (main + extended).
+        Test always runs; out-of-hours the server's schedule refusal validates
+        the SDK wire path.
         """
-        if not is_market_open_including_extended(self._quote_client(), 'US'):
-            self.skipTest(
-                "skipped: US market closed (main + extended hours)")
         contract = stock_contract(symbol='AAPL', currency='USD')
         now_ms = int(datetime.now().timestamp() * 1000)
         params = algo_order_params(start_time=now_ms,
@@ -920,17 +984,17 @@ class TestIntegTradeClient(unittest.TestCase):
                            contract=contract, action='BUY', quantity=10,
                            strategy='TWAP', algo_params=params,
                            limit_price=SAFE_BUY_PRICE)
-        self._preview_and_place(order, context="US STK TWAP")
+        self._preview_and_place_hours_aware(order,
+                                            context="US STK TWAP",
+                                            trading_session='extended')
 
     @pytest.mark.integ
     def test_place_us_stk_vwap(self):
         """VWAP algo order — participation rate + limit price safe.
 
-        Same session-window constraint as TWAP.
+        Same session-window constraint as TWAP. Test always runs; out-of-hours
+        the server's schedule refusal validates the SDK wire path.
         """
-        if not is_market_open_including_extended(self._quote_client(), 'US'):
-            self.skipTest(
-                "skipped: US market closed (main + extended hours)")
         contract = stock_contract(symbol='AAPL', currency='USD')
         now_ms = int(datetime.now().timestamp() * 1000)
         params = algo_order_params(start_time=now_ms,
@@ -941,7 +1005,9 @@ class TestIntegTradeClient(unittest.TestCase):
                            contract=contract, action='BUY', quantity=10,
                            strategy='VWAP', algo_params=params,
                            limit_price=SAFE_BUY_PRICE)
-        self._preview_and_place(order, context="US STK VWAP")
+        self._preview_and_place_hours_aware(order,
+                                            context="US STK VWAP",
+                                            trading_session='extended')
 
     @pytest.mark.integ
     def test_place_us_opt_limit(self):
