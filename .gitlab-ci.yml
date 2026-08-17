@@ -33,6 +33,9 @@ unit:python:
   script:
     - unset TIGEROPEN_TIGER_ID TIGEROPEN_PRIVATE_KEY TIGEROPEN_ACCOUNT TIGEROPEN_PROPS_PATH
     - mkdir -p test-results
+    # Note: no --ignore flags here. test_option_helper.py uses pytest.importorskip
+    # to handle missing QuantLib gracefully; excluding the file would skip valid
+    # pure-unit tests that don't depend on QuantLib at all.
     - pytest tests/ --ignore=tests/integ -q --cov=tigeropen --cov-report=term --cov-report=xml --junitxml=test-results/unit.xml
   coverage: '/^TOTAL.*\s(\d+)%$/'
   artifacts:
@@ -51,9 +54,15 @@ integration:python:
   extends: .python_base
   stage: integration
   allow_failure: true
+  tags:
+    - sdk-integ
   variables:
     TIGER_RUN_INTEG: "true"
   script:
+    # Unset any injected TIGEROPEN_* vars so only the sdk-integ runner's
+    # Protected CI Variables are used (job-level variables cannot override
+    # Protected ones; unset in script achieves reliable credential isolation).
+    - unset TIGEROPEN_TIGER_ID TIGEROPEN_PRIVATE_KEY TIGEROPEN_ACCOUNT TIGEROPEN_PROPS_PATH
     - mkdir -p test-results
     - pytest tests/integ/ -v --tb=short --junitxml=test-results/integ.xml
   artifacts:
@@ -67,11 +76,18 @@ integration:python:
 
 # Pipeline result notification via chat webhook.
 # Parses JUnit XML artifacts directly (no GitLab API dependency).
+# NOTE: image switched to alpine:3 + curl — lighter than python:3.11-slim
+# (~5 MB vs ~150 MB) since this job only needs curl.
 notify:webhook:
-  image: python:3.11-slim
+  image: alpine:3
   tags:
     - openapi
   stage: .post
+  # NOTE: CI_PIPELINE_STATUS in a `when: always` .post job may still read as
+  # "running" rather than "failed" because GitLab evaluates this variable before
+  # the pipeline fully completes (known GitLab behavior). The pass/fail decision
+  # below therefore relies on parsing JUnit XML artifacts rather than this
+  # variable, falling back to CI_PIPELINE_STATUS only when artifacts are absent.
   when: always
   allow_failure: true
   needs:
@@ -79,6 +95,8 @@ notify:webhook:
       artifacts: true
     - job: integration:python
       artifacts: true
+  before_script:
+    - apk add --no-cache curl python3
   script:
     - |
       python3 << 'PYEOF'
@@ -103,19 +121,31 @@ notify:webhook:
                   s += int(suite.get("skipped", 0))
           except Exception as e:
               print(f"Failed to parse {path}: {e}")
+              return None, None, None, None
           return t, t - f - s, f, s
 
       unit_t, unit_p, unit_f, unit_s = parse_xml("test-results/unit.xml")
       integ_t, integ_p, integ_f, integ_s = parse_xml("test-results/integ.xml")
 
-      unit_stats = f"Unit: {unit_t} tests: {unit_p} passed, {unit_f} failed, {unit_s} skipped" if unit_t > 0 else ""
-      integ_stats = f"Integration: {integ_t} tests: {integ_p} passed, {integ_f} failed, {integ_s} skipped" if integ_t > 0 else ""
+      unit_stats = f"Unit: {unit_t} tests: {unit_p} passed, {unit_f} failed, {unit_s} skipped" if unit_t else ""
+      integ_stats = f"Integration: {integ_t} tests: {integ_p} passed, {integ_f} failed, {integ_s} skipped" if integ_t else ""
 
-      # 2. Determine pass/fail: unit test failures = pipeline failed
-      has_failed = unit_f > 0
-      status = os.environ.get("CI_PIPELINE_STATUS", "")
-      if status == "failed":
-          has_failed = True
+      # 2. Determine pass/fail from JUnit results.
+      # unit_f is None when the XML file was missing/unparseable — treat that as
+      # an unknown state rather than silently reporting "passed". Only unit test
+      # failures drive the red card; integration is allow_failure so its failures
+      # don't make the pipeline red, but we still surface the count in the card.
+      if unit_f is None:
+          # XML absent or unparseable — fall back to CI_PIPELINE_STATUS.
+          # WARNING: in a `.post` `when: always` job, CI_PIPELINE_STATUS may
+          # still read as "running" because GitLab evaluates it before the
+          # pipeline fully completes. Only treat explicit "failed" as failure;
+          # "running"/"skipped"/"pending" are treated as unknown → green card.
+          status = os.environ.get("CI_PIPELINE_STATUS", "")
+          has_failed = (status == "failed")
+          print(f"JUnit XML unavailable; falling back to CI_PIPELINE_STATUS={status!r} (may be 'running' — see known GitLab limitation)")
+      else:
+          has_failed = (unit_f > 0)
 
       # 3. Build notification card
       title = "❌ Pipeline failed" if has_failed else "✅ Pipeline passed"

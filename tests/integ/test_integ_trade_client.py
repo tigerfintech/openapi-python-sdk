@@ -104,11 +104,27 @@ class TestIntegTradeClient(unittest.TestCase):
         except Exception as e:
             logger.warning(f"get_option_exercise_positions failed: {e}")
 
-        # Fall back to derivative contracts
-        future_expiry = (datetime.now() + timedelta(days=180)).strftime('%Y%m%d')
+        # Fall back to derivative contracts — use the nearest real monthly
+        # expiry (3rd Friday of the next calendar month) instead of an
+        # arbitrary offset, so the date is always a valid listed expiry.
+        # US equity options expire on the 3rd Friday of each month.
+        today = datetime.now().date()
+        # Start from the first day of next month
+        if today.month == 12:
+            year, month = today.year + 1, 1
+        else:
+            year, month = today.year, today.month + 1
+        # Find the 3rd Friday of that month
+        import calendar
+        first_day = datetime(year, month, 1)
+        # weekday(): Monday=0 … Friday=4
+        days_to_first_friday = (4 - first_day.weekday()) % 7
+        third_friday = first_day + timedelta(days=days_to_first_friday + 14)
+        nearest_expiry = third_friday.strftime('%Y%m%d')
+
         contracts = self.client.get_derivative_contracts(symbol='AAPL',
                                                        sec_type=SecurityType.OPT,
-                                                       expiry=future_expiry)
+                                                       expiry=nearest_expiry)
         if contracts:
             return contracts[0].contract_id
         return None
@@ -185,9 +201,19 @@ class TestIntegTradeClient(unittest.TestCase):
     def _resolve_us_fop_contract(self):
         """Return a US FOP (future option) Contract; best-effort discovery."""
         try:
-            future_expiry = (datetime.now() + timedelta(days=90)).strftime('%Y%m%d')
+            # Use the nearest real monthly expiry instead of an arbitrary offset.
+            import calendar as _calendar
+            today = datetime.now().date()
+            if today.month == 12:
+                year, month = today.year + 1, 1
+            else:
+                year, month = today.year, today.month + 1
+            first_day = datetime(year, month, 1)
+            days_to_first_friday = (4 - first_day.weekday()) % 7
+            third_friday = first_day + timedelta(days=days_to_first_friday + 14)
+            nearest_expiry = third_friday.strftime('%Y%m%d')
             contracts = self.client.get_derivative_contracts(
-                symbol='CL', sec_type=SecurityType.FOP, expiry=future_expiry)
+                symbol='CL', sec_type=SecurityType.FOP, expiry=nearest_expiry)
             if not contracts:
                 return None
             c = contracts[0]
@@ -202,9 +228,19 @@ class TestIntegTradeClient(unittest.TestCase):
     def _resolve_hk_warrant_contract(self):
         """Return an HK WAR Contract, best-effort."""
         try:
-            future_expiry = (datetime.now() + timedelta(days=90)).strftime('%Y%m%d')
+            # Use the nearest real monthly expiry (3rd Friday of next month).
+            import calendar as _calendar
+            today = datetime.now().date()
+            if today.month == 12:
+                year, month = today.year + 1, 1
+            else:
+                year, month = today.year, today.month + 1
+            first_day = datetime(year, month, 1)
+            days_to_first_friday = (4 - first_day.weekday()) % 7
+            third_friday = first_day + timedelta(days=days_to_first_friday + 14)
+            nearest_expiry = third_friday.strftime('%Y%m%d')
             contracts = self.client.get_derivative_contracts(
-                symbol='00700', sec_type=SecurityType.WAR, expiry=future_expiry)
+                symbol='00700', sec_type=SecurityType.WAR, expiry=nearest_expiry)
             if not contracts:
                 return None
             c = contracts[0]
@@ -220,9 +256,19 @@ class TestIntegTradeClient(unittest.TestCase):
     def _resolve_hk_iopt_contract(self):
         """Return an HK IOPT (callable bull/bear) Contract, best-effort."""
         try:
-            future_expiry = (datetime.now() + timedelta(days=90)).strftime('%Y%m%d')
+            # Use the nearest real monthly expiry (3rd Friday of next month).
+            import calendar as _calendar
+            today = datetime.now().date()
+            if today.month == 12:
+                year, month = today.year + 1, 1
+            else:
+                year, month = today.year, today.month + 1
+            first_day = datetime(year, month, 1)
+            days_to_first_friday = (4 - first_day.weekday()) % 7
+            third_friday = first_day + timedelta(days=days_to_first_friday + 14)
+            nearest_expiry = third_friday.strftime('%Y%m%d')
             contracts = self.client.get_derivative_contracts(
-                symbol='00700', sec_type=SecurityType.IOPT, expiry=future_expiry)
+                symbol='00700', sec_type=SecurityType.IOPT, expiry=nearest_expiry)
             if not contracts:
                 return None
             c = contracts[0]
@@ -493,16 +539,30 @@ class TestIntegTradeClient(unittest.TestCase):
         # Sandbox orders can transition to a non-modifiable state
         # (filled / rejected) very quickly. Accept that outcome as long as
         # the SDK marshaled the modify request correctly.
+        modified = False
         try:
             oid = self.client.modify_order(order, limit_price=100.5)
             logger.debug(f"Modify Order Result: {oid}")
             self.assertIsNotNone(oid)
             self.assertIsInstance(oid, int)
             self.assertGreater(oid, 0)
+            modified = True
         except ApiException as e:
             if "cannot be modified" not in str(e):
                 raise
             logger.warning(f"Order became non-modifiable before modify: {e}")
+
+        # Verify the price actually changed by fetching the order back.
+        if modified:
+            try:
+                updated = self.client.get_order(id=result)
+                if updated is not None and updated.limit_price is not None:
+                    self.assertAlmostEqual(
+                        float(updated.limit_price), 100.5, places=2,
+                        msg=f"modify_order did not update limit_price: got {updated.limit_price}")
+                    logger.debug(f"Verified modified limit_price={updated.limit_price}")
+            except ApiException as e:
+                logger.warning(f"get_order after modify failed (non-critical): {e}")
 
     @pytest.mark.integ
     def test_transfer_position(self):
@@ -574,35 +634,41 @@ class TestIntegTradeClient(unittest.TestCase):
         # Use a future date instead of hardcoded value
         executing_date = (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
 
-        # Scenario 1: submit early exercise (Exercise)
-        try:
-            result_exercise = self.client.submit_option_exercise(
-                contract_id=contract_id,
-                exercise_type="Exercise",
-                quantity=1.0,
-                executing_date=executing_date,
-                is_force=False,
-            )
-            self.assertTrue(result_exercise)
-            logger.debug(f"Submit Exercise Result: {result_exercise}")
-        except ApiException as e:
-            # downstream business limit (exercise count/rate limit), not SDK/server issue
-            logger.warning(f"Submit Exercise skipped due to downstream limit: {e}")
-            self.skipTest(f"Downstream limit: {e}")
+        # Use subTest so that a skip/failure in one scenario does not prevent
+        # the other scenario from running. (self.skipTest inside a plain method
+        # raises unittest.SkipTest which would abort the whole test method.)
+        with self.subTest(scenario="Exercise"):
+            try:
+                result_exercise = self.client.submit_option_exercise(
+                    contract_id=contract_id,
+                    exercise_type="Exercise",
+                    quantity=1.0,
+                    executing_date=executing_date,
+                    is_force=False,
+                )
+                self.assertTrue(result_exercise)
+                logger.debug(f"Submit Exercise Result: {result_exercise}")
+            except ApiException as e:
+                # downstream business limit (exercise count/rate limit), not SDK/server issue
+                logger.warning(f"Submit Exercise skipped due to downstream limit: {e}")
+                self.skipTest(f"Downstream limit: {e}")
 
         # Scenario 2: submit expire exercise — itm_rate valid range 0~10
-        try:
-            result_expire = self.client.submit_option_exercise(
-                contract_id=contract_id,
-                exercise_type=OptionExerciseType.EXPIRE,
-                quantity=1.0,
-                itm_rate=1,
-            )
-            self.assertTrue(result_expire)
-            logger.debug(f"Submit Expire Result: {result_expire}")
-        except ApiException as e:
-            logger.warning(f"Submit Expire skipped due to downstream limit: {e}")
-            self.skipTest(f"Downstream limit: {e}")
+        with self.subTest(scenario="Expire"):
+            try:
+                result_expire = self.client.submit_option_exercise(
+                    contract_id=contract_id,
+                    exercise_type=OptionExerciseType.EXPIRE,
+                    quantity=1.0,
+                    itm_rate=1,
+                )
+                self.assertTrue(result_expire)
+                logger.debug(f"Submit Expire Result: {result_expire}")
+            except ApiException as e:
+                # Consistent with scenario 1: skip on downstream limit rather
+                # than silently passing (which would mask unverified coverage).
+                logger.warning(f"Submit Expire skipped due to downstream limit: {e}")
+                self.skipTest(f"Downstream limit: {e}")
 
     def test_check_option_exercise(self):
         contract_id = self._get_option_contract_id()
@@ -706,10 +772,21 @@ class TestIntegTradeClient(unittest.TestCase):
         logger.debug(f"Contracts: {result}")
 
     def test_get_derivative_contracts(self):
-        future_expiry = (datetime.now() + timedelta(days=180)).strftime('%Y%m%d')
+        # Use the nearest real monthly expiry (3rd Friday of next month) rather
+        # than an arbitrary offset which is unlikely to be a listed expiry date.
+        import calendar as _calendar
+        today = datetime.now().date()
+        if today.month == 12:
+            year, month = today.year + 1, 1
+        else:
+            year, month = today.year, today.month + 1
+        first_day = datetime(year, month, 1)
+        days_to_first_friday = (4 - first_day.weekday()) % 7
+        third_friday = first_day + timedelta(days=days_to_first_friday + 14)
+        nearest_expiry = third_friday.strftime('%Y%m%d')
         result = self.client.get_derivative_contracts(symbol='AAPL',
                                                       sec_type=SecurityType.OPT,
-                                                      expiry=future_expiry)
+                                                      expiry=nearest_expiry)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
         if result:
