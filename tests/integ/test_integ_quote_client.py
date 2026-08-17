@@ -8,7 +8,7 @@ import pytest
 
 from tigeropen.common.consts import Market, TradingSession, BarPeriod, CapitalPeriod, Valuation, Income, \
     OptionAnalysisPeriod, SortDirection
-from tigeropen.common.consts.filter_fields import StockField, FinancialPeriod, MultiTagField
+from tigeropen.common.consts.filter_fields import StockField, FinancialPeriod, MultiTagField  # noqa: F401 — MultiTagField used in test_get_market_scanner_tags
 from tigeropen.quote.domain.filter import StockFilter, SortFilterData, OptionFilter, WarrantFilterItem
 from tigeropen.quote.domain.quote_brief import QuoteBrief
 from tigeropen.quote.domain.option_analysis import OptionAnalysis
