@@ -417,17 +417,29 @@ class TestIntegQuoteClient(unittest.TestCase):
         logger.debug(f"Option Depth (real): {result}")
 
     def test_get_option_timeline(self):
+        """Option timeline always exercises the wire path. Content is only
+        asserted in-hours — empty response out-of-hours is expected because
+        the endpoint returns realtime data.
+        """
         identifiers = self._require_option_identifiers(symbol='AAPL', market=Market.US, count=1)
         result = self.client.get_option_timeline(identifiers=[identifiers[0]], market=Market.US)
+        # Wire shape: always a DataFrame regardless of session.
         self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Option Timeline', market='US')
-        self.assertIn('identifier', result.columns)
-        self.assertIn('symbol', result.columns)
-        self.assertIn('price', result.columns)
-        self.assertIn('time', result.columns)
-        first = result.iloc[0]
-        self.assertTrue(len(str(first['symbol']).strip()) > 0)
-        self.assertGreaterEqual(first['price'], 0)
+        if is_market_trading(self.client, 'US'):
+            # In-hours: data must exist and match the documented schema.
+            self.assertFalse(
+                result.empty,
+                'Option Timeline empty during US main trading session — '
+                'treat as bug rather than skip')
+            self.assertIn('identifier', result.columns)
+            self.assertIn('symbol', result.columns)
+            self.assertIn('price', result.columns)
+            self.assertIn('time', result.columns)
+            first = result.iloc[0]
+            self.assertTrue(len(str(first['symbol']).strip()) > 0)
+            self.assertGreaterEqual(first['price'], 0)
+        # Out-of-hours: an empty DataFrame is a valid server response and the
+        # SDK still parsed + deserialized it. No skip.
         logger.debug(f"Option Timeline (real):\n {result}")
 
     def test_get_option_analysis(self):

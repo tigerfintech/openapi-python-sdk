@@ -42,6 +42,45 @@ _RATE_LIMIT_KEYWORDS = (
 )
 
 
+# ---------------------------------------------------------------------------
+# Trading-hours error classification
+# ---------------------------------------------------------------------------
+
+# Substrings the server uses to signal "this order type isn't accepted at the
+# current market time". Matching any of these tells the test that the SDK's
+# wire path (serialization + auth + response parsing) worked end-to-end — the
+# server just refused for a schedule reason. Tests use this to accept an
+# out-of-hours refusal as a valid outcome instead of skipping.
+_TRADING_HOURS_ERROR_KEYWORDS = (
+    # STP_LMT outside main session
+    "only limit orders can be placed during pre market or post market",
+    # TRAIL outside RTH
+    "only limit, stop or stop-limit orders are allowed at non-trading hour",
+    # TWAP / VWAP outside scheduled window
+    "orders cannot be placed at this moment",
+    # LMT-by-amount cash orders restricted to regular hours
+    "you can only trade during regular trading hours",
+    # Generic session/schedule wording used elsewhere
+    "outside of regular trading hours",
+    "at non-trading hour",
+    "market is closed",
+    "not in trading session",
+    "not in a trading session",
+)
+
+
+def _is_trading_hours_error(exc) -> bool:
+    """Return True when ``exc`` looks like the server rejecting an order for
+    schedule/session reasons rather than a real client-side bug.
+
+    Used by out-of-hours integration tests: when the market is closed we still
+    exercise the full wire path, and treat a matching trading-hours refusal as
+    the expected outcome instead of a failure. Any other error must surface.
+    """
+    msg = str(exc).lower()
+    return any(k in msg for k in _TRADING_HOURS_ERROR_KEYWORDS)
+
+
 def place_order_with_rate_limit_handling(
     client,
     order,
