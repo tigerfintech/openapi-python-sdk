@@ -17,6 +17,7 @@ from tigeropen.quote.domain.addon_entitlement import AddonEntitlement
 from tigeropen.quote.domain.stock_broker import StockBroker
 from tigeropen.quote.domain.filter import ScannerResult
 from tigeropen.quote.quote_client import QuoteClient
+from tests.integ._helpers import is_market_trading
 from tests.support import integ_client_config, is_integ_run
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,25 @@ class TestIntegQuoteClient(unittest.TestCase):
         identifiers = [str(x).strip() for x in chain['identifier'].tolist() if str(x).strip()]
         return identifiers[:count]
 
+    def _require_option_identifiers(self, symbol='AAPL', market=Market.US, count=1):
+        """Return fresh option identifiers or trigger skip/fail based on trading hours.
+
+        During main-session trading, empty results indicate a real bug and we
+        fail; outside trading hours we accept an empty response and skip.
+        """
+        identifiers = self._get_option_identifiers(symbol=symbol, market=market, count=count)
+        if identifiers and len(identifiers) >= count:
+            return identifiers
+        market_key = market.value if hasattr(market, 'value') else str(market)
+        if is_market_trading(self.client, market_key):
+            self.fail(
+                f"Could not resolve {count} {market_key} option identifier(s) "
+                f"for {symbol} during {market_key} main trading session — "
+                "option-chain resolver returned empty when data should exist")
+        self.skipTest(
+            f"No {market_key} option identifier available for {symbol} "
+            f"— {market_key} not in main trading session")
+
     def _get_future_contract_code(self, exchange='CME'):
         """Fetch the first future contract code; None if unavailable."""
         contracts = self.client.get_future_contracts(exchange=exchange)
@@ -64,14 +84,28 @@ class TestIntegQuoteClient(unittest.TestCase):
             return None
         return str(contracts.iloc[0]['contract_code']).strip()
 
-    def _skip_if_empty(self, result, name):
-        """Skip test if result (DataFrame/list) is empty — non-trading hours."""
+    def _is_empty(self, result):
         if isinstance(result, pd.DataFrame):
-            if result.empty:
-                self.skipTest(f"{name} empty — non-trading hours, data may be empty")
-        elif isinstance(result, (list, dict)):
-            if not result:
-                self.skipTest(f"{name} empty — non-trading hours, data may be empty")
+            return result.empty
+        if isinstance(result, (list, dict)):
+            return not result
+        return result is None
+
+    def _skip_if_empty(self, result, name, market='US'):
+        """Handle empty realtime results:
+
+        - Non-trading hours → skip (server legitimately returns no data)
+        - Trading hours → fail (a real bug: server returned empty during a
+          live session)
+        """
+        if not self._is_empty(result):
+            return
+        if is_market_trading(self.client, market):
+            self.fail(
+                f"{name} empty during {market} main trading session — this "
+                "indicates the server returned no data when the market was "
+                "live; treat as bug rather than skip")
+        self.skipTest(f"{name} empty — {market} not in main trading session")
 
     def test_get_symbols(self):
         result = self.client.get_symbols(market='US')
@@ -276,7 +310,12 @@ class TestIntegQuoteClient(unittest.TestCase):
     def test_get_option_chain(self):
         expiry = self._get_option_expiry(symbol='AAPL', market=Market.US)
         if expiry is None:
-            self.skipTest("No option expiry available for AAPL")
+            # Expirations are static reference data — treat missing as a real
+            # server issue during trading hours; skip if the market is closed.
+            if is_market_trading(self.client, 'US'):
+                self.fail("get_option_expirations returned empty for AAPL "
+                          "during US main trading session")
+            self.skipTest("No option expiry available for AAPL — US market closed")
         option_filter = OptionFilter(implied_volatility_min=0.05, implied_volatility_max=1, delta_min=0,
                                      delta_max=1,
                                      open_interest_min=10, open_interest_max=20000, in_the_money=True)
@@ -287,7 +326,7 @@ class TestIntegQuoteClient(unittest.TestCase):
                                               option_filter=option_filter,
                                               return_greek_value=True)
         self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Option Chain')
+        self._skip_if_empty(result, 'Option Chain', market='US')
         self.assertIn('symbol', result.columns)
         self.assertIn('identifier', result.columns)
         self.assertIn('strike', result.columns)
@@ -299,13 +338,11 @@ class TestIntegQuoteClient(unittest.TestCase):
         logger.debug(f"Option Chain (real):\n {result}")
 
     def test_get_option_brief(self):
-        identifiers = self._get_option_identifiers(symbol='AAPL', market=Market.US, count=1)
-        if not identifiers:
-            self.skipTest("No option identifier available for AAPL")
+        identifiers = self._require_option_identifiers(symbol='AAPL', market=Market.US, count=1)
         result = self.client.get_option_briefs(
             identifiers=[identifiers[0]])
         self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Option Brief')
+        self._skip_if_empty(result, 'Option Brief', market='US')
         self.assertIn('identifier', result.columns)
         self.assertIn('symbol', result.columns)
         first = result.iloc[0]
@@ -315,14 +352,12 @@ class TestIntegQuoteClient(unittest.TestCase):
         logger.debug(f"Option Brief (real):\n {result}")
 
     def test_get_option_bars(self):
-        identifiers = self._get_option_identifiers(symbol='AAPL', market=Market.US, count=1)
-        if not identifiers:
-            self.skipTest("No option identifier available for AAPL")
+        identifiers = self._require_option_identifiers(symbol='AAPL', market=Market.US, count=1)
         result = self.client.get_option_bars(
             identifiers=[identifiers[0]], period=BarPeriod.DAY, limit=5,
         )
         self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Option Bars')
+        self._skip_if_empty(result, 'Option Bars', market='US')
         self.assertIn('identifier', result.columns)
         self.assertIn('time', result.columns)
         self.assertIn('open', result.columns)
@@ -335,13 +370,11 @@ class TestIntegQuoteClient(unittest.TestCase):
         logger.debug(f"Option Bars (real):\n {result}")
 
     def test_get_option_trade_ticks(self):
-        identifiers = self._get_option_identifiers(symbol='AAPL', market=Market.US, count=1)
-        if not identifiers:
-            self.skipTest("No option identifier available for AAPL")
+        identifiers = self._require_option_identifiers(symbol='AAPL', market=Market.US, count=1)
         result = self.client.get_option_trade_ticks(
             identifiers=[identifiers[0]])
         self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Option Trade Ticks')
+        self._skip_if_empty(result, 'Option Trade Ticks', market='US')
         self.assertIn('identifier', result.columns)
         self.assertIn('time', result.columns)
         self.assertIn('price', result.columns)
@@ -365,14 +398,12 @@ class TestIntegQuoteClient(unittest.TestCase):
         logger.debug(f"Option Symbols (real):\n {result}")
 
     def test_get_option_depth(self):
-        identifiers = self._get_option_identifiers(symbol='AAPL', market=Market.US, count=2)
-        if len(identifiers) < 2:
-            self.skipTest("No option identifiers available for AAPL")
+        identifiers = self._require_option_identifiers(symbol='AAPL', market=Market.US, count=2)
         result = self.client.get_option_depth(identifiers=identifiers,
                                               market=Market.US)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, dict)
-        self._skip_if_empty(result, 'Option Depth')
+        self._skip_if_empty(result, 'Option Depth', market='US')
         for key, val in result.items():
             self.assertIn('asks', val)
             self.assertIn('bids', val)
@@ -386,12 +417,10 @@ class TestIntegQuoteClient(unittest.TestCase):
         logger.debug(f"Option Depth (real): {result}")
 
     def test_get_option_timeline(self):
-        identifiers = self._get_option_identifiers(symbol='AAPL', market=Market.US, count=1)
-        if not identifiers:
-            self.skipTest("No option identifier available for AAPL")
+        identifiers = self._require_option_identifiers(symbol='AAPL', market=Market.US, count=1)
         result = self.client.get_option_timeline(identifiers=[identifiers[0]], market=Market.US)
         self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Option Timeline')
+        self._skip_if_empty(result, 'Option Timeline', market='US')
         self.assertIn('identifier', result.columns)
         self.assertIn('symbol', result.columns)
         self.assertIn('price', result.columns)
@@ -619,7 +648,7 @@ class TestIntegQuoteClient(unittest.TestCase):
         logger.debug(f"Trading Calendar:\n {result}")
 
     def test_get_stock_broker(self):
-        # Non-trading hours: bid/ask broker data may be empty
+        # HK broker data is only populated during HK main session.
         result = self.client.get_stock_broker(symbol='00700')
         self.assertIsNotNone(result)
         self.assertIsInstance(result, StockBroker)
@@ -627,7 +656,11 @@ class TestIntegQuoteClient(unittest.TestCase):
         has_data = (result.bid_broker and len(result.bid_broker) > 0) or \
                    (result.ask_broker and len(result.ask_broker) > 0)
         if not has_data:
-            self.skipTest("Stock broker data empty — non-trading hours")
+            if is_market_trading(self.client, 'HK'):
+                self.fail("get_stock_broker(00700) returned no bid/ask "
+                          "brokers during HK main trading session")
+            self.skipTest(
+                "Stock broker data empty — HK not in main trading session")
         if result.bid_broker and len(result.bid_broker) > 0:
             first_bid = result.bid_broker[0]
             self.assertGreaterEqual(first_bid.level, 1)
@@ -994,11 +1027,20 @@ class TestIntegQuoteClient(unittest.TestCase):
     def test_get_warrant_briefs(self):
         # First get warrant symbols from warrant_filter
         warrant_result = self.client.get_warrant_filter(symbol='00700', page=0, page_size=5)
-        if not warrant_result or warrant_result.items is None or warrant_result.items.empty:
-            self.skipTest("No warrant data available for 00700")
+        warrant_empty = (
+            not warrant_result
+            or warrant_result.items is None
+            or warrant_result.items.empty
+        )
+        if warrant_empty:
+            if is_market_trading(self.client, 'HK'):
+                self.fail("get_warrant_filter(00700) returned no items during "
+                          "HK main trading session")
+            self.skipTest(
+                "No warrant data available for 00700 — HK not in main trading session")
         warrant_symbol = warrant_result.items.iloc[0].get('symbol')
         if not warrant_symbol:
-            self.skipTest("No warrant symbol found in filter result")
+            self.fail("Warrant filter returned rows but no symbol column value")
         result = self.client.get_warrant_briefs(symbols=[warrant_symbol])
         self.assertIsNotNone(result)
         logger.debug(f"Warrant Briefs:\n {result}")

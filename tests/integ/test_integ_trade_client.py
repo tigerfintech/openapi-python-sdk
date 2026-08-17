@@ -26,6 +26,11 @@ from tigeropen.trade.domain.transfer import TransferItem, PositionTransfer, Posi
     PositionTransferExternalRecord
 from tigeropen.trade.domain.prime_account import PortfolioAccount
 from tigeropen.trade.trade_client import TradeClient
+from tests.integ._helpers import (
+    is_market_open_including_extended,
+    is_market_trading,
+    resolve_hk_option_symbol,
+)
 from tests.support import integ_client_config, is_integ_run
 
 # Safe prices — kept far from market so BUY/SELL orders never execute.
@@ -813,7 +818,14 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_place_us_stk_limit_by_amount(self):
-        """LMT by-amount order — safe price, place + cancel."""
+        """LMT by-amount order — safe price, place + cancel.
+
+        Server enforces "regular trading hours" for cash orders by amount;
+        outside main session the gateway refuses with a permission error, so
+        skip early. In-hours we require an actual placement.
+        """
+        if not is_market_trading(self._quote_client(), 'US'):
+            self.skipTest("skipped: US market not in main trading session")
         contract = stock_contract(symbol='AAPL', currency='USD')
         order = limit_order_by_amount(account=self.client_config.account,
                                       contract=contract, action='BUY',
@@ -831,7 +843,13 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_place_us_stk_stop_limit(self):
-        """STP_LMT — trigger and limit price both far from market."""
+        """STP_LMT — trigger and limit price both far from market.
+
+        Server rejects STP_LMT outside main session ("only limit orders can
+        be placed" during pre/post market). Gate on trading hours.
+        """
+        if not is_market_trading(self._quote_client(), 'US'):
+            self.skipTest("skipped: US market not in main trading session")
         contract = stock_contract(symbol='AAPL', currency='USD')
         order = stop_limit_order(account=self.client_config.account,
                                  contract=contract, action='BUY', quantity=1,
@@ -841,7 +859,12 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_place_us_stk_trail(self):
-        """TRAIL trailing stop — 50% trailing pct so it can't trigger."""
+        """TRAIL trailing stop — 50% trailing pct so it can't trigger.
+
+        Trailing stops disallowed outside RTH.
+        """
+        if not is_market_trading(self._quote_client(), 'US'):
+            self.skipTest("skipped: US market not in main trading session")
         contract = stock_contract(symbol='AAPL', currency='USD')
         order = trail_order(account=self.client_config.account,
                             contract=contract, action='SELL', quantity=1,
@@ -887,7 +910,14 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_place_us_stk_twap(self):
-        """TWAP algo order — limit price safe."""
+        """TWAP algo order — limit price safe.
+
+        TWAP is only accepted during a live session window; gate on trading
+        hours (allow pre/post since TWAP scheduling can span extended hours).
+        """
+        if not is_market_open_including_extended(self._quote_client(), 'US'):
+            self.skipTest(
+                "skipped: US market closed (main + extended hours)")
         contract = stock_contract(symbol='AAPL', currency='USD')
         now_ms = int(datetime.now().timestamp() * 1000)
         params = algo_order_params(start_time=now_ms,
@@ -901,7 +931,13 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_place_us_stk_vwap(self):
-        """VWAP algo order — participation rate + limit price safe."""
+        """VWAP algo order — participation rate + limit price safe.
+
+        Same session-window constraint as TWAP.
+        """
+        if not is_market_open_including_extended(self._quote_client(), 'US'):
+            self.skipTest(
+                "skipped: US market closed (main + extended hours)")
         contract = stock_contract(symbol='AAPL', currency='USD')
         now_ms = int(datetime.now().timestamp() * 1000)
         params = algo_order_params(start_time=now_ms,
@@ -1007,7 +1043,17 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_place_hk_stk_auction_limit(self):
-        """HK STK — Auction Limit (AL) — only accepted during HK auction sessions."""
+        """HK STK — Auction Limit (AL) — only accepted during HK auction sessions.
+
+        HK auction runs 09:00-09:30 and 16:00-16:10 HKT. We gate on the
+        extended-hours window (which includes both auction slots) plus a check
+        that the main session is *not yet* open; when the HK market is fully
+        closed the server rejects with "Auction order is not allowed at this
+        moment".
+        """
+        qc = self._quote_client()
+        if not is_market_open_including_extended(qc, 'HK'):
+            self.skipTest("skipped: HK market closed")
         contract = stock_contract(symbol='00700', currency='HKD')
         order = auction_limit_order(account=self.client_config.account,
                                     contract=contract, action='BUY',
@@ -1052,14 +1098,23 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_place_hk_opt_limit(self):
-        """HK OPT — LMT, best-effort discovery of a Tencent option contract."""
+        """HK OPT — LMT, best-effort discovery of a Tencent option contract.
+
+        The derivative-contract catalogue is available regardless of market
+        state, but the resolver may still return empty when the server rebuilds
+        indices during off-hours. During HK main session an empty result is a
+        real bug and we fail; otherwise skip.
+        """
         try:
-            future_expiry = (datetime.now() + timedelta(days=60)).strftime('%Y%m%d')
-            contracts = self.client.get_derivative_contracts(
-                symbol='00700', sec_type=SecurityType.OPT, expiry=future_expiry)
-            if not contracts:
-                self.skipTest("No HK option contracts available for 00700")
-            c = contracts[0]
+            c = resolve_hk_option_symbol(self.client, underlying='00700')
+            if c is None:
+                if is_market_trading(self._quote_client(), 'HK'):
+                    self.fail("get_derivative_contracts(00700) returned no "
+                              "HK option contracts during HK main trading "
+                              "session")
+                self.skipTest(
+                    "No HK option contracts available for 00700 "
+                    "— HK not in main trading session")
             contract = option_contract_by_symbol(
                 symbol=c.symbol or '00700', expiry=c.expiry,
                 strike=c.strike, put_call=c.put_call,
