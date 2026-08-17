@@ -1028,12 +1028,23 @@ class TestIntegQuoteClient(unittest.TestCase):
                                                 page=0,
                                                 page_size=5)
         self.assertIsNotNone(result)
-        # get_warrant_filter returns a WarrantFilterItem object, not a list
+        # get_warrant_filter returns a WarrantFilterItem object, not a list.
+        # Wire shape: server returns a bare array of warrant items with no
+        # {total, page, pageSize} wrapper — the wrapper's counters stay at
+        # their defaults, so only ``items`` carries the answer.
         self.assertIsInstance(result, WarrantFilterItem)
-        if result.items is not None and not result.items.empty:
-            first_row = result.items.iloc[0]
-            self.assertIn('symbol', result.items.columns)
-            self.assertTrue(len(str(first_row['symbol']).strip()) > 0)
+        items_empty = result.items is None or result.items.empty
+        if items_empty:
+            # During HK main trading session 00700 must return at least one
+            # warrant. Otherwise (market closed) empty is legitimate.
+            if is_market_trading(self.client, 'HK'):
+                self.fail("get_warrant_filter(00700) returned no items during "
+                          "HK main trading session")
+            self.skipTest(
+                "No warrant data available for 00700 — HK not in main trading session")
+        first_row = result.items.iloc[0]
+        self.assertIn('symbol', result.items.columns)
+        self.assertTrue(len(str(first_row['symbol']).strip()) > 0)
         logger.debug(f"Warrant Filter:\n {result}")
 
     def test_get_warrant_briefs(self):
