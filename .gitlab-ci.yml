@@ -33,6 +33,8 @@ stages:
 unit:python:
   extends: .python_base
   stage: unit
+  tags:
+    - platform-openapi
   script:
     - unset TIGEROPEN_TIGER_ID TIGEROPEN_PRIVATE_KEY TIGEROPEN_ACCOUNT TIGEROPEN_PROPS_PATH
     - mkdir -p test-results
