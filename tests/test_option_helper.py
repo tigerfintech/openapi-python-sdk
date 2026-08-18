@@ -5,10 +5,12 @@
 import unittest
 import math
 import pytest
-pytest.importorskip("QuantLib", reason="optional dependency; module skipped without it")
 
-from tigeropen.examples.option_helpers.probability_calculator import ProbabilityCalculator
-from tigeropen.examples.option_helpers.extra_calculator import ExtraCalculator
+try:
+    from tigeropen.examples.option_helpers.probability_calculator import ProbabilityCalculator
+    from tigeropen.examples.option_helpers.extra_calculator import ExtraCalculator
+except ImportError:
+    pytest.skip("scipy/QuantLib not installed; skipping option helper tests", allow_module_level=True)
 
 
 # 纯单测：永远不碰真实接口，contract / integ job 会跳过
