@@ -65,10 +65,6 @@ integration:python:
   variables:
     TIGER_RUN_INTEG: "true"
   script:
-    # Unset any injected TIGEROPEN_* vars so only the sdk-integ runner's
-    # Protected CI Variables are used (job-level variables cannot override
-    # Protected ones; unset in script achieves reliable credential isolation).
-    - unset TIGEROPEN_TIGER_ID TIGEROPEN_PRIVATE_KEY TIGEROPEN_ACCOUNT TIGEROPEN_PROPS_PATH
     - mkdir -p test-results
     - pytest tests/integ/ -v --tb=short --junitxml=test-results/integ.xml
   artifacts:
