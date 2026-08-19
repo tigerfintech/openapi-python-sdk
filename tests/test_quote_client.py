@@ -452,9 +452,9 @@ class TestQuoteClient(unittest.TestCase):
                     1754991710630,
                 "data": [{
                     "symbol": "AAPL", "beginIndex": 482299, "endIndex": 482499,
-                    "items": [{"time": 1754942403109, "volume": 406, "price": 227.18, "type": "-"},
-                              {"time": 1754942403109, "volume": 26215, "price": 227.18, "type": "-"},
-                              {"time": 1754942403109, "volume": 884, "price": 227.18, "type": "-"},
+                    "items": [{"time": 1754942403109, "volume": 406, "price": 227.18, "type": "-", "cond": " "},
+                              {"time": 1754942403109, "volume": 26215, "price": 227.18, "type": "-", "cond": "T"},
+                              {"time": 1754942403109, "volume": 884, "price": 227.18, "type": "-", "cond": "I"},
                               {"time": 1754942403109, "volume": 200, "price": 227.18, "type": "-"}]
                 }]
             }
@@ -476,8 +476,9 @@ class TestQuoteClient(unittest.TestCase):
             self.assertIn('volume', mock_result.columns)
             self.assertIn('direction', mock_result.columns)
             self.assertIn('index', mock_result.columns)
+            self.assertIn('cond', mock_result.columns)
 
-            # 验证第一行数据
+            # 验证第一行数据，cond 原始值直接透传
             first_row = mock_result.iloc[0]
             self.assertEqual(first_row['symbol'], 'AAPL')
             self.assertEqual(first_row['time'], 1754942403109)
@@ -485,6 +486,7 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(first_row['volume'], 406)
             self.assertEqual(first_row['direction'], '-')
             self.assertEqual(first_row['index'], 482299)
+            self.assertEqual(first_row['cond'], ' ')
 
             # 验证第二行数据
             second_row = mock_result.iloc[1]
@@ -494,6 +496,11 @@ class TestQuoteClient(unittest.TestCase):
             self.assertEqual(second_row['volume'], 26215)
             self.assertEqual(second_row['direction'], '-')
             self.assertEqual(second_row['index'], 482300)
+            self.assertEqual(second_row['cond'], 'T')
+
+            # 验证第三行数据
+            third_row = mock_result.iloc[2]
+            self.assertEqual(third_row['cond'], 'I')
     def test_get_short_interest(self):
         if self.is_mock:
             mock_data = {}

@@ -140,6 +140,51 @@ status = client.get_market_status(Market.US)
 print(status)
 ```
 
+### 逐笔成交 `cond` 字段说明
+
+`trade_tick` 接口和 push 层返回的 `cond` 字段已由 SDK 转换为可读字符串，含义如下：
+
+**美股（US）**
+
+| 值 | 含义 |
+|----|------|
+| `US_REGULAR_SALE` | 常规交易（Regular Sale） |
+| `US_BUNCHED_TRADE` | 批量交易（Bunched Trade） |
+| `US_CASH_TRADE` | 现金交易（Cash Trade） |
+| `US_INTERMARKET_SWEEP` | 跨市场交易（Intermarket Sweep） |
+| `US_BUNCHED_SOLD_TRADE` | 批量卖出（Bunched Sold Trade） |
+| `US_PRICE_VARIATION_TRADE` | 离价交易（Price Variation Trade） |
+| `US_ODD_LOT_TRADE` | 碎股交易（Odd Lot Trade） |
+| `US_RULE_127_OR_155_TRADE` | 纽交所第 127/155 条交易 |
+| `US_SOLD_LAST` | 延迟交易（Sold Last） |
+| `US_MARKET_CENTER_CLOSE_PRICE` | 中央收市价（Market Center Close Price） |
+| `US_NEXT_DAY_TRADE` | 隔日交易（Next Day Trade） |
+| `US_MARKET_CENTER_OPENING_TRADE` | 中央开盘价交易（Market Center Opening Trade） |
+| `US_PRIOR_REFERENCE_PRICE` | 前参考价（Prior Reference Price） |
+| `US_MARKET_CENTER_OPEN_PRICE` | 中央开盘价（Market Center Open Price） |
+| `US_SELLER` | 卖方（Seller） |
+| `US_FORM_T` | 盘前盘后交易（Form T） |
+| `US_EXTENDED_TRADING_HOURS` | 延长交易时段（Extended Trading Hours） |
+| `US_CONTINGENT_TRADE` | 合单交易（Contingent Trade） |
+| `US_AVERAGE_PRICE_TRADE` | 均价交易（Average Price Trade） |
+| `US_CROSS_TRADE` | 跨市场交易（Cross Trade） |
+| `US_SOLD_OUT_OF_SEQUENCE` | 场外售出（Sold Out of Sequence） |
+| `US_DERIVATIVELY_PRICED` | 衍生工具定价（Derivatively Priced） |
+| `US_QUALIFIED_CONTINGENT_TRADE` | 合单交易（Qualified Contingent Trade） |
+
+**港股（HK）**
+
+| 值 | 含义 |
+|----|------|
+| `HK_AUTOMATCH_NORMAL` | 自动对盘（Automatch Normal） |
+| `HK_ODD_LOT_TRADE` | 碎股交易（Odd Lot Trade） |
+| `HK_AUCTION_TRADE` | 竞价交易（Auction Trade） |
+| `HK_OVERSEAS_TRADE` | 场外交易（Overseas Trade） |
+| `HK_LATE_TRADE_OFF_EXCHG` | 开市前成交（Late Trade Off Exchange） |
+| `HK_NON_DIRECT_OFF_EXCHG_TRADE` | 非自动对盘（Non-Direct Off Exchange Trade） |
+| `HK_DIRECT_OFF_EXCHG_TRADE` | 同券商自动对盘（Direct Off Exchange Trade） |
+| `HK_AUTOMATIC_INTERNALIZED` | 同券商非自动对盘（Automatic Internalized） |
+
 ### 4. 下单交易
 
 ```python
