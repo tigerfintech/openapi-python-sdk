@@ -1,3 +1,7 @@
+## 3.7.1 (2026-08-19)
+### New
+- `get_option_chain` 返回数据新增 `mark_price`、`pre_mark_price`、`mark_timestamp`、`mid_price`、`pre_mid_price`、`mid_timestamp` 字段
+
 ## 3.7.0 (2026-07-23)
 ### New
 - `get_corporate_symbol_change` — 股票代码变更查询
