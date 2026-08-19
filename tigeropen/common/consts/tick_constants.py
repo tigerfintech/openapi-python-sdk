@@ -70,15 +70,15 @@ US_TRADE_COND_MAP = {
     "R": "US_SELLER",  # 卖方
     "T": "US_FORM_T",  # 盘前盘后交易
     "U": "US_EXTENDED_TRADING_HOURS",  # 延长交易时段
-    "V": "US_CONTINGENT_TRADE",  # 条件交易
+    "V": "US_CONTINGENT_TRADE",  # 条件交易（contingent trade）
     "W": "US_AVERAGE_PRICE_TRADE",  # 均价交易
-    "X": "US_CROSS_TRADE",  # 交叉交易
+    "X": "US_CROSS_TRADE",  # 交叉交易（cross trade）
     "Z": "US_SOLD_OUT_OF_SEQUENCE",  # 场外售出
     "0": "US_ODD_LOST_CROSS_TRADE",  # 碎股跨市场交易
     "4": "US_DERIVATIVELY_PRICED",  # 衍生工具定价
     "5": "US_MARKET_CENTER_RE_OPENING_TRADE",  # 再开盘定价
     "6": "US_MARKET_CENTER_CLOSING_TRADE",  # 收盘定价
-    "7": "US_QUALIFIED_CONTINGENT_TRADE",  # 合格条件交易
+    "7": "US_QUALIFIED_CONTINGENT_TRADE",  # 合格条件交易（qualified contingent trade）
     "9": "US_CONSOLIDATED_LAST_PRICE_PER_LISTING_PACKET",  # 综合延迟价格
 }
 

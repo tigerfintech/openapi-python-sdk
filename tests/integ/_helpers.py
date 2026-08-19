@@ -212,8 +212,10 @@ def _cached_trading_status(quote_client_id: int, market: str) -> Optional[str]:
     client share results, but different clients (rare in one run) don't collide."""
     # The real client object is looked up via a module-level registry — see
     # ``_get_status_for_client`` below. lru_cache can't hash arbitrary objects.
-    return _CLIENT_REGISTRY.get(quote_client_id) \
-        and _fetch_trading_status(_CLIENT_REGISTRY[quote_client_id], market)
+    client = _CLIENT_REGISTRY.get(quote_client_id)
+    if client is None:
+        return None
+    return _fetch_trading_status(client, market)
 
 
 _CLIENT_REGISTRY: dict = {}

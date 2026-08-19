@@ -133,11 +133,12 @@ notify:webhook:
 
       # 2. Determine pass/fail from JUnit results.
       # Any test failure (unit or integration) drives the red card.
-      # When unit XML is missing, fall back to CI_PIPELINE_STATUS.
+      # When unit XML is missing, fall back to CI_PIPELINE_STATUS,
+      # but still honour integ_f when the integration XML was parsed.
       if unit_f is None:
           status = os.environ.get("CI_PIPELINE_STATUS", "")
-          has_failed = (status == "failed")
-          print(f"JUnit XML unavailable; falling back to CI_PIPELINE_STATUS={status!r}")
+          has_failed = (status == "failed") or (integ_f is not None and integ_f > 0)
+          print(f"Unit JUnit XML unavailable; falling back to CI_PIPELINE_STATUS={status!r}")
       else:
           has_failed = (unit_f > 0) or (integ_f is not None and integ_f > 0)
 

@@ -30,6 +30,7 @@ class TestUncoveredTradeClient(unittest.TestCase):
         result = self.client.get_managed_accounts()
         # Wire method ACCOUNTS exercised - request was constructed and mock was called
         web_utils.do_request.assert_called_once()
+        self.assertIsNotNone(result)
 
     def test_get_open_orders(self):
         """Covers wire method ACTIVE_ORDERS."""
@@ -38,6 +39,7 @@ class TestUncoveredTradeClient(unittest.TestCase):
         result = self.client.get_open_orders()
         # Wire method ACTIVE_ORDERS exercised - request was constructed and mock was called
         web_utils.do_request.assert_called_once()
+        self.assertIsNotNone(result)
 
     def test_get_aggregate_assets(self):
         """Covers wire method AGGREGATE_ASSETS."""
@@ -46,6 +48,7 @@ class TestUncoveredTradeClient(unittest.TestCase):
         result = self.client.get_aggregate_assets()
         # Wire method AGGREGATE_ASSETS exercised - request was constructed and mock was called
         web_utils.do_request.assert_called_once()
+        # result may be None or empty when data is an empty list — just verify no exception raised
 
     def test_get_analytics_asset(self):
         """Covers wire method ANALYTICS_ASSET."""
@@ -54,6 +57,7 @@ class TestUncoveredTradeClient(unittest.TestCase):
         result = self.client.get_analytics_asset()
         # Wire method ANALYTICS_ASSET exercised - request was constructed and mock was called
         web_utils.do_request.assert_called_once()
+        # result may be None or empty when data is an empty list — just verify no exception raised
 
     def test_get_assets(self):
         """Covers wire method ASSETS."""
@@ -62,6 +66,7 @@ class TestUncoveredTradeClient(unittest.TestCase):
         result = self.client.get_assets()
         # Wire method ASSETS exercised - request was constructed and mock was called
         web_utils.do_request.assert_called_once()
+        # result may be None or empty when data is an empty list — just verify no exception raised
 
     def test_cancel_segment_fund(self):
         """Covers wire method CANCEL_SEGMENT_FUND."""
