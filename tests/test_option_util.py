@@ -392,7 +392,7 @@ class TestOptionUtil(unittest.TestCase):
         """Test _dataframe_to_metrics conversion"""
         # Create test DataFrame
         test_df = pd.DataFrame({
-            'identifier': [FUTURE_EXPIRY_IDENTIFIER, 'AAPL 260116P00200000'],
+            'identifier': [FUTURE_EXPIRY_IDENTIFIER, 'AAPL 270115P00200000'],
             'symbol': ['AAPL', 'AAPL'],
             'strike': [200.0, 200.0],
             'put_call': ['CALL', 'PUT'],
@@ -416,7 +416,7 @@ class TestOptionUtil(unittest.TestCase):
         self.assertIsInstance(result[0], OptionMetric)
         self.assertIsInstance(result[1], OptionMetric)
         self.assertEqual(result[0].identifier, FUTURE_EXPIRY_IDENTIFIER)
-        self.assertEqual(result[1].identifier, 'AAPL 260116P00200000')
+        self.assertEqual(result[1].identifier, 'AAPL 270115P00200000')
         self.assertEqual(result[0].put_call, 'CALL')
         self.assertEqual(result[1].put_call, 'PUT')
     
@@ -453,7 +453,7 @@ class TestOptionUtil(unittest.TestCase):
         """Test get_option_metrics with multiple identifiers"""
         # Setup mock data with multiple options
         mock_briefs = pd.DataFrame({
-            'identifier': [FUTURE_EXPIRY_IDENTIFIER, 'AAPL 260116C00210000', 'AAPL 260116P00200000'],
+            'identifier': [FUTURE_EXPIRY_IDENTIFIER, 'AAPL 270115C00210000', 'AAPL 270115P00200000'],
             'symbol': ['AAPL', 'AAPL', 'AAPL'],
             'strike': [200.0, 210.0, 200.0],
             'put_call': ['CALL', 'CALL', 'PUT'],
@@ -470,13 +470,13 @@ class TestOptionUtil(unittest.TestCase):
             'symbol': ['AAPL'],
             'divide_rate': [0.005]
         })
-        
+
         self.mock_quote_client.get_stock_briefs.return_value = pd.DataFrame({
             'symbol': ['AAPL'],
             'latest_price': [210.0]
         })
         result = self.option_util.get_option_metrics(
-            [FUTURE_EXPIRY_IDENTIFIER, 'AAPL 260116C00210000', 'AAPL 260116P00200000'],
+            [FUTURE_EXPIRY_IDENTIFIER, 'AAPL 270115C00210000', 'AAPL 270115P00200000'],
             return_type='list'
         )
         
@@ -614,7 +614,7 @@ class TestOptionUtil(unittest.TestCase):
         
         # Setup mock data for PUT option
         mock_briefs = pd.DataFrame({
-            'identifier': ['AAPL 260116P00200000'],
+            'identifier': ['AAPL 270115P00200000'],
             'symbol': ['AAPL'],
             'strike': [200.0],
             'put_call': ['PUT'],  # PUT option
@@ -637,13 +637,13 @@ class TestOptionUtil(unittest.TestCase):
             'symbol': ['AAPL'],
             'latest_price': [210.0]
         })
-        
+
         # Call method
         result = option_util.get_option_metrics(
-            ['AAPL 260116P00200000'],
+            ['AAPL 270115P00200000'],
             return_type='dataframe'
         )
-        
+
         mock_trade_client.preview_order.assert_called_once()
         preview_order_arg = mock_trade_client.preview_order.call_args[0][0]
         self.assertEqual(preview_order_arg.contract.put_call, 'PUT')
