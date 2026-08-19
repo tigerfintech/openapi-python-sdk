@@ -935,8 +935,7 @@ class TestIntegQuoteClient(unittest.TestCase):
                                        period=BarPeriod.DAY,
                                        begin_time=begin_time,
                                        end_time=end_time,
-                                       limit=10,
-                                       market=Market.HK)
+                                       limit=10)
         self.assertIsInstance(result, pd.DataFrame)
         self.assertFalse(result.empty)
         self.assertIn('open', result.columns)
@@ -950,8 +949,7 @@ class TestIntegQuoteClient(unittest.TestCase):
 
     def test_get_quote_real_time_us(self):
         """US real-time quote — assert latest_price field."""
-        result = self.client.get_briefs(symbols=['AAPL'],
-                                                  market=Market.US)
+        result = self.client.get_briefs(symbols=['AAPL'])
         self.assertIsInstance(result, pd.DataFrame)
         self._skip_if_empty(result, 'Quote Real Time US')
         self.assertIn('latest_price', result.columns)
@@ -961,8 +959,7 @@ class TestIntegQuoteClient(unittest.TestCase):
 
     def test_get_quote_real_time_hk(self):
         """HK real-time quote — market=HK variant."""
-        result = self.client.get_briefs(symbols=['00700'],
-                                                  market=Market.HK)
+        result = self.client.get_briefs(symbols=['00700'])
         self.assertIsInstance(result, pd.DataFrame)
         self._skip_if_empty(result, 'Quote Real Time HK', market='HK')
         self.assertIn('latest_price', result.columns)
@@ -1044,7 +1041,7 @@ class TestIntegQuoteClient(unittest.TestCase):
 
     def test_get_market_state_status(self):
         """Market state — assert status field is populated."""
-        result = self.client.get_market_status(symbols=['AAPL'], market=Market.US)
+        result = self.client.get_market_status(market=Market.US)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, (list, pd.DataFrame))
         if isinstance(result, pd.DataFrame):
@@ -1082,10 +1079,11 @@ class TestIntegQuoteClient(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIsInstance(result, dict)
         self._skip_if_empty(result, 'Quote Depth HK', market='HK')
-        self.assertIn('00700', result)
-        hk = result['00700']
-        self.assertIsInstance(hk['asks'], list)
-        self.assertIsInstance(hk['bids'], list)
+        # single-symbol response is {'symbol': '00700', 'asks': [...], 'bids': [...]}
+        self.assertIn('asks', result)
+        self.assertIn('bids', result)
+        self.assertIsInstance(result['asks'], list)
+        self.assertIsInstance(result['bids'], list)
         logger.debug(f"Quote Depth HK:\n {result}")
 
     # ── get_financial_report: quarterly variant ───────────────────────
