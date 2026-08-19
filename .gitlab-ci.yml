@@ -137,21 +137,14 @@ notify:webhook:
       integ_stats = f"Integration: {integ_t} tests: {integ_p} passed, {integ_f} failed, {integ_s} skipped" if integ_t else ""
 
       # 2. Determine pass/fail from JUnit results.
-      # unit_f is None when the XML file was missing/unparseable — treat that as
-      # an unknown state rather than silently reporting "passed". Only unit test
-      # failures drive the red card; integration is allow_failure so its failures
-      # don't make the pipeline red, but we still surface the count in the card.
+      # Any test failure (unit or integration) drives the red card.
+      # When unit XML is missing, fall back to CI_PIPELINE_STATUS.
       if unit_f is None:
-          # XML absent or unparseable — fall back to CI_PIPELINE_STATUS.
-          # WARNING: in a `.post` `when: always` job, CI_PIPELINE_STATUS may
-          # still read as "running" because GitLab evaluates it before the
-          # pipeline fully completes. Only treat explicit "failed" as failure;
-          # "running"/"skipped"/"pending" are treated as unknown → green card.
           status = os.environ.get("CI_PIPELINE_STATUS", "")
           has_failed = (status == "failed")
-          print(f"JUnit XML unavailable; falling back to CI_PIPELINE_STATUS={status!r} (may be 'running' — see known GitLab limitation)")
+          print(f"JUnit XML unavailable; falling back to CI_PIPELINE_STATUS={status!r}")
       else:
-          has_failed = (unit_f > 0)
+          has_failed = (unit_f > 0) or (integ_f is not None and integ_f > 0)
 
       # 3. Build notification card
       title = "❌ Pipeline failed" if has_failed else "✅ Pipeline passed"
