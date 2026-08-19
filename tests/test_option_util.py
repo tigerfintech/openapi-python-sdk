@@ -284,6 +284,8 @@ class TestOptionUtil(unittest.TestCase):
         
         # Should call get_stock_fundamental
         self.mock_quote_client.get_stock_fundamental.assert_called_once()
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, pd.DataFrame)
     
     def test_get_option_metrics_market_parameter(self):
         """Test market parameter usage"""
