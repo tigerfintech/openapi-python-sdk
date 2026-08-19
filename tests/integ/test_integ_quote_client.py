@@ -950,21 +950,21 @@ class TestIntegQuoteClient(unittest.TestCase):
     def test_get_quote_real_time_us(self):
         """US real-time quote — assert latest_price field."""
         result = self.client.get_briefs(symbols=['AAPL'])
-        self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Quote Real Time US')
-        self.assertIn('latest_price', result.columns)
-        first = result.iloc[0]
-        self.assertGreater(first['latest_price'], 0)
+        self.assertIsInstance(result, list)
+        if not result:
+            self.skipTest('Quote Real Time US: empty response')
+        first = result[0]
+        self.assertGreater(first.latest_price, 0)
         logger.debug(f"Quote Real Time US:\n {result}")
 
     def test_get_quote_real_time_hk(self):
         """HK real-time quote — market=HK variant."""
         result = self.client.get_briefs(symbols=['00700'])
-        self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Quote Real Time HK', market='HK')
-        self.assertIn('latest_price', result.columns)
-        first = result.iloc[0]
-        self.assertGreater(first['latest_price'], 0)
+        self.assertIsInstance(result, list)
+        if not result:
+            self.skipTest('Quote Real Time HK: empty response')
+        first = result[0]
+        self.assertGreater(first.latest_price, 0)
         logger.debug(f"Quote Real Time HK:\n {result}")
 
     # ── get_option_chain: expiry field assertion ───────────────────────
