@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Integration tests - require real API credentials."""
 import logging
+import time
 import unittest
 from datetime import datetime, timedelta
 
@@ -61,9 +62,10 @@ _PERMISSION_ERROR_KEYWORDS = (
     "orders cannot be placed at this moment",
     "auction order is not allowed at this moment",
     # Account-level market permission (e.g. no A-share license).
+    # Keep specific variants only; the generic "does not support" was too broad
+    # and would swallow non-permission errors (e.g. "contract does not support ...").
     "does not support stock long",
     "does not support stock short",
-    "does not support",
     # Cash-order-by-amount restricted to market order on this account tier.
     "only trade cash order by market order",
     "cash order by market order",
@@ -74,12 +76,6 @@ _TERMINAL_ORDER_KEYWORDS = (
     "cannot be modified", "cannot be cancelled", "cannot be canceled",
     "already cancelled", "already canceled", "already filled",
     "not in a modifiable state", "invalid order status",
-)
-
-# Rate-limit signal — retry with backoff instead of failing.
-_RATE_LIMIT_KEYWORDS = (
-    "too_many_requests", "rate limit", "requestrateexceedlimit",
-    "rate exceeded",
 )
 
 logger = logging.getLogger(__name__)
@@ -114,8 +110,6 @@ class TestIntegTradeClient(unittest.TestCase):
             year, month = today.year + 1, 1
         else:
             year, month = today.year, today.month + 1
-        # Find the 3rd Friday of that month
-        import calendar
         first_day = datetime(year, month, 1)
         # weekday(): Monday=0 … Friday=4
         days_to_first_friday = (4 - first_day.weekday()) % 7
@@ -202,7 +196,6 @@ class TestIntegTradeClient(unittest.TestCase):
         """Return a US FOP (future option) Contract; best-effort discovery."""
         try:
             # Use the nearest real monthly expiry instead of an arbitrary offset.
-            import calendar as _calendar
             today = datetime.now().date()
             if today.month == 12:
                 year, month = today.year + 1, 1
@@ -229,7 +222,6 @@ class TestIntegTradeClient(unittest.TestCase):
         """Return an HK WAR Contract, best-effort."""
         try:
             # Use the nearest real monthly expiry (3rd Friday of next month).
-            import calendar as _calendar
             today = datetime.now().date()
             if today.month == 12:
                 year, month = today.year + 1, 1
@@ -257,7 +249,6 @@ class TestIntegTradeClient(unittest.TestCase):
         """Return an HK IOPT (callable bull/bear) Contract, best-effort."""
         try:
             # Use the nearest real monthly expiry (3rd Friday of next month).
-            import calendar as _calendar
             today = datetime.now().date()
             if today.month == 12:
                 year, month = today.year + 1, 1
@@ -492,7 +483,6 @@ class TestIntegTradeClient(unittest.TestCase):
 
     @pytest.mark.integ
     def test_place_iceberg_order(self):
-        import time
         now_ms = int(time.time() * 1000)
         start_time = now_ms
         end_time = now_ms + 3600_000
@@ -796,7 +786,6 @@ class TestIntegTradeClient(unittest.TestCase):
     def test_get_derivative_contracts(self):
         # Use the nearest real monthly expiry (3rd Friday of next month) rather
         # than an arbitrary offset which is unlikely to be a listed expiry date.
-        import calendar as _calendar
         today = datetime.now().date()
         if today.month == 12:
             year, month = today.year + 1, 1
@@ -1435,7 +1424,6 @@ class TestIntegTradeClient(unittest.TestCase):
     @pytest.mark.integ
     def test_place_us_stk_iceberg_modify_price(self):
         """Iceberg order — place, modify limit price, then cancel."""
-        import time
         now_ms = int(time.time() * 1000)
         contract = stock_contract(symbol='AAPL', currency='USD')
         order = iceberg_order(

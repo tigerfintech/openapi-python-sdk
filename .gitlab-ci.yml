@@ -3,12 +3,12 @@
 #
 # Python needs a Docker executor (image: python:3.11-slim) for a modern
 # Python; the default shell runner only has python3.6. Register a Docker
-# runner tagged 'platform-openapi' for the integration job.
+# runner tagged 'openapi' for the integration job.
 #
 # Integration credentials: TIGEROPEN_TIGER_ID, TIGEROPEN_PRIVATE_KEY,
 # TIGEROPEN_ACCOUNT env vars set in GitLab CI Variables (Protected + Masked).
 # NOTE: Protected variables are only exposed on protected branches/tags.
-# The integration job must run on a runner tagged 'platform-openapi' which
+# The integration job must run on a runner tagged 'openapi' which
 # is registered for the protected branch runner that has access to these vars.
 
 stages:
@@ -18,7 +18,7 @@ stages:
 .python_base:
   image: python:3.11-slim
   # No tags here: unit tests run on any shared runner.
-  # Only integration jobs need the platform-openapi runner (for Protected vars).
+  # Only integration jobs need the openapi runner (for Protected vars).
   variables:
     # Runner sits inside Aliyun; the aliyun PyPI mirror is more reliable
     # than tsinghua from this network. PIP_INDEX_URL is inherited by any
@@ -78,8 +78,8 @@ integration:python:
 
 # Pipeline result notification via chat webhook.
 # Parses JUnit XML artifacts directly (no GitLab API dependency).
-# NOTE: image switched to alpine:3 + curl — lighter than python:3.11-slim
-# (~5 MB vs ~150 MB) since this job only needs curl.
+# NOTE: image switched to alpine:3 + python3 — lighter than python:3.11-slim
+# (~5 MB vs ~150 MB) since this job only needs python3.
 notify:webhook:
   image: alpine:3
   tags:
@@ -98,7 +98,7 @@ notify:webhook:
     - job: integration:python
       artifacts: true
   before_script:
-    - apk add --no-cache curl python3
+    - apk add --no-cache python3
   script:
     - |
       python3 << 'PYEOF'

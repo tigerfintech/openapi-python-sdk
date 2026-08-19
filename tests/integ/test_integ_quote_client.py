@@ -1186,7 +1186,7 @@ class TestIntegQuoteClient(unittest.TestCase):
         self.assertIn('action_type', result.columns)
         if not result.empty:
             first = result.iloc[0]
-            self.assertIn(first['action_type'], ['EARNING', 'EARNING'])
+            self.assertIn(first['action_type'], ['earning', 'EARNINGS_CALENDAR'])
             self.assertTrue(len(str(first['symbol']).strip()) > 0)
         logger.debug(f"Corporate Earnings Calendar:\n {result}")
 
