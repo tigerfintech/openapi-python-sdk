@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from tigeropen.common.consts import Market, TradingSession, BarPeriod, CapitalPeriod, Valuation, Income, \
-    OptionAnalysisPeriod, SortDirection
+    OptionAnalysisPeriod, SortDirection, FinancialReportPeriodType
 from tigeropen.common.consts.filter_fields import StockField, FinancialPeriod, MultiTagField  # noqa: F401 — MultiTagField used in test_get_market_scanner_tags
 from tigeropen.quote.domain.filter import StockFilter, SortFilterData, OptionFilter, WarrantFilterItem
 from tigeropen.quote.domain.quote_brief import QuoteBrief
@@ -891,7 +891,7 @@ class TestIntegQuoteClient(unittest.TestCase):
         import time as _time
         end_time = int(_time.time() * 1000)
         begin_time = end_time - 30 * 24 * 3600 * 1000
-        result = self.client.get_kline(symbols=['AAPL'],
+        result = self.client.get_bars(symbols=['AAPL'],
                                        period=BarPeriod.DAY,
                                        begin_time=begin_time,
                                        end_time=end_time,
@@ -912,7 +912,7 @@ class TestIntegQuoteClient(unittest.TestCase):
         import time as _time
         end_time = int(_time.time() * 1000)
         begin_time = end_time - 180 * 24 * 3600 * 1000
-        result = self.client.get_kline(symbols=['AAPL'],
+        result = self.client.get_bars(symbols=['AAPL'],
                                        period=BarPeriod.WEEK,
                                        begin_time=begin_time,
                                        end_time=end_time,
@@ -931,7 +931,7 @@ class TestIntegQuoteClient(unittest.TestCase):
         import time as _time
         end_time = int(_time.time() * 1000)
         begin_time = end_time - 30 * 24 * 3600 * 1000
-        result = self.client.get_kline(symbols=['00700'],
+        result = self.client.get_bars(symbols=['00700'],
                                        period=BarPeriod.DAY,
                                        begin_time=begin_time,
                                        end_time=end_time,
@@ -950,7 +950,7 @@ class TestIntegQuoteClient(unittest.TestCase):
 
     def test_get_quote_real_time_us(self):
         """US real-time quote — assert latest_price field."""
-        result = self.client.get_quote_real_time(symbols=['AAPL'],
+        result = self.client.get_briefs(symbols=['AAPL'],
                                                   market=Market.US)
         self.assertIsInstance(result, pd.DataFrame)
         self._skip_if_empty(result, 'Quote Real Time US')
@@ -961,7 +961,7 @@ class TestIntegQuoteClient(unittest.TestCase):
 
     def test_get_quote_real_time_hk(self):
         """HK real-time quote — market=HK variant."""
-        result = self.client.get_quote_real_time(symbols=['00700'],
+        result = self.client.get_briefs(symbols=['00700'],
                                                   market=Market.HK)
         self.assertIsInstance(result, pd.DataFrame)
         self._skip_if_empty(result, 'Quote Real Time HK', market='HK')
@@ -1003,7 +1003,7 @@ class TestIntegQuoteClient(unittest.TestCase):
 
     def test_get_stock_detail_latest_price(self):
         """Stock detail — assert latest_price is populated."""
-        result = self.client.get_stock_detail(symbols=['AAPL'])
+        result = self.client.get_stock_details(symbols=['AAPL'])
         self.assertIsInstance(result, pd.DataFrame)
         self.assertFalse(result.empty)
         self.assertIn('symbol', result.columns)
@@ -1032,7 +1032,7 @@ class TestIntegQuoteClient(unittest.TestCase):
         contract_code = self._get_future_contract_code(exchange='CME')
         if contract_code is None:
             self.skipTest("No future contract code available from CME")
-        result = self.client.get_future_real_time_quote(identifiers=[contract_code])
+        result = self.client.get_future_brief(identifiers=[contract_code])
         self.assertIsInstance(result, pd.DataFrame)
         self._skip_if_empty(result, 'Future Real Time Quote')
         self.assertIn('latest_price', result.columns)
@@ -1044,7 +1044,7 @@ class TestIntegQuoteClient(unittest.TestCase):
 
     def test_get_market_state_status(self):
         """Market state — assert status field is populated."""
-        result = self.client.get_market_state(symbols=['AAPL'], market=Market.US)
+        result = self.client.get_market_status(symbols=['AAPL'], market=Market.US)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, (list, pd.DataFrame))
         if isinstance(result, pd.DataFrame):
@@ -1096,7 +1096,7 @@ class TestIntegQuoteClient(unittest.TestCase):
             symbols=['AAPL'],
             market='US',
             fields=[Income.net_income],
-            period_type=FinancialPeriod.QUARTERLY,
+            period_type=FinancialReportPeriodType.QUARTERLY,
             begin_date="2023-01-01",
             end_date="2023-12-31")
         self.assertIsInstance(result, pd.DataFrame)
@@ -1119,7 +1119,7 @@ class TestIntegQuoteClient(unittest.TestCase):
             self.skipTest("QuoteClient does not expose get_orders")
         from tigeropen.common.exceptions import ApiException
         try:
-            result = self.client.get_orders(status='FILLED', limit=5)
+            result = self.client.get_orders(states=['FILLED'], limit=5)
         except ApiException as e:
             self.skipTest(f"get_orders FILLED filter not supported: {e}")
         self.assertIsNotNone(result)

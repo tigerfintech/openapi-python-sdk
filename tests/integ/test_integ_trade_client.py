@@ -438,7 +438,7 @@ class TestIntegTradeClient(unittest.TestCase):
         end_dt = datetime.now()
         start_dt = end_dt - timedelta(days=90)
         result = self.client.get_orders(
-            status='FILLED',
+            states=['FILLED'],
             start_time=start_dt.strftime('%Y-%m-%d'),
             end_time=end_dt.strftime('%Y-%m-%d'),
             limit=5)
