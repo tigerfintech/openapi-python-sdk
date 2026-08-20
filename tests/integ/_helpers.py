@@ -434,13 +434,26 @@ def _hk_option_from_quote_chain(quote_client, underlying: str):
     except (TypeError, ValueError):
         return None
 
+    # HK option chain returns expiry as a millisecond timestamp (int).
+    # Convert to 'YYYY-MM-DD' string to match the US path and gateway expectation.
+    expiry_raw = _cell('expiry')
+    try:
+        from datetime import datetime as _dt
+        expiry_str = _dt.fromtimestamp(int(expiry_raw) / 1000).strftime('%Y-%m-%d')
+    except (TypeError, ValueError, OSError):
+        expiry_str = expiry_raw  # fall back to raw value; caller will skipTest on None
+
+    # The HK option chain exposes the contract identifier as 'identifier',
+    # not 'contract_id' or 'conid' (those live in the trade-side ContractsResponse).
+    identifier = _cell('identifier')
+
     return SimpleNamespace(
         symbol=underlying.split('.')[0],
-        expiry=_cell('expiry'),
+        expiry=expiry_str,
         strike=strike,
         put_call=(_cell('put_call') or 'CALL'),
         multiplier=_cell('multiplier'),
-        contract_id=_cell('contract_id') or _cell('conid'),
+        contract_id=identifier,  # place_order expects contract_id or local_symbol
     )
 
 
