@@ -67,7 +67,8 @@ _PERMISSION_ERROR_KEYWORDS = (
     "does not support stock long",
     "does not support stock short",
     # Cash-order-by-amount restricted to market order on this account tier.
-    "only trade cash order by market order",
+    # "only trade cash order by market order" is redundant — it's a substring
+    # of the broader match below, so only one entry is needed.
     "cash order by market order",
 )
 
@@ -560,7 +561,7 @@ class TestIntegTradeClient(unittest.TestCase):
             self.assertGreater(oid, 0)
             modified = True
         except ApiException as e:
-            if "cannot be modified" not in str(e):
+            if "cannot be modified" not in str(e).lower():
                 raise
             logger.warning(f"Order became non-modifiable before modify: {e}")
 
@@ -585,7 +586,7 @@ class TestIntegTradeClient(unittest.TestCase):
         except ApiException as e:
             # from/to account are hardcoded placeholders — the CI account
             # legitimately has no permission to move positions between them.
-            if "access forbidden" in str(e) or "forbidden" in str(e).lower():
+            if "forbidden" in str(e).lower():
                 self.skipTest(f"CI account lacks permission for placeholder accounts 1001/1002: {e}")
             raise
         logger.debug(f"Transfer Position Result: {result}")
@@ -625,7 +626,7 @@ class TestIntegTradeClient(unittest.TestCase):
         except ApiException as e:
             # account_id="1001" is a hardcoded placeholder — the CI account
             # legitimately has no read permission on it.
-            if "access forbidden" in str(e) or "forbidden" in str(e).lower():
+            if "forbidden" in str(e).lower():
                 self.skipTest(f"CI account lacks permission for placeholder account_id=1001: {e}")
             raise
         self.assertIsNotNone(result)
@@ -1349,7 +1350,7 @@ class TestIntegTradeClient(unittest.TestCase):
     # ==================================================================
 
     def _resolve_option_pair_for_spread(self):
-        """Return (expiry, atm_strike, higher_strike) for an AAPL vertical spread.
+        """Return (expiry, lower_strike, higher_strike) for an AAPL vertical spread.
 
         Both legs share the same expiry and put/call side. Returns None
         if we cannot resolve valid strikes.
