@@ -435,13 +435,18 @@ def _hk_option_from_quote_chain(quote_client, underlying: str):
         return None
 
     # HK option chain returns expiry as a millisecond timestamp (int).
-    # Convert to 'YYYY-MM-DD' string to match the US path and gateway expectation.
+    # Convert to 'YYYY-MM-DD' string using HK timezone so the date matches the
+    # exchange calendar (UTC+8) and is not off-by-one in UTC CI environments.
+    # On conversion failure return None so the caller can skipTest.
     expiry_raw = _cell('expiry')
     try:
-        from datetime import datetime as _dt
-        expiry_str = _dt.fromtimestamp(int(expiry_raw) / 1000).strftime('%Y-%m-%d')
+        _hk_tz = pytz.timezone('Asia/Hong_Kong')
+        expiry_str = (
+            datetime.fromtimestamp(int(expiry_raw) / 1000, tz=_hk_tz)
+            .strftime('%Y-%m-%d')
+        )
     except (TypeError, ValueError, OSError):
-        expiry_str = expiry_raw  # fall back to raw value; caller will skipTest on None
+        expiry_str = None  # caller will skipTest on None
 
     # The HK option chain exposes the contract identifier as 'identifier',
     # not 'contract_id' or 'conid' (those live in the trade-side ContractsResponse).
