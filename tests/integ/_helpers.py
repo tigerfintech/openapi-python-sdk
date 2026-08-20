@@ -60,6 +60,10 @@ _TRADING_HOURS_ERROR_KEYWORDS = (
     "orders cannot be placed at this moment",
     # LMT-by-amount cash orders restricted to regular hours
     "you can only trade during regular trading hours",
+    # LMT-by-amount on fractional shares — narrower wording variant
+    "only regular trading hours supported when trading fractional shares",
+    # TWAP / VWAP — explicit start/end window rejection with echoed bounds
+    "the time range for the order",
     # Generic session/schedule wording used elsewhere
     "outside of regular trading hours",
     "at non-trading hour",

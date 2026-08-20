@@ -66,6 +66,10 @@ _PERMISSION_ERROR_KEYWORDS = (
     # and would swallow non-permission errors (e.g. "contract does not support ...").
     "does not support stock long",
     "does not support stock short",
+    # Location-based regulatory restriction (e.g. Mainland China investors may
+    # only close/reduce/transfer out, not open new positions) — depends on the
+    # caller's detected location, not a wire/marshaling bug.
+    "opening or adding to positions is temporarily unavailable",
     # Cash-order-by-amount restricted to market order on this account tier.
     # "only trade cash order by market order" is redundant — it's a substring
     # of the broader match below, so only one entry is needed.
