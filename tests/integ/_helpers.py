@@ -446,7 +446,7 @@ def _hk_option_from_quote_chain(quote_client, underlying: str):
             .strftime('%Y-%m-%d')
         )
     except (TypeError, ValueError, OSError):
-        expiry_str = None  # caller will skipTest on None
+        return None  # expiry unresolvable; caller will skipTest on None result
 
     # The HK option chain exposes the contract identifier as 'identifier',
     # not 'contract_id' or 'conid' (those live in the trade-side ContractsResponse).
