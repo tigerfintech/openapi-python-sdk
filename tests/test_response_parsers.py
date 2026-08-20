@@ -6,7 +6,9 @@ from tigeropen.common.response import TigerResponse
 from tigeropen.fundamental.response.corporate_dividend_response import CorporateDividendResponse
 from tigeropen.fundamental.response.dataframe_response import DataframeResponse
 from tigeropen.fundamental.response.financial_exchange_rate_response import FinancialExchangeRateResponse
+from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
 from tigeropen.quote.response.quote_dataframe_response import QuoteDataframeResponse
+from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.stock_short_interest_response import ShortInterestResponse
 from tigeropen.trade.response.assets_response import AssetsResponse
 from tigeropen.trade.response.segment_fund_response import (
@@ -38,6 +40,69 @@ class TestBaseResponse(unittest.TestCase):
 
 
 class TestDataframeResponses(unittest.TestCase):
+
+    def test_quote_bar_volume_decimal_mapping_and_stock_omission(self):
+        crypto = QuoteBarResponse()
+        crypto.parse_response_content({
+            'code': 0,
+            'data': [{'symbol': 'BTCUSD', 'items': [{
+                'time': 1754366400000,
+                'volume': 1,
+                'volumeDecimal': 0.00012345,
+            }]}],
+        })
+        self.assertEqual(crypto.result.iloc[0]['volume_decimal'], 0.00012345)
+
+        stock = QuoteBarResponse()
+        stock.parse_response_content({
+            'code': 0,
+            'data': [{'symbol': 'AAPL', 'items': [{'volume': 123}]}],
+        })
+        self.assertNotIn('volume_decimal', stock.result.columns)
+
+    def test_quote_bar_explicit_null_volume_decimal_retains_nullable_column(self):
+        response = QuoteBarResponse()
+        response.parse_response_content({
+            'code': 0,
+            'data': [{'symbol': 'AAPL', 'items': [{
+                'volume': 123,
+                'volumeDecimal': None,
+            }]}],
+        })
+
+        self.assertIn('volume_decimal', response.result.columns)
+        self.assertTrue(pd.isna(response.result.iloc[0]['volume_decimal']))
+
+    def test_quote_timeline_volume_decimal_mapping_and_stock_omission(self):
+        crypto = QuoteTimelineResponse()
+        crypto.parse_response_content({
+            'code': 0,
+            'data': [{'symbol': 'BTCUSD', 'preClose': 115000.0, 'intraday': {'items': [{
+                'time': 1754919000000,
+                'volume': 1,
+                'volumeDecimal': 0.00012345,
+            }]}}],
+        })
+        self.assertEqual(crypto.result.iloc[0]['volume_decimal'], 0.00012345)
+
+        stock = QuoteTimelineResponse()
+        stock.parse_response_content({
+            'code': 0,
+            'data': [{'symbol': 'AAPL', 'preClose': 200.0, 'intraday': {'items': [{'volume': 123}]}}],
+        })
+        self.assertNotIn('volume_decimal', stock.result.columns)
+
+    def test_quote_timeline_explicit_null_volume_decimal_omits_key(self):
+        response = QuoteTimelineResponse()
+        response.parse_response_content({
+            'code': 0,
+            'data': [{'symbol': 'AAPL', 'preClose': 200.0, 'intraday': {'items': [{
+                'volume': 123,
+                'volumeDecimal': None,
+            }]}}],
+        })
+
+        self.assertNotIn('volume_decimal', response.result.columns)
 
     def test_generic_dataframe_response(self):
         response = DataframeResponse()
