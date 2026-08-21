@@ -346,10 +346,11 @@ class TestIntegTradeClient(unittest.TestCase):
           so genuine account/entitlement boundaries continue to skip.
 
         ``trading_session`` selects the hours window:
-        - ``'main'``  — only main session counts as in-hours (STP_LMT, TRAIL,
-          LMT-by-amount).
-        - ``'extended'`` — main OR pre/post-market counts as in-hours (TWAP,
-          VWAP can span extended hours).
+        - ``'main'``  — only main session counts as in-hours. Gateway enforces
+          this for STP_LMT, TRAIL, LMT-by-amount, and also TWAP/VWAP (their
+          ``start_time`` must fall within 09:30-16:00 ET regardless of
+          extended-hours availability).
+        - ``'extended'`` — main OR pre/post-market counts as in-hours.
         """
         qc = self._quote_client()
         if trading_session == 'extended':
@@ -1064,8 +1065,9 @@ class TestIntegTradeClient(unittest.TestCase):
     def test_place_us_stk_twap(self):
         """TWAP algo order — limit price safe.
 
-        TWAP is only accepted during a live session window (main + extended).
-        Test always runs; out-of-hours the server's schedule refusal validates
+        Gateway requires ``start_time`` to fall within the main session
+        (09:30-16:00 ET) regardless of extended-hours availability. Test
+        always runs; out-of-hours the server's schedule refusal validates
         the SDK wire path.
         """
         contract = stock_contract(symbol='AAPL', currency='USD')
@@ -1079,14 +1081,15 @@ class TestIntegTradeClient(unittest.TestCase):
                            limit_price=SAFE_BUY_PRICE)
         self._preview_and_place_hours_aware(order,
                                             context="US STK TWAP",
-                                            trading_session='extended')
+                                            trading_session='main')
 
     @pytest.mark.integ
     def test_place_us_stk_vwap(self):
         """VWAP algo order — participation rate + limit price safe.
 
-        Same session-window constraint as TWAP. Test always runs; out-of-hours
-        the server's schedule refusal validates the SDK wire path.
+        Same main-session-only start_time constraint as TWAP. Test always
+        runs; out-of-hours the server's schedule refusal validates the SDK
+        wire path.
         """
         contract = stock_contract(symbol='AAPL', currency='USD')
         now_ms = int(datetime.now().timestamp() * 1000)
@@ -1100,7 +1103,7 @@ class TestIntegTradeClient(unittest.TestCase):
                            limit_price=SAFE_BUY_PRICE)
         self._preview_and_place_hours_aware(order,
                                             context="US STK VWAP",
-                                            trading_session='extended')
+                                            trading_session='main')
 
     @pytest.mark.integ
     def test_place_us_opt_limit(self):
