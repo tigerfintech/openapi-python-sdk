@@ -11,9 +11,8 @@
 
 ## 3.6.0 (2026-06-24)
 ### New
-- 新增冰山单辅助函数 `iceberg_order(account, contract, action, quantity, limit_price, display_size)`，支持 `min_display_size`、`check_intervals`、`price_type`、`start_time`/`end_time`（epoch ms）
+- 新增冰山单辅助函数 `iceberg_order`，用于构造冰山单
 - 新增 `PriceType` 枚举常量（`LIMIT_PRICE`、`ASK_PRICE`、`BID_PRICE`、`LATEST_PRICE`）
-- 新增冰山单单元测试（`tests/test_trade_client.py` iceberg 相关用例），覆盖基础构造、完整参数、零值省略
 
 ## 3.5.9 (2026-06-08)
 ### New
@@ -22,7 +21,7 @@
 - `TradeClient.check_option_exercise` 行权检验，预估行权后持仓变化
 - `TradeClient.get_option_exercise_records` 分页查询行权申请记录，支持按状态、行权类型、标的代码过滤
 - `TradeClient.get_option_exercise_positions` 查询可行权持仓
-- `OrderStatusData` 推送消息新增字段：`updateTime` (44, 订单信息更新时间戳 ms)、`latestTime` (45, 订单状态更新时间戳 ms)
+- 订单推送消息补充订单信息更新时间和状态更新时间
 
 ## 3.5.8 (2026-04-24)
 ### New
@@ -118,7 +117,7 @@ QuoteClient 期货合约接口增加字段 合约规模 product_worth，交割�
 QuoteClient 期货实时行情接口增加字段 `open_interest_change`
 
 ### Breaking
-订单/成交记录支持 page token;
+- `get_orders`/`get_transactions` 支持分页 `page_token` 参数；传入 `page_token` 时返回值由列表改为响应对象（通过 `.result` 取列表，`.next_page_token` 取下一页游标）
 
 ## 3.4.1 (2025-06-26)
 ### New
