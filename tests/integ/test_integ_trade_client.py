@@ -54,12 +54,6 @@ _PERMISSION_ERROR_KEYWORDS = (
     "unsupported instrument", "instrument not tradable",
     # Session/state boundaries where only certain order types are accepted.
     "only limit orders are supported",
-    "outside of regular trading hours",
-    "market is closed",
-    "only limit orders can be placed",
-    "only limit, stop or stop-limit orders are allowed",
-    "at non-trading hour",
-    "orders cannot be placed at this moment",
     "auction order is not allowed at this moment",
     # Account-level market permission (e.g. no A-share license).
     # Keep specific variants only; the generic "does not support" was too broad
@@ -307,34 +301,10 @@ class TestIntegTradeClient(unittest.TestCase):
         return place_order_with_rate_limit_handling(
             self.client, order, retries=max_retries - 1)
 
-    def _preview_and_place(self, order, *, context=""):
-        """Preview → place → cancel round-trip; skip on permission errors.
-
-        Returns the placed order id (or None if skipped/aborted).
-        """
-        # 1. Preview first — validates SDK marshaling before touching real state.
-        try:
-            preview = self.client.preview_order(order=order)
-            self.assertIsNotNone(preview, f"{context}: preview returned None")
-            logger.debug(f"{context} preview: {preview}")
-        except ApiException as e:
-            self._skip_or_raise_on_permission_error(e, f"{context} preview")
-
-        # 2. Place, then cancel.
-        try:
-            order_id = self._place_with_rate_limit_retry(order, context=context)
-        except ApiException as e:
-            self._skip_or_raise_on_permission_error(e, f"{context} place")
-            return None
-        self.assertIsNotNone(order_id, f"{context}: place_order returned None")
-        logger.info(f"{context}: placed order id={order_id}")
-        self._cancel_tolerating_terminal(order_id)
-        return order_id
-
     def _preview_and_place_hours_aware(self, order, *, context="",
                                        market='US',
                                        trading_session='main'):
-        """Like ``_preview_and_place`` but never skips on trading-hours reasons.
+        """Preview → place → cancel round-trip; never skips on trading-hours reasons.
 
         Always exercises the full wire path (preview → place → cancel).
         - Out-of-hours + trading-hours refusal → test passes (return None);
@@ -989,7 +959,8 @@ class TestIntegTradeClient(unittest.TestCase):
         order = stop_order(account=self.client_config.account,
                            contract=contract, action='BUY', quantity=1,
                            aux_price=SAFE_STOP_BUY_TRIGGER)
-        self._preview_and_place(order, context="US STK STP")
+        self._preview_and_place_hours_aware(order, context="US STK STP",
+                                            trading_session='main')
 
     @pytest.mark.integ
     def test_place_us_stk_stop_limit(self):
@@ -1038,7 +1009,8 @@ class TestIntegTradeClient(unittest.TestCase):
                                       contract=contract, action='BUY',
                                       quantity=1, limit_price=SAFE_BUY_PRICE,
                                       order_legs=legs)
-        self._preview_and_place(order, context="US STK LMT+legs")
+        self._preview_and_place_hours_aware(order, context="US STK LMT+legs",
+                                            trading_session='extended')
 
     @pytest.mark.integ
     def test_place_us_stk_oca(self):
@@ -1056,7 +1028,8 @@ class TestIntegTradeClient(unittest.TestCase):
                           contract=contract, action='BUY',
                           order_legs=legs, quantity=1)
         try:
-            self._preview_and_place(order, context="US STK OCA")
+            self._preview_and_place_hours_aware(order, context="US STK OCA",
+                                                trading_session='extended')
         except ApiException as e:
             # OCA is Prime-only; downgrade "not supported" to skip.
             self._skip_or_raise_on_permission_error(e, "US STK OCA")
@@ -1114,7 +1087,8 @@ class TestIntegTradeClient(unittest.TestCase):
         order = limit_order(account=self.client_config.account,
                             contract=contract, action='BUY', quantity=1,
                             limit_price=SAFE_BUY_PRICE)
-        self._preview_and_place(order, context="US OPT LMT")
+        self._preview_and_place_hours_aware(order, context="US OPT LMT",
+                                            trading_session='extended')
 
     @pytest.mark.integ
     def test_place_us_fut_limit(self):
@@ -1126,7 +1100,8 @@ class TestIntegTradeClient(unittest.TestCase):
                             contract=contract, action='BUY', quantity=1,
                             limit_price=SAFE_BUY_PRICE)
         try:
-            self._preview_and_place(order, context="US FUT LMT")
+            self._preview_and_place_hours_aware(order, context="US FUT LMT",
+                                                trading_session='extended')
         except ApiException as e:
             # Some future markets need explicit segment setup — treat as skip.
             self._skip_or_raise_on_permission_error(e, "US FUT LMT")
@@ -1141,7 +1116,8 @@ class TestIntegTradeClient(unittest.TestCase):
                             contract=contract, action='BUY', quantity=1,
                             limit_price=SAFE_BUY_PRICE)
         try:
-            self._preview_and_place(order, context="US FOP LMT")
+            self._preview_and_place_hours_aware(order, context="US FOP LMT",
+                                                trading_session='extended')
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, "US FOP LMT")
 
@@ -1192,7 +1168,9 @@ class TestIntegTradeClient(unittest.TestCase):
                             contract=contract, action='BUY', quantity=100,
                             limit_price=SAFE_BUY_PRICE)
         try:
-            self._preview_and_place(order, context="HK STK LMT")
+            self._preview_and_place_hours_aware(order, context="HK STK LMT",
+                                                market='HK',
+                                                trading_session='extended')
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, "HK STK LMT")
 
@@ -1214,7 +1192,9 @@ class TestIntegTradeClient(unittest.TestCase):
                                     contract=contract, action='BUY',
                                     quantity=100, limit_price=SAFE_BUY_PRICE)
         try:
-            self._preview_and_place(order, context="HK STK AL")
+            self._preview_and_place_hours_aware(order, context="HK STK AL",
+                                                market='HK',
+                                                trading_session='extended')
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, "HK STK AL")
 
@@ -1247,7 +1227,9 @@ class TestIntegTradeClient(unittest.TestCase):
                                       quantity=100, limit_price=SAFE_BUY_PRICE,
                                       order_legs=legs)
         try:
-            self._preview_and_place(order, context="HK STK LMT+legs")
+            self._preview_and_place_hours_aware(order, context="HK STK LMT+legs",
+                                                market='HK',
+                                                trading_session='extended')
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, "HK STK LMT+legs")
 
@@ -1286,7 +1268,9 @@ class TestIntegTradeClient(unittest.TestCase):
                             contract=contract, action='BUY', quantity=1,
                             limit_price=SAFE_BUY_PRICE)
         try:
-            self._preview_and_place(order, context="HK OPT LMT")
+            self._preview_and_place_hours_aware(order, context="HK OPT LMT",
+                                                market='HK',
+                                                trading_session='extended')
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, "HK OPT LMT")
 
@@ -1300,7 +1284,9 @@ class TestIntegTradeClient(unittest.TestCase):
                             contract=contract, action='BUY', quantity=100,
                             limit_price=SAFE_BUY_PRICE)
         try:
-            self._preview_and_place(order, context="HK WAR LMT")
+            self._preview_and_place_hours_aware(order, context="HK WAR LMT",
+                                                market='HK',
+                                                trading_session='extended')
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, "HK WAR LMT")
 
@@ -1314,7 +1300,9 @@ class TestIntegTradeClient(unittest.TestCase):
                             contract=contract, action='BUY', quantity=100,
                             limit_price=SAFE_BUY_PRICE)
         try:
-            self._preview_and_place(order, context="HK IOPT LMT")
+            self._preview_and_place_hours_aware(order, context="HK IOPT LMT",
+                                                market='HK',
+                                                trading_session='extended')
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, "HK IOPT LMT")
 
@@ -1333,7 +1321,9 @@ class TestIntegTradeClient(unittest.TestCase):
                             contract=contract, action='BUY', quantity=100,
                             limit_price=SAFE_BUY_PRICE)
         try:
-            self._preview_and_place(order, context="CN STK LMT")
+            self._preview_and_place_hours_aware(order, context="CN STK LMT",
+                                                market='CN',
+                                                trading_session='extended')
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, "CN STK LMT")
 
@@ -1348,7 +1338,9 @@ class TestIntegTradeClient(unittest.TestCase):
                             contract=contract, action='BUY', quantity=100,
                             limit_price=SAFE_BUY_PRICE)
         try:
-            self._preview_and_place(order, context="SG STK LMT")
+            self._preview_and_place_hours_aware(order, context="SG STK LMT",
+                                                market='SG',
+                                                trading_session='extended')
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, "SG STK LMT")
 
@@ -1425,7 +1417,8 @@ class TestIntegTradeClient(unittest.TestCase):
                             action='BUY', quantity=1,
                             order_type='LMT', limit_price=-100.0)
         try:
-            self._preview_and_place(order, context="US MLEG VERTICAL")
+            self._preview_and_place_hours_aware(order, context="US MLEG VERTICAL",
+                                                trading_session='extended')
         except ApiException as e:
             self._skip_or_raise_on_permission_error(e, "US MLEG VERTICAL")
 
