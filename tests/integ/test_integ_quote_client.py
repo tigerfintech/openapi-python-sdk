@@ -289,6 +289,12 @@ class TestIntegQuoteClient(unittest.TestCase):
         self.assertEqual(aapl['symbol'], 'AAPL')
         self.assertIsInstance(aapl['asks'], list)
         self.assertIsInstance(aapl['bids'], list)
+        if not aapl['asks'] or not aapl['bids']:
+            # 盘中订单簿不应为空；非盘中(如盘前/盘后/休市)允许为空,
+            # 走到这里说明 SDK 请求/解析链路已验证通过,直接 pass 而非 skip。
+            if is_market_trading(self.client, Market.US):
+                self.fail(f"empty order book for AAPL during main trading session: {aapl}")
+            return
         self.assertGreater(len(aapl['asks']), 0)
         self.assertGreater(len(aapl['bids']), 0)
         self.assertGreater(aapl['asks'][0][0], 0)
