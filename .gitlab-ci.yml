@@ -59,6 +59,9 @@ integration:python:
   extends: .python_base
   stage: integration
   allow_failure: true
+  # Serialize per-branch: without this, a scheduled pipeline can overlap a
+  # manual one and both jobs write test-results/integ.xml concurrently.
+  resource_group: $CI_COMMIT_REF_SLUG
   # Must run on the openapi runner so Protected CI Variables are exposed.
   tags:
     - openapi
