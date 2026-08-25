@@ -37,6 +37,10 @@ unit:python:
     - openapi
   script:
     - unset TIGEROPEN_TIGER_ID TIGEROPEN_PRIVATE_KEY TIGEROPEN_ACCOUNT TIGEROPEN_PROPS_PATH
+    # Drop this job's own stale report first: build dirs get reused, and a
+    # leftover file would be re-archived as if this run had produced it.
+    # Only our own file — a sibling job's report may legitimately sit here.
+    - rm -f test-results/unit.xml
     - mkdir -p test-results
     # Note: no --ignore flags here. test_option_helper.py uses pytest.importorskip
     # to handle missing QuantLib gracefully; excluding the file would skip valid
@@ -45,8 +49,12 @@ unit:python:
   coverage: '/^TOTAL.*\s(\d+)%$/'
   artifacts:
     when: always
+    # Explicit file, not the whole directory: the runner reuses build dirs, so a
+    # directory glob can also archive the *other* job's stale report from a
+    # previous pipeline. Artifact download order across `needs` is not
+    # guaranteed, so a stale copy can overwrite the real one in notify:webhook.
     paths:
-      - test-results/
+      - test-results/unit.xml
     reports:
       coverage_report:
         coverage_format: cobertura
@@ -68,12 +76,20 @@ integration:python:
   variables:
     TIGER_RUN_INTEG: "true"
   script:
+    # Drop this job's own stale report first: build dirs get reused, and a
+    # leftover file would be re-archived as if this run had produced it.
+    # Only our own file — a sibling job's report may legitimately sit here.
+    - rm -f test-results/integ.xml
     - mkdir -p test-results
     - pytest tests/integ/ -v --tb=short --junitxml=test-results/integ.xml
   artifacts:
     when: always
+    # Explicit file, not the whole directory: the runner reuses build dirs, so a
+    # directory glob can also archive the *other* job's stale report from a
+    # previous pipeline. Artifact download order across `needs` is not
+    # guaranteed, so a stale copy can overwrite the real one in notify:webhook.
     paths:
-      - test-results/
+      - test-results/integ.xml
     reports:
       junit:
         - test-results/integ.xml
