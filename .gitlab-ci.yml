@@ -91,8 +91,9 @@ notify:webhook:
   # NOTE: CI_PIPELINE_STATUS in a `when: always` .post job may still read as
   # "running" rather than "failed" because GitLab evaluates this variable before
   # the pipeline fully completes (known GitLab behavior). The pass/fail decision
-  # below therefore relies on parsing JUnit XML artifacts rather than this
-  # variable, falling back to CI_PIPELINE_STATUS only when artifacts are absent.
+  # below therefore relies exclusively on parsing JUnit XML artifacts; an
+  # unparseable artifact is scored as a failure rather than deferring to that
+  # unreliable variable. Passing pipelines send nothing — see step 2b.
   when: always
   allow_failure: true
   needs:
@@ -137,14 +138,32 @@ notify:webhook:
 
       # 2. Determine pass/fail from JUnit results.
       # Any test failure (unit or integration) drives the red card.
-      # When unit XML is missing, fall back to CI_PIPELINE_STATUS,
-      # but still honour integ_f when the integration XML was parsed.
+      # unit_f is None → XML missing/corrupt; treat as failed (conservative),
+      # matching the other six SDK pipelines. Do NOT fall back to
+      # CI_PIPELINE_STATUS: it reads "running" in a .post stage, so trusting it
+      # would score a broken pipeline as a pass — and since we now stay silent
+      # on passes, that would mean a compile failure notifies nobody at all.
       if unit_f is None:
-          status = os.environ.get("CI_PIPELINE_STATUS", "")
-          has_failed = (status == "failed") or (integ_f is not None and integ_f > 0)
-          print(f"Unit JUnit XML unavailable; falling back to CI_PIPELINE_STATUS={status!r}")
+          has_failed = True
+          print("Unit JUnit XML unavailable — treating pipeline as failed")
+      elif integ_f is None:
+          # integration:python is allow_failure:true, so a missing XML means the
+          # job crashed before pytest flushed the report — a real problem, not a
+          # pass. Must stay loud: we notify on failure only now, so scoring this
+          # as green would make a crashed integration job notify nobody.
+          has_failed = True
+          print("Integration JUnit XML unavailable — treating pipeline as failed")
       else:
-          has_failed = (unit_f > 0) or (integ_f is not None and integ_f > 0)
+          has_failed = (unit_f > 0) or (integ_f > 0)
+
+      # 2b. Notify on failure only. A green card every 4 hours is noise nobody
+      #     reads, which also desensitises the channel to the red ones.
+      #     has_failed covers "XML unavailable" above, so an unreadable
+      #     artifact still notifies — silence here means "we positively
+      #     verified everything passed", never "we couldn't tell".
+      if not has_failed:
+          print(f"Pipeline passed — {unit_stats} | {integ_stats} — skipping notification")
+          exit(0)
 
       # 3. Build notification card
       title = "❌ Pipeline failed" if has_failed else "✅ Pipeline passed"
