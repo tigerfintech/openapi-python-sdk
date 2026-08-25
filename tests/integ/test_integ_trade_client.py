@@ -29,6 +29,7 @@ from tigeropen.trade.domain.prime_account import PortfolioAccount
 from tigeropen.trade.trade_client import TradeClient
 from tests.integ._helpers import (
     _is_trading_hours_error,
+    call_with_rate_limit_handling,
     is_market_open_including_extended,
     is_market_trading,
     place_order_with_rate_limit_handling,
@@ -281,7 +282,13 @@ class TestIntegTradeClient(unittest.TestCase):
     def _cancel_tolerating_terminal(self, order_id):
         """Best-effort cancel; ignore 'already terminated' style errors."""
         try:
-            self.client.cancel_order(id=order_id)
+            # Rate limits are account-level, so this cleanup cancel gets
+            # throttled as readily as the place_order it follows — and a
+            # too_many_requests message matches no terminal-order keyword, so
+            # without the wrapper it would hit the `raise` below and fail a
+            # test whose actual assertions already passed.
+            call_with_rate_limit_handling(
+                self.client.cancel_order, id=order_id, _label="cancel_order")
         except ApiException as e:
             if not any(k in str(e).lower() for k in _TERMINAL_ORDER_KEYWORDS):
                 logger.warning(f"cancel_order failed unexpectedly: {e}")
@@ -503,7 +510,10 @@ class TestIntegTradeClient(unittest.TestCase):
         self.assertIsInstance(order_id, int)
         self.assertGreater(order_id, 0)
 
-        result = self.client.cancel_order(id=order_id)
+        # Same account-level QPS ceiling as place_order above: when several SDK
+        # pipelines hit the real gateway at once, the cancel gets throttled too.
+        result = call_with_rate_limit_handling(
+            self.client.cancel_order, id=order_id, _label="cancel_order")
         logger.debug(f"Cancel Order Result: {result}")
         self.assertIsNotNone(result)
         self.assertIsInstance(result, int)
@@ -529,7 +539,13 @@ class TestIntegTradeClient(unittest.TestCase):
         # the SDK marshaled the modify request correctly.
         modified = False
         try:
-            oid = self.client.modify_order(order, limit_price=100.5)
+            # Wrap the modify too: the `except` below re-raises anything that
+            # isn't "cannot be modified", so an unwrapped account-level rate
+            # limit here surfaced as a hard test failure. The helper backs off
+            # and skips before this handler ever sees it.
+            oid = call_with_rate_limit_handling(
+                self.client.modify_order, order, limit_price=100.5,
+                _label="modify_order")
             logger.debug(f"Modify Order Result: {oid}")
             self.assertIsNotNone(oid)
             self.assertIsInstance(oid, int)
@@ -1441,7 +1457,12 @@ class TestIntegTradeClient(unittest.TestCase):
             return
 
         try:
-            self.client.modify_order(order, limit_price=SAFE_BUY_PRICE * 2)
+            # Wrapped for consistency with the other mutating calls: this
+            # branch only warns, but an unwrapped rate limit would be logged
+            # as "modify failed unexpectedly" and mask the real cause.
+            call_with_rate_limit_handling(
+                self.client.modify_order, order,
+                limit_price=SAFE_BUY_PRICE * 2, _label="modify_order")
             logger.info("US STK ICEBERG: modify succeeded")
         except ApiException as e:
             if not any(k in str(e).lower() for k in _TERMINAL_ORDER_KEYWORDS):

@@ -8,9 +8,10 @@
   动态从行情接口拉最新期权合约,避免依赖已过期的硬编码 identifier.
   HK 优先走 ``quote_client.get_option_chain`` (无 entitlement 要求),
   ``get_derivative_contracts`` 作为兜底.
-- ``place_order_with_rate_limit_handling``:
+- ``call_with_rate_limit_handling`` / ``place_order_with_rate_limit_handling``:
   在网关限流(``too_many_requests``)时先做指数退避重试,重试仍失败
   则以 ``pytest.skip`` 标记为合法边界,而不是让集成测试报红。
+  限流是账户级的,所以下单 / 改单 / 撤单都要走这层包装。
 
 上述接口调用会缓存在进程内(``functools.lru_cache``),同一 test session
 内不会重复打网关.
@@ -85,15 +86,16 @@ def _is_trading_hours_error(exc) -> bool:
     return any(k in msg for k in _TRADING_HOURS_ERROR_KEYWORDS)
 
 
-def place_order_with_rate_limit_handling(
-    client,
-    order,
-    *,
+def call_with_rate_limit_handling(
+    func,
+    *args,
+    _label: Optional[str] = None,
     retries: int = 2,
     initial_backoff: float = 1.0,
     pre_delay: float = 0.5,
+    **kwargs,
 ):
-    """调用 ``client.place_order(order=order)``,自动处理网关限流。
+    """调用 ``func(*args, **kwargs)``,自动处理网关限流。
 
     - 每次调用前先 ``sleep(pre_delay)`` 平滑请求节奏。
     - 命中限流关键词时按指数退避重试 ``retries`` 次。
@@ -101,11 +103,21 @@ def place_order_with_rate_limit_handling(
       账户级 QPS 上限是合法 CI 边界,不应误报为 fail。
     - 其它 ``ApiException`` / 异常原样上抛。
 
-    返回 ``client.place_order`` 的返回值(通常是 int order id)。
+    限流是**账户级**的,和调用哪个接口无关:7 个 SDK 的流水线同时打真实
+    网关时,``modify_order`` / ``cancel_order`` 一样会撞
+    ``error.requestRateExceedLimit``。所以退避 + skip 这套策略不能只挂在
+    ``place_order`` 上,任何会写的调用都该走这里。
+
+    ``_label`` 只用于日志(默认取 ``func.__name__``);前缀下划线是为了不和
+    被包装函数自己的关键字参数撞名。
+
+    返回 ``func`` 的返回值。
     """
     # Import inside the function to keep module import cheap and avoid
     # any circular-import risk with tigeropen internals.
     from tigeropen.common.exceptions import ApiException
+
+    label = _label or getattr(func, "__name__", "call")
 
     if pre_delay and pre_delay > 0:
         time.sleep(pre_delay)
@@ -114,7 +126,7 @@ def place_order_with_rate_limit_handling(
     last_exc: Optional[Exception] = None
     for attempt in range(retries + 1):
         try:
-            return client.place_order(order=order)
+            return func(*args, **kwargs)
         except ApiException as e:
             msg = str(e).lower()
             if not any(k in msg for k in _RATE_LIMIT_KEYWORDS):
@@ -123,19 +135,30 @@ def place_order_with_rate_limit_handling(
             last_exc = e
             if attempt < retries:
                 logger.info(
-                    "place_order rate-limited (attempt %d/%d); backing off %.1fs",
-                    attempt + 1, retries + 1, delay,
+                    "%s rate-limited (attempt %d/%d); backing off %.1fs",
+                    label, attempt + 1, retries + 1, delay,
                 )
                 time.sleep(delay)
                 delay *= 2
                 continue
             # Retries exhausted — skip rather than fail.
             pytest.skip(
-                f"gateway rate limit hit after {retries + 1} attempts: {e}"
+                f"gateway rate limit hit on {label} after {retries + 1} attempts: {e}"
             )
 
     # Defensive: pytest.skip raises, so we normally never reach here.
-    pytest.skip(f"gateway rate limit hit: {last_exc}")
+    pytest.skip(f"gateway rate limit hit on {label}: {last_exc}")
+
+
+def place_order_with_rate_limit_handling(client, order, **kwargs):
+    """``call_with_rate_limit_handling`` 的 ``place_order`` 特化版本。
+
+    保留独立名字是因为下单是集成测试里最高频的写操作,读起来比通用形式清楚;
+    退避 / skip 逻辑本身完全复用上面那份实现。
+    """
+    return call_with_rate_limit_handling(
+        client.place_order, order=order, _label="place_order", **kwargs
+    )
 
 
 # ``trading_status`` 枚举来源:见 tigeropen.quote.quote_client.get_market_status
