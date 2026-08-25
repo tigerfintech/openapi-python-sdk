@@ -1,3 +1,7 @@
+## 3.7.1 (2026-08-19)
+### New
+- `get_option_chain` 返回数据新增 `mark_price`、`pre_mark_price`、`mark_timestamp`、`mid_price`、`pre_mid_price`、`mid_timestamp` 字段
+
 ## 3.7.0 (2026-07-23)
 ### New
 - `get_corporate_symbol_change` — 股票代码变更查询
@@ -7,9 +11,8 @@
 
 ## 3.6.0 (2026-06-24)
 ### New
-- 新增冰山单辅助函数 `iceberg_order(account, contract, action, quantity, limit_price, display_size)`，支持 `min_display_size`、`check_intervals`、`price_type`、`start_time`/`end_time`（epoch ms）
+- 新增冰山单辅助函数 `iceberg_order`，用于构造冰山单
 - 新增 `PriceType` 枚举常量（`LIMIT_PRICE`、`ASK_PRICE`、`BID_PRICE`、`LATEST_PRICE`）
-- 新增冰山单单元测试（`tests/test_trade_client.py` iceberg 相关用例），覆盖基础构造、完整参数、零值省略
 
 ## 3.5.9 (2026-06-08)
 ### New
@@ -18,7 +21,7 @@
 - `TradeClient.check_option_exercise` 行权检验，预估行权后持仓变化
 - `TradeClient.get_option_exercise_records` 分页查询行权申请记录，支持按状态、行权类型、标的代码过滤
 - `TradeClient.get_option_exercise_positions` 查询可行权持仓
-- `OrderStatusData` 推送消息新增字段：`updateTime` (44, 订单信息更新时间戳 ms)、`latestTime` (45, 订单状态更新时间戳 ms)
+- 订单推送消息补充订单信息更新时间和状态更新时间
 
 ## 3.5.8 (2026-04-24)
 ### New
@@ -114,7 +117,7 @@ QuoteClient 期货合约接口增加字段 合约规模 product_worth，交割�
 QuoteClient 期货实时行情接口增加字段 `open_interest_change`
 
 ### Breaking
-订单/成交记录支持 page token;
+- `get_orders`/`get_transactions` 支持分页 `page_token` 参数；传入 `page_token` 时返回值由列表改为响应对象（通过 `.result` 取列表，`.next_page_token` 取下一页游标）
 
 ## 3.4.1 (2025-06-26)
 ### New
@@ -563,8 +566,8 @@ QuoteClient 期货实时行情接口增加字段 `open_interest_change`
 ### Breaking
 - 下单 `TradeClient.place_order`, 改单 `TradeClient.modify_order`, 撤单 `TradeClient.cancel_order` 三个接口返回值，由之前的
   `True` 或 `False` 改为订单 id
-- 行情权限抢占，改为在 `QuoteClient` 初始化时默认自动抢占，提供参数 `is_grab_permission` 可配置为不自动抢占。若该参数设置为 `False`, 
-  则需用户自行调用 `QuoteClient.grab_quote_permission()` 进行行情权限抢占
+- 抢占行情设备访问权，改为在 `QuoteClient` 初始化时默认自动执行，提供参数 `is_grab_permission` 可配置为不自动抢占。若该参数设置为 `False`,
+  则需用户自行调用 `QuoteClient.grab_quote_permission()` 抢占行情设备访问权
 
 
 ## 2.0.7 (2022-01-31)
@@ -598,7 +601,7 @@ QuoteClient 期货实时行情接口增加字段 `open_interest_change`
 - 去除 pandas 固定版本号, 方便安装时灵活指定版本
 
 ### Breaking
-- 行情权限抢占接口 QuoteClient.grab_quote_permission 返回的数据项中，'expireAt' 字段格式转换为 'expire_at'
+- 抢占行情设备访问权接口 `QuoteClient.grab_quote_permission` 返回的数据项中，`expireAt` 字段格式转换为 `expire_at`
 
 ## 2.0.4 (2021-12-08)
 ### New
@@ -621,7 +624,7 @@ QuoteClient 期货实时行情接口增加字段 `open_interest_change`
 ## 1.4.0 (2021-06-28)
 ### New
 -  新增深度行情查询及订阅
--  新增行情权限抢占接口
+-  新增抢占行情设备访问权接口
 
 ## 1.2.0 (2020-04-02)
 ### New

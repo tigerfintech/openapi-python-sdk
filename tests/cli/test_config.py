@@ -8,6 +8,12 @@ import tempfile
 import shutil
 from click.testing import CliRunner
 
+import pytest
+
+
+# 纯单测：永远不碰真实接口，contract / integ job 会跳过
+pytestmark = pytest.mark.unit
+
 
 class TestConfigInit(unittest.TestCase):
     """Tests for 'tigeropen config init' interactive setup."""

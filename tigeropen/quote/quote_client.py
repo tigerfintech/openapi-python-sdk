@@ -129,7 +129,7 @@ class QuoteClient(TigerOpenClient):
         self.permissions = None
         if is_grab_permission and self.permissions is None:
             self.permissions = self.grab_quote_permission()
-            self.logger.info('Grab quote permission. Permissions:' +
+            self.logger.info('Claimed market data device access. Permission entries:' +
                              str(self.permissions))
 
     def __fetch_data(self, request):
@@ -538,6 +538,7 @@ class QuoteClient(TigerOpenClient):
             - avg_price: volume weighted avg price up to now 加权均价
             - pre_close: previous close 昨日收盘价
             - volume: volume of the minute 该分钟成交量
+            - volume_decimal: optional fractional volume for crypto only; omitted for stocks. 数字货币可选的小数成交量，股票不返回
             - trade_session: trading session 交易时段
 
         :return example:
@@ -660,6 +661,7 @@ class QuoteClient(TigerOpenClient):
             - low: lowest price of the bar. 最低价
             - close: closing price of the bar. 收盘价
             - volume: trading volume of the bar. 成交量
+            - volume_decimal: optional fractional volume for crypto only; omitted for stocks. 数字货币可选的小数成交量，股票不返回
             - amount: trading amount of the bar. 成交额
             - next_page_token: token for the next page. 下一页的令牌
 
@@ -2833,7 +2835,7 @@ class QuoteClient(TigerOpenClient):
 
     def grab_quote_permission(self):
         """
-        抢占行情权限
+        抢占行情设备访问权
         :return: 权限列表。expire_at 为-1时表示长期有效
         示例: [{'name': 'usQuoteBasic', 'expire_at': 1621931026000},
               {'name': 'usStockQuoteLv2Totalview', 'expire_at': 1621931026000},
@@ -2852,7 +2854,7 @@ class QuoteClient(TigerOpenClient):
 
     def get_quote_permission(self):
         """
-        查询行情权限。query quote permissions
+        查询行情权限。Query market data permission entries.
         :return: 权限列表。expire_at 为-1时表示长期有效
         示例: [{'name': 'usQuoteBasic', 'expire_at': 1621931026000},
               {'name': 'usStockQuoteLv2Totalview', 'expire_at': 1621931026000},

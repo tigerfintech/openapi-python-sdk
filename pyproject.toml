@@ -68,3 +68,12 @@ exclude = ["tests", "tests.*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# marker 语义是「这个用例需要什么」，不是「它属于哪一层」。分层由 TIGER_RUN_INTEG 决定，
+# 完整说明见 tests/conftest.py
+markers = [
+    "unit: 永远不碰真实接口的用例（纯函数、序列化、配置解析等）",
+    "integ: 涉及写操作的真实接口用例，只应手动或定时触发",
+]

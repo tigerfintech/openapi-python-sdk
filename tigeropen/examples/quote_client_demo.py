@@ -30,7 +30,7 @@ openapi_client = QuoteClient(_demo_config, logger=logger)
 
 
 def get_quote():
-    # 抢占行情权限
+    # 抢占行情设备访问权
     quote_permissions = openapi_client.grab_quote_permission()
     print(quote_permissions)
     # 查询行情权限

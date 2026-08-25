@@ -1,13 +1,221 @@
+# Two-stage pipeline: unit (no credentials) / integration (real API).
+# Unit stage does NOT inject any credential variables.
+#
+# Python needs a Docker executor (image: python:3.11-slim) for a modern
+# Python; the default shell runner only has python3.6. Register a Docker
+# runner tagged 'openapi' for the integration job.
+#
+# Integration credentials: TIGEROPEN_TIGER_ID, TIGEROPEN_PRIVATE_KEY,
+# TIGEROPEN_ACCOUNT env vars set in GitLab CI Variables (Protected + Masked).
+# NOTE: Protected variables are only exposed on protected branches/tags.
+# The integration job must run on a runner tagged 'openapi' which
+# is registered for the protected branch runner that has access to these vars.
+
 stages:
+  - unit
   - integration
 
-integ:python:
-  stage: integration
+.python_base:
   image: python:3.11-slim
+  # No tags here: unit tests run on any shared runner.
+  # Only integration jobs need the openapi runner (for Protected vars).
+  variables:
+    # Runner sits inside Aliyun; the aliyun PyPI mirror is more reliable
+    # than tsinghua from this network. PIP_INDEX_URL is inherited by any
+    # spawned pip subprocess (build isolation, etc.).
+    PIP_INDEX_URL: "https://mirrors.aliyun.com/pypi/simple/"
+    PIP_TRUSTED_HOST: "mirrors.aliyun.com"
+  before_script:
+    - pip install --quiet --upgrade "setuptools>=64" wheel
+    - pip install --quiet -e .
+    - pip install --quiet pytest pytest-cov
+
+unit:python:
+  extends: .python_base
+  stage: unit
   tags:
-    - sdk-integ
+    - openapi
+  script:
+    - unset TIGEROPEN_TIGER_ID TIGEROPEN_PRIVATE_KEY TIGEROPEN_ACCOUNT TIGEROPEN_PROPS_PATH
+    # Drop this job's own stale report first: build dirs get reused, and a
+    # leftover file would be re-archived as if this run had produced it.
+    # Only our own file — a sibling job's report may legitimately sit here.
+    - rm -f test-results/unit.xml
+    - mkdir -p test-results
+    # Note: no --ignore flags here. test_option_helper.py uses pytest.importorskip
+    # to handle missing QuantLib gracefully; excluding the file would skip valid
+    # pure-unit tests that don't depend on QuantLib at all.
+    - pytest tests/ --ignore=tests/integ -q --cov=tigeropen --cov-report=term --cov-report=xml --junitxml=test-results/unit.xml
+  coverage: '/^TOTAL.*\s(\d+)%$/'
+  artifacts:
+    when: always
+    # Explicit file, not the whole directory: the runner reuses build dirs, so a
+    # directory glob can also archive the *other* job's stale report from a
+    # previous pipeline. Artifact download order across `needs` is not
+    # guaranteed, so a stale copy can overwrite the real one in notify:webhook.
+    paths:
+      - test-results/unit.xml
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+      junit:
+        - test-results/unit.xml
+    expire_in: 1 week
+
+integration:python:
+  extends: .python_base
+  stage: integration
+  allow_failure: true
+  # Serialize per-branch: without this, a scheduled pipeline can overlap a
+  # manual one and both jobs write test-results/integ.xml concurrently.
+  resource_group: $CI_COMMIT_REF_SLUG
+  # Must run on the openapi runner so Protected CI Variables are exposed.
+  tags:
+    - openapi
   variables:
     TIGER_RUN_INTEG: "true"
   script:
-    - pip install -e . pytest -q
-    - pytest tests/test_trade_client.py tests/test_quote_client.py -v --tb=short
+    # Drop this job's own stale report first: build dirs get reused, and a
+    # leftover file would be re-archived as if this run had produced it.
+    # Only our own file — a sibling job's report may legitimately sit here.
+    - rm -f test-results/integ.xml
+    - mkdir -p test-results
+    - pytest tests/integ/ -v --tb=short --junitxml=test-results/integ.xml
+  artifacts:
+    when: always
+    # Explicit file, not the whole directory: the runner reuses build dirs, so a
+    # directory glob can also archive the *other* job's stale report from a
+    # previous pipeline. Artifact download order across `needs` is not
+    # guaranteed, so a stale copy can overwrite the real one in notify:webhook.
+    paths:
+      - test-results/integ.xml
+    reports:
+      junit:
+        - test-results/integ.xml
+    expire_in: 1 week
+
+# Pipeline result notification via chat webhook.
+# Parses JUnit XML artifacts directly (no GitLab API dependency).
+# NOTE: image switched to alpine:3 + python3 — lighter than python:3.11-slim
+# (~5 MB vs ~150 MB) since this job only needs python3.
+notify:webhook:
+  image: alpine:3
+  tags:
+    - openapi
+  stage: .post
+  # NOTE: CI_PIPELINE_STATUS in a `when: always` .post job may still read as
+  # "running" rather than "failed" because GitLab evaluates this variable before
+  # the pipeline fully completes (known GitLab behavior). The pass/fail decision
+  # below therefore relies exclusively on parsing JUnit XML artifacts; an
+  # unparseable artifact is scored as a failure rather than deferring to that
+  # unreliable variable. Passing pipelines send nothing — see step 2b.
+  when: always
+  allow_failure: true
+  needs:
+    - job: unit:python
+      artifacts: true
+    - job: integration:python
+      artifacts: true
+  before_script:
+    - apk add --no-cache python3
+  script:
+    - |
+      python3 << 'PYEOF'
+      import os, json, urllib.request, glob
+      import xml.etree.ElementTree as ET
+
+      webhook_url = os.environ.get("WEBHOOK_URL", "")
+      if not webhook_url:
+          print("WEBHOOK_URL not configured, skipping notification")
+          exit(0)
+      card_content_tag = os.environ["CARD_CONTENT_TAG"]
+
+      # 1. Parse JUnit XML artifacts — split unit/integration stats
+      def parse_xml(path):
+          t, f, s = 0, 0, 0
+          try:
+              tree = ET.parse(path)
+              root = tree.getroot()
+              for suite in root.iter("testsuite"):
+                  t += int(suite.get("tests", 0))
+                  f += int(suite.get("failures", 0)) + int(suite.get("errors", 0))
+                  s += int(suite.get("skipped", 0))
+          except Exception as e:
+              print(f"Failed to parse {path}: {e}")
+              return None, None, None, None
+          return t, t - f - s, f, s
+
+      unit_t, unit_p, unit_f, unit_s = parse_xml("test-results/unit.xml")
+      integ_t, integ_p, integ_f, integ_s = parse_xml("test-results/integ.xml")
+
+      unit_stats = f"Unit: {unit_t} tests: {unit_p} passed, {unit_f} failed, {unit_s} skipped" if unit_t else ""
+      integ_stats = f"Integration: {integ_t} tests: {integ_p} passed, {integ_f} failed, {integ_s} skipped" if integ_t else ""
+
+      # 2. Determine pass/fail from JUnit results.
+      # Any test failure (unit or integration) drives the red card.
+      # unit_f is None → XML missing/corrupt; treat as failed (conservative),
+      # matching the other six SDK pipelines. Do NOT fall back to
+      # CI_PIPELINE_STATUS: it reads "running" in a .post stage, so trusting it
+      # would score a broken pipeline as a pass — and since we now stay silent
+      # on passes, that would mean a compile failure notifies nobody at all.
+      if unit_f is None:
+          has_failed = True
+          print("Unit JUnit XML unavailable — treating pipeline as failed")
+      elif integ_f is None:
+          # integration:python is allow_failure:true, so a missing XML means the
+          # job crashed before pytest flushed the report — a real problem, not a
+          # pass. Must stay loud: we notify on failure only now, so scoring this
+          # as green would make a crashed integration job notify nobody.
+          has_failed = True
+          print("Integration JUnit XML unavailable — treating pipeline as failed")
+      else:
+          has_failed = (unit_f > 0) or (integ_f > 0)
+
+      # 2b. Notify on failure only. A green card every 4 hours is noise nobody
+      #     reads, which also desensitises the channel to the red ones.
+      #     has_failed covers "XML unavailable" above, so an unreadable
+      #     artifact still notifies — silence here means "we positively
+      #     verified everything passed", never "we couldn't tell".
+      if not has_failed:
+          print(f"Pipeline passed — {unit_stats} | {integ_stats} — skipping notification")
+          exit(0)
+
+      # 3. Build notification card
+      title = "❌ Pipeline failed" if has_failed else "✅ Pipeline passed"
+      color = "red" if has_failed else "green"
+      project_name = os.environ.get("CI_PROJECT_NAME", "")
+      branch = os.environ.get("CI_COMMIT_REF_NAME", "")
+      commit = os.environ.get("CI_COMMIT_SHORT_SHA", "")
+      pipeline_iid = os.environ.get("CI_PIPELINE_IID", "")
+      pipeline_url = os.environ.get("CI_PROJECT_URL", "") + "/-/pipelines/" + os.environ.get("CI_PIPELINE_ID", "")
+
+      content = f"**Repo:** {project_name}\n**Branch:** {branch}\n**Commit:** {commit}\n"
+      if unit_stats:
+          content += f"\n**Unit tests:** {unit_stats}\n"
+      if integ_stats:
+          content += f"**Integration tests:** {integ_stats}\n"
+      content += f"[View pipeline]({pipeline_url})"
+
+      payload = {
+          "msg_type": "interactive",
+          "card": {
+              "header": {
+                  "title": {"tag": "plain_text", "content": f"{title} #{pipeline_iid} — {project_name}"},
+                  "template": color
+              },
+              "elements": [
+                  {"tag": "div", "text": {"tag": card_content_tag, "content": content}}
+              ]
+          }
+      }
+
+      data = json.dumps(payload).encode("utf-8")
+      req = urllib.request.Request(webhook_url, data=data, headers={"Content-Type": "application/json"})
+      try:
+          with urllib.request.urlopen(req, timeout=10) as resp:
+              result = json.loads(resp.read())
+              print(f"Webhook response: {result}")
+      except Exception as e:
+          print(f"Webhook request failed: {e}")
+      PYEOF
