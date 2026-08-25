@@ -280,7 +280,15 @@ class TestIntegTradeClient(unittest.TestCase):
         raise exc
 
     def _cancel_tolerating_terminal(self, order_id):
-        """Best-effort cancel; ignore 'already terminated' style errors."""
+        """Best-effort cancel; ignore 'already terminated' style errors.
+
+        This runs either in a ``finally`` or after the test's assertions have
+        already passed, so it must never change the verdict: hence
+        ``_skip_on_exhausted=False``. Letting the helper's ``pytest.skip``
+        escape would rewrite an already-passing test into a skip, because
+        ``Skipped`` derives from ``BaseException`` and slips past the
+        ``except ApiException`` below.
+        """
         try:
             # Rate limits are account-level, so this cleanup cancel gets
             # throttled as readily as the place_order it follows — and a
@@ -288,10 +296,15 @@ class TestIntegTradeClient(unittest.TestCase):
             # without the wrapper it would hit the `raise` below and fail a
             # test whose actual assertions already passed.
             call_with_rate_limit_handling(
-                self.client.cancel_order, id=order_id, _label="cancel_order")
+                self.client.cancel_order, id=order_id, _label="cancel_order",
+                _skip_on_exhausted=False)
         except ApiException as e:
             if not any(k in str(e).lower() for k in _TERMINAL_ORDER_KEYWORDS):
-                logger.warning(f"cancel_order failed unexpectedly: {e}")
+                # The order is on a shared real account, so log the id: it is
+                # the only way to find what needs cancelling by hand.
+                logger.warning(
+                    f"cancel_order failed unexpectedly, order id={order_id} "
+                    f"may still be live: {e}")
                 raise
             logger.info(f"Order {order_id} already terminated — skipping cancel: {e}")
 
@@ -1460,9 +1473,13 @@ class TestIntegTradeClient(unittest.TestCase):
             # Wrapped for consistency with the other mutating calls: this
             # branch only warns, but an unwrapped rate limit would be logged
             # as "modify failed unexpectedly" and mask the real cause.
+            # _skip_on_exhausted=False keeps that "only warns" promise: the
+            # place above is already verified, and a throttled best-effort
+            # modify must not discard it by skipping the whole test.
             call_with_rate_limit_handling(
                 self.client.modify_order, order,
-                limit_price=SAFE_BUY_PRICE * 2, _label="modify_order")
+                limit_price=SAFE_BUY_PRICE * 2, _label="modify_order",
+                _skip_on_exhausted=False)
             logger.info("US STK ICEBERG: modify succeeded")
         except ApiException as e:
             if not any(k in str(e).lower() for k in _TERMINAL_ORDER_KEYWORDS):

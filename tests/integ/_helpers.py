@@ -90,6 +90,7 @@ def call_with_rate_limit_handling(
     func,
     *args,
     _label: Optional[str] = None,
+    _skip_on_exhausted: bool = True,
     retries: int = 2,
     initial_backoff: float = 1.0,
     pre_delay: float = 0.5,
@@ -110,6 +111,14 @@ def call_with_rate_limit_handling(
 
     ``_label`` 只用于日志(默认取 ``func.__name__``);前缀下划线是为了不和
     被包装函数自己的关键字参数撞名。
+
+    ``_skip_on_exhausted=False`` 用于**清理路径**(如 cleanup 阶段的
+    ``cancel_order``):重试耗尽后返回 ``None`` 并记 warning,而不是
+    ``pytest.skip``。原因是 ``pytest.skip`` 抛的 ``Skipped`` 继承自
+    ``BaseException`` 而不是 ``Exception``,调用方的 ``except ApiException``
+    拦不住它;清理代码通常跑在 ``finally`` 里或断言全部通过之后,一旦让它
+    逃出去,就会把一个**已经通过**的测试改写成 skip,真实结论被清理动作
+    掩盖。清理失败只应留日志,不应改变测试结论。
 
     返回 ``func`` 的返回值。
     """
@@ -141,12 +150,22 @@ def call_with_rate_limit_handling(
                 time.sleep(delay)
                 delay *= 2
                 continue
-            # Retries exhausted — skip rather than fail.
+            # Retries exhausted.
+            if not _skip_on_exhausted:
+                logger.warning(
+                    "%s still rate-limited after %d attempts; giving up "
+                    "without changing the test verdict: %s",
+                    label, retries + 1, e,
+                )
+                return None
+            # Skip rather than fail.
             pytest.skip(
                 f"gateway rate limit hit on {label} after {retries + 1} attempts: {e}"
             )
 
     # Defensive: pytest.skip raises, so we normally never reach here.
+    if not _skip_on_exhausted:
+        return None
     pytest.skip(f"gateway rate limit hit on {label}: {last_exc}")
 
 
