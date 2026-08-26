@@ -28,6 +28,8 @@ from tigeropen.trade.domain.transfer import TransferItem, PositionTransfer, Posi
 from tigeropen.trade.domain.prime_account import PortfolioAccount
 from tigeropen.trade.trade_client import TradeClient
 from tests.integ._helpers import (
+    _is_order_type_restriction,
+    _is_rate_limit_error,
     _is_trading_hours_error,
     call_with_rate_limit_handling,
     is_market_open_including_extended,
@@ -355,6 +357,12 @@ class TestIntegTradeClient(unittest.TestCase):
             self.assertIsNotNone(preview, f"{context}: preview returned None")
             logger.debug(f"{context} preview: {preview}")
         except ApiException as e:
+            # 订单类型/参数限制先判，且刻意不用市场状态复核——原因见
+            # _ORDER_TYPE_RESTRICTION_KEYWORDS 的注释。
+            if _is_order_type_restriction(e):
+                logger.info(
+                    "%s: order type not accepted at this moment: %s", context, e)
+                return None
             if _is_trading_hours_error(e):
                 if not in_hours:
                     logger.info(
@@ -369,6 +377,10 @@ class TestIntegTradeClient(unittest.TestCase):
         try:
             order_id = self._place_with_rate_limit_retry(order, context=context)
         except ApiException as e:
+            if _is_order_type_restriction(e):
+                logger.info(
+                    "%s: order type not accepted at this moment: %s", context, e)
+                return None
             if _is_trading_hours_error(e):
                 if not in_hours:
                     logger.info(
@@ -1163,6 +1175,13 @@ class TestIntegTradeClient(unittest.TestCase):
             self.assertIsNotNone(result)
             logger.debug(f"place_forex_order SEC: {result}")
         except ApiException as e:
+            # 该用例不走 _preview_and_place_hours_aware，所以三类边界要在这里自己分。
+            # 原先只判 permission，导致 "Orders cannot be placed at this moment"
+            # 这类换汇时间窗口拒绝被直接 re-raise，CI 红。
+            if _is_order_type_restriction(e) or _is_trading_hours_error(e):
+                self.skipTest(f"place_forex_order SEC — session boundary: {e}")
+            if _is_rate_limit_error(e):
+                self.skipTest(f"place_forex_order SEC — account rate limit: {e}")
             self._skip_or_raise_on_permission_error(e, "place_forex_order SEC")
 
     @pytest.mark.integ
