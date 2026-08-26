@@ -644,12 +644,18 @@ class TestIntegQuoteClient(unittest.TestCase):
         self.assertIn(first_key, result)
         es = result[first_key]
         self.assertEqual(es['identifier'], first_key)
-        self.assertIsInstance(es['asks'], list)
-        self.assertIsInstance(es['bids'], list)
-        self.assertGreater(len(es['asks']), 0)
-        self.assertGreater(len(es['bids']), 0)
-        self.assertGreater(es['asks'][0][0], 0)
-        self.assertGreater(es['bids'][0][0], 0)
+        self.assertIsInstance(es.get('asks'), list)
+        self.assertIsInstance(es.get('bids'), list)
+        # 不能要求 asks/bids 非空：_skip_if_empty 只看外层 dict 是否为空，
+        # 服务端完全可以返回 {'ESmain': {'asks': [], 'bids': []}} —— 外层非空、
+        # 内层为空，断言 len>0 就会 AssertionError: 0 not greater than 0。
+        # 而且这里是 CME 期货，近乎 24 小时交易，用美股 RTH（_skip_if_empty 的
+        # market='US' 默认值）去判断「此刻该不该有盘口」两个方向都不成立。
+        # 有盘口时校验结构，没有就只校验类型。
+        if es['asks']:
+            self.assertGreater(es['asks'][0][0], 0)
+        if es['bids']:
+            self.assertGreater(es['bids'][0][0], 0)
         logger.debug(f"Future Depth: \n {result}")
 
     def test_get_trading_calendar(self):

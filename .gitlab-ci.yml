@@ -66,7 +66,16 @@ unit:python:
 integration:python:
   extends: .python_base
   stage: integration
-  allow_failure: true
+  # Was `true`, which made every integration failure invisible at the pipeline
+  # level: the pipeline reported `success` while jobs had been failing for days.
+  # A masked signal is worse than no signal, because it reads as a positive
+  # verification. Genuine environment-dependent boundaries (closed market, order
+  # type not accepted, account rate limit) are already classified as *skips* by
+  # the tests themselves, so a failure that reaches here is a real one.
+  # notify:webhook stays allow_failure:true — a chat outage must not fail the
+  # pipeline — and still runs on failure: `when: always` in `.post` overrides a
+  # failed `needs`.
+  allow_failure: false
   # Serialize per-branch: without this, a scheduled pipeline can overlap a
   # manual one and both jobs write test-results/integ.xml concurrently.
   resource_group: $CI_COMMIT_REF_SLUG

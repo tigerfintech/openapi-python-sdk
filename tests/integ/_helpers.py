@@ -53,25 +53,62 @@ _RATE_LIMIT_KEYWORDS = (
 # server just refused for a schedule reason. Tests use this to accept an
 # out-of-hours refusal as a valid outcome instead of skipping.
 _TRADING_HOURS_ERROR_KEYWORDS = (
-    # STP_LMT outside main session
-    "only limit orders can be placed during pre market or post market",
-    # TRAIL outside RTH
-    "only limit, stop or stop-limit orders are allowed at non-trading hour",
-    # TWAP / VWAP outside scheduled window
-    "orders cannot be placed at this moment",
-    # LMT-by-amount cash orders restricted to regular hours
-    "you can only trade during regular trading hours",
-    # LMT-by-amount on fractional shares — narrower wording variant
-    "only regular trading hours supported when trading fractional shares",
-    # TWAP / VWAP — explicit start/end window rejection with echoed bounds
-    "the time range for the order",
-    # Generic session/schedule wording used elsewhere
-    "outside of regular trading hours",
-    "at non-trading hour",
     "market is closed",
+    "at non-trading hour",
     "not in trading session",
     "not in a trading session",
+    # 这条措辞里没有点明订单类型，无法判定是「类型不受理」还是「真的收盘了」，
+    # 因此保留在需要市场状态复核的这一类里（与 java/go/ts 一致），这样真出现
+    # 盘中被拒的回归时还能被抓到。
+    "orders cannot be placed at this moment",
 )
+
+# 服务端表示「当前不接受这种订单类型/参数」的消息，与「市场已收盘」不是一回事。
+#
+# 这些不能再用市场是否开市去复核：下面每一条，连续竞价时段开着恰恰是最容易触发
+# 该错误的时候，所以用「市场开着」去证明它是 bug，逻辑方向是反的。具体来说：
+#
+# - 竞价单（AL/AM）只在港股开盘前（09:00–09:30）和收盘（16:00–16:10）竞价窗口
+#   受理，这两个窗口与连续竞价时段互不相交。is_market_trading('HK') 报的是连续
+#   竞价时段，所以连续交易时段拒绝竞价单是设计如此。
+# - "only limit orders are supported ... outside of regular trading hours" 是
+#   订单自身带了盘前盘后标记时触发的，服务端会按盘外规则处理，与常规时段是否
+#   开市无关。
+# - TWAP/VWAP 的结束时间窗口是订单参数约束，与当前市场状态无关。
+#
+# SDK 无法再细分：没有任何行情接口暴露竞价窗口或盘前盘后资格，因此无条件 skip
+# 是唯一为真的分类。
+_ORDER_TYPE_RESTRICTION_KEYWORDS = (
+    "auction order is not allowed at this moment",
+    "only limit orders can be placed during pre market or post market",
+    "only limit, stop or stop-limit orders are allowed at non-trading hour",
+    "you can only trade during regular trading hours",
+    "only regular trading hours supported when trading fractional shares",
+    "the time range for the order",
+    "outside of regular trading hours",
+)
+
+
+def _is_order_type_restriction(exc) -> bool:
+    """Return True when the server refused this order *type or parameter* at the
+    current instant — as opposed to the market being closed.
+
+    Callers must treat a match as an unconditional skip and must NOT re-check it
+    against live market status; see ``_ORDER_TYPE_RESTRICTION_KEYWORDS``.
+    """
+    msg = str(exc).lower()
+    return any(k in msg for k in _ORDER_TYPE_RESTRICTION_KEYWORDS)
+
+
+def _is_rate_limit_error(exc) -> bool:
+    """Return True when ``exc`` is the gateway's account-level throttle.
+
+    Exposed for tests that call the API directly instead of going through
+    ``call_with_rate_limit_handling`` — the rate limit is account-level and all
+    7 SDK pipelines share one trading account, so any endpoint can be throttled.
+    """
+    msg = str(exc).lower()
+    return any(k in msg for k in _RATE_LIMIT_KEYWORDS)
 
 
 def _is_trading_hours_error(exc) -> bool:
