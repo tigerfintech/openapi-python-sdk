@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from tigeropen.common.consts import Market, TradingSession, BarPeriod, CapitalPeriod, Valuation, Income, \
-    OptionAnalysisPeriod, SortDirection, FinancialReportPeriodType
+    OptionAnalysisPeriod, SortDirection, FinancialReportPeriodType, SecurityType
 from tigeropen.common.consts.filter_fields import StockField, FinancialPeriod, MultiTagField  # noqa: F401 — MultiTagField used in test_get_market_scanner_tags
 from tigeropen.quote.domain.filter import StockFilter, SortFilterData, OptionFilter, WarrantFilterItem
 from tigeropen.quote.domain.quote_brief import QuoteBrief
@@ -960,14 +960,33 @@ class TestIntegQuoteClient(unittest.TestCase):
     # ── get_quote_real_time tests (US + HK) ───────────────────────────
 
     def test_get_quote_real_time_us(self):
-        """US real-time quote — assert latest_price field."""
-        result = self.client.get_briefs(symbols=['AAPL'])
-        self.assertIsInstance(result, list)
-        if not result:
+        """US real-time quote — assert latest_price and amount fields."""
+        result = self.client.get_stock_briefs(symbols=['AAPL'])
+        self.assertIsInstance(result, pd.DataFrame)
+        if result.empty:
             self.skipTest('Quote Real Time US: empty response')
-        first = result[0]
-        self.assertGreater(first.latest_price, 0)
+        self.assertIn('latest_price', result.columns)
+        first = result.iloc[0]
+        self.assertGreater(first['latest_price'], 0)
+        self.assertIn('amount', result.columns)
+        self.assertIsNotNone(first['amount'])
+        self.assertGreater(first['amount'], 0)
         logger.debug(f"Quote Real Time US:\n {result}")
+
+    def test_get_quote_real_time_cc(self):
+        """Crypto real-time quote — assert amount field."""
+        result = self.client.get_stock_briefs(symbols=['BTC.USD'], sec_type=SecurityType.CC)
+        if result is None:
+            self.skipTest('Quote Real Time CC: no response data')
+        self.assertIsInstance(result, pd.DataFrame)
+        if result.empty:
+            self.skipTest('Quote Real Time CC: empty response for BTC.USD')
+        if 'amount' not in result.columns:
+            self.skipTest('Quote Real Time CC: amount not returned by current server')
+        first = result.iloc[0]
+        self.assertIsNotNone(first['amount'])
+        self.assertGreater(first['amount'], 0)
+        logger.debug(f"Quote Real Time CC:\n {result}")
 
     def test_get_quote_real_time_hk(self):
         """HK real-time quote — market=HK variant."""
