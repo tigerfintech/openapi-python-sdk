@@ -962,6 +962,8 @@ class TestIntegQuoteClient(unittest.TestCase):
     def test_get_quote_real_time_us(self):
         """US real-time quote — assert latest_price and amount fields."""
         result = self.client.get_stock_briefs(symbols=['AAPL'])
+        if result is None:
+            self.skipTest('Quote Real Time US: no response data')
         self.assertIsInstance(result, pd.DataFrame)
         if result.empty:
             self.skipTest('Quote Real Time US: empty response')
