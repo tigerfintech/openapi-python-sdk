@@ -1,4 +1,4 @@
-## Unreleased
+## 3.7.2 (2026-08-27)
 ### New
 - `QuoteBrief` / `get_stock_briefs` 实时行情结果新增 `amount` 字段，支持股票和数字货币成交额。
 
