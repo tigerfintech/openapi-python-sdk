@@ -79,17 +79,21 @@ class TestIntegQuoteClient(unittest.TestCase):
 
     def _get_option_identifiers(self, symbol='AAPL', market=Market.US, count=2):
         """Fetch option identifiers from the chain; empty list if unavailable."""
+        self._last_option_resolution_context = {'symbol': symbol, 'market': market}
         expiry = self._get_option_expiry(symbol, market)
+        self._last_option_resolution_context['expiry'] = expiry
         if expiry is None:
             return []
         option_filter = OptionFilter(implied_volatility_min=0.05, implied_volatility_max=1,
                                      delta_min=0, delta_max=1,
                                      open_interest_min=10, open_interest_max=20000,
                                      in_the_money=True)
+        self._last_option_resolution_context['option_filter'] = option_filter.__dict__
         chain = self.client.get_option_chain(symbol=symbol, expiry=expiry, market=market,
                                              timezone='America/New_York',
                                              option_filter=option_filter,
                                              return_greek_value=True)
+        self._last_option_resolution_context['chain'] = chain
         if chain is None or chain.empty:
             return []
         spot = 0.0
@@ -99,7 +103,9 @@ class TestIntegQuoteClient(unittest.TestCase):
                 spot = float(briefs.iloc[0]['latest_price'])
         except Exception:  # noqa: BLE001 - spot is only a ranking hint
             spot = 0.0
+        self._last_option_resolution_context['spot'] = spot
         identifiers = self._rank_option_chain(chain, spot)
+        self._last_option_resolution_context['identifiers'] = identifiers[:count]
         return identifiers[:count]
 
     def _require_option_identifiers(self, symbol='AAPL', market=Market.US, count=1):
@@ -113,10 +119,12 @@ class TestIntegQuoteClient(unittest.TestCase):
             return identifiers
         market_key = market.value if hasattr(market, 'value') else str(market)
         if is_market_trading(self.client, market_key):
+            context = self._format_failure_context(
+                **getattr(self, '_last_option_resolution_context', {}))
             self.fail(
                 f"Could not resolve {count} {market_key} option identifier(s) "
                 f"for {symbol} during {market_key} main trading session — "
-                "option-chain resolver returned empty when data should exist")
+                f"option-chain resolver returned empty when data should exist; {context}")
         self.skipTest(
             f"No {market_key} option identifier available for {symbol} "
             f"— {market_key} not in main trading session")
@@ -159,7 +167,7 @@ class TestIntegQuoteClient(unittest.TestCase):
             return not result
         return result is None
 
-    def _skip_if_empty(self, result, name, market='US'):
+    def _skip_if_empty(self, result, name, market='US', **context):
         """Handle empty realtime results:
 
         - Non-trading hours → skip (server legitimately returns no data)
@@ -169,10 +177,11 @@ class TestIntegQuoteClient(unittest.TestCase):
         if not self._is_empty(result):
             return
         if is_market_trading(self.client, market):
+            details = self._format_failure_context(result=result, **context)
             self.fail(
                 f"{name} empty during {market} main trading session — this "
                 "indicates the server returned no data when the market was "
-                "live; treat as bug rather than skip")
+                f"live; treat as bug rather than skip; {details}")
         self.skipTest(f"{name} empty — {market} not in main trading session")
 
     def test_get_symbols(self):
@@ -400,7 +409,8 @@ class TestIntegQuoteClient(unittest.TestCase):
                                               option_filter=option_filter,
                                               return_greek_value=True)
         self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Option Chain', market='US')
+        self._skip_if_empty(result, 'Option Chain', market='US', symbol='AAPL', expiry=expiry,
+                            option_filter=option_filter.__dict__, return_greek_value=True)
         self.assertIn('symbol', result.columns)
         self.assertIn('identifier', result.columns)
         self.assertIn('strike', result.columns)
@@ -416,7 +426,7 @@ class TestIntegQuoteClient(unittest.TestCase):
         result = self.client.get_option_briefs(
             identifiers=[identifiers[0]])
         self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Option Brief', market='US')
+        self._skip_if_empty(result, 'Option Brief', market='US', identifiers=[identifiers[0]])
         self.assertIn('identifier', result.columns)
         self.assertIn('symbol', result.columns)
         first = result.iloc[0]
@@ -431,7 +441,8 @@ class TestIntegQuoteClient(unittest.TestCase):
             identifiers=[identifiers[0]], period=BarPeriod.DAY, limit=5,
         )
         self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Option Bars', market='US')
+        self._skip_if_empty(result, 'Option Bars', market='US', identifiers=[identifiers[0]],
+                            period=BarPeriod.DAY, limit=5)
         self.assertIn('identifier', result.columns)
         self.assertIn('time', result.columns)
         self.assertIn('open', result.columns)
@@ -449,7 +460,9 @@ class TestIntegQuoteClient(unittest.TestCase):
             identifiers=[identifiers[0]])
         self.assertIsInstance(result, pd.DataFrame)
         if result.empty:
-            self.skipTest('Option Trade Ticks empty — realtime option ticks may be unavailable for the sampled contract')
+            self.skipTest(
+                'Option Trade Ticks empty — realtime option ticks may be unavailable for the sampled contract; '
+                + self._format_failure_context(identifiers=[identifiers[0]], result=result))
         self.assertIn('identifier', result.columns)
         self.assertIn('time', result.columns)
         self.assertIn('price', result.columns)
@@ -478,7 +491,7 @@ class TestIntegQuoteClient(unittest.TestCase):
                                               market=Market.US)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, dict)
-        self._skip_if_empty(result, 'Option Depth', market='US')
+        self._skip_if_empty(result, 'Option Depth', market='US', identifiers=identifiers)
         for key, val in result.items():
             self.assertIn('asks', val)
             self.assertIn('bids', val)
@@ -501,13 +514,16 @@ class TestIntegQuoteClient(unittest.TestCase):
         # Wire shape: always a DataFrame regardless of session.
         self.assertIsInstance(result, pd.DataFrame)
         if result.empty:
-            self.skipTest('Option Timeline empty — realtime option timeline may be unavailable for the sampled contract')
+            self.skipTest(
+                'Option Timeline empty — realtime option timeline may be unavailable for the sampled contract; '
+                + self._format_failure_context(identifiers=[identifiers[0]], market=Market.US, result=result))
         if is_market_trading(self.client, 'US'):
             # In-hours: data must exist and match the documented schema.
             self.assertFalse(
                 result.empty,
                 'Option Timeline empty during US main trading session — '
-                'treat as bug rather than skip')
+                'treat as bug rather than skip; '
+                + self._format_failure_context(identifiers=[identifiers[0]], market=Market.US, result=result))
             self.assertIn('identifier', result.columns)
             self.assertIn('symbol', result.columns)
             self.assertIn('price', result.columns)
@@ -707,7 +723,7 @@ class TestIntegQuoteClient(unittest.TestCase):
         result = self.client.get_future_depth(identifiers=identifiers)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, dict)
-        self._skip_if_empty(result, 'Future Depth')
+        self._skip_if_empty(result, 'Future Depth', identifiers=identifiers)
         first_key = identifiers[0]
         if result.get('identifier') == first_key:
             es = result
@@ -1097,7 +1113,8 @@ class TestIntegQuoteClient(unittest.TestCase):
                                               option_filter=option_filter,
                                               return_greek_value=True)
         self.assertIsInstance(result, pd.DataFrame)
-        self._skip_if_empty(result, 'Option Chain expiry field', market='US')
+        self._skip_if_empty(result, 'Option Chain expiry field', market='US', symbol='AAPL', expiry=expiry,
+                            option_filter=option_filter.__dict__, return_greek_value=True)
         self.assertIn('strike', result.columns)
         self.assertIn('expiry', result.columns)
         first = result.iloc[0]
