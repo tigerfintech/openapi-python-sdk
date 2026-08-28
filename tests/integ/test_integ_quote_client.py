@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Integration tests - require real API credentials."""
 import logging
+import time
 import unittest
 
 import pandas as pd
@@ -38,7 +39,43 @@ class TestIntegQuoteClient(unittest.TestCase):
         expirations = self.client.get_option_expirations(symbols=[symbol], market=market)
         if expirations is None or expirations.empty:
             return None
-        return int(expirations.iloc[0]['timestamp'])
+        now_ms = int(time.time() * 1000)
+        min_ms = now_ms + 14 * 24 * 3600 * 1000
+        max_ms = now_ms + 42 * 24 * 3600 * 1000
+        if 'timestamp' in expirations.columns:
+            candidates = expirations[
+                (expirations['timestamp'] >= min_ms) & (expirations['timestamp'] <= max_ms)
+            ]
+            if not candidates.empty:
+                return int(candidates.iloc[0]['timestamp'])
+        idx = 1 if len(expirations) > 1 else 0
+        return int(expirations.iloc[idx]['timestamp'])
+
+    @staticmethod
+    def _num_or_zero(row, column):
+        if column not in row or pd.isna(row[column]):
+            return 0.0
+        try:
+            return float(row[column])
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _rank_option_chain(self, chain, spot):
+        rows = []
+        for _, row in chain.iterrows():
+            identifier = str(row.get('identifier', '')).strip()
+            if not identifier:
+                continue
+            strike = self._num_or_zero(row, 'strike')
+            atm_distance = abs(strike - spot) if strike and spot else 0.0
+            active = (
+                self._num_or_zero(row, 'volume') > 0
+                or self._num_or_zero(row, 'latest_price') > 0
+                or (self._num_or_zero(row, 'bid_price') > 0 and self._num_or_zero(row, 'ask_price') > 0)
+            )
+            rows.append((0 if active else 1, atm_distance, identifier))
+        rows.sort(key=lambda item: (item[0], item[1]))
+        return [identifier for _, _, identifier in rows]
 
     def _get_option_identifiers(self, symbol='AAPL', market=Market.US, count=2):
         """Fetch option identifiers from the chain; empty list if unavailable."""
@@ -55,7 +92,14 @@ class TestIntegQuoteClient(unittest.TestCase):
                                              return_greek_value=True)
         if chain is None or chain.empty:
             return []
-        identifiers = [str(x).strip() for x in chain['identifier'].tolist() if str(x).strip()]
+        spot = 0.0
+        try:
+            briefs = self.client.get_stock_briefs(symbols=[symbol], sec_type=SecurityType.STK)
+            if briefs is not None and not briefs.empty and 'latest_price' in briefs.columns:
+                spot = float(briefs.iloc[0]['latest_price'])
+        except Exception:  # noqa: BLE001 - spot is only a ranking hint
+            spot = 0.0
+        identifiers = self._rank_option_chain(chain, spot)
         return identifiers[:count]
 
     def _require_option_identifiers(self, symbol='AAPL', market=Market.US, count=1):
