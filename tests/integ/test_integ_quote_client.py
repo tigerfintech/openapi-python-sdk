@@ -121,11 +121,35 @@ class TestIntegQuoteClient(unittest.TestCase):
             f"No {market_key} option identifier available for {symbol} "
             f"— {market_key} not in main trading session")
 
-    def _get_future_contract_code(self, exchange='CME'):
-        """Fetch the first future contract code; None if unavailable."""
+    @staticmethod
+    def _format_failure_context(**kwargs):
+        parts = []
+        for key, value in kwargs.items():
+            if isinstance(value, pd.DataFrame):
+                rendered = (
+                    f"DataFrame(shape={value.shape}, columns={list(value.columns)}, "
+                    f"head=\n{value.head(5).to_string()})")
+            else:
+                rendered = repr(value)
+            if len(rendered) > 3000:
+                rendered = rendered[:3000] + "...<truncated>"
+            parts.append(f"{key}={rendered}")
+        return "; ".join(parts)
+
+    def _get_future_contract_code(self, exchange='CME', future_type='ES'):
+        """Fetch an active future contract code, preferring the current ES contract."""
+        current = self.client.get_current_future_contract(future_type=future_type)
+        if current is not None and not current.empty and 'contract_code' in current.columns:
+            code = str(current.iloc[0]['contract_code']).strip()
+            if code:
+                return code
         contracts = self.client.get_future_contracts(exchange=exchange)
         if contracts is None or contracts.empty:
             return None
+        if 'type' in contracts.columns:
+            typed = contracts[contracts['type'] == future_type]
+            if not typed.empty:
+                contracts = typed
         return str(contracts.iloc[0]['contract_code']).strip()
 
     def _is_empty(self, result):
@@ -676,23 +700,25 @@ class TestIntegQuoteClient(unittest.TestCase):
         logger.debug(f"Future Brief: \n {result}")
 
     def test_get_future_depth(self):
-        contracts = self.client.get_future_contracts(exchange='CME')
-        if contracts is None or contracts.empty:
-            self.skipTest("No future contracts available from CME")
-        codes = [str(x).strip() for x in contracts['contract_code'].tolist() if str(x).strip()]
-        if len(codes) < 2:
-            self.skipTest("Need at least 2 future contract codes for depth test")
-        identifiers = codes[:2]
+        contract_code = self._get_future_contract_code(exchange='CME', future_type='ES')
+        if contract_code is None:
+            self.skipTest("No active ES future contract available from CME")
+        identifiers = [contract_code]
         result = self.client.get_future_depth(identifiers=identifiers)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, dict)
         self._skip_if_empty(result, 'Future Depth')
         first_key = identifiers[0]
-        self.assertIn(first_key, result)
-        es = result[first_key]
-        self.assertEqual(es['identifier'], first_key)
-        self.assertIsInstance(es.get('asks'), list)
-        self.assertIsInstance(es.get('bids'), list)
+        if result.get('identifier') == first_key:
+            es = result
+        else:
+            self.assertIn(first_key, result,
+                          self._format_failure_context(identifiers=identifiers, result=result))
+            es = result[first_key]
+        context = self._format_failure_context(identifiers=identifiers, result=result)
+        self.assertEqual(es['identifier'], first_key, context)
+        self.assertIsInstance(es.get('asks'), list, context)
+        self.assertIsInstance(es.get('bids'), list, context)
         # 不能要求 asks/bids 非空：_skip_if_empty 只看外层 dict 是否为空，
         # 服务端完全可以返回 {'ESmain': {'asks': [], 'bids': []}} —— 外层非空、
         # 内层为空，断言 len>0 就会 AssertionError: 0 not greater than 0。
@@ -700,9 +726,13 @@ class TestIntegQuoteClient(unittest.TestCase):
         # market='US' 默认值）去判断「此刻该不该有盘口」两个方向都不成立。
         # 有盘口时校验结构，没有就只校验类型。
         if es['asks']:
-            self.assertGreater(es['asks'][0][0], 0)
+            ask_price = es['asks'][0][0]
+            self.assertIsNotNone(ask_price, context)
+            self.assertGreater(ask_price, 0, context)
         if es['bids']:
-            self.assertGreater(es['bids'][0][0], 0)
+            bid_price = es['bids'][0][0]
+            self.assertIsNotNone(bid_price, context)
+            self.assertGreater(bid_price, 0, context)
         logger.debug(f"Future Depth: \n {result}")
 
     def test_get_trading_calendar(self):
