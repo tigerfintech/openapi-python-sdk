@@ -301,6 +301,7 @@ class QuoteClient(TigerOpenClient):
             latest_price: Latest price. 最新价
             latest_time: Latest trade time. 最新成交时间
             volume: Volume. 成交量
+            amount: Amount. 成交额
             open_price: Open price. 开盘价
             high_price: High price. 最高价
             low_price: Low price. 最低价
@@ -370,6 +371,7 @@ class QuoteClient(TigerOpenClient):
             latest_price: Latest price. 最新价
             latest_time: Latest time. 最新成交时间
             volume: Volume. 成交量
+            amount: Amount. 成交额
             open: Open price. 开盘价
             high: High price. 最高价
             low: Low price. 最低价

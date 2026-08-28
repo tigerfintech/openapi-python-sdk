@@ -1,3 +1,7 @@
+## 3.7.2 (2026-08-27)
+### New
+- `QuoteBrief` / `get_stock_briefs` 实时行情结果新增 `amount` 字段，支持股票和数字货币成交额。
+
 ## 3.7.1 (2026-08-19)
 ### New
 - `get_option_chain` 返回数据新增 `mark_price`、`pre_mark_price`、`mark_timestamp`、`mid_price`、`pre_mid_price`、`mid_timestamp` 字段

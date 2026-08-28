@@ -13,6 +13,7 @@ class HourTrading:
         self.prev_close = None  # 昨日收盘价
         self.latest_time = None  # 最后交易时间
         self.volume = None  # 成交量
+        self.amount = None  # 成交额
 
         self.open_price = None  # 开盘价
         self.high_price = None  # 最高价
@@ -38,6 +39,7 @@ class QuoteBrief:
         self.prev_close = None  # 昨日收盘价
         self.latest_time = None  # 最后交易时间
         self.volume = None  # 成交量
+        self.amount = None  # 成交额
 
         self.open_price = None  # 开盘价
         self.high_price = None  # 最高价
