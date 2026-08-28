@@ -90,7 +90,7 @@ integration:python:
     # Only our own file — a sibling job's report may legitimately sit here.
     - rm -f test-results/integ.xml
     - mkdir -p test-results
-    - pytest tests/integ/ -vv --tb=long --showlocals --junitxml=test-results/integ.xml
+    - pytest tests/integ/ -vv --tb=long --junitxml=test-results/integ.xml
   artifacts:
     when: always
     # Explicit file, not the whole directory: the runner reuses build dirs, so a

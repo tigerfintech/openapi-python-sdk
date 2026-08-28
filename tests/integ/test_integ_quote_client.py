@@ -35,7 +35,7 @@ class TestIntegQuoteClient(unittest.TestCase):
     # -- Helpers: dynamically fetch expirable identifiers --
 
     def _get_option_expiry(self, symbol='AAPL', market=Market.US):
-        """Fetch the first future option expiry timestamp; None if unavailable."""
+        """Prefer an option expiry 14-42 days out; fall back to the second listed expiry."""
         expirations = self.client.get_option_expirations(symbols=[symbol], market=market)
         if expirations is None or expirations.empty:
             return None
@@ -148,9 +148,11 @@ class TestIntegQuoteClient(unittest.TestCase):
         """Fetch an active future contract code, preferring the current ES contract."""
         current = self.client.get_current_future_contract(future_type=future_type)
         if current is not None and not current.empty and 'contract_code' in current.columns:
-            code = str(current.iloc[0]['contract_code']).strip()
-            if code:
-                return code
+            raw_code = current.iloc[0]['contract_code']
+            if pd.notna(raw_code):
+                code = str(raw_code).strip()
+                if code and code.lower() not in ('none', 'nan'):
+                    return code
         contracts = self.client.get_future_contracts(exchange=exchange)
         if contracts is None or contracts.empty:
             return None
@@ -158,7 +160,11 @@ class TestIntegQuoteClient(unittest.TestCase):
             typed = contracts[contracts['type'] == future_type]
             if not typed.empty:
                 contracts = typed
-        return str(contracts.iloc[0]['contract_code']).strip()
+        raw_code = contracts.iloc[0]['contract_code']
+        if pd.isna(raw_code):
+            return None
+        code = str(raw_code).strip()
+        return code if code and code.lower() not in ('none', 'nan') else None
 
     def _is_empty(self, result):
         if isinstance(result, pd.DataFrame):
@@ -459,10 +465,7 @@ class TestIntegQuoteClient(unittest.TestCase):
         result = self.client.get_option_trade_ticks(
             identifiers=[identifiers[0]])
         self.assertIsInstance(result, pd.DataFrame)
-        if result.empty:
-            self.skipTest(
-                'Option Trade Ticks empty — realtime option ticks may be unavailable for the sampled contract; '
-                + self._format_failure_context(identifiers=[identifiers[0]], result=result))
+        self._skip_if_empty(result, 'Option Trade Ticks', market='US', identifiers=[identifiers[0]])
         self.assertIn('identifier', result.columns)
         self.assertIn('time', result.columns)
         self.assertIn('price', result.columns)
@@ -513,26 +516,15 @@ class TestIntegQuoteClient(unittest.TestCase):
         result = self.client.get_option_timeline(identifiers=[identifiers[0]], market=Market.US)
         # Wire shape: always a DataFrame regardless of session.
         self.assertIsInstance(result, pd.DataFrame)
-        if result.empty:
-            self.skipTest(
-                'Option Timeline empty — realtime option timeline may be unavailable for the sampled contract; '
-                + self._format_failure_context(identifiers=[identifiers[0]], market=Market.US, result=result))
-        if is_market_trading(self.client, 'US'):
-            # In-hours: data must exist and match the documented schema.
-            self.assertFalse(
-                result.empty,
-                'Option Timeline empty during US main trading session — '
-                'treat as bug rather than skip; '
-                + self._format_failure_context(identifiers=[identifiers[0]], market=Market.US, result=result))
-            self.assertIn('identifier', result.columns)
-            self.assertIn('symbol', result.columns)
-            self.assertIn('price', result.columns)
-            self.assertIn('time', result.columns)
-            first = result.iloc[0]
-            self.assertTrue(len(str(first['symbol']).strip()) > 0)
-            self.assertGreaterEqual(first['price'], 0)
-        # Out-of-hours: an empty DataFrame is a valid server response and the
-        # SDK still parsed + deserialized it. No skip.
+        self._skip_if_empty(result, 'Option Timeline', market='US',
+                            identifiers=[identifiers[0]])
+        self.assertIn('identifier', result.columns)
+        self.assertIn('symbol', result.columns)
+        self.assertIn('price', result.columns)
+        self.assertIn('time', result.columns)
+        first = result.iloc[0]
+        self.assertTrue(len(str(first['symbol']).strip()) > 0)
+        self.assertGreaterEqual(first['price'], 0)
         logger.debug(f"Option Timeline (real):\n {result}")
 
     def test_get_option_analysis(self):
