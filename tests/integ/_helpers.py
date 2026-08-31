@@ -57,6 +57,7 @@ _TRADING_HOURS_ERROR_KEYWORDS = (
     "at non-trading hour",
     "not in trading session",
     "not in a trading session",
+    "please wait for the next trading day to retry",
     # 这条措辞里没有点明订单类型，无法判定是「类型不受理」还是「真的收盘了」，
     # 因此保留在需要市场状态复核的这一类里（与 java/go/ts 一致），这样真出现
     # 盘中被拒的回归时还能被抓到。
