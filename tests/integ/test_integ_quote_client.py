@@ -297,8 +297,8 @@ class TestIntegQuoteClient(unittest.TestCase):
                                                   date=yesterday,
                                                   trade_session=TradingSession.OverNight
                                                   )
-        self.assertIsInstance(result, pd.DataFrame)
         self._skip_if_empty(result, 'Timeline History')
+        self.assertIsInstance(result, pd.DataFrame)
         self.assertIn('symbol', result.columns)
         self.assertIn('time', result.columns)
         self.assertIn('price', result.columns)
