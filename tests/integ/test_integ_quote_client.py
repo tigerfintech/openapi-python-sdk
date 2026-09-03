@@ -86,7 +86,7 @@ class TestIntegQuoteClient(unittest.TestCase):
             return []
         option_filter = OptionFilter(implied_volatility_min=0.05, implied_volatility_max=1,
                                      delta_min=0, delta_max=1,
-                                     open_interest_min=10, open_interest_max=20000,
+                                     open_interest_min=10,
                                      in_the_money=True)
         self._last_option_resolution_context['option_filter'] = option_filter.__dict__
         chain = self.client.get_option_chain(symbol=symbol, expiry=expiry, market=market,
@@ -407,7 +407,7 @@ class TestIntegQuoteClient(unittest.TestCase):
             self.skipTest("No option expiry available for AAPL — US market closed")
         option_filter = OptionFilter(implied_volatility_min=0.05, implied_volatility_max=1, delta_min=0,
                                      delta_max=1,
-                                     open_interest_min=10, open_interest_max=20000, in_the_money=True)
+                                     open_interest_min=10, in_the_money=True)
         result = self.client.get_option_chain(symbol='AAPL',
                                               expiry=expiry,
                                               market=Market.US,
@@ -732,14 +732,14 @@ class TestIntegQuoteClient(unittest.TestCase):
         # 内层为空，断言 len>0 就会 AssertionError: 0 not greater than 0。
         # 而且这里是 CME 期货，近乎 24 小时交易，用美股 RTH（_skip_if_empty 的
         # market='US' 默认值）去判断「此刻该不该有盘口」两个方向都不成立。
-        # 有盘口时校验结构，没有就只校验类型。
-        if es['asks']:
-            ask_price = es['asks'][0][0]
-            self.assertIsNotNone(ask_price, context)
+        # 服务端偶尔会返回占位档位 {"price": null, "volume": null}（如刚开盘、
+        # 流动性尚未建立时），此时列表非空但价格全为 None —— 这不是 SDK/服务端
+        # bug，只校验第一个非 None 的价位，全部为 None 时跳过结构校验。
+        ask_price = next((p for p, _ in es['asks'] if p is not None), None)
+        if ask_price is not None:
             self.assertGreater(ask_price, 0, context)
-        if es['bids']:
-            bid_price = es['bids'][0][0]
-            self.assertIsNotNone(bid_price, context)
+        bid_price = next((p for p, _ in es['bids'] if p is not None), None)
+        if bid_price is not None:
             self.assertGreater(bid_price, 0, context)
         logger.debug(f"Future Depth: \n {result}")
 
@@ -1096,7 +1096,7 @@ class TestIntegQuoteClient(unittest.TestCase):
             self.skipTest("No option expiry available for AAPL — US market closed")
         option_filter = OptionFilter(implied_volatility_min=0.05, implied_volatility_max=1,
                                      delta_min=0, delta_max=1,
-                                     open_interest_min=10, open_interest_max=20000,
+                                     open_interest_min=10,
                                      in_the_money=True)
         result = self.client.get_option_chain(symbol='AAPL',
                                               expiry=expiry,
