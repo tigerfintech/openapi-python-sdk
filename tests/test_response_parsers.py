@@ -7,7 +7,9 @@ from tigeropen.fundamental.response.corporate_dividend_response import Corporate
 from tigeropen.fundamental.response.dataframe_response import DataframeResponse
 from tigeropen.fundamental.response.financial_exchange_rate_response import FinancialExchangeRateResponse
 from tigeropen.quote.response.quote_bar_response import QuoteBarResponse
+from tigeropen.quote.response.quote_brief_response import QuoteBriefResponse
 from tigeropen.quote.response.quote_dataframe_response import QuoteDataframeResponse
+from tigeropen.quote.response.stock_briefs_response import StockBriefsResponse
 from tigeropen.quote.response.quote_timeline_response import QuoteTimelineResponse
 from tigeropen.quote.response.stock_short_interest_response import ShortInterestResponse
 from tigeropen.trade.response.assets_response import AssetsResponse
@@ -134,6 +136,35 @@ class TestDataframeResponses(unittest.TestCase):
         empty_response = QuoteDataframeResponse()
         self.assertIsNone(empty_response.parse_response_content({'code': 0, 'data': []}))
         self.assertIsNone(empty_response.result)
+
+    def test_quote_brief_amount_mapping(self):
+        response = QuoteBriefResponse()
+        response.parse_response_content({
+            'code': 0,
+            'data': {'items': [{
+                'symbol': 'AAPL',
+                'latestPrice': 100,
+                'volume': 123,
+                'amount': 4567.89,
+            }]},
+        })
+
+        self.assertEqual(response.briefs[0].symbol, 'AAPL')
+        self.assertEqual(response.briefs[0].amount, 4567.89)
+
+    def test_stock_briefs_amount_mapping_for_stock_and_crypto(self):
+        response = StockBriefsResponse()
+        response.parse_response_content({
+            'code': 0,
+            'data': [
+                {'symbol': 'AAPL', 'latestPrice': 100, 'volume': 123, 'amount': 4567.89},
+                {'symbol': 'BTCUSD', 'latestPrice': 65000, 'volume': 0, 'amount': 987654.32},
+            ],
+        })
+
+        self.assertEqual(list(response.briefs['symbol']), ['AAPL', 'BTCUSD'])
+        self.assertIn('amount', response.briefs.columns)
+        self.assertEqual(list(response.briefs['amount']), [4567.89, 987654.32])
 
     def test_dividend_exchange_rate_and_short_interest(self):
         dividend = CorporateDividendResponse()

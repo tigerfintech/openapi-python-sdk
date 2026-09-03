@@ -86,6 +86,7 @@ _ORDER_TYPE_RESTRICTION_KEYWORDS = (
     "only regular trading hours supported when trading fractional shares",
     "the time range for the order",
     "outside of regular trading hours",
+    "please wait for the next trading day to retry",
 )
 
 

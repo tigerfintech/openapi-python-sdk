@@ -1165,6 +1165,9 @@ class TestIntegTradeClient(unittest.TestCase):
     @pytest.mark.integ
     def test_place_forex_sec_segment(self):
         """place_forex_order on SEC segment (complements existing FUT test)."""
+        if not is_market_trading(self._quote_client(), 'US'):
+            self.skipTest("US market is not trading; skipping forex SEC order")
+
         try:
             result = self.client.place_forex_order(
                 seg_type=SegmentType.SEC.value,
