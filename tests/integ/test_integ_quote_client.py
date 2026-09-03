@@ -727,14 +727,9 @@ class TestIntegQuoteClient(unittest.TestCase):
         self.assertEqual(es['identifier'], first_key, context)
         self.assertIsInstance(es.get('asks'), list, context)
         self.assertIsInstance(es.get('bids'), list, context)
-        # 不能要求 asks/bids 非空：_skip_if_empty 只看外层 dict 是否为空，
-        # 服务端完全可以返回 {'ESmain': {'asks': [], 'bids': []}} —— 外层非空、
-        # 内层为空，断言 len>0 就会 AssertionError: 0 not greater than 0。
-        # 而且这里是 CME 期货，近乎 24 小时交易，用美股 RTH（_skip_if_empty 的
-        # market='US' 默认值）去判断「此刻该不该有盘口」两个方向都不成立。
-        # 服务端偶尔会返回占位档位 {"price": null, "volume": null}（如刚开盘、
-        # 流动性尚未建立时），此时列表非空但价格全为 None —— 这不是 SDK/服务端
-        # bug，只校验第一个非 None 的价位，全部为 None 时跳过结构校验。
+        # asks/bids 允许为空列表（无盘口），CME 期货接近 24 小时交易，
+        # 不按美股常规时段判断是否该有盘口。
+        # 深度档位可能返回 (None, None) 占位；只校验第一个有值的档位。
         ask_price = next((p for p, _ in es['asks'] if p is not None), None)
         if ask_price is not None:
             self.assertGreater(ask_price, 0, context)
