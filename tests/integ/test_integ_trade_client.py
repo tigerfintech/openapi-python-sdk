@@ -141,7 +141,9 @@ class TestIntegTradeClient(unittest.TestCase):
         """A BUY limit price far below the current HK quote, but within the
         exchange's price-deviation tolerance — unlike a hardcoded absolute
         constant, this never falls too far outside whatever range the
-        exchange currently allows.
+        exchange currently allows. Aligned to the symbol's min_tick, since
+        HK's tick size varies by price band and a price that isn't a clean
+        multiple of it is rejected outright.
 
         Falls back to skipping the test when no live quote is available,
         rather than guessing a price that may or may not be accepted.
@@ -162,7 +164,23 @@ class TestIntegTradeClient(unittest.TestCase):
         if latest_price <= 0:
             self.skipTest(f"non-positive latest_price for {symbol}: {latest_price}")
             return None
-        return round(latest_price * 0.5, 2)
+
+        try:
+            metas = self._quote_client().get_trade_metas(symbols=[symbol])
+        except (ApiException, RequestException, ResponseException) as e:
+            self.skipTest(f"cannot resolve {symbol} trade metas for min_tick: {e}")
+            return None
+        if metas is None or metas.empty or 'min_tick' not in metas.columns:
+            self.skipTest(f"no trade metas for {symbol}, cannot align to min_tick")
+            return None
+        min_tick = float(metas.iloc[0]['min_tick'])
+        if min_tick <= 0:
+            self.skipTest(f"non-positive min_tick for {symbol}: {min_tick}")
+            return None
+
+        raw_price = latest_price * 0.5
+        ticks = math.floor(raw_price / min_tick)
+        return round(ticks * min_tick, 4)
 
     def _resolve_us_option_contract(self):
         """Return a US OPT Contract for AAPL: nearest expiry, near-ATM CALL.
