@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Integration tests - require real API credentials."""
 import logging
+import math
 import time
 import unittest
 from datetime import datetime, timedelta
@@ -8,7 +9,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from tigeropen.common.consts import OptionExerciseType, SegmentType, Currency, SecurityType, OrderType
-from tigeropen.common.exceptions import ApiException
+from tigeropen.common.exceptions import ApiException, RequestException, ResponseException
 from tigeropen.common.util.contract_utils import (
     stock_contract, option_contract_by_symbol, future_contract,
     future_option_contract, war_contract_by_symbol, iopt_contract_by_symbol,
@@ -147,13 +148,17 @@ class TestIntegTradeClient(unittest.TestCase):
         """
         try:
             briefs = self._quote_client().get_stock_briefs(symbols=[symbol], sec_type=SecurityType.STK)
-        except ApiException as e:
+        except (ApiException, RequestException, ResponseException) as e:
             self.skipTest(f"cannot resolve {symbol} quote for safe buy price: {e}")
             return None
         if briefs is None or briefs.empty or 'latest_price' not in briefs.columns:
             self.skipTest(f"no live quote for {symbol}, cannot compute a safe buy price")
             return None
-        latest_price = float(briefs.iloc[0]['latest_price'])
+        raw = briefs.iloc[0]['latest_price']
+        if raw is None or (isinstance(raw, float) and math.isnan(raw)):
+            self.skipTest(f"no valid latest_price for {symbol}: {raw}")
+            return None
+        latest_price = float(raw)
         if latest_price <= 0:
             self.skipTest(f"non-positive latest_price for {symbol}: {latest_price}")
             return None
