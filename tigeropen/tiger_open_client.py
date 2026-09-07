@@ -228,12 +228,12 @@ class TigerOpenClient:
 
         headers = self.__headers
         attempt = None
-        # Order placement / modification / cancellation is never retried after a 401: a
-        # 401 does not prove the request was not executed, so resending risks a duplicate
-        # order. Reuses this module's existing SKIP_RETRY_SERVICES set.
-        state_changing = request._method in SKIP_RETRY_SERVICES
+        # Whether a 401 may be retried with a fresh credential. False for order placement /
+        # modification / cancellation: a 401 does not prove the request was not executed, so
+        # resending risks a duplicate order. Reuses this module's existing SKIP_RETRY_SERVICES.
+        retryable = request._method not in SKIP_RETRY_SERVICES
         if self.__oauth2_mode:
-            context = RequestAuthContext(params, place_order=state_changing)
+            context = RequestAuthContext(params, retryable=retryable)
             attempt = self.__authentication.apply(context)
             # A per-request copy: Authorization is request-scoped, and mutating the
             # shared dict would leak one request's token into another thread's request
@@ -245,7 +245,7 @@ class TigerOpenClient:
         except ResponseException as e:
             # attempt is always None in signature mode, so the exception propagates
             # unchanged and behaviour matches the previous implementation
-            if attempt is None or state_changing or e.status != UNAUTHORIZED_STATUS:
+            if attempt is None or not retryable or e.status != UNAUTHORIZED_STATUS:
                 raise
             decision = self.__authentication.on_unauthorized(attempt, e.status)
             if not decision.should_retry:

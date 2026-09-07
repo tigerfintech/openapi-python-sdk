@@ -133,7 +133,7 @@ class ProtobufPushClient(ConnectionListener):
         """Return a currently usable access token, refreshing if close to expiry."""
         if not self._oauth2_mode:
             return None
-        context = RequestAuthContext({}, place_order=False)
+        context = RequestAuthContext({})
         self._authentication.apply(context)
         header = context.authorization_header or ''
         return header[len(_BEARER_PREFIX):] if header.startswith(_BEARER_PREFIX) else header

@@ -29,11 +29,11 @@ class RequestAuthContext:
     filled in by the client and must not be modified by an authentication implementation.
     """
 
-    __slots__ = ('_params', '_place_order', '_authorization_header')
+    __slots__ = ('_params', '_retryable', '_authorization_header')
 
-    def __init__(self, params, place_order=False):
+    def __init__(self, params, retryable=True):
         self._params = params
-        self._place_order = place_order
+        self._retryable = retryable
         self._authorization_header = None
 
     @property
@@ -42,10 +42,17 @@ class RequestAuthContext:
         return self._params
 
     @property
-    def place_order(self):
-        """True for order-placing requests, which must never be retried after a 401:
-        a 401 does not prove the order was not placed."""
-        return self._place_order
+    def retryable(self):
+        """Whether this request may be retried with a new credential after a 401.
+
+        Named after the constraint rather than the business operation on purpose: an
+        authentication implementation has no business knowing what an order is, it only
+        needs to know whether it may send the request a second time.
+
+        False for order placement, modification and cancellation -- a 401 does not prove
+        the request was not executed, so a retry risks a duplicate order.
+        """
+        return self._retryable
 
     @property
     def authorization_header(self):

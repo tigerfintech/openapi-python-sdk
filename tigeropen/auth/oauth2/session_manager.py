@@ -81,6 +81,7 @@ class OAuth2SessionManager:
     """
 
     def __init__(self, issuer=None, client_id=None, callback_port=0, home=None,
+                 store=None,
                  authorize_timeout_seconds=DEFAULT_AUTHORIZE_TIMEOUT_SECONDS):
         """
         :param issuer: authorization server; falls back to ``TIGEROPEN_OAUTH2_ISSUER``
@@ -88,7 +89,14 @@ class OAuth2SessionManager:
         :param client_id: manually issued clientId; omit to use dynamic registration
         :param callback_port: 0 lets the system assign one (dynamic registration only)
         :param home: storage root; falls back to ``TIGEROPEN_HOME`` then
-            ``~/.tiger/openapi``
+            ``~/.tiger/openapi``. Ignored when ``store`` is given
+        :param store: custom persistence, for keeping tokens somewhere other than files
+            (a keychain, an encrypted vault). Must provide the same methods as
+            :class:`~tigeropen.auth.oauth2.token_store.OAuth2TokenStore`:
+            ``load_token`` / ``save_token`` / ``delete_token`` /
+            ``load_client_id`` / ``load_client_registration`` /
+            ``save_client_registration`` / ``delete_client_registration``.
+            Defaults to a file-backed store rooted at ``home``
         :param authorize_timeout_seconds: how long to wait for the browser callback
 
         The application name and the refresh-ahead window are fixed constants
@@ -102,7 +110,7 @@ class OAuth2SessionManager:
         self._explicit_client_id = client_id or None
         self._authorize_timeout_seconds = authorize_timeout_seconds
 
-        self._store = OAuth2TokenStore(home)
+        self._store = store if store is not None else OAuth2TokenStore(home)
         self._registered_client_id = None   # always None in manual mode
         self._metadata = None
         self._token = None
