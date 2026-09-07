@@ -7,7 +7,8 @@ Binds a port on ``127.0.0.1`` and shuts down after receiving a single callback.
 With dynamic registration the port is 0, so the system assigns one and it is not
 persisted: registration sends ``http://127.0.0.1/callback`` as the redirect_uri, and per
 RFC 8252 §7.3 the authorization server ignores the port when matching a loopback URI.
-With a manual clientId the fixed port registered in the console must be used.
+With a manual clientId the port must match the redirect_uri the user registered by hand,
+which the SDK cannot know -- hence the agreed default of 18888.
 
 It binds only ``127.0.0.1``, not ``0.0.0.0``: the authorization code must not be exposed
 to the local network. It uses the IP literal rather than ``localhost`` (RFC 8252 §8.3),

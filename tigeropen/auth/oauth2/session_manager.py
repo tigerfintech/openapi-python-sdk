@@ -418,8 +418,9 @@ class OAuth2SessionManager:
     def _effective_callback_port(self):
         if self._callback_port > 0:
             return self._callback_port
-        # A manual clientId has a fixed redirect_uri registered in the console, so the
-        # port must match; dynamic registration lets the system assign one
+        # A manual clientId was registered by hand with a concrete redirect_uri the SDK
+        # cannot see, so both sides agree on this port; dynamic registration sends a
+        # portless redirect_uri and can let the system assign one
         return DEFAULT_MANUAL_CALLBACK_PORT if self._explicit_client_id else 0
 
     def _scopes(self):
