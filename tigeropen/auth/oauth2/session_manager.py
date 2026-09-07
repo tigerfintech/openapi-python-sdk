@@ -59,7 +59,14 @@ GRANT_TYPE_AUTHORIZATION_CODE = 'authorization_code'
 GRANT_TYPE_REFRESH_TOKEN = 'refresh_token'
 GRANT_TYPE_DEVICE_CODE = 'urn:ietf:params:oauth:grant-type:device_code'
 
-DEFAULT_CLIENT_NAME = 'Tiger Python SDK'
+#: Application name declared at dynamic registration, shown on the user's authorization
+#: management page.
+#:
+#: Deliberately not configurable. One issuer stores exactly one registration record and the
+#: first registrant wins, so a caller-supplied name would only take effect on a machine that
+#: has never registered -- producing a value that differs between users for no reason. Keeping
+#: it fixed also makes the name a reliable indicator of which SDK created the record.
+CLIENT_NAME = 'Tiger Python SDK'
 
 _WHITESPACE = re.compile(r'\s+')
 
@@ -73,9 +80,7 @@ class OAuth2SessionManager:
         sessions = OAuth2SessionManager(client_id='xxx')    # manual clientId
     """
 
-    def __init__(self, issuer=None, client_id=None, client_name=DEFAULT_CLIENT_NAME,
-                 callback_port=0, home=None,
-                 refresh_ahead_millis=DEFAULT_REFRESH_AHEAD_MILLIS,
+    def __init__(self, issuer=None, client_id=None, callback_port=0, home=None,
                  authorize_timeout_seconds=DEFAULT_AUTHORIZE_TIMEOUT_SECONDS):
         """
         :param issuer: authorization server; falls back to ``TIGEROPEN_OAUTH2_ISSUER``
@@ -84,14 +89,17 @@ class OAuth2SessionManager:
         :param callback_port: 0 lets the system assign one (dynamic registration only)
         :param home: storage root; falls back to ``TIGEROPEN_HOME`` then
             ``~/.tiger/openapi``
+        :param authorize_timeout_seconds: how long to wait for the browser callback
+
+        The application name and the refresh-ahead window are fixed constants
+        (:data:`CLIENT_NAME`, :data:`DEFAULT_REFRESH_AHEAD_MILLIS`), not parameters --
+        see their definitions for why.
         """
         self._issuer = _trim_trailing_slash(issuer or self.default_issuer())
-        self._client_name = client_name or DEFAULT_CLIENT_NAME
         self._callback_port = callback_port or 0
         #: Deliberately immutable: it determines the token filename and whether dynamic
         #: registration is used, so changing it mid-flight desynchronises memory and disk
         self._explicit_client_id = client_id or None
-        self._refresh_ahead_millis = refresh_ahead_millis
         self._authorize_timeout_seconds = authorize_timeout_seconds
 
         self._store = OAuth2TokenStore(home)
@@ -135,16 +143,25 @@ class OAuth2SessionManager:
 
     @classmethod
     def login_with_defaults(cls, on_authorization_url):
-        """Authorize with default settings and return the session."""
+        """One-line authorization: default issuer, default storage, dynamic registration,
+        and a browser **only when needed** -- a second run usually prompts for nothing.
+
+        It does not open a browser by itself; the URL goes to the callback and whether to
+        open it is the application's decision. Otherwise an unattended script would hang
+        on an authorization page nobody is looking at.
+        """
         sessions = cls()
-        sessions.login(on_authorization_url)
+        sessions.login_if_needed(on_authorization_url)
         return sessions
 
     @classmethod
     def login_with_device_code_defaults(cls, on_device_authorization):
-        """Authorize by device code with default settings and return the session."""
+        """One-line device-flow authorization, reusing an existing token when possible.
+
+        Trade-offs see :meth:`login_with_device_code_if_needed`.
+        """
         sessions = cls()
-        sessions.login_with_device_code(on_device_authorization)
+        sessions.login_with_device_code_if_needed(on_device_authorization)
         return sessions
 
     def login(self, on_authorization_url):
@@ -203,17 +220,37 @@ class OAuth2SessionManager:
         return token
 
     def login_if_needed(self, on_authorization_url):
-        """Reuse a usable token, else refresh silently, else authorize."""
-        token = self._reusable_token()
-        if token is not None:
-            return token
-        existing = self._current_token()
-        if existing is not None and existing.has_refresh_token():
-            try:
-                return self.refresh()
-            except OAuth2Exception as e:
-                logger.info('oauth2 silent refresh failed (%s), falling back to authorization', e)
+        """Use the existing local authorization if usable, otherwise run a full
+        loopback + PKCE authorization.
+
+        Blocks until authorization completes or times out.
+        """
+        reusable = self._reusable_token()
+        if reusable is not None:
+            return reusable
         return self.login(on_authorization_url)
+
+    def login_with_device_code_if_needed(self, on_device_authorization):
+        """Use the existing local authorization if usable, otherwise run a device-flow
+        authorization (RFC 8628).
+
+        For machines with no browser -- a server, a container, a host reached over ssh.
+        The loopback route does not merely give a worse experience there, it **cannot
+        work**: the user opens the link on their own laptop, the browser redirects to
+        *the laptop's* 127.0.0.1, while the SDK is listening on the server.
+
+        Blocks until the user approves, denies, or the user_code expires.
+
+        **Less secure than loopback + PKCE**: the device flow has no redirect binding and
+        no proof that the initiator and the redeemer are the same party, so it can be
+        phished -- an attacker starts their own device authorization and tricks the user
+        into entering that code, so what the user approves is the attacker's session.
+        Prefer :meth:`login_if_needed` wherever a local browser exists.
+        """
+        reusable = self._reusable_token()
+        if reusable is not None:
+            return reusable
+        return self.login_with_device_code(on_device_authorization)
 
     def login_with_device_code(self, on_device_authorization):
         """Device code authorization (RFC 8628), for environments with no local browser.
@@ -264,7 +301,7 @@ class OAuth2SessionManager:
         if token is None or not token.access_token:
             raise OAuth2Exception(Category.REAUTHORIZATION_REQUIRED,
                                   'not authorized yet, call login() first')
-        if not token.needs_refresh(self._refresh_ahead_millis):
+        if not token.needs_refresh(DEFAULT_REFRESH_AHEAD_MILLIS):
             return token.access_token
         return self.refresh(token.access_token).access_token
 
@@ -299,7 +336,7 @@ class OAuth2SessionManager:
                 # Already rotated by another thread. Compares token values rather than
                 # timestamps: equal timestamps do not imply the same token.
                 return current
-            if not force and not current.needs_refresh(self._refresh_ahead_millis):
+            if not force and not current.needs_refresh(DEFAULT_REFRESH_AHEAD_MILLIS):
                 return current
             if not current.has_refresh_token():
                 raise OAuth2Exception(Category.REAUTHORIZATION_REQUIRED,
@@ -321,10 +358,25 @@ class OAuth2SessionManager:
     # --------------------------------------------------------------- internal
 
     def _reusable_token(self):
-        token = self._current_token()
-        if token is not None and token.access_token \
-                and not token.needs_refresh(self._refresh_ahead_millis):
-            return token
+        """A token usable without bothering the user, refreshing silently if needed.
+
+        Returns None only when the user genuinely has to authorize again.
+        """
+        existing = self._current_token()
+        if existing is None or not existing.access_token:
+            return None
+        if not existing.needs_refresh(DEFAULT_REFRESH_AHEAD_MILLIS):
+            return existing
+        if existing.has_refresh_token():
+            try:
+                return self.refresh(existing.access_token)
+            except OAuth2Exception as e:
+                # Only "the authorization is gone" justifies asking the user again.
+                # Anything else (network blip, AS 5xx) is retryable, and swallowing it
+                # here would pop up a browser for a problem that fixes itself.
+                if e.category != Category.REAUTHORIZATION_REQUIRED:
+                    raise
+                logger.info('refresh token no longer valid, re-authorizing')
         return None
 
     def _current_token(self):
@@ -424,7 +476,7 @@ class OAuth2SessionManager:
         redirect_uri = ('http://127.0.0.1:%d/callback' % port) if port > 0 \
             else 'http://127.0.0.1/callback'
         payload = {
-            'client_name': self._client_name,
+            'client_name': CLIENT_NAME,
             'redirect_uris': [redirect_uri],
             'grant_types': [GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_REFRESH_TOKEN,
                             GRANT_TYPE_DEVICE_CODE],
@@ -446,7 +498,7 @@ class OAuth2SessionManager:
         registration = OAuth2ClientRegistration(
             issuer=self._issuer,
             client_id=client_id,
-            client_name=self._client_name,
+            client_name=CLIENT_NAME,
             registered_scopes=_normalize_scopes(response.get('scope')) or scopes,
             client_id_issued_at=response.get('client_id_issued_at') or int(time.time()),
         )

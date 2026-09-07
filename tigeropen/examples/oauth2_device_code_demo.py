@@ -47,11 +47,9 @@ def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
 
     sessions = get_session_manager()
-    token = sessions.status()
-    if token is None:
-        token = sessions.login_with_device_code(show_device_code)
-    else:
-        print('本地已有授权，直接复用。')
+    # Reuses a usable token (refreshing it silently if close to expiry) and only shows a
+    # user_code when the user genuinely has to authorize again
+    token = sessions.login_with_device_code_if_needed(show_device_code)
 
     config = get_oauth2_client_config(sessions)
     print()
