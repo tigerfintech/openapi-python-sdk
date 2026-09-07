@@ -136,6 +136,29 @@ class TestIntegTradeClient(unittest.TestCase):
             cls._quote = QuoteClient(cls.client_config, logger=logger)
         return cls._quote
 
+    def _safe_hk_buy_price(self, symbol):
+        """A BUY limit price far below the current HK quote, but within the
+        exchange's price-deviation tolerance — unlike a hardcoded absolute
+        constant, this never falls too far outside whatever range the
+        exchange currently allows.
+
+        Falls back to skipping the test when no live quote is available,
+        rather than guessing a price that may or may not be accepted.
+        """
+        try:
+            briefs = self._quote_client().get_stock_briefs(symbols=[symbol], sec_type=SecurityType.STK)
+        except ApiException as e:
+            self.skipTest(f"cannot resolve {symbol} quote for safe buy price: {e}")
+            return None
+        if briefs is None or briefs.empty or 'latest_price' not in briefs.columns:
+            self.skipTest(f"no live quote for {symbol}, cannot compute a safe buy price")
+            return None
+        latest_price = float(briefs.iloc[0]['latest_price'])
+        if latest_price <= 0:
+            self.skipTest(f"non-positive latest_price for {symbol}: {latest_price}")
+            return None
+        return round(latest_price * 0.5, 2)
+
     def _resolve_us_option_contract(self):
         """Return a US OPT Contract for AAPL: nearest expiry, near-ATM CALL.
 
@@ -1217,7 +1240,7 @@ class TestIntegTradeClient(unittest.TestCase):
         contract = stock_contract(symbol='00700', currency='HKD')
         order = limit_order(account=self.client_config.account,
                             contract=contract, action='BUY', quantity=100,
-                            limit_price=SAFE_BUY_PRICE)
+                            limit_price=self._safe_hk_buy_price('00700'))
         try:
             self._preview_and_place_hours_aware(order, context="HK STK LMT",
                                                 market='HK',
@@ -1554,7 +1577,7 @@ class TestIntegTradeClient(unittest.TestCase):
         order = limit_order(account=self.client_config.account,
                             contract=contract,
                             action='BUY',
-                            limit_price=SAFE_BUY_PRICE,
+                            limit_price=self._safe_hk_buy_price('00700'),
                             quantity=100)
         try:
             result = place_order_with_rate_limit_handling(self.client, order)
