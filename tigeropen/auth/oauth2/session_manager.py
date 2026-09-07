@@ -287,13 +287,72 @@ class OAuth2SessionManager:
         return token
 
     def logout(self):
-        """Clear the stored authorization. The registered client_id is kept: it is this
-        machine's identity, not an authorization."""
+        """End the authorization: revoke it on the server (RFC 7009), then clear the
+        local token.
+
+        The registered client_id is **kept** -- that is this machine's application
+        identity, not an authorization. Deleting it would register a brand new client on
+        the server every time the user logs back in.
+
+        **The local token is always cleared, even when revocation fails.** The user asked
+        to log out; refusing to do so locally because the network is down would be the
+        wrong answer. The return value says whether the server side actually happened.
+
+        :return: True if the server confirmed the revocation; False if only the local
+            token was cleared, meaning **the credential is still valid on the server**
+            (up to the refresh_token TTL) and the caller may want to tell the user or retry
+        """
         client_id = self._known_client_id()
+        revoked = self._revoke(self._current_token(), client_id)
         if client_id:
             self._store.delete_token(client_id)
         self._token = None
-        logger.info('oauth2 logged out. client_id:%s', client_id)
+        logger.info('oauth2 logged out. client_id:%s, server_revoked:%s', client_id, revoked)
+        return revoked
+
+    def _revoke(self, current, client_id):
+        """Best-effort server-side revocation. **Never raises** -- logout must not fail
+        because of it.
+
+        Revokes the **refresh_token** when there is one: RFC 7009 §2.1 says the server
+        SHOULD also invalidate the access tokens issued from it, so one call covers both.
+        Falling back to the access_token alone would leave the refresh_token alive, which
+        is the more dangerous half -- it is the one that lives for 30 days.
+
+        RFC 7009 §2.2 makes the endpoint answer 200 for an unknown or already-revoked
+        token too, so success here does not prove the token existed, only that the server
+        has no objection. That is exactly what we need to know.
+        """
+        if current is None or not client_id:
+            return False
+        value = current.refresh_token or current.access_token
+        hint = 'refresh_token' if current.refresh_token else 'access_token'
+        if not value:
+            return False
+        try:
+            endpoint = self._metadata_of().revocation_endpoint
+            if not endpoint:
+                # Nothing to call. Not an error -- revocation is optional in RFC 8414.
+                logger.warning('authorization server advertises no revocation_endpoint, '
+                               'logging out locally only')
+                return False
+            status = http_utils.post_form_for_status(endpoint, {
+                'token': value,
+                'token_type_hint': hint,
+                'client_id': client_id,
+            })
+            if 200 <= status < 300:
+                return True
+            # 400/401 here means the server refused the client, not that the token is fine
+            logger.warning('oauth2 revoke rejected, http status:%s, logging out locally only',
+                           status)
+            return False
+        except OAuth2Exception as e:
+            logger.warning('oauth2 revoke failed:%s, logging out locally only', e.message)
+            return False
+        except Exception as e:
+            logger.warning('oauth2 revoke error:%s, logging out locally only', e)
+            return False
 
     # ----------------------------------------------------------------- usage
 

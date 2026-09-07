@@ -45,6 +45,26 @@ def post_form(url, form):
     return _execute('POST', url, body=body, content_type=_FORM_CONTENT_TYPE)
 
 
+def post_form_for_status(url, form):
+    """Post a form and return only the HTTP status, tolerating an empty body.
+
+    Needed for RFC 7009 revocation: that endpoint answers 200 with **no body** on success,
+    which :func:`post_form` rejects as "empty response". The caller only needs to know
+    whether the server accepted it, so nothing is parsed.
+
+    :return: the HTTP status code
+    :raise OAuth2Exception: only on a connection failure
+    """
+    fields = [(k, v) for k, v in form.items() if v is not None]
+    body = urlencode(fields).encode('utf-8')
+    headers = {'Accept': 'application/json', 'Content-Type': _FORM_CONTENT_TYPE}
+    try:
+        response = _http_pool.request('POST', url, body=body, headers=headers, timeout=_timeout)
+    except Exception as e:
+        raise OAuth2Exception(Category.TOKEN_REQUEST_FAILED, 'request fail: ' + url, e)
+    return response.status
+
+
 def _execute(method, url, body, content_type):
     """Send the request and parse the response body as a dict.
 
