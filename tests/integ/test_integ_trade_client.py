@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Integration tests - require real API credentials."""
 import logging
+import math
 import time
 import unittest
 from datetime import datetime, timedelta
@@ -8,7 +9,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from tigeropen.common.consts import OptionExerciseType, SegmentType, Currency, SecurityType, OrderType
-from tigeropen.common.exceptions import ApiException
+from tigeropen.common.exceptions import ApiException, RequestException, ResponseException
 from tigeropen.common.util.contract_utils import (
     stock_contract, option_contract_by_symbol, future_contract,
     future_option_contract, war_contract_by_symbol, iopt_contract_by_symbol,
@@ -135,6 +136,51 @@ class TestIntegTradeClient(unittest.TestCase):
         if not hasattr(cls, "_quote"):
             cls._quote = QuoteClient(cls.client_config, logger=logger)
         return cls._quote
+
+    def _safe_hk_buy_price(self, symbol):
+        """A BUY limit price far below the current HK quote, but within the
+        exchange's price-deviation tolerance — unlike a hardcoded absolute
+        constant, this never falls too far outside whatever range the
+        exchange currently allows. Aligned to the symbol's min_tick, since
+        HK's tick size varies by price band and a price that isn't a clean
+        multiple of it is rejected outright.
+
+        Falls back to skipping the test when no live quote is available,
+        rather than guessing a price that may or may not be accepted.
+        """
+        try:
+            briefs = self._quote_client().get_stock_briefs(symbols=[symbol], sec_type=SecurityType.STK)
+        except (ApiException, RequestException, ResponseException) as e:
+            self.skipTest(f"cannot resolve {symbol} quote for safe buy price: {e}")
+            return None
+        if briefs is None or briefs.empty or 'latest_price' not in briefs.columns:
+            self.skipTest(f"no live quote for {symbol}, cannot compute a safe buy price")
+            return None
+        raw = briefs.iloc[0]['latest_price']
+        if raw is None or (isinstance(raw, float) and math.isnan(raw)):
+            self.skipTest(f"no valid latest_price for {symbol}: {raw}")
+            return None
+        latest_price = float(raw)
+        if latest_price <= 0:
+            self.skipTest(f"non-positive latest_price for {symbol}: {latest_price}")
+            return None
+
+        try:
+            metas = self._quote_client().get_trade_metas(symbols=[symbol])
+        except (ApiException, RequestException, ResponseException) as e:
+            self.skipTest(f"cannot resolve {symbol} trade metas for min_tick: {e}")
+            return None
+        if metas is None or metas.empty or 'min_tick' not in metas.columns:
+            self.skipTest(f"no trade metas for {symbol}, cannot align to min_tick")
+            return None
+        min_tick = float(metas.iloc[0]['min_tick'])
+        if min_tick <= 0:
+            self.skipTest(f"non-positive min_tick for {symbol}: {min_tick}")
+            return None
+
+        raw_price = latest_price * 0.5
+        ticks = math.floor(raw_price / min_tick)
+        return round(ticks * min_tick, 4)
 
     def _resolve_us_option_contract(self):
         """Return a US OPT Contract for AAPL: nearest expiry, near-ATM CALL.
@@ -1217,7 +1263,7 @@ class TestIntegTradeClient(unittest.TestCase):
         contract = stock_contract(symbol='00700', currency='HKD')
         order = limit_order(account=self.client_config.account,
                             contract=contract, action='BUY', quantity=100,
-                            limit_price=SAFE_BUY_PRICE)
+                            limit_price=self._safe_hk_buy_price('00700'))
         try:
             self._preview_and_place_hours_aware(order, context="HK STK LMT",
                                                 market='HK',
@@ -1554,7 +1600,7 @@ class TestIntegTradeClient(unittest.TestCase):
         order = limit_order(account=self.client_config.account,
                             contract=contract,
                             action='BUY',
-                            limit_price=SAFE_BUY_PRICE,
+                            limit_price=self._safe_hk_buy_price('00700'),
                             quantity=100)
         try:
             result = place_order_with_rate_limit_handling(self.client, order)
