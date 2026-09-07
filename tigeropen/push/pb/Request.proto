@@ -8,6 +8,11 @@ message Request {
   uint32 id = 2;
   optional Subscribe subscribe = 3;
   optional Connect connect = 4;
+  optional RefreshToken refreshToken = 5;
+
+  message RefreshToken {
+    string accessToken = 1;
+  }
 
   message Connect {
     string tigerId = 1;
@@ -17,6 +22,11 @@ message Request {
     optional uint32 sendInterval = 5;
     optional uint32 receiveInterval = 6;
     optional bool useFullTick = 7;
+    // 8 and 9 were used by the server-side definition and must not be reused
+    reserved 8, 9;
+    // Set in OAuth2 mode only; left unset in signature mode, so the connect message
+    // stays byte-identical to before
+    optional string accessToken = 10;
   }
 
   message Subscribe {

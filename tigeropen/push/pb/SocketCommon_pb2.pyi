@@ -19,6 +19,7 @@ class SocketCommon(_message.Message):
         MESSAGE: _ClassVar[SocketCommon.Command]
         HEARTBEAT: _ClassVar[SocketCommon.Command]
         ERROR: _ClassVar[SocketCommon.Command]
+        REFRESH_TOKEN: _ClassVar[SocketCommon.Command]
     UNKNOWN: SocketCommon.Command
     CONNECT: SocketCommon.Command
     CONNECTED: SocketCommon.Command
@@ -29,6 +30,7 @@ class SocketCommon(_message.Message):
     MESSAGE: SocketCommon.Command
     HEARTBEAT: SocketCommon.Command
     ERROR: SocketCommon.Command
+    REFRESH_TOKEN: SocketCommon.Command
     class DataType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = ()
         Unknown: _ClassVar[SocketCommon.DataType]

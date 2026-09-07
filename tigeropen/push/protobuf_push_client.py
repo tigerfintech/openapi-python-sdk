@@ -4,8 +4,11 @@
 # @Author  : sukai
 import logging
 import sys
+import threading
+import time
 from itertools import accumulate, zip_longest
 
+from tigeropen.auth.authentication import AuthenticationType, RequestAuthContext
 from tigeropen.push.thread_pool import CallbackThreadPoolExecutor
 from tigeropen.common.consts.push_types import ResponseType
 from tigeropen.common.util.common_utils import get_enum_value
@@ -26,6 +29,30 @@ if sys.platform == 'linux' or sys.platform == 'linux2':
     KEEPALIVE = True
 else:
     KEEPALIVE = False
+
+# How early to rotate the access token. Deliberately the same as the session manager's
+# default refresh-ahead window: this check only decides whether to *ask* for a token, and
+# the session manager hands back the existing one until its own window opens, so a wider
+# window here would only spend the extra margin finding the token unchanged.
+TOKEN_REFRESH_AHEAD_MILLIS = 5 * 60 * 1000
+
+# How long to wait for a REFRESH_TOKEN reply before giving up on that attempt. Required,
+# not optional: an older server silently ignores the command, so without a timeout the
+# pending marker would never clear and no later attempt could be made.
+TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS = 30 * 1000
+
+# Placeholder held while the token exchange is still running and the new token is not
+# known yet. The marker must be claimed before the exchange starts, or the next heartbeat
+# would start a second one. Not a real token, and never sent.
+_REFRESH_IN_PROGRESS = '__refresh_in_progress__'
+
+_SUCCESS_CODE = 0
+
+_BEARER_PREFIX = 'Bearer '
+
+
+def _now_millis():
+    return int(time.time() * 1000)
 
 class ProtobufPushClient(ConnectionListener):
     def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000),
@@ -69,17 +96,47 @@ class ProtobufPushClient(ConnectionListener):
         self._heartbeats = heartbeats
         self._client_config = client_config
         self._use_full_tick = self._client_config.use_full_tick if self._client_config else False
+        self._authentication = getattr(client_config, 'authentication', None) if client_config else None
+        self._oauth2_mode = self._authentication is not None \
+            and self._authentication.auth_type == AuthenticationType.OAUTH2
+        # The access token this connection is authenticated with. Per-connection rather
+        # than per-client: a reconnect builds a new connection and sends a fresh connect
+        # message, so it must start clean instead of inheriting a stale value.
+        self._access_token = None
+        # Token carried by an in-flight REFRESH_TOKEN; None when none is outstanding
+        self._refresh_pending = None
+        self._refresh_sent_at = 0
+        self._refresh_lock = threading.Lock()
         self.logger = logging.getLogger('tiger_openapi')
         try:
             _patch_ssl()
         except:
             pass
 
-    def connect(self, tiger_id, private_key):
-        self._tiger_id = tiger_id
-        self._private_key = private_key
-        self._sign = sign_with_rsa(self._private_key, self._tiger_id, 'utf-8')
+    def connect(self, tiger_id=None, private_key=None):
+        """
+        :param tiger_id: required in signature mode; unused in OAuth2 mode
+        :param private_key: required in signature mode; unused in OAuth2 mode
+        """
+        if self._oauth2_mode:
+            # tigerId and the private key play no part in OAuth2 mode. An empty string is
+            # the proto3 default and is not serialized.
+            self._tiger_id = ''
+            self._sign = ''
+        else:
+            self._tiger_id = tiger_id
+            self._private_key = private_key
+            self._sign = sign_with_rsa(self._private_key, self._tiger_id, 'utf-8')
         self._connect()
+
+    def _current_access_token(self):
+        """Return a currently usable access token, refreshing if close to expiry."""
+        if not self._oauth2_mode:
+            return None
+        context = RequestAuthContext({}, place_order=False)
+        self._authentication.apply(context)
+        header = context.authorization_header or ''
+        return header[len(_BEARER_PREFIX):] if header.startswith(_BEARER_PREFIX) else header
 
     def _connect(self):
         try:
@@ -94,13 +151,27 @@ class ProtobufPushClient(ConnectionListener):
                                           heartbeats=self._heartbeats, reconnect_attempts_max=60,
                                           callback_executor=self.callback_executor)
         self._connection.set_listener('push', self)
+        # Fetched on every (re)connect: a reconnect must present the token that is valid
+        # now. None in signature mode, which is what keeps the connect message unchanged.
+        access_token = None
+        if self._oauth2_mode:
+            with self._refresh_lock:
+                self._refresh_pending = None
+                self._refresh_sent_at = 0
+            access_token = self._current_access_token()
+            if not access_token:
+                # Connecting without a credential would just be rejected, and by then the
+                # reason (never authorized / refresh failed) would be lost
+                raise ConnectFailedException('no oauth2 access token available, cannot connect')
+            self._access_token = access_token
         try:
             if self.use_ssl:
                 self._connection.set_ssl([(self.host, self.port)])
             con_req = ProtoMessageUtil.build_connect_message(self._tiger_id, self._sign,
                                                              send_interval=self._heartbeats[0],
                                                              receive_interval=self._heartbeats[1],
-                                                             use_full_tick=self._use_full_tick
+                                                             use_full_tick=self._use_full_tick,
+                                                             access_token=access_token
                                                              )
             self._connection.connect(con_req, wait=True,
                                      )
@@ -119,6 +190,13 @@ class ProtobufPushClient(ConnectionListener):
     def on_disconnected(self):
         if self.disconnect_callback:
             self.disconnect_callback()
+        elif self._oauth2_mode:
+            # A reconnect refetches the token; if that fails, abandon this attempt rather
+            # than raise into the receiving thread
+            try:
+                self._connect()
+            except Exception as e:
+                self.logger.error('reconnect with oauth2 failed: %s', e)
         else:
             self._connect()
 
@@ -127,8 +205,110 @@ class ProtobufPushClient(ConnectionListener):
 
     def on_heartbeat(self, frame):
         self.logger.debug('heart-beat')
+        if self._oauth2_mode:
+            self._refresh_token_if_needed()
         if self.heartbeat_callback:
             self.heartbeat_callback(frame)
+
+    def _refresh_token_if_needed(self):
+        """Rotate this connection's access token if the current one is close to expiry.
+
+        Driven by the heartbeat rather than a timer of its own: the heartbeat already runs
+        on a live connection at a known interval, and a token with a day-long TTL needs no
+        finer granularity. A separate timer would have to track connection liveness again.
+
+        Silent on an older server: REFRESH_TOKEN lands in the default branch of its
+        command switch and no reply ever comes, so a pending rotation is abandoned after
+        the timeout instead of blocking further attempts forever. The connection keeps
+        working until the server drops it.
+        """
+        with self._refresh_lock:
+            if self._refresh_pending is not None:
+                if _now_millis() - self._refresh_sent_at < TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS:
+                    # Still waiting for a reply; do not send a second one. This also
+                    # covers an exchange still running, since the marker is claimed first.
+                    return
+                # No reply within the window: an older server ignoring the command, a lost
+                # reply, or a stuck exchange. Clear it so a later attempt can happen.
+                self.logger.info('refresh token got no reply within %sms',
+                                 TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS)
+                self._refresh_pending = None
+                self._refresh_sent_at = 0
+
+            sessions = getattr(self._authentication, 'session_manager', None)
+            current = sessions.status() if sessions is not None else None
+            if current is None or not current.needs_refresh(TOKEN_REFRESH_AHEAD_MILLIS):
+                return
+
+            # Claimed before the exchange starts: the next heartbeat must find a rotation
+            # already in progress
+            self._refresh_pending = _REFRESH_IN_PROGRESS
+            self._refresh_sent_at = _now_millis()
+
+        try:
+            # The exchange is a synchronous HTTP call and must not block the callback thread
+            threading.Thread(target=self._obtain_and_send_token,
+                             name='tiger-socket-token-refresh', daemon=True).start()
+        except Exception as e:
+            self._clear_refresh_claim()
+            self.logger.error('refresh token not scheduled: %s', e)
+
+    def _obtain_and_send_token(self):
+        try:
+            new_token = self._current_access_token()
+        except Exception as e:
+            self._clear_refresh_claim()
+            self.logger.error('refresh token fail: %s', e)
+            return
+        if not new_token:
+            # A failed refresh is no reason to drop the connection: the token pinned on
+            # the server is usually still valid, and the server closes the connection
+            # itself if it is not
+            self._clear_refresh_claim()
+            self.logger.warning('refresh token skipped, no usable access token')
+            return
+
+        with self._refresh_lock:
+            if new_token == self._access_token:
+                # Unchanged: the session manager's window had not opened yet, so it handed
+                # back the token the server already has
+                self._refresh_pending = None
+                self._refresh_sent_at = 0
+                return
+            self._refresh_pending = new_token
+            self._refresh_sent_at = _now_millis()
+        try:
+            self._connection.send_frame(ProtoMessageUtil.build_refresh_token_message(new_token))
+            self.logger.info('refresh token sent')
+        except Exception as e:
+            self._clear_refresh_claim()
+            self.logger.error('send refresh token fail: %s', e)
+
+    def _clear_refresh_claim(self):
+        with self._refresh_lock:
+            self._refresh_pending = None
+            self._refresh_sent_at = 0
+
+    def on_refresh_token(self, frame):
+        """Apply the server's acknowledgement of a rotation.
+
+        Only moves the pinned token forward on success. On rejection it stays as it was,
+        matching what the server still has: the server explicitly leaves its own
+        connection attributes untouched when it rejects a rotation.
+        """
+        with self._refresh_lock:
+            pending = self._refresh_pending
+            self._refresh_pending = None
+            self._refresh_sent_at = 0
+            if frame.code == _SUCCESS_CODE:
+                # Never pin the in-progress placeholder: a reply arriving while it is
+                # still held did not come from a message we sent
+                if pending is not None and pending != _REFRESH_IN_PROGRESS:
+                    self._access_token = pending
+        if frame.code == _SUCCESS_CODE:
+            self.logger.info('refresh token accepted. detail:%s', frame.msg)
+        else:
+            self.logger.warning('refresh token rejected. code:%s, msg:%s', frame.code, frame.msg)
 
     def on_error(self, frame):
         if frame.code == 4001 and self.kickout_callback:

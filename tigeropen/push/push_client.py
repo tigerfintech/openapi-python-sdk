@@ -4,9 +4,15 @@ Created on 2018/10/30
 
 @author: gaoan
 """
+from tigeropen.auth.authentication import AuthenticationType
 from tigeropen.common.util.common_utils import get_enum_value
 from tigeropen.push.protobuf_push_client import ProtobufPushClient
 from tigeropen.push.stomp_push_client import StompPushClient
+
+
+def _is_oauth2(client_config):
+    authentication = getattr(client_config, 'authentication', None) if client_config else None
+    return authentication is not None and authentication.auth_type == AuthenticationType.OAUTH2
 
 
 class PushClient:
@@ -21,6 +27,14 @@ class PushClient:
         :param use_protobuf: use stomp protocol or protobuf
         :param callback_executor: executor for callback
         """
+        self._oauth2_mode = _is_oauth2(client_config)
+        if self._oauth2_mode and not use_protobuf:
+            # A STOMP frame has nowhere to carry a token and the protocol has no
+            # REFRESH_TOKEN equivalent, so OAuth2 is protobuf-only. Rejected here rather
+            # than on connect, where the server would treat it as an unsigned signature
+            # request and report something that points nowhere near the real cause.
+            raise ValueError('OAuth2 authentication requires the protobuf protocol; '
+                             'use_protobuf=False (STOMP) is not supported')
         if use_protobuf:
             self.client = ProtobufPushClient(host=host, port=port, use_ssl=use_ssl,
                                              connection_timeout=connection_timeout,
@@ -215,7 +229,11 @@ class PushClient:
     def heartbeat_callback(self, value):
         self.client.heartbeat_callback = value
 
-    def connect(self, tiger_id, private_key):
+    def connect(self, tiger_id=None, private_key=None):
+        """
+        :param tiger_id: required in signature mode; unused in OAuth2 mode
+        :param private_key: required in signature mode; unused in OAuth2 mode
+        """
         self.client.connect(tiger_id=tiger_id, private_key=private_key)
 
     def disconnect(self):
