@@ -16,6 +16,7 @@ from tigeropen.cli.config_cmd import config
 from tigeropen.cli.quote_cmd import quote
 from tigeropen.cli.trade_cmd import trade
 from tigeropen.cli.account_cmd import account
+from tigeropen.cli.skills_cmd import skills
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -184,6 +185,7 @@ cli.add_command(config)
 cli.add_command(quote)
 cli.add_command(trade)
 cli.add_command(account)
+cli.add_command(skills)
 
 
 def _load_push_command():
