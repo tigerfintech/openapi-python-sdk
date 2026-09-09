@@ -29,15 +29,58 @@ logger = logging.getLogger(__name__)
 
 CALLBACK_PATH = '/callback'
 
-#: Inline SVG rather than an image, an icon font or a unicode glyph: the page must
-#: render the same everywhere with no network access, and the check glyph is missing or
-#: ugly in plenty of default fonts.
-_CHECK_MARK = (
-    "<svg width='64' height='64' viewBox='0 0 64 64' aria-hidden='true'>"
-    "<circle cx='32' cy='32' r='29' fill='none' stroke='#22c55e' stroke-width='4'/>"
-    "<path d='M19 33l9.5 9.5L45 22' fill='none' stroke='#22c55e' stroke-width='5'"
-    " stroke-linecap='round' stroke-linejoin='round'/></svg>"
-)
+#: Inline SVG rather than an image, an icon font or a unicode glyph: the page must render
+#: the same everywhere with no network access, and these glyphs are missing or ugly in
+#: plenty of default fonts.
+#:
+#: All three share one geometry (64x64, r=29 circle) so the pages line up when compared.
+def _icon(color, path):
+    return ("<svg width='64' height='64' viewBox='0 0 64 64' aria-hidden='true'>"
+            "<circle cx='32' cy='32' r='29' fill='none' stroke='%s' stroke-width='4'/>"
+            "<path d='%s' fill='none' stroke='%s' stroke-width='5'"
+            " stroke-linecap='round' stroke-linejoin='round'/></svg>" % (color, path, color))
+
+
+#: Green tick.
+_ICON_SUCCESS = _icon('#22c55e', 'M19 33l9.5 9.5L45 22')
+#: Grey dash. Deliberately **not** a red cross: the user chose to decline, which is a
+#: normal outcome rather than an error, and colouring it like a failure misreports it.
+_ICON_CANCELLED = _icon('#9ca3af', 'M20 32h24')
+#: Red cross, for outcomes that really are failures.
+_ICON_FAILED = _icon('#ef4444', 'M22 22l20 20M42 22L22 42')
+
+#: Page copy, keyed by outcome. **English only, deliberately.**
+#:
+#: The SDK's exceptions, log lines and error messages are all English; a callback page that
+#: switched to the browser's language would be the one localised surface in an otherwise
+#: English toolkit. It is also the page a developer screenshots into a bug report, where a
+#: fixed wording is easier to search for and to quote.
+#:
+#: Kept byte-identical to the Java SDK's table -- same product surface, must not drift.
+_TEXT = {
+    'title': 'Tiger OpenAPI',
+    'success': ('Authorization successful',
+                'You can close this page and return to the application.'),
+    'cancelled': ('Authorization cancelled',
+                  'You declined this authorization. You can close this page.'),
+    'failed': ('Authorization failed',
+               'Please return to the application and try again.'),
+}
+
+
+def _outcome_of(params):
+    """Classify the callback.
+
+    ``access_denied`` is separated from every other error on purpose: it means the user
+    pressed "decline". Reporting their own choice as a failure -- and telling them to try
+    again -- describes the wrong thing and nudges them to redo something they meant to
+    refuse.
+    """
+    if 'code' in params:
+        return 'success'
+    if params.get('error') == 'access_denied':
+        return 'cancelled'
+    return 'failed'
 
 
 class LoopbackReceiver:
@@ -60,8 +103,8 @@ class LoopbackReceiver:
                     self.end_headers()
                     return
                 try:
-                    success = receiver._record(parsed.query)
-                    _respond(self, success)
+                    params = receiver._record(parsed.query)
+                    _respond(self, params)
                 finally:
                     receiver._latch.set()
 
@@ -124,29 +167,44 @@ class LoopbackReceiver:
         return False
 
     def _record(self, raw_query):
+        """Record the callback params (first one wins) and return a snapshot of them."""
         with self._lock:
             if not self._latch.is_set():
                 for key, value in parse_qsl(raw_query, keep_blank_values=True):
                     self._params[key] = value
-            return 'code' in self._params
+            return dict(self._params)
 
 
-def _respond(handler, success):
-    """The callback page states the outcome only and displays no parameters.
+def _respond(handler, params):
+    """Render the outcome page.
 
-    The browser address bar and history keep a trace, and the page may be screenshotted
-    or read by an extension. The authorization code is single-use, but leaking it before
-    it is redeemed lets someone else exchange it for a token first.
+    **States the outcome and nothing else.** No code, state, error value or description
+    is displayed: the browser keeps the address bar and history, and the page may be
+    screenshotted or read by an extension. The authorization code is single-use, but
+    leaking it before it is redeemed lets someone else exchange it first.
+
+    The caller still gets the full params -- only the *page* is redacted.
     """
-    if success:
-        message = (_CHECK_MARK + '<h2>Authentication successful</h2>'
-                   '<p>You can close this page and return to the application.</p>')
-    else:
-        message = ('<h2>Authentication failed</h2>'
-                   '<p>Please return to the application and try again.</p>')
-    html = ("<html><head><meta charset='utf-8'><title>Tiger OpenAPI</title></head>"
-            "<body style=\"font-family:-apple-system,'PingFang SC',sans-serif;"
-            "padding:64px;text-align:center\">" + message + "</body></html>")
+    outcome = _outcome_of(params)
+    icon = {'success': _ICON_SUCCESS,
+            'cancelled': _ICON_CANCELLED,
+            'failed': _ICON_FAILED}[outcome]
+    heading, detail = _TEXT[outcome]
+
+    html = (
+        "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<title>%s</title></head>"
+        "<body style=\"margin:0;min-height:100vh;display:flex;align-items:center;"
+        "justify-content:center;"
+        "font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',"
+        "sans-serif;background:#fafafa;color:#1f2328\">"
+        "<main style='text-align:center;padding:48px 24px;max-width:420px'>"
+        "%s"
+        "<h2 style='margin:24px 0 8px;font-size:20px;font-weight:600'>%s</h2>"
+        "<p style='margin:0;font-size:14px;line-height:1.6;color:#6b7280'>%s</p>"
+        "</main></body></html>" % (_TEXT['title'], icon, heading, detail))
+
     body = html.encode('utf-8')
     handler.send_response(200)
     handler.send_header('Content-Type', 'text/html; charset=utf-8')
