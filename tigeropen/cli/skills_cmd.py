@@ -31,7 +31,9 @@ def _read_skill_file(skill_dir, rel_path):
     """Read a file under a skill dir, or None if it does not exist or escapes."""
     target = (skill_dir / rel_path).resolve()
     root = skill_dir.resolve()
-    if not str(target).startswith(str(root)):
+    try:
+        target.relative_to(root)
+    except ValueError:
         return None
     if not target.is_file():
         return None

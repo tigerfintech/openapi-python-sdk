@@ -41,6 +41,51 @@ class TestConfigInitOAuth2(unittest.TestCase):
         self.assertIn('account_123', content)
         self.assertNotIn('private_key', content)
 
+    def test_config_init_oauth2_requires_account(self):
+        """config init --auth oauth2 should require account (trade depends on it)."""
+        from tigeropen.cli.main import cli
+        # Empty account line should re-prompt rather than silently writing config.
+        result = self.runner.invoke(
+            cli, ['--auth', 'oauth2', 'config', 'init'],
+            input=f'https://test-issuer.example.com\n\n\naccount_456\n\n{self.temp_dir}\n')
+        self.assertEqual(result.exit_code, 0, result.output)
+        props_file = os.path.join(self.temp_dir, 'tiger_openapi_config.properties')
+        content = open(props_file, 'r').read()
+        self.assertIn('account_456', content)
+
+
+class TestConfigShowOAuth2(unittest.TestCase):
+    """Tests for 'tigeropen config show' in OAuth2 mode."""
+
+    def setUp(self):
+        self.runner = CliRunner()
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def _write_oauth2_props(self):
+        props_file = os.path.join(self.temp_dir, 'tiger_openapi_config.properties')
+        with open(props_file, 'w') as f:
+            f.write('auth_mode=oauth2\n')
+            f.write('issuer=https://test-issuer.example.com\n')
+            f.write('client_id=0123456789abcdef\n')
+            f.write('account=account_123\n')
+            f.write('server_url=wss://gw.example.com\n')
+        return props_file
+
+    def test_config_show_oauth2_masks_client_id(self):
+        """OAuth2 config show should show issuer and mask client_id."""
+        from tigeropen.cli.main import cli
+        self._write_oauth2_props()
+        result = self.runner.invoke(cli, ['--config-path', self.temp_dir, 'config', 'show'])
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn('auth_mode=oauth2', result.output)
+        self.assertIn('issuer=https://test-issuer.example.com', result.output)
+        self.assertIn('0123****cdef', result.output)
+        self.assertNotIn('0123456789abcdef', result.output)
+        self.assertNotIn('private_key', result.output)
+
 
 class TestAuthStatus(unittest.TestCase):
     """Tests for 'tigeropen auth status'."""

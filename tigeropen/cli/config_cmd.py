@@ -82,8 +82,7 @@ def _config_init_oauth2():
                           show_default=True)
     client_id = click.prompt('Client ID (manual registration only, press Enter to skip)',
                              default='', show_default=False)
-    account = click.prompt('Account (business parameter, needed for trading)',
-                           default='', show_default=False)
+    account = click.prompt('Account (business parameter, needed for trading)')
     server_url = click.prompt('Server URL (business gateway, press Enter to pair by issuer)',
                               default='', show_default=False)
     config_dir = click.prompt('Config directory', default=DEFAULT_CONFIG_DIR)
@@ -96,8 +95,7 @@ def _config_init_oauth2():
     p['issuer'] = issuer
     if client_id:
         p['client_id'] = client_id
-    if account:
-        p['account'] = account
+    p['account'] = account
     if server_url:
         p['server_url'] = server_url
 
@@ -127,6 +125,18 @@ def config_show(ctx):
     with open(props_file, 'rb') as f:
         p.load(f, 'utf-8')
 
+    auth_mode = p.get('auth_mode', None)
+    if auth_mode and auth_mode.data == 'oauth2':
+        # OAuth2 mode: show auth_mode/issuer/client_id (masked), skip private key.
+        for key in ('auth_mode', 'issuer', 'client_id', 'server_url', 'account'):
+            if key not in p:
+                continue
+            value = p[key].data
+            if key == 'client_id' and value:
+                value = _mask(value)
+            click.echo(f'{key}={value}')
+        return
+
     for key in p:
         value = p[key].data
         if 'private_key' in key and value:
@@ -136,6 +146,13 @@ def config_show(ctx):
             else:
                 value = '****'
         click.echo(f'{key}={value}')
+
+
+def _mask(value):
+    """Mask a string, keeping the first and last 4 chars."""
+    if len(value) <= 8:
+        return '****'
+    return value[:4] + '****' + value[-4:]
 
 
 @config.command('set')
