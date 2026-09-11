@@ -49,6 +49,10 @@ tigeropen --auth oauth2 account assets
 tigeropen --auth oauth2 push quote AAPL     # 推送（protobuf only）
 ```
 
+> 测试环境推送：socket 地址不会随 issuer 自动配对，需显式指定，如
+> `TIGEROPEN_SOCKET_HOST_PORT="ssl,<test-gateway-host>,9883"`（<test-gateway-host> 换成测试网关主机名）。
+> 且 QA 环境的行情订阅普遍 `access forbidden`（签名模式也一样），非 OAuth2 问题。
+
 ## 关键行为
 
 1. **授权与查询分离**：业务命令不隐式弹浏览器；必须先 `auth login` 完成授权
