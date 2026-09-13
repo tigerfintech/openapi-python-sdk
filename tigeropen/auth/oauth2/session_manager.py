@@ -37,8 +37,9 @@ logger = logging.getLogger(__name__)
 
 ENV_ISSUER = 'TIGEROPEN_OAUTH2_ISSUER'
 
-# WARNING: still a placeholder, must be changed to the production address before launch
-BUILTIN_ISSUER = 'https://openapi-oauth2-test.qa.tigerbrokers.net'
+# Production authorization server. Override with the ENV_ISSUER environment variable, or by
+# passing issuer= explicitly, to point at another environment.
+BUILTIN_ISSUER = 'https://openapi-oauth2.tigerfintech.com'
 
 #: How early to refresh an access token
 DEFAULT_REFRESH_AHEAD_MILLIS = 300 * 1000

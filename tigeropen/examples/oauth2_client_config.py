@@ -13,11 +13,13 @@ the real cause:
 - test gateway with the production public key -> ``response sign verify failed``. The
   test gateway signs responses with the sandbox private key
 
-The built-in issuer is still a test address, so the gateway and public key are paired to
-it automatically below. Set ``TIGEROPEN_SERVER_URL`` to point somewhere else.
+The built-in issuer is now production, so the pairing table below does not match and the
+SDK defaults apply -- nothing to configure for the normal case.
 
-Once the issuer becomes the production address, the pairing table stops matching, the SDK
-defaults apply, and this adaptation is no longer needed.
+The table still matters when ``TIGEROPEN_OAUTH2_ISSUER`` points at a test authorization
+server: the matching gateway and public key are then paired automatically, instead of
+everyone hitting ``tigerId null is illegal`` once and going looking for an environment
+variable. ``TIGEROPEN_SERVER_URL`` overrides either way.
 """
 import os
 
@@ -29,10 +31,9 @@ ENV_SERVER_URL = 'TIGEROPEN_SERVER_URL'
 #: Push endpoint, e.g. ``ws://10.68.171.142:9889`` or ``ssl://host:9883``
 ENV_SOCKET_URL = 'TIGEROPEN_SOCKET_URL'
 
-#: Business gateway matching a test issuer.
-#:
-#: Rather than let everyone hit ``tigerId null is illegal`` once and then go looking for
-#: an environment variable, the pairing is done here. Empty once the issuer is production.
+#: Business gateway matching a test issuer. Only consulted when the issuer is overridden
+#: to point at a test environment; the production issuer is absent on purpose, so the SDK
+#: defaults apply untouched.
 _TEST_ENV_GATEWAY = {
     'https://openapi-oauth2-test.qa.tigerbrokers.net':
         'https://openapi-test.qa.tigerbrokers.net/gateway',
