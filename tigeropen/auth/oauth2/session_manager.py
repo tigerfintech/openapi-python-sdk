@@ -1,19 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
-OAuth2 session management -- the control plane.
+"""Thread-safe OAuth 2.0 authorization session management.
 
-Handles metadata discovery, dynamic registration, authorization (loopback + PKCE or
-device code), token refresh and persistence. The data plane (how each request carries a
-credential) lives in :class:`~tigeropen.auth.oauth2.authentication.OAuth2Authentication`,
-which only needs :meth:`OAuth2SessionManager.get_access_token` and
-:meth:`OAuth2SessionManager.refresh_after_unauthorized`.
-
-Scopes are never hardcoded and never chosen by the application: authorization always
-requests every ``scopes_supported`` entry from the metadata. Dynamic registration
-declares no scope and records the granted set as ``registered_scopes``, so a later scope
-expansion triggers re-registration instead of an ``invalid_scope``.
-
-The constructor sends no requests, so building the object works offline.
+The manager performs metadata discovery, dynamic registration, loopback or device
+authorization, token refresh, and persistence. Requested scopes are derived from
+``scopes_supported`` metadata. Construction performs no network requests.
 """
 import base64
 import hashlib
@@ -37,8 +27,8 @@ logger = logging.getLogger(__name__)
 
 ENV_ISSUER = 'TIGEROPEN_OAUTH2_ISSUER'
 
-# Production authorization server. Override with the ENV_ISSUER environment variable, or by
-# passing issuer= explicitly, to point at another environment.
+# Production authorization server. The environment variable or constructor argument
+# overrides this value.
 BUILTIN_ISSUER = 'https://openapi-oauth2.tigerfintech.com'
 
 #: How early to refresh an access token
@@ -60,54 +50,33 @@ GRANT_TYPE_AUTHORIZATION_CODE = 'authorization_code'
 GRANT_TYPE_REFRESH_TOKEN = 'refresh_token'
 GRANT_TYPE_DEVICE_CODE = 'urn:ietf:params:oauth:grant-type:device_code'
 
-#: Application name declared at dynamic registration, shown on the user's authorization
-#: management page.
-#:
-#: Deliberately not configurable. One issuer stores exactly one registration record and the
-#: first registrant wins, so a caller-supplied name would only take effect on a machine that
-#: has never registered -- producing a value that differs between users for no reason. Keeping
-#: it fixed also makes the name a reliable indicator of which SDK created the record.
+#: Stable application name used for persisted dynamic registration metadata.
 CLIENT_NAME = 'Tiger Python SDK'
 
 _WHITESPACE = re.compile(r'\s+')
 
 
 class OAuth2SessionManager:
-    """An OAuth2 session. Thread-safe.
-
-    Java uses ``builder()``; Python takes keyword arguments::
-
-        sessions = OAuth2SessionManager()                   # dynamic registration
-        sessions = OAuth2SessionManager(client_id='xxx')    # manual clientId
-    """
+    """Thread-safe OAuth 2.0 authorization session manager."""
 
     def __init__(self, issuer=None, client_id=None, callback_port=0, home=None,
                  store=None,
                  authorize_timeout_seconds=DEFAULT_AUTHORIZE_TIMEOUT_SECONDS):
-        """
-        :param issuer: authorization server; falls back to ``TIGEROPEN_OAUTH2_ISSUER``
-            then to the built-in default
-        :param client_id: manually issued clientId; omit to use dynamic registration
-        :param callback_port: 0 lets the system assign one (dynamic registration only)
-        :param home: storage root; falls back to ``TIGEROPEN_HOME`` then
-            ``~/.tiger/openapi``. Ignored when ``store`` is given
-        :param store: custom persistence, for keeping tokens somewhere other than files
-            (a keychain, an encrypted vault). Must provide the same methods as
-            :class:`~tigeropen.auth.oauth2.token_store.OAuth2TokenStore`:
-            ``load_token`` / ``save_token`` / ``delete_token`` /
-            ``load_client_id`` / ``load_client_registration`` /
-            ``save_client_registration`` / ``delete_client_registration``.
-            Defaults to a file-backed store rooted at ``home``
-        :param authorize_timeout_seconds: how long to wait for the browser callback
+        """Initialize a session without performing network requests.
 
-        The application name and the refresh-ahead window are fixed constants
-        (:data:`CLIENT_NAME`, :data:`DEFAULT_REFRESH_AHEAD_MILLIS`), not parameters --
-        see their definitions for why.
+        :param issuer: authorization server; defaults to ``TIGEROPEN_OAUTH2_ISSUER`` or
+            the built-in issuer
+        :param client_id: manually issued client ID; omit for dynamic registration
+        :param callback_port: loopback port; 0 selects a system-assigned port for dynamic
+            registration
+        :param home: storage root; defaults to ``TIGEROPEN_HOME`` or
+            ``~/.tiger/openapi``; ignored when ``store`` is provided
+        :param store: persistence provider implementing the ``OAuth2TokenStore`` methods
+        :param authorize_timeout_seconds: loopback callback timeout in seconds
         """
         self._issuer = _trim_trailing_slash(issuer or self.default_issuer())
         self._callback_port = callback_port or 0
-        #: Deliberately immutable: it determines the token filename and whether dynamic
-        #: registration is used, so changing it mid-flight desynchronises memory and disk
+        #: Fixed for the session because it determines storage keys and registration mode.
         self._explicit_client_id = client_id or None
         self._authorize_timeout_seconds = authorize_timeout_seconds
 
@@ -119,8 +88,6 @@ class OAuth2SessionManager:
 
         self._refresh_lock = threading.RLock()
         self._metadata_lock = threading.RLock()
-
-    # ------------------------------------------------------------- properties
 
     @staticmethod
     def default_issuer():
@@ -148,16 +115,11 @@ class OAuth2SessionManager:
         """Scopes requested by this session, space-separated. Fetches metadata."""
         return self._scopes()
 
-    # ---------------------------------------------------------- authorization
-
     @classmethod
     def login_with_defaults(cls, on_authorization_url):
-        """One-line authorization: default issuer, default storage, dynamic registration,
-        and a browser **only when needed** -- a second run usually prompts for nothing.
+        """Create a default session and perform browser authorization when required.
 
-        It does not open a browser by itself; the URL goes to the callback and whether to
-        open it is the application's decision. Otherwise an unattended script would hang
-        on an authorization page nobody is looking at.
+        The callback receives the authorization URL; the SDK does not open a browser.
         """
         sessions = cls()
         sessions.login_if_needed(on_authorization_url)
@@ -165,25 +127,22 @@ class OAuth2SessionManager:
 
     @classmethod
     def login_with_device_code_defaults(cls, on_device_authorization):
-        """One-line device-flow authorization, reusing an existing token when possible.
-
-        Trade-offs see :meth:`login_with_device_code_if_needed`.
-        """
+        """Create a default session and perform device authorization when required."""
         sessions = cls()
         sessions.login_with_device_code_if_needed(on_device_authorization)
         return sessions
 
     def login(self, on_authorization_url):
-        """Browser authorization (loopback + PKCE).
+        """Perform browser authorization with a loopback redirect and PKCE.
 
-        :param on_authorization_url: called with the URL the user must open
+        :param on_authorization_url: callback receiving the authorization URL
         :return: :class:`OAuth2Token`
         """
         metadata = self._metadata_of()
         client_id = self._resolve_client_id()
         scopes = self._scopes()
 
-        # Started before the URL is handed out, or a fast user hits a dead port
+        # The receiver must be listening before the authorization request is issued.
         receiver = LoopbackReceiver(self._effective_callback_port())
         try:
             verifier = _random_url_safe(64)
@@ -210,7 +169,7 @@ class OAuth2SessionManager:
                                   'authorization denied: %s %s'
                                   % (error, params.get('error_description') or ''))
         if params.get('state') != state:
-            # A state mismatch means this callback is not from the flow we started
+            # A mismatch indicates that the callback does not belong to the active flow.
             raise OAuth2Exception(Category.CALLBACK_FAILED, 'state mismatch in authorization callback')
         code = params.get('code')
         if not code:
@@ -240,21 +199,12 @@ class OAuth2SessionManager:
         return self.login(on_authorization_url)
 
     def login_with_device_code_if_needed(self, on_device_authorization):
-        """Use the existing local authorization if usable, otherwise run a device-flow
-        authorization (RFC 8628).
+        """Reuse local authorization or perform device authorization (RFC 8628).
 
-        For machines with no browser -- a server, a container, a host reached over ssh.
-        The loopback route does not merely give a worse experience there, it **cannot
-        work**: the user opens the link on their own laptop, the browser redirects to
-        *the laptop's* 127.0.0.1, while the SDK is listening on the server.
-
-        Blocks until the user approves, denies, or the user_code expires.
-
-        **Less secure than loopback + PKCE**: the device flow has no redirect binding and
-        no proof that the initiator and the redeemer are the same party, so it can be
-        phished -- an attacker starts their own device authorization and tricks the user
-        into entering that code, so what the user approves is the attacker's session.
-        Prefer :meth:`login_if_needed` wherever a local browser exists.
+        Device authorization supports environments without a local browser. Unlike
+        loopback authorization with PKCE, it has no redirect binding or proof that the
+        initiating and redeeming clients are the same party, increasing phishing risk.
+        Loopback authorization is preferred when a local browser is available.
         """
         reusable = self._reusable_token()
         if reusable is not None:
@@ -262,14 +212,13 @@ class OAuth2SessionManager:
         return self.login_with_device_code(on_device_authorization)
 
     def login_with_device_code(self, on_device_authorization):
-        """Device code authorization (RFC 8628), for environments with no local browser.
+        """Perform device authorization as defined by RFC 8628.
 
-        Less secure than loopback + PKCE: the user approves on another device, so the SDK
-        cannot confirm the approver is the person operating this machine. Prefer
-        :meth:`login` wherever a browser exists.
+        This flow is intended for environments without a local browser and has the
+        security limitations documented by :meth:`login_with_device_code_if_needed`.
 
-        :param on_device_authorization: called with an
-            :class:`OAuth2DeviceAuthorization` to show the user code and verification URI
+        :param on_device_authorization: callback receiving an
+            :class:`OAuth2DeviceAuthorization`
         """
         metadata = self._metadata_of()
         if not metadata.device_authorization_endpoint:
@@ -288,20 +237,13 @@ class OAuth2SessionManager:
         return token
 
     def logout(self):
-        """End the authorization: revoke it on the server (RFC 7009), then clear the
-        local token.
+        """Revoke authorization under RFC 7009 and delete the local token.
 
-        The registered client_id is **kept** -- that is this machine's application
-        identity, not an authorization. Deleting it would register a brand new client on
-        the server every time the user logs back in.
+        Dynamic client registration is retained across logout. The local token is
+        deleted even if server-side revocation fails.
 
-        **The local token is always cleared, even when revocation fails.** The user asked
-        to log out; refusing to do so locally because the network is down would be the
-        wrong answer. The return value says whether the server side actually happened.
-
-        :return: True if the server confirmed the revocation; False if only the local
-            token was cleared, meaning **the credential is still valid on the server**
-            (up to the refresh_token TTL) and the caller may want to tell the user or retry
+        :return: True when server-side revocation succeeds; False when only local state
+            is cleared and the server credential may remain valid
         """
         client_id = self._known_client_id()
         revoked = self._revoke(self._current_token(), client_id)
@@ -312,17 +254,11 @@ class OAuth2SessionManager:
         return revoked
 
     def _revoke(self, current, client_id):
-        """Best-effort server-side revocation. **Never raises** -- logout must not fail
-        because of it.
+        """Attempt server-side revocation without raising.
 
-        Revokes the **refresh_token** when there is one: RFC 7009 §2.1 says the server
-        SHOULD also invalidate the access tokens issued from it, so one call covers both.
-        Falling back to the access_token alone would leave the refresh_token alive, which
-        is the more dangerous half -- it is the one that lives for 30 days.
-
-        RFC 7009 §2.2 makes the endpoint answer 200 for an unknown or already-revoked
-        token too, so success here does not prove the token existed, only that the server
-        has no objection. That is exactly what we need to know.
+        The refresh token is preferred because RFC 7009 §2.1 permits revocation of its
+        associated access tokens. RFC 7009 §2.2 also returns success for unknown or
+        previously revoked tokens.
         """
         if current is None or not client_id:
             return False
@@ -333,7 +269,7 @@ class OAuth2SessionManager:
         try:
             endpoint = self._metadata_of().revocation_endpoint
             if not endpoint:
-                # Nothing to call. Not an error -- revocation is optional in RFC 8414.
+                # Revocation is optional under RFC 8414.
                 logger.warning('authorization server advertises no revocation_endpoint, '
                                'logging out locally only')
                 return False
@@ -344,7 +280,7 @@ class OAuth2SessionManager:
             })
             if 200 <= status < 300:
                 return True
-            # 400/401 here means the server refused the client, not that the token is fine
+            # HTTP 400 and 401 indicate that the server rejected the client.
             logger.warning('oauth2 revoke rejected, http status:%s, logging out locally only',
                            status)
             return False
@@ -355,15 +291,11 @@ class OAuth2SessionManager:
             logger.warning('oauth2 revoke error:%s, logging out locally only', e)
             return False
 
-    # ----------------------------------------------------------------- usage
-
     def get_access_token(self):
-        """Return a currently usable access token, refreshing synchronously if it is
-        close to expiry.
+        """Return a usable access token, refreshing synchronously near expiry.
 
-        Raises ``REAUTHORIZATION_REQUIRED`` if authorization never happened; it never
-        opens a browser implicitly, since a background process suddenly launching one is
-        harder to diagnose than a clear error.
+        Raises ``REAUTHORIZATION_REQUIRED`` when no authorization is available. Browser
+        authorization is never started implicitly.
         """
         token = self._current_token()
         if token is None or not token.access_token:
@@ -385,16 +317,16 @@ class OAuth2SessionManager:
         return self._do_refresh(failed_access_token, force=False)
 
     def refresh_after_unauthorized(self, failed_access_token):
-        """Refresh because of a 401, even if the token still looks fresh.
+        """Refresh after a 401 even when the token is not near expiry.
 
-        :param failed_access_token: the access token that got the 401. If another thread
-            already rotated it, the new one is returned without hitting the token
-            endpoint -- this is what suppresses 401 storms.
+        :param failed_access_token: token used by the failed request; comparison with the
+            current token detects rotation completed by another thread and preserves
+            single-flight refresh behavior
         """
         return self._do_refresh(failed_access_token, force=True)
 
     def _do_refresh(self, failed_access_token, force):
-        # Single-flight: concurrent refreshes queue up, the first one does the work
+        # Single-flight refresh: the first caller performs rotation while others wait.
         with self._refresh_lock:
             current = self._current_token()
             if current is None:
@@ -417,18 +349,16 @@ class OAuth2SessionManager:
                 'client_id': client_id,
             }, current.scope, client_id)
             if not token.refresh_token:
-                # Carry the old one forward, or there is nothing to refresh with next time
+                # Preserve the existing refresh token when rotation omits a replacement.
                 token.refresh_token = current.refresh_token
             self._persist(token)
             logger.info('oauth2 access token refreshed. client_id:%s', client_id)
             return token
 
-    # --------------------------------------------------------------- internal
-
     def _reusable_token(self):
-        """A token usable without bothering the user, refreshing silently if needed.
+        """Return a reusable local token, refreshing it when required.
 
-        Returns None only when the user genuinely has to authorize again.
+        Returns None when interactive authorization is required.
         """
         existing = self._current_token()
         if existing is None or not existing.access_token:
@@ -439,9 +369,8 @@ class OAuth2SessionManager:
             try:
                 return self.refresh(existing.access_token)
             except OAuth2Exception as e:
-                # Only "the authorization is gone" justifies asking the user again.
-                # Anything else (network blip, AS 5xx) is retryable, and swallowing it
-                # here would pop up a browser for a problem that fixes itself.
+                # Only terminal authorization errors require interactive authorization;
+                # transient network and server errors remain retryable.
                 if e.category != Category.REAUTHORIZATION_REQUIRED:
                     raise
                 logger.info('refresh token no longer valid, re-authorizing')
@@ -489,8 +418,7 @@ class OAuth2SessionManager:
             return scopes
         metadata = self._metadata_of()
         if not metadata.scopes_supported:
-            # Do not guess. Requesting too few scopes surfaces as a 403 from some
-            # endpoint much later, which is far harder to trace than failing here.
+            # Missing scope metadata is rejected instead of inferring incomplete scopes.
             raise OAuth2Exception(Category.METADATA_UNAVAILABLE,
                                   'authorization server metadata has no scopes_supported')
         scopes = _normalize_scopes(' '.join(metadata.scopes_supported))
@@ -528,12 +456,10 @@ class OAuth2SessionManager:
         return self._register(required)
 
     def _register(self, scopes):
-        """Dynamic registration (RFC 7591).
+        """Register a public client under RFC 7591.
 
-        Deliberately declares no scope: if the declared set were ever narrower than what
-        is later needed, authorization would fail with ``invalid_scope`` while the
-        registration is already persisted, which is a dead end. Instead the granted set
-        is recorded and a wider requirement triggers re-registration.
+        Registration omits scope. The granted scope set is stored separately so a wider
+        requirement triggers re-registration instead of ``invalid_scope``.
         """
         metadata = self._metadata_of()
         if not metadata.registration_endpoint:
@@ -593,11 +519,7 @@ class OAuth2SessionManager:
         return device
 
     def _poll_for_device_token(self, metadata, device, client_id, scopes):
-        """Poll the token endpoint until the user approves.
-
-        Deliberately not reusing :meth:`_exchange`: ``invalid_grant`` means something
-        different here, and ``authorization_pending`` / ``slow_down`` do not exist there.
-        """
+        """Poll the token endpoint according to RFC 8628 response semantics."""
         interval = device.effective_interval()
         expires_in = device.expires_in or DEFAULT_DEVICE_EXPIRES_IN_SECONDS
         deadline = time.time() + expires_in

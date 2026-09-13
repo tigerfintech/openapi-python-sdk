@@ -30,20 +30,13 @@ if sys.platform == 'linux' or sys.platform == 'linux2':
 else:
     KEEPALIVE = False
 
-# How early to rotate the access token. Deliberately the same as the session manager's
-# default refresh-ahead window: this check only decides whether to *ask* for a token, and
-# the session manager hands back the existing one until its own window opens, so a wider
-# window here would only spend the extra margin finding the token unchanged.
+# Access-token rotation threshold, aligned with the session manager refresh window.
 TOKEN_REFRESH_AHEAD_MILLIS = 5 * 60 * 1000
 
-# How long to wait for a REFRESH_TOKEN reply before giving up on that attempt. Required,
-# not optional: an older server silently ignores the command, so without a timeout the
-# pending marker would never clear and no later attempt could be made.
+# Maximum wait for a REFRESH_TOKEN acknowledgement before pending state is reset.
 TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS = 30 * 1000
 
-# Placeholder held while the token exchange is still running and the new token is not
-# known yet. The marker must be claimed before the exchange starts, or the next heartbeat
-# would start a second one. Not a real token, and never sent.
+# Internal single-flight marker for token exchange; never transmitted as a credential.
 _REFRESH_IN_PROGRESS = '__refresh_in_progress__'
 
 _SUCCESS_CODE = 0
@@ -99,9 +92,8 @@ class ProtobufPushClient(ConnectionListener):
         self._authentication = getattr(client_config, 'authentication', None) if client_config else None
         self._oauth2_mode = self._authentication is not None \
             and self._authentication.auth_type == AuthenticationType.OAUTH2
-        # The access token this connection is authenticated with. Per-connection rather
-        # than per-client: a reconnect builds a new connection and sends a fresh connect
-        # message, so it must start clean instead of inheriting a stale value.
+        # The connection stores the credential used for its current authentication state.
+        # Reconnection obtains and stores a fresh value.
         self._access_token = None
         # Token carried by an in-flight REFRESH_TOKEN; None when none is outstanding
         self._refresh_pending = None
@@ -151,8 +143,7 @@ class ProtobufPushClient(ConnectionListener):
                                           heartbeats=self._heartbeats, reconnect_attempts_max=60,
                                           callback_executor=self.callback_executor)
         self._connection.set_listener('push', self)
-        # Fetched on every (re)connect: a reconnect must present the token that is valid
-        # now. None in signature mode, which is what keeps the connect message unchanged.
+        # Obtain a fresh credential for every connection attempt. Signature mode uses None.
         access_token = None
         if self._oauth2_mode:
             with self._refresh_lock:
@@ -160,8 +151,7 @@ class ProtobufPushClient(ConnectionListener):
                 self._refresh_sent_at = 0
             access_token = self._current_access_token()
             if not access_token:
-                # Connecting without a credential would just be rejected, and by then the
-                # reason (never authorized / refresh failed) would be lost
+                # Do not initiate an OAuth 2.0 connection without a credential.
                 raise ConnectFailedException('no oauth2 access token available, cannot connect')
             self._access_token = access_token
         try:
@@ -191,8 +181,8 @@ class ProtobufPushClient(ConnectionListener):
         if self.disconnect_callback:
             self.disconnect_callback()
         elif self._oauth2_mode:
-            # A reconnect refetches the token; if that fails, abandon this attempt rather
-            # than raise into the receiving thread
+            # Reconnect with a newly resolved token without propagating failures into the
+            # receiving thread.
             try:
                 self._connect()
             except Exception as e:
@@ -211,16 +201,10 @@ class ProtobufPushClient(ConnectionListener):
             self.heartbeat_callback(frame)
 
     def _refresh_token_if_needed(self):
-        """Rotate this connection's access token if the current one is close to expiry.
+        """Rotate a near-expiry access token from the heartbeat thread.
 
-        Driven by the heartbeat rather than a timer of its own: the heartbeat already runs
-        on a live connection at a known interval, and a token with a day-long TTL needs no
-        finer granularity. A separate timer would have to track connection liveness again.
-
-        Silent on an older server: REFRESH_TOKEN lands in the default branch of its
-        command switch and no reply ever comes, so a pending rotation is abandoned after
-        the timeout instead of blocking further attempts forever. The connection keeps
-        working until the server drops it.
+        A single-flight marker permits only one rotation at a time. Pending state expires
+        when no acknowledgement arrives, allowing a later attempt.
         """
         with self._refresh_lock:
             if self._refresh_pending is not None:
@@ -228,8 +212,7 @@ class ProtobufPushClient(ConnectionListener):
                     # Still waiting for a reply; do not send a second one. This also
                     # covers an exchange still running, since the marker is claimed first.
                     return
-                # No reply within the window: an older server ignoring the command, a lost
-                # reply, or a stuck exchange. Clear it so a later attempt can happen.
+                # Expire pending state when an acknowledgement is not received.
                 self.logger.info('refresh token got no reply within %sms',
                                  TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS)
                 self._refresh_pending = None

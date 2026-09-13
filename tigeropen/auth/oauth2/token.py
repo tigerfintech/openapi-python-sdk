@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
-Stored authorization state.
+"""Persisted OAuth 2.0 authorization state.
 
-``issuer`` and ``client_id`` are recorded because the filename only carries the
-clientId: after switching environments a missing issuer check would send a staging
-token to production, showing up as an inexplicable 401.
-
-Field names match the Java SDK's on-disk format, so both can read the same file.
+The ``issuer`` and ``client_id`` bind credentials to an authorization server and client,
+preventing credential reuse across environments. Field names are compatible with the
+Java SDK storage format.
 """
 import time
 

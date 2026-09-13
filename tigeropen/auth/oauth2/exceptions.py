@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-OAuth2 errors.
+"""Categorized errors from OAuth 2.0 authorization flows.
 
-Carries a :class:`Category` rather than an error-code string because the only
-distinctions a caller acts on are "retry", "re-authorize" and "fix your config". The
-raw error returned by the authorization server goes in the message for diagnosis.
+Authorization server error details are retained in the exception message.
 """
 from enum import Enum
 

@@ -1,22 +1,10 @@
 # -*- coding: utf-8 -*-
-"""
-Local callback receiver (RFC 8252 loopback).
+"""Single-use OAuth 2.0 loopback redirect receiver (RFC 8252).
 
-Binds a port on ``127.0.0.1`` and shuts down after receiving a single callback.
-
-With dynamic registration the port is 0, so the system assigns one and it is not
-persisted: registration sends ``http://127.0.0.1/callback`` as the redirect_uri, and per
-RFC 8252 §7.3 the authorization server ignores the port when matching a loopback URI.
-With a manual clientId the port must match the redirect_uri the user registered by hand,
-which the SDK cannot know -- hence the agreed default of 18888.
-
-It binds only ``127.0.0.1``, not ``0.0.0.0``: the authorization code must not be exposed
-to the local network. It uses the IP literal rather than ``localhost`` (RFC 8252 §8.3),
-which depends on hosts resolution and can be redirected elsewhere.
-
-It must be started **before** the authorization URL is handed to the user, otherwise a
-fast user can finish approving before the listener is up and the redirect arrives at a
-port with nobody listening.
+The receiver binds only to ``127.0.0.1`` to prevent authorization code exposure on the
+local network. Dynamic registration uses a system-assigned port as permitted by RFC 8252
+§7.3; manual registration requires a port matching its redirect URI. The IP literal
+avoids the name-resolution risks described by RFC 8252 §8.3.
 """
 import logging
 import threading
@@ -29,11 +17,7 @@ logger = logging.getLogger(__name__)
 
 CALLBACK_PATH = '/callback'
 
-#: Inline SVG rather than an image, an icon font or a unicode glyph: the page must render
-#: the same everywhere with no network access, and these glyphs are missing or ugly in
-#: plenty of default fonts.
-#:
-#: All three share one geometry (64x64, r=29 circle) so the pages line up when compared.
+#: Inline SVG avoids external resources and font-dependent glyph rendering.
 def _icon(color, path):
     return ("<svg width='64' height='64' viewBox='0 0 64 64' aria-hidden='true'>"
             "<circle cx='32' cy='32' r='29' fill='none' stroke='%s' stroke-width='4'/>"
@@ -43,20 +27,12 @@ def _icon(color, path):
 
 #: Green tick.
 _ICON_SUCCESS = _icon('#22c55e', 'M19 33l9.5 9.5L45 22')
-#: Grey dash. Deliberately **not** a red cross: the user chose to decline, which is a
-#: normal outcome rather than an error, and colouring it like a failure misreports it.
+#: Grey dash for the normal ``access_denied`` outcome.
 _ICON_CANCELLED = _icon('#9ca3af', 'M20 32h24')
 #: Red cross, for outcomes that really are failures.
 _ICON_FAILED = _icon('#ef4444', 'M22 22l20 20M42 22L22 42')
 
-#: Page copy, keyed by outcome. **English only, deliberately.**
-#:
-#: The SDK's exceptions, log lines and error messages are all English; a callback page that
-#: switched to the browser's language would be the one localised surface in an otherwise
-#: English toolkit. It is also the page a developer screenshots into a bug report, where a
-#: fixed wording is easier to search for and to quote.
-#:
-#: Kept byte-identical to the Java SDK's table -- same product surface, must not drift.
+#: English callback text, kept consistent with the Java SDK.
 _TEXT = {
     'title': 'Tiger OpenAPI',
     'success': ('Authorization successful',
@@ -69,13 +45,7 @@ _TEXT = {
 
 
 def _outcome_of(params):
-    """Classify the callback.
-
-    ``access_denied`` is separated from every other error on purpose: it means the user
-    pressed "decline". Reporting their own choice as a failure -- and telling them to try
-    again -- describes the wrong thing and nudges them to redo something they meant to
-    refuse.
-    """
+    """Classify ``access_denied`` as cancellation and other errors as failures."""
     if 'code' in params:
         return 'success'
     if params.get('error') == 'access_denied':
@@ -109,15 +79,14 @@ class LoopbackReceiver:
                     receiver._latch.set()
 
             def log_message(self, fmt, *args):
-                # The default implementation writes the request line to stderr, which
-                # would include the callback query string and therefore the auth code
+                # Suppress the default request log because its query string contains the
+                # authorization code.
                 logger.debug('loopback callback request received')
 
         try:
             self._server = HTTPServer(('127.0.0.1', port), _Handler)
         except OSError as e:
-            # Only a fixed port can be taken, and then we must say which port and what
-            # to do about it; a system-assigned port never collides
+            # A fixed port can conflict with another listener; system-assigned ports do not.
             hint = '' if port == 0 else (
                 ' (port %d is in use; free it or set another callback_port'
                 ' matching the redirect_uri registered for your client)' % port)
@@ -176,14 +145,11 @@ class LoopbackReceiver:
 
 
 def _respond(handler, params):
-    """Render the outcome page.
+    """Render a redacted callback outcome page.
 
-    **States the outcome and nothing else.** No code, state, error value or description
-    is displayed: the browser keeps the address bar and history, and the page may be
-    screenshotted or read by an extension. The authorization code is single-use, but
-    leaking it before it is redeemed lets someone else exchange it first.
-
-    The caller still gets the full params -- only the *page* is redacted.
+    Callback parameters, including authorization codes and errors, are omitted because
+    browser history, screenshots, and extensions may expose page content. Full parameters
+    remain available to internal callback processing.
     """
     outcome = _outcome_of(params)
     icon = {'success': _ICON_SUCCESS,

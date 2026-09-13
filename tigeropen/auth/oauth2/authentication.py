@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Adapter connecting an OAuth2 session to the data plane.
-
-A thin layer: the real work lives in
-:class:`~tigeropen.auth.oauth2.session_manager.OAuth2SessionManager`. This only decides
-how each request carries the credential and what to do after a 401.
-"""
+"""Request authentication backed by an OAuth 2.0 session manager."""
 import logging
 
 from tigeropen.auth.authentication import (
@@ -43,31 +37,28 @@ class OAuth2Authentication(Authentication):
         return self._sessions
 
     def apply(self, context):
-        """Set ``Authorization: Bearer <token>`` on the context.
+        """Attach a Bearer token to the request context.
 
-        Refreshes synchronously if the token is close to expiry (single-flight, so
-        concurrent requests do not hammer the token endpoint). Raises
-        ``REAUTHORIZATION_REQUIRED`` if authorization never happened; it never opens a
-        browser implicitly.
+        Near-expiry refreshes use the session manager's single-flight synchronization.
+        Missing authorization raises ``REAUTHORIZATION_REQUIRED`` without starting an
+        implicit browser flow.
         """
         access_token = self._sessions.get_access_token()
         context.authorization_header = BEARER_PREFIX + access_token
         return AuthenticationAttempt(AuthenticationType.OAUTH2, access_token)
 
     def on_unauthorized(self, attempt, status_code):
-        """Handle 401 only.
+        """Process HTTP 401 responses.
 
-        A 403 means insufficient permission (scope too narrow, account not granted, or
-        the endpoint is closed to OAuth2 entirely); a refresh returns the same scope, so
-        the retry is guaranteed to be another 403 and is pure waste. 5xx and timeouts
-        have nothing to do with the credential.
+        HTTP 403 indicates insufficient permission and cannot be resolved by refreshing
+        a token with the same scope. Server errors and timeouts are not credential
+        failures.
         """
         if status_code != UNAUTHORIZED_STATUS:
             return RetryDecision.no_retry()
         credential = attempt.credential if attempt is not None else None
         try:
-            # Pass the token we just used: if another thread already rotated it, this
-            # returns the new one without hitting the token endpoint again
+            # Reuse a token already rotated by another thread without another token request.
             refreshed = self._sessions.refresh_after_unauthorized(credential)
             if refreshed is None or not refreshed.access_token:
                 return RetryDecision.no_retry()
