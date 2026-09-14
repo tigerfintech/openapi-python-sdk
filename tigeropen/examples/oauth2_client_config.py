@@ -14,14 +14,21 @@ Optional environment variables::
     TIGEROPEN_SERVER_URL      business gateway; defaults to production
     TIGEROPEN_SOCKET_URL      push endpoint, e.g. ``ssl://host:9883``
     TIGEROPEN_HOME            where tokens are stored; defaults to ``~/.tiger/openapi``
+    TIGEROPEN_SANDBOX_KEY     set to 1 when pointing at the sandbox environment
+
+**Issuer, gateway and public key must all point at one environment.** Responses are
+signature-verified even under OAuth2 -- that proves the response came from Tiger and is
+independent of how the request was authenticated -- so pointing the gateway elsewhere while
+keeping the production public key fails with ``response sign verify failed``.
 """
 import os
 
 from tigeropen.auth.oauth2 import OAuth2Authentication, OAuth2SessionManager
-from tigeropen.tiger_open_config import TigerOpenClientConfig
+from tigeropen.tiger_open_config import SANDBOX_TIGER_PUBLIC_KEY, TigerOpenClientConfig
 
 ENV_SERVER_URL = 'TIGEROPEN_SERVER_URL'
 ENV_SOCKET_URL = 'TIGEROPEN_SOCKET_URL'
+ENV_SANDBOX_KEY = 'TIGEROPEN_SANDBOX_KEY'
 
 #: Sample symbols per market. Market data permissions are granted per market, so
 #: hardcoding US symbols makes an HK-only account report "permission denied", which reads
@@ -64,6 +71,11 @@ def get_oauth2_client_config(sessions):
     if socket_url:
         config.socket_host_port = _parse_socket_url(socket_url)
 
+    if (os.environ.get(ENV_SANDBOX_KEY) or '').lower() in ('1', 'true', 'yes'):
+        # The sandbox gateway signs responses with a different key. Verification still runs
+        # under OAuth2, so the key has to match whichever gateway is being called.
+        config.tiger_public_key = SANDBOX_TIGER_PUBLIC_KEY
+
     return config
 
 
@@ -73,6 +85,10 @@ def describe(config, sessions, token):
     print('client_id   :', sessions.client_id)
     print('业务网关    :', config.server_url)
     print('行情网关    :', config.quote_server_url)
+    # Naming the key makes a gateway/key mismatch visible here rather than as an
+    # InvalidSignature several frames deep
+    print('响应验签公钥:',
+          'sandbox' if config.tiger_public_key == SANDBOX_TIGER_PUBLIC_KEY else 'production')
     print('拿到的 scope :', token.scope)
     print('access token 还有 %d 秒到期' % (token.remaining_millis() // 1000))
     print('有 refresh token:', token.has_refresh_token())
