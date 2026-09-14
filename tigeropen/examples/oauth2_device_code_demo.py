@@ -10,7 +10,7 @@ This path is **less secure** than the loopback + PKCE flow in ``oauth2_login_dem
 user approves on another device, so the SDK cannot confirm the approver is the person
 operating this machine. Prefer that demo wherever a browser exists.
 
-Environment variables are the same as ``oauth2_login_demo``; see oauth2_client_config.py.
+See oauth2_client_config.py for the environment variables.
 """
 import logging
 

@@ -14,10 +14,11 @@ STOMP frame has nowhere to carry a token and the protocol has no REFRESH_TOKEN e
 Token rotation is driven by the heartbeat and only fires with less than 5 minutes
 remaining, so a short-lived connection normally shows no rotation logs.
 
-Point the push endpoint at an OAuth2-capable environment::
+Optional::
 
-    export TIGEROPEN_SOCKET_URL=ws://10.68.171.142:9889
     export TIGEROPEN_HOLD_SECONDS=600      # how long to stay connected, default 600
+
+See oauth2_client_config.py for the rest.
 """
 import logging
 import os

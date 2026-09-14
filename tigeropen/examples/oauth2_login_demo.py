@@ -11,16 +11,8 @@ mode 0600, and later runs reuse it without opening a browser again.
 Compared with signature mode, the only change to business code is the
 ``config.authentication`` line.
 
-The issuer, the business gateway and the response-verification public key must all point
-at the same environment; see oauth2_client_config.py, which pairs them automatically
-while the built-in issuer is still a test address.
-
-Optional environment variables::
-
-    TIGEROPEN_OAUTH2_ISSUER=https://...    authorization server
-    TIGEROPEN_CLIENT_ID=xxx                manual clientId (omit for dynamic registration)
-    TIGEROPEN_SERVER_URL=https://...       business gateway, overrides the paired default
-    TIGEROPEN_HOME=/tmp/tiger-demo         storage location
+Everything is optional to configure -- run it as is and it uses the production
+authorization server. See oauth2_client_config.py for the environment variables.
 """
 import datetime
 import logging
