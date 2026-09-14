@@ -252,10 +252,10 @@ class ClientRegistrationTest(StoreTestBase):
         self.store.save_client_registration(self._reg())
         self.assertIsNone(self.store.load_client_registration('https://other.example.com'))
 
-    def test_filename_is_the_issuer_hash(self):
-        from tigeropen.auth.oauth2.token_store import hash_issuer
+    def test_filename_is_the_issuer_hash_and_surface(self):
+        from tigeropen.auth.oauth2.token_store import DEFAULT_SURFACE, hash_issuer
         self.store.save_client_registration(self._reg())
-        self.assertEqual([hash_issuer(ISSUER) + '.json'],
+        self.assertEqual(['%s-%s.json' % (hash_issuer(ISSUER), DEFAULT_SURFACE)],
                          os.listdir(os.path.join(self.home, 'clients')))
 
     def test_deleting_the_token_keeps_the_registration(self):
@@ -275,11 +275,72 @@ class ClientRegistrationTest(StoreTestBase):
 
     def test_malformed_registration_is_treated_as_absent(self):
         self.store.save_client_registration(self._reg())
-        from tigeropen.auth.oauth2.token_store import hash_issuer
-        path = os.path.join(self.home, 'clients', hash_issuer(ISSUER) + '.json')
+        path = self.store._client_file(ISSUER)
         with open(path, 'w') as f:
             f.write('{broken')
         self.assertIsNone(self.store.load_client_registration(ISSUER))
+
+
+class SurfaceIsolationTest(StoreTestBase):
+    """Each entry point owns its own registration.
+
+    Without this, whichever entry point ran first would own the registration and every
+    other one would silently inherit its identity -- one name on the authorization page,
+    one revocation switch for all of them, and one shared token file whose refresh-token
+    rotation they would race over.
+    """
+
+    def _store_for(self, surface):
+        return OAuth2TokenStore(self.home, surface)
+
+    def _reg_for(self, client_id):
+        return OAuth2ClientRegistration(issuer=ISSUER, client_id=client_id,
+                                        registered_scopes='api.quote:read')
+
+    def test_each_surface_registers_its_own_client(self):
+        for surface, client_id in (('sdk-python', 'py-1'), ('sdk-java', 'java-1'),
+                                   ('cli', 'cli-1'), ('mcp', 'mcp-1')):
+            self._store_for(surface).save_client_registration(self._reg_for(client_id))
+
+        for surface, client_id in (('sdk-python', 'py-1'), ('sdk-java', 'java-1'),
+                                   ('cli', 'cli-1'), ('mcp', 'mcp-1')):
+            self.assertEqual(client_id, self._store_for(surface).load_client_id(ISSUER), surface)
+
+    def test_one_surface_does_not_see_anothers_registration(self):
+        self._store_for('cli').save_client_registration(self._reg_for('cli-1'))
+
+        self.assertIsNone(self._store_for('mcp').load_client_id(ISSUER))
+        self.assertIsNone(self._store_for('sdk-python').load_client_id(ISSUER))
+
+    def test_deleting_one_surface_leaves_the_others(self):
+        """An ``invalid_client`` on one entry point must not unregister the rest."""
+        self._store_for('cli').save_client_registration(self._reg_for('cli-1'))
+        self._store_for('mcp').save_client_registration(self._reg_for('mcp-1'))
+
+        self._store_for('cli').delete_client_registration(ISSUER)
+
+        self.assertIsNone(self._store_for('cli').load_client_id(ISSUER))
+        self.assertEqual('mcp-1', self._store_for('mcp').load_client_id(ISSUER))
+
+    def test_default_surface_is_the_python_sdk(self):
+        from tigeropen.auth.oauth2.token_store import DEFAULT_SURFACE
+        self.assertEqual('sdk-python', DEFAULT_SURFACE)
+        self.assertEqual(DEFAULT_SURFACE, OAuth2TokenStore(self.home).surface)
+
+    def test_surface_must_be_usable_verbatim_as_a_file_name(self):
+        """Rejected rather than sanitised: silently rewriting would file two entry points
+        under one name, which is exactly what the surface exists to prevent."""
+        for bad in ('SDK-Java', 'sdk_python', '../etc', '', None, 'a b', '-leading'):
+            with self.assertRaises(OAuth2Exception, msg=repr(bad)):
+                OAuth2TokenStore(self.home, bad)
+
+    def test_token_files_are_not_keyed_by_surface(self):
+        """They need no surface -- distinct clients already mean distinct file names."""
+        self._store_for('cli').save_token(a_token(client_id='shared-manual-id'))
+
+        self.assertIsNotNone(
+            self._store_for('mcp').load_token('shared-manual-id', ISSUER),
+            'a manually configured client ID is shared on purpose: one ID, one application')
 
 
 class HomeResolutionTest(unittest.TestCase):

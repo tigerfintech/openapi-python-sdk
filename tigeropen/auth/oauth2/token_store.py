@@ -4,11 +4,21 @@
 Storage layout::
 
     ~/.tiger/openapi/
-      tokens/{clientId}.json      authorization state, mode 0600, removed on logout
-      clients/{issuerHash}.json   dynamic registration, retained across logout
+      tokens/{clientId}.json                authorization state, mode 0600, removed on logout
+      clients/{issuerHash}-{surface}.json   dynamic registration, retained across logout
 
 Registration files are keyed by issuer because the client ID is not yet available during
-lookup. Storage root precedence is: explicit argument, ``TIGEROPEN_HOME``, then
+lookup, and by surface so that each entry point registers its own client. Without the
+surface, whichever entry point ran first would own the registration and every other one
+would silently inherit its identity: one name on the user's authorization page, one
+revocation switch for all of them, and one shared token file whose refresh-token rotation
+they would race over.
+
+Token files need no surface: each surface registers a distinct client ID, so their token
+files are already distinct. A manually configured client ID is shared on purpose -- one
+client ID means one application.
+
+Storage root precedence is: explicit argument, ``TIGEROPEN_HOME``, then
 ``~/.tiger/openapi``. The format is compatible with the Java SDK.
 """
 import hashlib
@@ -27,17 +37,31 @@ logger = logging.getLogger(__name__)
 ENV_HOME = 'TIGEROPEN_HOME'
 DEFAULT_HOME = os.path.join('~', '.tiger', 'openapi')
 
+#: Entry point owning a registration. The CLI and the MCP server are built on this SDK and
+#: must pass their own value, otherwise they would be filed as the Python SDK and share its
+#: client. Keep in step with the Java SDK's ``sdk-java``.
+DEFAULT_SURFACE = 'sdk-python'
+
 _SAFE_CHARS = re.compile(r'[^a-zA-Z0-9\-_.]')
+#: Surfaces become part of a file name, so they are restricted rather than sanitised: a
+#: silently rewritten surface would file two entry points under one name.
+_SURFACE_PATTERN = re.compile(r'^[a-z0-9][a-z0-9-]*$')
 
 
 class OAuth2TokenStore:
 
-    def __init__(self, home=None):
+    def __init__(self, home=None, surface=DEFAULT_SURFACE):
+        """
+        :param home: storage root; defaults to ``TIGEROPEN_HOME`` then ``~/.tiger/openapi``
+        :param surface: entry point owning the registration, e.g. ``sdk-python``, ``cli``,
+            ``mcp``. Lowercase alphanumerics and hyphens only
+        """
         if home:
             base = home
         else:
             base = os.environ.get(ENV_HOME) or DEFAULT_HOME
         self.home = os.path.abspath(os.path.expanduser(base))
+        self.surface = _validate_surface(surface)
 
     def load_token(self, client_id, expected_issuer=None):
         """Load a token, treating a missing file or issuer mismatch as a cache miss."""
@@ -107,7 +131,8 @@ class OAuth2TokenStore:
         return os.path.join(self.home, 'tokens', _safe_file_name(client_id) + '.json')
 
     def _client_file(self, issuer):
-        return os.path.join(self.home, 'clients', hash_issuer(issuer) + '.json')
+        return os.path.join(self.home, 'clients',
+                            '%s-%s.json' % (hash_issuer(issuer), self.surface))
 
     @staticmethod
     def _delete(path):
@@ -151,6 +176,16 @@ def _safe_file_name(raw):
     while '..' in name:
         name = name.replace('..', '__')
     return name or '_'
+
+
+def _validate_surface(surface):
+    """Reject a surface that cannot be used verbatim as part of a file name."""
+    if not surface or not _SURFACE_PATTERN.match(surface):
+        raise OAuth2Exception(
+            Category.STORAGE_FAILED,
+            "invalid surface %r: expected lowercase alphanumerics and hyphens, e.g. 'cli'"
+            % (surface,))
+    return surface
 
 
 def hash_issuer(issuer):

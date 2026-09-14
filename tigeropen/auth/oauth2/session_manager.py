@@ -21,7 +21,7 @@ from tigeropen.auth.oauth2.exceptions import Category, OAuth2Exception
 from tigeropen.auth.oauth2.loopback_receiver import LoopbackReceiver
 from tigeropen.auth.oauth2.metadata import OAuth2Metadata
 from tigeropen.auth.oauth2.token import OAuth2Token, current_millis
-from tigeropen.auth.oauth2.token_store import OAuth2TokenStore
+from tigeropen.auth.oauth2.token_store import DEFAULT_SURFACE, OAuth2TokenStore
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class OAuth2SessionManager:
     """Thread-safe OAuth 2.0 authorization session manager."""
 
     def __init__(self, issuer=None, client_id=None, callback_port=0, home=None,
-                 store=None,
+                 store=None, surface=DEFAULT_SURFACE,
                  authorize_timeout_seconds=DEFAULT_AUTHORIZE_TIMEOUT_SECONDS):
         """Initialize a session without performing network requests.
 
@@ -71,7 +71,12 @@ class OAuth2SessionManager:
             registration
         :param home: storage root; defaults to ``TIGEROPEN_HOME`` or
             ``~/.tiger/openapi``; ignored when ``store`` is provided
-        :param store: persistence provider implementing the ``OAuth2TokenStore`` methods
+        :param store: persistence provider implementing the ``OAuth2TokenStore`` methods;
+            when given, it owns its own surface and this one is ignored
+        :param surface: entry point owning the dynamic registration, e.g. ``sdk-python``,
+            ``cli``, ``mcp``. Each surface registers its own client, so it appears
+            separately on the user's authorization page and can be revoked on its own.
+            Tools built on this SDK must pass their own value
         :param authorize_timeout_seconds: loopback callback timeout in seconds
         """
         self._issuer = _trim_trailing_slash(issuer or self.default_issuer())
@@ -80,7 +85,7 @@ class OAuth2SessionManager:
         self._explicit_client_id = client_id or None
         self._authorize_timeout_seconds = authorize_timeout_seconds
 
-        self._store = store if store is not None else OAuth2TokenStore(home)
+        self._store = store if store is not None else OAuth2TokenStore(home, surface)
         self._registered_client_id = None   # always None in manual mode
         self._metadata = None
         self._token = None
