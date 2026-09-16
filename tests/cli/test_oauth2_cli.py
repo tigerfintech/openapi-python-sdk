@@ -27,19 +27,37 @@ class TestConfigInitOAuth2(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_config_init_oauth2_writes_issuer(self):
-        """config init with global --auth oauth2 should write issuer/account and no private key."""
+    def test_config_init_oauth2_writes_only_what_it_asked_for(self):
+        """The issuer and the gateway are not written.
+
+        Both are meant to follow the built-in defaults. A value accepted here outlives the
+        default it was copied from, and an issuer left behind that way is how a login stores
+        its token where the business commands do not look for it.
+        """
         from tigeropen.cli.main import cli
+        # client_id (skip) / account / config dir
         result = self.runner.invoke(
             cli, ['--auth', 'oauth2', 'config', 'init'],
-            input=f'https://test-issuer.example.com\n\naccount_123\n\n{self.temp_dir}\n')
+            input=f'\naccount_123\n{self.temp_dir}\n')
         self.assertEqual(result.exit_code, 0, result.output)
         props_file = os.path.join(self.temp_dir, 'tiger_openapi_config.properties')
         content = open(props_file, 'r').read()
         self.assertIn('auth_mode=oauth2', content)
-        self.assertIn('test-issuer.example.com', content)
         self.assertIn('account_123', content)
+        self.assertNotIn('issuer', content)
+        self.assertNotIn('server_url', content)
         self.assertNotIn('private_key', content)
+
+    def test_config_init_oauth2_names_the_authorization_server(self):
+        """Not asking for it must not mean hiding it: the user still has to be able to see
+        which environment the login will go to."""
+        from tigeropen.auth.oauth2.session_manager import OAuth2SessionManager
+        from tigeropen.cli.main import cli
+        result = self.runner.invoke(
+            cli, ['--auth', 'oauth2', 'config', 'init'],
+            input=f'\naccount_123\n{self.temp_dir}\n')
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn(OAuth2SessionManager.default_issuer(), result.output)
 
     def test_config_init_oauth2_requires_account(self):
         """config init --auth oauth2 should require account (trade depends on it)."""
@@ -47,7 +65,7 @@ class TestConfigInitOAuth2(unittest.TestCase):
         # Empty account line should re-prompt rather than silently writing config.
         result = self.runner.invoke(
             cli, ['--auth', 'oauth2', 'config', 'init'],
-            input=f'https://test-issuer.example.com\n\n\naccount_456\n\n{self.temp_dir}\n')
+            input=f'\n\naccount_456\n{self.temp_dir}\n')
         self.assertEqual(result.exit_code, 0, result.output)
         props_file = os.path.join(self.temp_dir, 'tiger_openapi_config.properties')
         content = open(props_file, 'r').read()
@@ -103,6 +121,48 @@ class TestAuthStatus(unittest.TestCase):
             result = self.runner.invoke(cli, ['auth', 'status'])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('未授权', result.output)
+
+
+class TestAuthLoginFlow(unittest.TestCase):
+    """Which authorization flow ``auth login`` picks.
+
+    A command line runs in a remote shell as often as on a desktop, and the device flow is the
+    one that behaves the same in both. The browser redirect flow binds the authorization to
+    this process instead of to a code, so it stays available for where that matters.
+    """
+
+    def setUp(self):
+        self.runner = CliRunner()
+
+    def _sessions(self):
+        mgr = mock.MagicMock()
+        mgr.issuer = 'https://issuer.example.com'
+        mgr.client_id = 'cid'
+        return mgr
+
+    def test_login_uses_the_device_flow_by_default(self):
+        from tigeropen.cli.main import cli
+        mgr = self._sessions()
+        with mock.patch('tigeropen.cli.auth_cmd.build_session_manager', return_value=mgr):
+            self.runner.invoke(cli, ['auth', 'login'])
+        mgr.login_with_device_code_if_needed.assert_called_once()
+        mgr.login_if_needed.assert_not_called()
+
+    def test_loopback_flag_switches_to_the_browser_flow(self):
+        from tigeropen.cli.main import cli
+        mgr = self._sessions()
+        with mock.patch('tigeropen.cli.auth_cmd.build_session_manager', return_value=mgr), \
+                mock.patch('tigeropen.cli.auth_cmd.webbrowser.open'):
+            self.runner.invoke(cli, ['auth', 'login', '--loopback'])
+        mgr.login_if_needed.assert_called_once()
+        mgr.login_with_device_code_if_needed.assert_not_called()
+
+    def test_login_device_stays_available_as_an_explicit_name(self):
+        from tigeropen.cli.main import cli
+        mgr = self._sessions()
+        with mock.patch('tigeropen.cli.auth_cmd.build_session_manager', return_value=mgr):
+            self.runner.invoke(cli, ['auth', 'login-device'])
+        mgr.login_with_device_code_if_needed.assert_called_once()
 
 
 class TestAuthToken(unittest.TestCase):
@@ -169,6 +229,110 @@ class TestBuildConfigOAuth2(unittest.TestCase):
         config = build_config(ctx_obj)
         self.assertIsNone(config.authentication)
         self.assertEqual(config.tiger_id, 'test_id')
+
+
+class TestSettingsResolution(unittest.TestCase):
+    """Every command must resolve a setting the same way.
+
+    Resolving it twice let ``auth login`` store its token under one issuer while every later
+    command looked for it under another, and the only symptom was "not authorized" straight
+    after a successful login.
+    """
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def _write_props(self, **entries):
+        path = os.path.join(self.temp_dir, 'tiger_openapi_config.properties')
+        with open(path, 'w') as f:
+            for k, v in entries.items():
+                f.write('%s=%s\n' % (k, v))
+        return path
+
+    def test_auth_login_and_business_commands_agree_on_the_issuer(self):
+        from tigeropen.cli.auth_cmd import _sessions_from_ctx
+        from tigeropen.cli.client_factory import build_config
+        self._write_props(auth_mode='oauth2', issuer='https://issuer.example.com',
+                          account='acc-1')
+        ctx_obj = {'config_path': self.temp_dir}
+
+        login_sessions = _sessions_from_ctx(mock.Mock(obj=dict(ctx_obj)))
+        business_config = build_config(dict(ctx_obj))
+
+        self.assertEqual('https://issuer.example.com', login_sessions.issuer)
+        self.assertEqual(login_sessions.issuer,
+                         business_config.authentication.session_manager.issuer,
+                         'both paths must land on the same authorization server')
+
+    def test_auth_mode_from_the_config_file_takes_effect(self):
+        """A concrete click default would shadow the file, leaving auth_mode unusable."""
+        from tigeropen.cli.client_factory import build_config
+        from tigeropen.auth.oauth2.authentication import OAuth2Authentication
+        self._write_props(auth_mode='oauth2', account='acc-1')
+        config = build_config({'config_path': self.temp_dir})
+        self.assertIsInstance(config.authentication, OAuth2Authentication,
+                              'auth_mode=oauth2 in the config file must select OAuth2')
+
+    def test_oauth2_is_preferred_when_nothing_is_configured(self):
+        """OAuth2 needs no key on disk and can be set up from the command line, so it is the
+        better answer for a machine that says nothing about which mode to use. Its failure
+        also names the command that fixes it."""
+        from tigeropen.cli.settings import resolve_settings
+        with mock.patch.dict(os.environ, {'TIGEROPEN_HOME': self.temp_dir}):
+            self.assertEqual('oauth2',
+                             resolve_settings({'config_path': self.temp_dir})['auth'])
+
+    def test_signature_setup_is_left_alone(self):
+        """Every installation predating OAuth2 support looks like this, and must keep
+        working exactly as before.
+
+        All three private-key spellings the SDK accepts are covered: config init writes
+        private_key_pk8, but a hand-written file uses the documented private_key, and reading
+        only one of them would take that installation for an unconfigured one.
+        """
+        from tigeropen.cli.settings import resolve_settings
+        for key in ('private_key', 'private_key_pk8', 'private_key_pk1'):
+            self._write_props(**{'tiger_id': '123456', key: 'KEY', 'account': 'acc-1'})
+            with mock.patch.dict(os.environ, {'TIGEROPEN_HOME': self.temp_dir}):
+                self.assertEqual('signature',
+                                 resolve_settings({'config_path': self.temp_dir})['auth'], key)
+
+    def test_an_existing_authorization_selects_oauth2(self):
+        """Once the user has authorized, later commands should use it without being told."""
+        from tigeropen.auth.oauth2 import OAuth2Token, OAuth2TokenStore
+        from tigeropen.auth.oauth2.client_registration import OAuth2ClientRegistration
+        from tigeropen.auth.oauth2.token import current_millis
+        from tigeropen.cli.settings import resolve_settings
+        issuer = 'https://issuer.example.com'
+        home = os.path.join(self.temp_dir, 'home')
+        store = OAuth2TokenStore(home, 'cli')
+        registration = OAuth2ClientRegistration(issuer=issuer, client_id='cid',
+                                                registered_scopes='api.quote:read')
+        store.save_client_registration(registration)
+        store.save_token(OAuth2Token(issuer=issuer, client_id='cid', access_token='AT',
+                                     refresh_token='RT', scope='api.quote:read',
+                                     expires_at=current_millis() + 3600_000))
+        # Signature credentials are present too: the stored authorization still wins.
+        self._write_props(tiger_id='123456', private_key_pk8='KEY', issuer=issuer)
+
+        with mock.patch.dict(os.environ, {'TIGEROPEN_HOME': home}):
+            self.assertEqual('oauth2',
+                             resolve_settings({'config_path': self.temp_dir})['auth'])
+
+    def test_explicit_option_wins_over_the_config_file(self):
+        from tigeropen.cli.client_factory import build_config
+        self._write_props(auth_mode='oauth2', account='from-file')
+        config = build_config({'config_path': self.temp_dir, 'account': 'from-option'})
+        self.assertEqual('from-option', config.account)
+
+    def test_account_comes_from_the_config_file_when_no_option_is_given(self):
+        from tigeropen.cli.client_factory import build_config
+        self._write_props(auth_mode='oauth2', account='from-file')
+        config = build_config({'config_path': self.temp_dir})
+        self.assertEqual('from-file', config.account)
 
 
 class TestCliSurface(unittest.TestCase):

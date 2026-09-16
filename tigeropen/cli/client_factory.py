@@ -4,39 +4,12 @@ Client factory module for CLI.
 Handles config resolution, private key loading, and lazy client creation.
 """
 import os
-from pathlib import Path
-
-from jproperties import Properties
 
 from tigeropen import __VERSION__
 from tigeropen.common.util.signature_utils import read_private_key
 from tigeropen.tiger_open_config import TigerOpenClientConfig
 from tigeropen.cli.oauth2_config import attach_oauth2, build_session_manager
-
-DEFAULT_CONFIG_DIR = str(Path.home() / '.tigeropen')
-
-
-def _load_props(config_path):
-    """Load the properties file at a config dir / file path, or an empty dict."""
-    if os.path.isdir(config_path):
-        from tigeropen.tiger_open_config import DEFAULT_PROPS_FILE
-        props_file = os.path.join(config_path, DEFAULT_PROPS_FILE)
-    else:
-        props_file = config_path
-    if not os.path.exists(props_file):
-        return {}
-    p = Properties()
-    with open(props_file, 'rb') as f:
-        p.load(f, 'utf-8')
-    return {k: v.data for k, v in p.items()}
-
-
-def _resolve_oauth2_ctx(ctx_obj, props):
-    """Merge OAuth2 settings: explicit CLI options win over props, props over defaults."""
-    auth = ctx_obj.get('auth') or props.get('auth_mode') or 'signature'
-    issuer = ctx_obj.get('issuer') or props.get('issuer')
-    client_id = ctx_obj.get('client_id') or props.get('client_id')
-    return {'auth': auth, 'issuer': issuer, 'client_id': client_id}
+from tigeropen.cli.settings import DEFAULT_CONFIG_DIR, resolve_settings
 
 
 def resolve_private_key(key_input):
@@ -75,19 +48,14 @@ def build_config(ctx_obj):
         tiger_id, account, private_key, language
     :return: TigerOpenClientConfig
     """
-    config_path = ctx_obj.get('config_path') or DEFAULT_CONFIG_DIR
+    settings = resolve_settings(ctx_obj)
     config = TigerOpenClientConfig(enable_dynamic_domain=False,
-                                   props_path=config_path)
+                                   props_path=settings['config_path'])
     config._channel = f"tigercli"
 
-    # OAuth2 settings may come from --auth/--issuer/--client-id or from the props
-    # file written by `config init --auth oauth2`. Explicit CLI options win.
-    props = _load_props(config_path)
-    oauth2 = _resolve_oauth2_ctx(ctx_obj, props)
-
-    if oauth2['auth'] == 'oauth2':
-        sessions = build_session_manager(issuer=oauth2['issuer'],
-                                         client_id=oauth2['client_id'])
+    if settings['auth'] == 'oauth2':
+        sessions = build_session_manager(issuer=settings['issuer'],
+                                         client_id=settings['client_id'])
         attach_oauth2(config, sessions)
     else:
         if ctx_obj.get('tiger_id'):
@@ -96,8 +64,8 @@ def build_config(ctx_obj):
             config.private_key = resolve_private_key(ctx_obj['private_key'])
 
     # account is a business parameter, not an authentication one: needed in both modes
-    if ctx_obj.get('account'):
-        config.account = ctx_obj['account']
+    if settings['account']:
+        config.account = settings['account']
     if ctx_obj.get('language'):
         config.language = ctx_obj['language']
 

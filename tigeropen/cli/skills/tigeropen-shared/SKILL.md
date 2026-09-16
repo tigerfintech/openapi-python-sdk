@@ -19,16 +19,25 @@ metadata:
 | 切换 | 无需标志 | 全局 `--auth oauth2` |
 | 凭据 | `tiger_id` + RSA 私钥 | `Authorization: Bearer <token>` |
 | 配置来源 | `~/.tigeropen/tiger_openapi_config.properties` | `~/.tiger/openapi/`（token 独立存储） |
-| 授权 | `tigeropen config init`（收集私钥） | `tigeropen auth login`（浏览器） |
+| 授权 | `tigeropen config init`（收集私钥） | `tigeropen auth login`（设备码） |
 | 适用 | 已有 API 密钥的开发者 | 无密钥、走 OAuth2 授权的用户 |
 
 OAuth2 模式不依赖私钥：`attach_oauth2` 会清空 `config.private_key` / `config.tiger_id`，签名凭据不进入 OAuth2 会话。
 
 ## 认证模式选择规则
 
-- 默认**签名模式**，行为与 `feat_oauth2` 之前完全一致
-- 显式 `--auth oauth2` 才启用 OAuth2，避免误用
-- `config init --auth oauth2` 写入 `auth_mode=oauth2` 到 props，后续命令自动识别
+按以下顺序决定，命中即止：
+
+1. 显式 `--auth signature|oauth2`
+2. props 里的 `auth_mode`
+3. 本机已有该 issuer 的授权（`~/.tiger/openapi/`）→ **OAuth2**
+4. props 里同时有 `tiger_id` 和 `private_key_pk8` → **签名**
+5. 以上都没有 → **OAuth2**（它的报错会指明该跑哪条命令）
+
+**优先 OAuth2**：无需在磁盘上放私钥，凭据有 scope 限定且可撤销，且可以完全从命令行完成配置。
+第 4 条保证既有的签名模式安装不受影响。
+
+判定不发任何请求，只读本地文件。
 
 ## 配置解析优先级
 
@@ -36,21 +45,29 @@ OAuth2 模式不依赖私钥：`attach_oauth2` 会清空 `config.private_key` / 
 
 | 配置项 | 环境变量 | props 键 |
 |---|---|---|
-| 认证模式 | （无） | `auth_mode` |
-| OAuth2 issuer | `TIGEROPEN_OAUTH2_ISSUER` | `issuer` |
-| OAuth2 client_id | `TIGEROPEN_CLIENT_ID` | `client_id` |
+有 CLI 选项的（完整遵循上面的优先级）：
+
+| 项 | CLI 选项 | 环境变量 | props |
+|---|---|---|---|
+| 认证模式 | `--auth` | （无） | `auth_mode` |
+| OAuth2 issuer | `--issuer` | `TIGEROPEN_OAUTH2_ISSUER` | `issuer` |
+| OAuth2 client_id | `--client-id` | `TIGEROPEN_CLIENT_ID` | `client_id` |
+| 账户 | `--account` | `TIGEROPEN_ACCOUNT` | `account` |
+| 配置路径 | `--config-path` | `TIGEROPEN_PROPS_PATH` | （无） |
+
+没有 CLI 选项的（由 SDK 配置层直接读，不参与上面的优先级）：
+
+| 项 | 环境变量 | props |
+|---|---|---|
 | tiger_id | `TIGEROPEN_TIGER_ID` | `tiger_id` |
 | 私钥 | `TIGEROPEN_PRIVATE_KEY` | `private_key_pk8` |
-| 账户 | `TIGEROPEN_ACCOUNT` | `account` |
 | 网关 | `TIGEROPEN_SERVER_URL` | `server_url` |
-
-OAuth2 下 `--auth` / `--issuer` / `--client-id` 显式 CLI 选项优先级最高，其次 props。
 
 ## OAuth2 授权流程（重要）
 
 ```
-1. tigeropen auth login            # 浏览器授权（loopback+PKCE），打印 URL 并尝试打开
-2. tigeropen auth login-device     # 无浏览器环境（设备码，RFC 8628）
+1. tigeropen auth login              # 默认：设备码（RFC 8628），打印验证码在任意设备打开
+2. tigeropen auth login --loopback   # 浏览器重定向（loopback+PKCE），需本机浏览器与可用端口
 3. tigeropen auth status           # 查看当前 token 状态/scope/剩余秒数
 4. tigeropen auth token            # 打印 access token（脚本/调试用）
 5. tigeropen auth logout           # 服务端 revoke + 清除本地 token

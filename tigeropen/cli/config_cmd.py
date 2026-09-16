@@ -76,15 +76,16 @@ def config_init(ctx):
 
 
 def _config_init_oauth2():
-    """Configure the CLI for OAuth2 authentication. No private key is collected."""
-    issuer = click.prompt('Issuer (authorization server)',
-                          default=OAuth2SessionManager.default_issuer(),
-                          show_default=True)
+    """Configure the CLI for OAuth2 authentication. No private key is collected.
+
+    The issuer and the gateway are not asked for: both follow the built-in defaults, and a
+    value written here would outlive the default it was copied from. Override them with
+    TIGEROPEN_OAUTH2_ISSUER and TIGEROPEN_SERVER_URL, or `config set`.
+    """
+    click.echo('Authorization server: %s' % OAuth2SessionManager.default_issuer())
     client_id = click.prompt('Client ID (manual registration only, press Enter to skip)',
                              default='', show_default=False)
     account = click.prompt('Account (business parameter, needed for trading)')
-    server_url = click.prompt('Server URL (business gateway, press Enter to pair by issuer)',
-                              default='', show_default=False)
     config_dir = click.prompt('Config directory', default=DEFAULT_CONFIG_DIR)
 
     os.makedirs(config_dir, exist_ok=True)
@@ -92,12 +93,9 @@ def _config_init_oauth2():
 
     p = Properties()
     p['auth_mode'] = 'oauth2'
-    p['issuer'] = issuer
     if client_id:
         p['client_id'] = client_id
     p['account'] = account
-    if server_url:
-        p['server_url'] = server_url
 
     with open(props_file, 'wb') as f:
         p.store(f, encoding='utf-8')

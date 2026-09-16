@@ -22,7 +22,7 @@ tigeropen [全局选项] COMMAND
 ├── version                 # SDK 版本
 ├── uninstall               # 卸载（--remove-config 删除凭证）
 ├── config                  # 配置管理：init/show/set/path
-├── auth                    # OAuth2 认证：login/login-device/logout/status/token
+├── auth                    # OAuth2 认证：login/logout/status/token
 ├── quote                   # 行情：briefs/bars/timeline/ticks/depth/scanner/option/future/capital/fundamental
 ├── trade                   # 交易：order/position/transaction
 ├── account                 # 账户：info/assets/analytics

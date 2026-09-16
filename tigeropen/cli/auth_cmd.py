@@ -6,6 +6,9 @@ Login and logout are deliberately separate from the business commands: a long-li
 process (or a script) should not pop up a browser on its own, so authorization is an
 explicit user action. ``status`` and ``token`` are for inspecting the current session.
 
+``login`` defaults to the device flow, which works the same in a remote shell and on a
+desktop. ``--loopback`` selects the browser redirect flow.
+
 Issuer / client_id come from the global ``--issuer`` / ``--client-id`` options (or the
 ``TIGEROPEN_OAUTH2_ISSUER`` / ``TIGEROPEN_CLIENT_ID`` env vars), so they are not
 redeclared per command.
@@ -16,6 +19,7 @@ import click
 
 from tigeropen.auth.oauth2 import OAuth2Exception
 from tigeropen.cli.oauth2_config import build_session_manager
+from tigeropen.cli.settings import resolve_settings
 
 
 def _show_authorization_url(url):
@@ -51,9 +55,14 @@ def _show_device_code(device):
 
 
 def _sessions_from_ctx(ctx):
-    """Build an OAuth2SessionManager from the global --issuer / --client-id options."""
-    obj = ctx.obj or {}
-    return build_session_manager(issuer=obj.get('issuer'), client_id=obj.get('client_id'))
+    """Build an OAuth2SessionManager the same way the business commands do.
+
+    Resolving this separately is what let a login store its token under one issuer while
+    every later command looked for it under another.
+    """
+    settings = resolve_settings(ctx.obj or {})
+    return build_session_manager(issuer=settings['issuer'],
+                                 client_id=settings['client_id'])
 
 
 def _print_env(sessions, config, token):
@@ -75,24 +84,37 @@ def auth():
 
 
 @auth.command('login')
-@click.option('--no-browser', is_flag=True, help='Only print the URL, do not try to open a browser.')
+@click.option('--loopback', is_flag=True,
+              help='Use the browser redirect flow instead (loopback + PKCE).')
+@click.option('--no-browser', is_flag=True,
+              help='With --loopback, only print the URL instead of opening a browser.')
 @click.pass_context
-def auth_login(ctx, no_browser):
-    """Authorize with a browser (loopback + PKCE).
+def auth_login(ctx, loopback, no_browser):
+    """Authorize this machine.
 
-    Prints the authorization URL and tries to open your browser. The token is stored
-    under ~/.tiger/openapi/ with 0600 and later runs reuse it without a browser.
+    Device flow by default: a short code to enter on whatever device has a browser. Needs no
+    local browser and no loopback port, so it behaves the same over SSH and in a container.
+
+    ``--loopback`` uses the browser redirect flow instead, which binds the authorization to
+    this process rather than to a code. Prefer it on a desktop.
+
+    The token is stored under ~/.tiger/openapi/ with mode 0600 and reused by later runs.
     """
     sessions = _sessions_from_ctx(ctx)
 
-    def show(url):
-        if no_browser:
-            click.echo('请打开：\n  ' + url)
-        else:
-            _show_authorization_url(url)
+    if loopback:
+        def show(url):
+            if no_browser:
+                click.echo('请打开：\n  ' + url)
+            else:
+                _show_authorization_url(url)
+
+        authorize = lambda: sessions.login_if_needed(show)
+    else:
+        authorize = lambda: sessions.login_with_device_code_if_needed(_show_device_code)
 
     try:
-        token = sessions.login_if_needed(show)
+        token = authorize()
     except OAuth2Exception as e:
         click.echo('授权失败: %s' % e)
         click.echo('类别    : %s' % e.category.name)
@@ -106,11 +128,7 @@ def auth_login(ctx, no_browser):
 @auth.command('login-device')
 @click.pass_context
 def auth_login_device(ctx):
-    """Authorize on a machine with no local browser (RFC 8628 device flow).
-
-    Prints a short code and a verification URI to open on another device. Less secure
-    than the loopback + PKCE flow in ``auth login``; prefer that where a browser exists.
-    """
+    """Authorize with the device flow (RFC 8628). Same as ``auth login``."""
     sessions = _sessions_from_ctx(ctx)
 
     def show(device):

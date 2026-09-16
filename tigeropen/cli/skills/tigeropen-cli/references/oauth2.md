@@ -22,15 +22,15 @@ tigeropen auth login
 - token 存 `~/.tiger/openapi/tokens/`（0600）
 - **二次运行自动复用 token，不重复授权**
 
-### 无浏览器环境（设备码）
+### 浏览器重定向（可选，安全性更高）
 
 ```bash
-tigeropen auth login-device
+tigeropen auth login --loopback
 ```
 
-- 打印验证码 + 验证 URI，在另一台设备打开并输入
+- 绑定到当前进程，不依赖用户把验证码输到正确的地方
 - 适合服务器/容器/SSH 场景
-- 安全性低于浏览器授权（无法确认授权人与设备同一）
+- 需要本机浏览器与可用的 loopback 端口；桌面环境优先用它
 
 ## 会话管理
 

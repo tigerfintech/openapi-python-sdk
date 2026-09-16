@@ -2,15 +2,17 @@
 """
 Main CLI entry point for tigeropen.
 """
+import logging
 import sys
 import traceback
 
 import click
 
 from tigeropen import __VERSION__
+from tigeropen.auth.oauth2.exceptions import Category, OAuth2Exception
 from tigeropen.common.exceptions import ApiException
 from tigeropen.auth.oauth2.session_manager import ENV_ISSUER
-from tigeropen.cli.oauth2_config import TIGEROPEN_CLIENT_ID
+from tigeropen.cli.settings import ENV_ACCOUNT, ENV_CLIENT_ID
 from tigeropen.cli.auth_cmd import auth
 from tigeropen.cli.config_cmd import config
 from tigeropen.cli.quote_cmd import quote
@@ -66,6 +68,15 @@ class TigerCLI(click.Group):
             if ctx.obj and ctx.obj.get('verbose'):
                 traceback.print_exc()
             sys.exit(1)
+        except OAuth2Exception as e:
+            if e.category == Category.REAUTHORIZATION_REQUIRED:
+                # The SDK message names the Python API; a command line needs the command.
+                click.echo('未授权或授权已失效。运行 tigeropen auth login 进行授权。', err=True)
+            else:
+                click.echo(f'认证失败 [{e.category.name}]: {e.message}', err=True)
+            if ctx.obj and ctx.obj.get('verbose'):
+                traceback.print_exc()
+            sys.exit(1)
         except Exception as e:
             click.echo(f'Error: {e}')
             if ctx.obj and ctx.obj.get('verbose'):
@@ -77,7 +88,7 @@ class TigerCLI(click.Group):
         '-f': 1, '--format': 1,
         '-c': 1, '--config-path': 1,
         '-l': 1, '--language': 1,
-        '--auth': 1, '--issuer': 1, '--client-id': 1,
+        '--auth': 1, '--issuer': 1, '--client-id': 1, '--account': 1,
         '-v': 0, '--verbose': 0,
     }
 
@@ -117,14 +128,21 @@ class TigerCLI(click.Group):
               default='en_US', help='Language.')
 @click.option('--auth', 'auth_mode',
               type=click.Choice(['signature', 'oauth2'], case_sensitive=False),
-              default='signature', help='Authentication mode: signature (tiger_id + private key) or oauth2.')
+              # default=None so it does not shadow auth_mode in the properties file
+              default=None, help='Authentication mode: signature (tiger_id + private key) '
+                                 'or oauth2. Defaults to auth_mode from the config file; '
+                                 'otherwise oauth2, unless this machine is set up for '
+                                 'signature mode and has never authorized.')
 @click.option('--issuer', envvar=ENV_ISSUER, default=None,
               help='OAuth2 authorization server (oauth2 mode; omit for the built-in default).')
-@click.option('--client-id', envvar=TIGEROPEN_CLIENT_ID, default=None,
+@click.option('--client-id', envvar=ENV_CLIENT_ID, default=None,
               help='Manually registered clientId (oauth2 mode; omit for dynamic registration).')
+@click.option('--account', envvar=ENV_ACCOUNT, default=None,
+              help='Trading account. Defaults to account from the config file.')
 @click.option('--verbose', '-v', is_flag=True, help='Enable debug logging.')
 @click.pass_context
-def cli(ctx, config_path, output_format, language, auth_mode, issuer, client_id, verbose):
+def cli(ctx, config_path, output_format, language, auth_mode, issuer, client_id, account,
+        verbose):
     """TigerOpen CLI - Tiger Brokers Open API command line tool."""
     ctx.ensure_object(dict)
     ctx.obj['config_path'] = config_path
@@ -133,7 +151,23 @@ def cli(ctx, config_path, output_format, language, auth_mode, issuer, client_id,
     ctx.obj['auth'] = auth_mode
     ctx.obj['issuer'] = issuer
     ctx.obj['client_id'] = client_id
+    ctx.obj['account'] = account
     ctx.obj['verbose'] = verbose
+    _configure_sdk_logging(verbose)
+
+
+def _configure_sdk_logging(verbose):
+    """Keep the SDK's own logger off the terminal unless -v is given.
+
+    It logs with exc_info=True and has no handler of its own, so those tracebacks reach stderr
+    through logging's last resort. This CLI reports errors itself.
+    """
+    sdk_logger = logging.getLogger('tiger_openapi')
+    sdk_logger.setLevel(logging.DEBUG if verbose else logging.CRITICAL)
+    if verbose and not sdk_logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s'))
+        sdk_logger.addHandler(handler)
 
 
 @cli.command('version')

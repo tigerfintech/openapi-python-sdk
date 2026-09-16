@@ -7,9 +7,6 @@ session manager and attaching it to a client config.
 """
 from tigeropen.auth.oauth2 import OAuth2Authentication, OAuth2SessionManager
 
-#: Environment variable for a manually registered clientId (dynamic registration otherwise)
-TIGEROPEN_CLIENT_ID = 'TIGEROPEN_CLIENT_ID'
-
 #: Entry point that owns the CLI's dynamic client registration.
 #:
 #: The CLI is a separate application from the SDK as far as the user is concerned: it gets
