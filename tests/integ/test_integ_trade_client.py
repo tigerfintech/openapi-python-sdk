@@ -206,6 +206,12 @@ class TestIntegTradeClient(unittest.TestCase):
         raw_price = latest_price * 0.5
         ticks = math.floor(raw_price / min_tick)
         price = round(ticks * min_tick, 4)
+        if price <= 0:
+            # Half the market price is below one tick, so there is no tick-aligned price that
+            # is both positive and far from market. A zero-price order is rejected outright,
+            # which would surface as a failure rather than the skip this helper promises.
+            self.skipTest('no safe buy price for %s: latest=%s min_tick=%s'
+                          % (symbol, latest_price, min_tick))
         self.__class__._safe_hk_buy_prices[symbol] = price
         return price
 

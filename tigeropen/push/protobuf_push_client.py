@@ -189,7 +189,7 @@ class ProtobufPushClient(ConnectionListener):
             try:
                 self._connect()
             except Exception as e:
-                self.logger.error('reconnect with oauth2 failed: %s', e)
+                self.logger.error('reconnect with oauth2 failed: %s', e, exc_info=True)
         else:
             self._connect()
 
@@ -250,7 +250,7 @@ class ProtobufPushClient(ConnectionListener):
                              name='tiger-socket-token-refresh', daemon=True).start()
         except Exception as e:
             self._clear_refresh_claim(connection)
-            self.logger.error('refresh token not scheduled: %s', e)
+            self.logger.error('refresh token not scheduled: %s', e, exc_info=True)
 
     def _obtain_and_send_token(self, connection):
         """Exchange the token and hand it to ``connection``, off the callback thread.
@@ -261,7 +261,7 @@ class ProtobufPushClient(ConnectionListener):
             new_token = self._current_access_token()
         except Exception as e:
             self._clear_refresh_claim(connection)
-            self.logger.error('refresh token fail: %s', e)
+            self.logger.error('refresh token fail: %s', e, exc_info=True)
             return
         if not new_token:
             # A failed refresh is no reason to drop the connection: the token pinned on
@@ -290,7 +290,7 @@ class ProtobufPushClient(ConnectionListener):
             self.logger.info('refresh token sent')
         except Exception as e:
             self._clear_refresh_claim(connection)
-            self.logger.error('send refresh token fail: %s', e)
+            self.logger.error('send refresh token fail: %s', e, exc_info=True)
 
     def _clear_refresh_claim(self, connection=None):
         """Release the rotation claim.

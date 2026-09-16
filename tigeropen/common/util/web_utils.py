@@ -13,6 +13,9 @@ from urllib3 import PoolManager
 http_pool = PoolManager()
 
 BEARER_PREFIX = 'Bearer '
+#: RFC 6750 makes the scheme case-insensitive, so the match has to be too: an implementation
+#: that sends a lowercase scheme would otherwise slip past the masking below.
+_BEARER_SCHEME = BEARER_PREFIX.lower()
 
 
 def _safe_headers(headers):
@@ -27,7 +30,7 @@ def _safe_headers(headers):
     if not headers:
         return headers
     authorization = headers.get('Authorization')
-    if isinstance(authorization, str) and authorization.startswith(BEARER_PREFIX):
+    if isinstance(authorization, str) and authorization.lower().startswith(_BEARER_SCHEME):
         masked = dict(headers)
         masked['Authorization'] = BEARER_PREFIX + '***'
         return masked

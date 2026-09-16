@@ -77,7 +77,13 @@ class ProtoMessageUtil:
 
         An older server does not know this command, drops it silently and never replies,
         so the caller must time out rather than wait forever.
+
+        :raise ValueError: when ``access_token`` is empty. A frame without a credential is
+            not something the server can act on, and sending it silently would look like a
+            rotation that the server simply ignored.
         """
+        if not access_token:
+            raise ValueError('access_token must not be empty')
         request = Request_pb2.Request()
         request.command = SocketCommon_pb2.SocketCommon.REFRESH_TOKEN
         request.id = cls.increment()

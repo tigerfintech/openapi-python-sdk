@@ -180,7 +180,9 @@ def _safe_file_name(raw):
 
 def _validate_surface(surface):
     """Reject a surface that cannot be used verbatim as part of a file name."""
-    if not surface or not _SURFACE_PATTERN.match(surface):
+    # isinstance before the match: re.match raises TypeError on a non-string, which would
+    # escape this function's contract of rejecting anything unusable as a file name.
+    if not isinstance(surface, str) or not _SURFACE_PATTERN.match(surface):
         raise OAuth2Exception(
             Category.STORAGE_FAILED,
             "invalid surface %r: expected lowercase alphanumerics and hyphens, e.g. 'cli'"
