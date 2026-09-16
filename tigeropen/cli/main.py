@@ -9,10 +9,14 @@ import click
 
 from tigeropen import __VERSION__
 from tigeropen.common.exceptions import ApiException
+from tigeropen.auth.oauth2.session_manager import ENV_ISSUER
+from tigeropen.cli.oauth2_config import TIGEROPEN_CLIENT_ID
+from tigeropen.cli.auth_cmd import auth
 from tigeropen.cli.config_cmd import config
 from tigeropen.cli.quote_cmd import quote
 from tigeropen.cli.trade_cmd import trade
 from tigeropen.cli.account_cmd import account
+from tigeropen.cli.skills_cmd import skills
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -73,6 +77,7 @@ class TigerCLI(click.Group):
         '-f': 1, '--format': 1,
         '-c': 1, '--config-path': 1,
         '-l': 1, '--language': 1,
+        '--auth': 1, '--issuer': 1, '--client-id': 1,
         '-v': 0, '--verbose': 0,
     }
 
@@ -110,14 +115,24 @@ class TigerCLI(click.Group):
 @click.option('--language', '-l',
               type=click.Choice(['en_US', 'zh_CN', 'zh_TW'], case_sensitive=False),
               default='en_US', help='Language.')
+@click.option('--auth', 'auth_mode',
+              type=click.Choice(['signature', 'oauth2'], case_sensitive=False),
+              default='signature', help='Authentication mode: signature (tiger_id + private key) or oauth2.')
+@click.option('--issuer', envvar=ENV_ISSUER, default=None,
+              help='OAuth2 authorization server (oauth2 mode; omit for the built-in default).')
+@click.option('--client-id', envvar=TIGEROPEN_CLIENT_ID, default=None,
+              help='Manually registered clientId (oauth2 mode; omit for dynamic registration).')
 @click.option('--verbose', '-v', is_flag=True, help='Enable debug logging.')
 @click.pass_context
-def cli(ctx, config_path, output_format, language, verbose):
+def cli(ctx, config_path, output_format, language, auth_mode, issuer, client_id, verbose):
     """TigerOpen CLI - Tiger Brokers Open API command line tool."""
     ctx.ensure_object(dict)
     ctx.obj['config_path'] = config_path
     ctx.obj['format'] = output_format
     ctx.obj['language'] = language
+    ctx.obj['auth'] = auth_mode
+    ctx.obj['issuer'] = issuer
+    ctx.obj['client_id'] = client_id
     ctx.obj['verbose'] = verbose
 
 
@@ -165,10 +180,12 @@ def uninstall(remove_config, yes):
         sys.exit(1)
 
 
+cli.add_command(auth)
 cli.add_command(config)
 cli.add_command(quote)
 cli.add_command(trade)
 cli.add_command(account)
+cli.add_command(skills)
 
 
 def _load_push_command():

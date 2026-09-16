@@ -72,7 +72,9 @@ class OAuth2Authentication(Authentication):
             logger.warning('oauth2 refresh after 401 failed:%s, re-authorization required', e.message)
             return RetryDecision.no_retry()
         except Exception as e:
-            logger.warning('oauth2 refresh after 401 error:%s', e)
+            # Not an OAuth2Exception, so most likely a defect in the refresh path. Without the
+            # traceback there is nothing to go on.
+            logger.warning('oauth2 refresh after 401 error:%s', e, exc_info=True)
             return RetryDecision.no_retry()
 
     def close(self):

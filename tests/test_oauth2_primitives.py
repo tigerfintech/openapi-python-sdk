@@ -233,6 +233,13 @@ class ProtoContractTest(unittest.TestCase):
         self.assertEqual(SocketCommon_pb2.SocketCommon.REFRESH_TOKEN, message.command)
         self.assertEqual('tok-new', message.refreshToken.accessToken)
 
+    def test_refresh_token_message_rejects_an_empty_token(self):
+        """A frame with no credential is not something the server can act on, and sending it
+        would look like a rotation the server simply ignored."""
+        for empty in (None, ''):
+            with self.assertRaises(ValueError):
+                self.util.build_refresh_token_message(empty)
+
     def test_refresh_token_command_dispatches_to_on_refresh_token(self):
         """A listener without the method is fine, but the name must be right."""
         from tigeropen.push.network.utils import get_command_name

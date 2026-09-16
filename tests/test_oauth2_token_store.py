@@ -327,6 +327,17 @@ class SurfaceIsolationTest(StoreTestBase):
         self.assertEqual('sdk-python', DEFAULT_SURFACE)
         self.assertEqual(DEFAULT_SURFACE, OAuth2TokenStore(self.home).surface)
 
+    def test_a_non_string_surface_is_rejected_as_a_storage_error(self):
+        """A surface becomes part of a file name, so anything unusable there is refused.
+
+        Letting re.match raise TypeError instead would escape this module's contract of
+        reporting storage problems as OAuth2Exception.
+        """
+        for bad in (123, b'cli', ['cli'], object()):
+            with self.assertRaises(OAuth2Exception) as ctx:
+                OAuth2TokenStore(self.home, bad)
+            self.assertEqual(Category.STORAGE_FAILED, ctx.exception.category, repr(bad))
+
     def test_surface_must_be_usable_verbatim_as_a_file_name(self):
         """Rejected rather than sanitised: silently rewriting would file two entry points
         under one name, which is exactly what the surface exists to prevent."""

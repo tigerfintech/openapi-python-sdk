@@ -210,6 +210,17 @@ class CredentialMaskingTest(ClientTestBase):
         headers = {'Authorization': 'eyJhbGciOi.license.token', 'X': '1'}
         self.assertIs(headers, _safe_headers(headers))
 
+    def test_masking_is_case_insensitive_about_the_scheme(self):
+        """RFC 6750 makes the Authorization scheme case-insensitive.
+
+        A custom Authentication implementation sending a lowercase scheme would otherwise put
+        the token straight into exception messages, which is the one thing this function is
+        for.
+        """
+        for header in ('bearer secret', 'BEARER secret', 'BeArEr secret'):
+            masked = _safe_headers({'Authorization': header})
+            self.assertEqual('Bearer ***', masked['Authorization'], header)
+
     def test_masking_does_not_mutate_the_caller_dict(self):
         headers = {'Authorization': 'Bearer secret'}
         masked = _safe_headers(headers)

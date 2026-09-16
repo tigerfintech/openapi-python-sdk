@@ -21,7 +21,10 @@ READ_TIMEOUT_SECONDS = 10
 _JSON_CONTENT_TYPE = 'application/json; charset=utf-8'
 _FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded; charset=utf-8'
 
-_http_pool = urllib3.PoolManager()
+#: Certificate verification is stated rather than inherited. These calls carry the refresh
+#: token, which stays valid for weeks, so the posture must not depend on which urllib3
+#: version happens to be installed.
+_http_pool = urllib3.PoolManager(cert_reqs='CERT_REQUIRED')
 _timeout = urllib3.Timeout(connect=CONNECT_TIMEOUT_SECONDS, read=READ_TIMEOUT_SECONDS)
 
 

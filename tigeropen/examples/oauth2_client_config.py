@@ -14,7 +14,7 @@ Optional environment variables::
     TIGEROPEN_SERVER_URL      business gateway; defaults to production
     TIGEROPEN_SOCKET_URL      push endpoint, e.g. ``ssl://host:9883``
     TIGEROPEN_HOME            where tokens are stored; defaults to ``~/.tiger/openapi``
-    TIGEROPEN_SANDBOX_KEY     set to 1 when pointing at the sandbox environment
+    TIGEROPEN_SANDBOX_KEY     set to 1 to point issuer gateway and key at the sandbox
 
 **Issuer, gateway and public key must all point at one environment.** Responses are
 signature-verified even under OAuth2 -- that proves the response came from Tiger and is
@@ -24,7 +24,8 @@ keeping the production public key fails with ``response sign verify failed``.
 import os
 
 from tigeropen.auth.oauth2 import OAuth2Authentication, OAuth2SessionManager
-from tigeropen.tiger_open_config import SANDBOX_TIGER_PUBLIC_KEY, TigerOpenClientConfig
+from tigeropen.tiger_open_config import (SANDBOX_SERVER_URL, SANDBOX_SOCKET_HOST_PORT,
+                                         SANDBOX_TIGER_PUBLIC_KEY, TigerOpenClientConfig)
 
 ENV_SERVER_URL = 'TIGEROPEN_SERVER_URL'
 ENV_SOCKET_URL = 'TIGEROPEN_SOCKET_URL'
@@ -60,6 +61,15 @@ def get_oauth2_client_config(sessions):
     # play no part at all
     config.authentication = OAuth2Authentication(sessions)
 
+    if (os.environ.get(ENV_SANDBOX_KEY) or '').lower() in ('1', 'true', 'yes'):
+        # Gateways and key move together. Responses are signature-verified under OAuth2 too,
+        # so switching only the key is the shortest route to ``response sign verify failed``.
+        config.tiger_public_key = SANDBOX_TIGER_PUBLIC_KEY
+        config.server_url = SANDBOX_SERVER_URL
+        config.quote_server_url = SANDBOX_SERVER_URL
+        config.socket_host_port = SANDBOX_SOCKET_HOST_PORT
+
+    # Explicit addresses win over the defaults chosen above.
     server_url = os.environ.get(ENV_SERVER_URL)
     if server_url:
         config.server_url = server_url
@@ -70,11 +80,6 @@ def get_oauth2_client_config(sessions):
     socket_url = os.environ.get(ENV_SOCKET_URL)
     if socket_url:
         config.socket_host_port = _parse_socket_url(socket_url)
-
-    if (os.environ.get(ENV_SANDBOX_KEY) or '').lower() in ('1', 'true', 'yes'):
-        # The sandbox gateway signs responses with a different key. Verification still runs
-        # under OAuth2, so the key has to match whichever gateway is being called.
-        config.tiger_public_key = SANDBOX_TIGER_PUBLIC_KEY
 
     return config
 

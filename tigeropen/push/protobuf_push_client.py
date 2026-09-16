@@ -189,7 +189,7 @@ class ProtobufPushClient(ConnectionListener):
             try:
                 self._connect()
             except Exception as e:
-                self.logger.error('reconnect with oauth2 failed: %s', e)
+                self.logger.error('reconnect with oauth2 failed: %s', e, exc_info=True)
         else:
             self._connect()
 
@@ -241,31 +241,42 @@ class ProtobufPushClient(ConnectionListener):
             # already in progress
             self._refresh_pending = _REFRESH_IN_PROGRESS
             self._refresh_sent_at = _now_millis()
+            # The rotation belongs to the connection that claimed it.
+            connection = self._connection
 
         try:
             # The exchange is a synchronous HTTP call and must not block the callback thread
-            threading.Thread(target=self._obtain_and_send_token,
+            threading.Thread(target=self._obtain_and_send_token, args=(connection,),
                              name='tiger-socket-token-refresh', daemon=True).start()
         except Exception as e:
-            self._clear_refresh_claim()
-            self.logger.error('refresh token not scheduled: %s', e)
+            self._clear_refresh_claim(connection)
+            self.logger.error('refresh token not scheduled: %s', e, exc_info=True)
 
-    def _obtain_and_send_token(self):
+    def _obtain_and_send_token(self, connection):
+        """Exchange the token and hand it to ``connection``, off the callback thread.
+
+        :param connection: the connection this rotation was claimed for
+        """
         try:
             new_token = self._current_access_token()
         except Exception as e:
-            self._clear_refresh_claim()
-            self.logger.error('refresh token fail: %s', e)
+            self._clear_refresh_claim(connection)
+            self.logger.error('refresh token fail: %s', e, exc_info=True)
             return
         if not new_token:
             # A failed refresh is no reason to drop the connection: the token pinned on
             # the server is usually still valid, and the server closes the connection
             # itself if it is not
-            self._clear_refresh_claim()
+            self._clear_refresh_claim(connection)
             self.logger.warning('refresh token skipped, no usable access token')
             return
 
         with self._refresh_lock:
+            if connection is not self._connection:
+                # Reconnected while the exchange was running. The new connection has its own
+                # token, and the claim now belongs to it.
+                self.logger.info('refresh token abandoned, connection was replaced')
+                return
             if new_token == self._access_token:
                 # Unchanged: the session manager's window had not opened yet, so it handed
                 # back the token the server already has
@@ -275,14 +286,21 @@ class ProtobufPushClient(ConnectionListener):
             self._refresh_pending = new_token
             self._refresh_sent_at = _now_millis()
         try:
-            self._connection.send_frame(ProtoMessageUtil.build_refresh_token_message(new_token))
+            connection.send_frame(ProtoMessageUtil.build_refresh_token_message(new_token))
             self.logger.info('refresh token sent')
         except Exception as e:
-            self._clear_refresh_claim()
-            self.logger.error('send refresh token fail: %s', e)
+            self._clear_refresh_claim(connection)
+            self.logger.error('send refresh token fail: %s', e, exc_info=True)
 
-    def _clear_refresh_claim(self):
+    def _clear_refresh_claim(self, connection=None):
+        """Release the rotation claim.
+
+        :param connection: when given, the claim is only released if that connection is
+            still the current one
+        """
         with self._refresh_lock:
+            if connection is not None and connection is not self._connection:
+                return
             self._refresh_pending = None
             self._refresh_sent_at = 0
 
