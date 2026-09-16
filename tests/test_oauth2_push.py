@@ -15,8 +15,8 @@ from tests.support import offline_client_config
 from tigeropen.auth.oauth2 import OAuth2Authentication, OAuth2Token
 from tigeropen.auth.oauth2.token import current_millis
 from tigeropen.push.network.exception import ConnectFailedException
+from tigeropen.auth.oauth2.session_manager import DEFAULT_REFRESH_AHEAD_MILLIS
 from tigeropen.push.protobuf_push_client import (
-    TOKEN_REFRESH_AHEAD_MILLIS,
     TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS,
     ProtobufPushClient,
     _REFRESH_IN_PROGRESS,
@@ -71,6 +71,10 @@ class SessionsStub:
     def status(self):
         return OAuth2Token(access_token=self.token,
                            expires_at=current_millis() + self.remaining_millis)
+
+    def should_refresh_soon(self):
+        # The push client asks rather than keeping a refresh window of its own.
+        return self.status().needs_refresh(DEFAULT_REFRESH_AHEAD_MILLIS)
 
     def get_access_token(self):
         self.exchanges += 1
@@ -196,10 +200,43 @@ class RotationTriggerTest(PushTestBase):
         self.assertEqual([], self.refresh_frames())
         self.assertEqual(0, self.sessions.exchanges)
 
+    def test_token_advanced_elsewhere_is_pushed_to_the_connection(self):
+        """A token advanced elsewhere must reach this connection, even though the session's
+        own token now looks fresh.
+
+        The server validates the token pinned on this connection, so a session advanced by
+        anything else leaves this connection on a token that is about to be rejected.
+        """
+        client = self.client()
+        # This connection still presents the token it connected with.
+        client._access_token = 'AT-pinned-at-connect'
+        # The session's token is nowhere near expiry, as after an HTTP request refreshed it.
+        self.sessions.remaining_millis = 3600_000
+        self.sessions.token = 'AT-refreshed-by-http'
+
+        client.on_heartbeat(Frame(0))
+
+        self.assertTrue(wait_until(lambda: self.refresh_frames()),
+                        'the connection must be told about the token the session already holds')
+        self.assertEqual('AT-refreshed-by-http',
+                         self.refresh_frames()[0].refreshToken.accessToken)
+
+    def test_connection_without_a_pinned_token_falls_back_to_the_refresh_window(self):
+        """A connection that never pinned a token falls back to the session's refresh window
+        instead of rotating on every heartbeat."""
+        client = self.client()
+        client._access_token = None
+        self.sessions.remaining_millis = 3600_000
+
+        client.on_heartbeat(Frame(0))
+
+        self.assertEqual([], self.refresh_frames())
+        self.assertEqual(0, self.sessions.exchanges)
+
     def test_expiring_token_is_rotated_in_place(self):
         client = self.client()
         client._access_token = 'AT-1'
-        self.sessions.remaining_millis = TOKEN_REFRESH_AHEAD_MILLIS - 1_000
+        self.sessions.remaining_millis = DEFAULT_REFRESH_AHEAD_MILLIS - 1_000
         self.sessions.token = 'AT-2'
 
         client.on_heartbeat(Frame(0))
@@ -212,7 +249,7 @@ class RotationTriggerTest(PushTestBase):
         """The session manager hands back the current token until its own window opens."""
         client = self.client()
         client._access_token = 'AT-1'
-        self.sessions.remaining_millis = TOKEN_REFRESH_AHEAD_MILLIS - 1_000
+        self.sessions.remaining_millis = DEFAULT_REFRESH_AHEAD_MILLIS - 1_000
 
         client.on_heartbeat(Frame(0))
 
@@ -237,7 +274,7 @@ class RotationTriggerTest(PushTestBase):
         """A failed refresh is no reason to drop a working connection."""
         client = self.client()
         client._access_token = 'AT-1'
-        self.sessions.remaining_millis = TOKEN_REFRESH_AHEAD_MILLIS - 1_000
+        self.sessions.remaining_millis = DEFAULT_REFRESH_AHEAD_MILLIS - 1_000
         self.sessions.get_access_token = mock.Mock(side_effect=RuntimeError('network down'))
 
         client.on_heartbeat(Frame(0))
@@ -252,7 +289,7 @@ class RotationConcurrencyTest(PushTestBase):
 
     def setUp(self):
         super().setUp()
-        self.sessions.remaining_millis = TOKEN_REFRESH_AHEAD_MILLIS - 1_000
+        self.sessions.remaining_millis = DEFAULT_REFRESH_AHEAD_MILLIS - 1_000
 
     def test_second_heartbeat_does_not_start_a_second_exchange(self):
         """C-15: the marker is claimed before the exchange starts."""
@@ -356,7 +393,7 @@ class RotationReplyTest(PushTestBase):
     def test_rotation_completes_end_to_end(self):
         client = self.client()
         client._access_token = 'AT-1'
-        self.sessions.remaining_millis = TOKEN_REFRESH_AHEAD_MILLIS - 1_000
+        self.sessions.remaining_millis = DEFAULT_REFRESH_AHEAD_MILLIS - 1_000
         self.sessions.token = 'AT-2'
 
         client.on_heartbeat(Frame(0))

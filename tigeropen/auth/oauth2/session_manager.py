@@ -33,6 +33,8 @@ BUILTIN_ISSUER = 'https://openapi-oauth2.tigerfintech.com'
 
 #: How early to refresh an access token
 DEFAULT_REFRESH_AHEAD_MILLIS = 300 * 1000
+#: Remaining lifetime below which a token is no longer handed out.
+MIN_USABLE_REMAINING_MILLIS = 30 * 1000
 #: How long to wait for the browser callback
 DEFAULT_AUTHORIZE_TIMEOUT_SECONDS = 5 * 60
 #: RFC 8628 §3.5 default. Tiger's server does not return ``interval``, so this applies.
@@ -54,6 +56,25 @@ GRANT_TYPE_DEVICE_CODE = 'urn:ietf:params:oauth:grant-type:device_code'
 CLIENT_NAME = 'Tiger Python SDK'
 
 _WHITESPACE = re.compile(r'\s+')
+
+
+class _RejectedGrant(OAuth2Exception):
+    """A grant the authorization server refused.
+
+    Carries the error code so a caller can tell a rejected credential from a rejected client
+    registration. Its category is ``REAUTHORIZATION_REQUIRED``, so callers of the public type
+    behave as before.
+    """
+
+    def __init__(self, error, description):
+        super(_RejectedGrant, self).__init__(
+            Category.REAUTHORIZATION_REQUIRED,
+            'token request rejected: %s %s' % (error, description))
+        self.error = error
+
+    @property
+    def is_client_rejected(self):
+        return self.error == 'invalid_client'
 
 
 class OAuth2SessionManager:
@@ -180,13 +201,19 @@ class OAuth2SessionManager:
         if not code:
             raise OAuth2Exception(Category.CALLBACK_FAILED, 'authorization callback has no code')
 
-        token = self._exchange({
-            'grant_type': GRANT_TYPE_AUTHORIZATION_CODE,
-            'code': code,
-            'redirect_uri': receiver.redirect_uri,
-            'client_id': client_id,
-            'code_verifier': verifier,
-        }, scopes, client_id)
+        try:
+            token = self._exchange({
+                'grant_type': GRANT_TYPE_AUTHORIZATION_CODE,
+                'code': code,
+                'redirect_uri': receiver.redirect_uri,
+                'client_id': client_id,
+                'code_verifier': verifier,
+            }, scopes, client_id)
+        except _RejectedGrant as rejected:
+            # A refused authorization code says nothing about the persisted token, so that
+            # is left alone. A refused client registration is removed so it is not reused.
+            self._forget_rejected_registration(rejected)
+            raise
         self._persist(token)
         logger.info('oauth2 authorized. issuer:%s, client_id:%s, scope:%s',
                     self._issuer, client_id, token.scope)
@@ -297,10 +324,14 @@ class OAuth2SessionManager:
             return False
 
     def get_access_token(self):
-        """Return a usable access token, refreshing synchronously near expiry.
+        """Return a usable access token, refreshing near expiry.
 
         Raises ``REAUTHORIZATION_REQUIRED`` when no authorization is available. Browser
         authorization is never started implicitly.
+
+        A refresh being due does not make the caller wait for one. While the current token
+        still has :data:`MIN_USABLE_REMAINING_MILLIS` of life, a refresh already running
+        elsewhere is left to finish and the current token is returned.
         """
         token = self._current_token()
         if token is None or not token.access_token:
@@ -308,11 +339,28 @@ class OAuth2SessionManager:
                                   'not authorized yet, call login() first')
         if not token.needs_refresh(DEFAULT_REFRESH_AHEAD_MILLIS):
             return token.access_token
+        if token.remaining_millis() > MIN_USABLE_REMAINING_MILLIS:
+            # Refresh due, token still good. Take on the exchange only if nobody else has it.
+            if not self._refresh_lock.acquire(blocking=False):
+                return token.access_token
+            try:
+                return self.refresh(token.access_token).access_token
+            finally:
+                self._refresh_lock.release()
+        # Too close to expiry to hand out: this caller has to wait for a usable token.
         return self.refresh(token.access_token).access_token
 
     def status(self):
         """The current token, or None. Sends no requests and triggers no authorization."""
         return self._current_token()
+
+    def should_refresh_soon(self):
+        """Whether asking for a token now would trigger a refresh. Reads memory only.
+
+        Exists so no other component needs a refresh-ahead window of its own.
+        """
+        token = self._current_token()
+        return token is not None and token.needs_refresh(DEFAULT_REFRESH_AHEAD_MILLIS)
 
     def is_authorized(self):
         return self._current_token() is not None
@@ -347,18 +395,85 @@ class OAuth2SessionManager:
                 raise OAuth2Exception(Category.REAUTHORIZATION_REQUIRED,
                                       'no refresh_token available, re-authorization required')
 
-            client_id = self._known_client_id()
-            token = self._exchange({
-                'grant_type': GRANT_TYPE_REFRESH_TOKEN,
-                'refresh_token': current.refresh_token,
-                'client_id': client_id,
-            }, current.scope, client_id)
-            if not token.refresh_token:
-                # Preserve the existing refresh token when rotation omits a replacement.
-                token.refresh_token = current.refresh_token
-            self._persist(token)
-            logger.info('oauth2 access token refreshed. client_id:%s', client_id)
-            return token
+            try:
+                return self._exchange_refresh_token(current)
+            except _RejectedGrant as rejected:
+                return self._recover_or_give_up(current, rejected)
+
+    def _recover_or_give_up(self, rejected_token, rejected):
+        """Handle a refresh the authorization server rejected.
+
+        Refresh tokens rotate, so the rejected value may already have been replaced by another
+        process sharing this store. The store is re-read before any local state is removed, and
+        the authorization is treated as ended only once the newest stored credential is
+        rejected too.
+        """
+        stored = self._reload_from_store(rejected_token.client_id)
+        superseded = stored is not None and stored.access_token != rejected_token.access_token
+        if not superseded:
+            # Nothing newer exists, so the rejection is about the authorization itself.
+            self._forget_rejected_authorization(rejected, rejected_token.client_id)
+            raise rejected
+
+        logger.info('refresh was rejected but the token store holds a newer credential,'
+                    ' adopting it. client_id:%s', rejected_token.client_id)
+        self._token = stored
+        if not stored.needs_refresh(DEFAULT_REFRESH_AHEAD_MILLIS):
+            # Already refreshed elsewhere, so no second request is needed.
+            return stored
+        if not stored.has_refresh_token():
+            self._forget_rejected_authorization(rejected, rejected_token.client_id)
+            raise rejected
+        try:
+            return self._exchange_refresh_token(stored)
+        except _RejectedGrant as second_rejection:
+            # The newest stored credential was refused too, so the authorization is gone.
+            self._forget_rejected_authorization(second_rejection, stored.client_id)
+            raise
+
+    def _exchange_refresh_token(self, base):
+        """Exchange the given token's refresh token for a new access token and persist it."""
+        client_id = base.client_id or self._known_client_id()
+        token = self._exchange({
+            'grant_type': GRANT_TYPE_REFRESH_TOKEN,
+            'refresh_token': base.refresh_token,
+            'client_id': client_id,
+        }, base.scope, client_id)
+        if not token.refresh_token:
+            # Preserve the existing refresh token when rotation omits a replacement.
+            token.refresh_token = base.refresh_token
+        self._persist(token)
+        logger.info('oauth2 access token refreshed. client_id:%s', client_id)
+        return token
+
+    def _reload_from_store(self, client_id):
+        """Read the stored token from disk, bypassing the in-memory copy.
+
+        :return: the stored token, or None when there is none or it cannot be read
+        """
+        if not client_id:
+            return None
+        try:
+            return self._store.load_token(client_id, self._issuer)
+        except Exception as e:
+            # An unreadable store tells us nothing about the grant, so the rejection stands.
+            logger.warning('could not re-read the token store while checking a rejected'
+                           ' refresh: %s', e)
+            return None
+
+    def _forget_rejected_authorization(self, rejected, client_id):
+        """Remove the local token, and the dynamic registration when that was refused."""
+        if client_id:
+            self._store.delete_token(client_id)
+        self._token = None
+        self._forget_rejected_registration(rejected)
+
+    def _forget_rejected_registration(self, rejected):
+        """Remove a refused dynamic client registration so the next authorization registers
+        a new one. Explicit clientIds are left alone."""
+        if rejected.is_client_rejected and self._explicit_client_id is None:
+            self._store.delete_client_registration(self._issuer)
+            self._registered_client_id = None
 
     def _reusable_token(self):
         """Return a reusable local token, refreshing it when required.
@@ -565,17 +680,8 @@ class OAuth2SessionManager:
         if error:
             description = response.get('error_description') or ''
             if error in ('invalid_grant', 'invalid_client'):
-                # Terminal: the stored authorization is dead, keeping it only makes every
-                # later call retry and fail again
-                self._store.delete_token(client_id)
-                self._token = None
-                if error == 'invalid_client' and self._explicit_client_id is None:
-                    # The server no longer knows this dynamically registered client, so
-                    # the registration is void too
-                    self._store.delete_client_registration(self._issuer)
-                    self._registered_client_id = None
-                raise OAuth2Exception(Category.REAUTHORIZATION_REQUIRED,
-                                      'token request rejected: %s %s' % (error, description))
+                # Reported only; removing local state is left to the caller.
+                raise _RejectedGrant(error, description)
             raise OAuth2Exception(Category.TOKEN_REQUEST_FAILED,
                                   'token request failed: %s %s' % (error, description))
         return self._to_token(response, requested_scopes, client_id)

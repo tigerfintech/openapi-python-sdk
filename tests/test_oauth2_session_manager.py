@@ -10,6 +10,7 @@ conftest network guard is satisfied and no real environment is needed.
 import shutil
 import tempfile
 import threading
+import time
 import unittest
 
 from tests.oauth2_fakes import FakeAuthorizationServer
@@ -38,6 +39,22 @@ class SessionTestBase(unittest.TestCase):
                             expires_at=current_millis() + remaining_seconds * 1000)
         session._persist(token)
         return token
+
+    def seed_store_only(self, session, remaining_seconds=3600, refresh_token='RT0',
+                        access_token='AT0'):
+        """Write a token to disk without touching the session's in-memory copy.
+
+        Stands in for a second process sharing the same store.
+        """
+        token = OAuth2Token(issuer=self.server.base_url, client_id='cid',
+                            access_token=access_token, refresh_token=refresh_token,
+                            scope='api.quote:read',
+                            expires_at=current_millis() + remaining_seconds * 1000)
+        session._store.save_token(token)
+        return token
+
+    def stored_token(self, session):
+        return session._store.load_token('cid', self.server.base_url)
 
 
 class GetAccessTokenTest(SessionTestBase):
@@ -110,7 +127,58 @@ class SingleFlightTest(SessionTestBase):
         self.assertEqual(20, len(results))
         self.assertEqual(1, len(self.server.token_calls()),
                          'single-flight must collapse 20 concurrent refreshes into one call')
-        self.assertEqual({'AT1'}, set(results))
+        # Whoever takes the exchange returns the new token; the rest return the one they
+        # already hold, which still has 60s of life. Both are usable, nothing else may appear.
+        self.assertEqual(set(), set(results) - {'AT0', 'AT1'},
+                         'every caller must get a usable token, got %s' % results)
+        self.assertIn('AT1', results,
+                      'the refreshed token must at least reach the caller that fetched it')
+
+    def test_usable_token_is_returned_without_waiting_for_an_in_flight_refresh(self):
+        """C-13: a caller holding a still-usable token must not wait for someone else's
+        exchange.
+
+        HTTP and the push connection share one session, so whichever side starts a refresh
+        would otherwise hold the other up for as long as the exchange takes.
+        """
+        s = self.session()
+        self.seed(s, remaining_seconds=60)
+        exchange_started = self.server.hold_token_endpoint()
+
+        # Stands in for the heartbeat: starts a refresh and is stuck inside the token endpoint.
+        def refresher():
+            try:
+                s.get_access_token()
+            except Exception:                 # noqa: BLE001 - only the other caller's timing matters
+                pass
+
+        thread = threading.Thread(target=refresher, daemon=True)
+        thread.start()
+        self.assertTrue(exchange_started.wait(10),
+                        'the refresh should have reached the token endpoint')
+
+        # Stands in for a business request arriving mid-exchange. It must come straight back
+        # with the token it already has, not block until the held exchange finishes.
+        started_at = time.time()
+        token = s.get_access_token()
+        waited = time.time() - started_at
+
+        self.assertEqual('AT0', token, 'must reuse the token in hand, not wait for the new one')
+        self.assertLess(waited, 2, 'returned after %.1fs, so it waited on the exchange' % waited)
+        self.assertEqual(1, len(self.server.token_calls()),
+                         'the second caller must not start an exchange of its own')
+
+        self.server.release_token_endpoint()
+        thread.join(10)
+
+    def test_nearly_expired_token_makes_the_caller_wait_for_the_new_one(self):
+        """Not blocking is only correct while the token in hand still works. Below that the
+        caller waits, since the token could otherwise expire mid-request.
+        """
+        s = self.session()
+        self.seed(s, remaining_seconds=5)
+        self.assertEqual('AT1', s.get_access_token())
+        self.assertEqual(1, len(self.server.token_calls()))
 
     def test_concurrent_401_storm_does_not_fan_out(self):
         """C-01: 20 threads all holding the same stale token."""
@@ -158,6 +226,77 @@ class SingleFlightTest(SessionTestBase):
         result = s.refresh_after_unauthorized('OLD')
         self.assertEqual('NEW', result.access_token)
         self.assertEqual([], self.server.token_calls())
+
+
+class RejectedRefreshTest(SessionTestBase):
+    """A rejected refresh must not be taken as the end of the authorization until the store
+    has been re-read.
+
+    Refresh tokens rotate, so a second process sharing this store can refresh first and
+    legitimately invalidate the value this one holds while the authorization is still alive.
+    """
+
+    def test_rejected_refresh_adopts_the_token_another_process_left_on_disk(self):
+        s = self.session()
+        self.seed(s, remaining_seconds=60, refresh_token='RT0', access_token='AT0')
+
+        # Another process refreshes first, rotating RT0 away and leaving a fresh token behind.
+        self.seed_store_only(s, remaining_seconds=3600, refresh_token='RT-rotated',
+                             access_token='AT-other-process')
+        self.server.token_responses.append({'error': 'invalid_grant'})
+
+        self.assertEqual('AT-other-process', s.get_access_token(),
+                         'must adopt what is on disk rather than declare the grant dead')
+        self.assertEqual(1, len(self.server.token_calls()),
+                         'the stored token was already fresh, so no second exchange was needed')
+        self.assertIsNotNone(self.stored_token(s),
+                             'a valid token must survive our own copy being stale')
+
+    def test_rejected_refresh_retries_with_the_refresh_token_found_on_disk(self):
+        """The same recovery, when the token found on disk is itself due for a refresh."""
+        s = self.session()
+        self.seed(s, remaining_seconds=60, refresh_token='RT0', access_token='AT0')
+        self.seed_store_only(s, remaining_seconds=60, refresh_token='RT-rotated',
+                             access_token='AT-other-process')
+        self.server.token_responses.append({'error': 'invalid_grant'})
+
+        self.assertEqual('AT1', s.get_access_token())
+        calls = self.server.token_calls()
+        self.assertEqual(2, len(calls))
+        self.assertEqual('RT-rotated', calls[1][1]['refresh_token'],
+                         'the retry must present the refresh token that was on disk')
+
+    def test_rejection_with_nothing_newer_on_disk_still_clears_the_authorization(self):
+        """With nothing newer on disk the rejection is about the authorization itself, so
+        local state is cleared as before.
+        """
+        s = self.session()
+        self.seed(s, remaining_seconds=60)
+        self.server.token_responses.append({'error': 'invalid_grant'})
+
+        with self.assertRaises(OAuth2Exception) as caught:
+            s.get_access_token()
+        self.assertEqual(Category.REAUTHORIZATION_REQUIRED, caught.exception.category)
+        self.assertIsNone(self.stored_token(s),
+                          'a genuinely dead authorization must still be cleared')
+        self.assertEqual(1, len(self.server.token_calls()),
+                         'one rejection with nothing newer must not be retried')
+
+    def test_rejection_of_the_stored_token_too_ends_the_authorization(self):
+        """A rejection surviving the newest stored credential ends the authorization."""
+        s = self.session()
+        self.seed(s, remaining_seconds=60, refresh_token='RT0', access_token='AT0')
+        self.seed_store_only(s, remaining_seconds=60, refresh_token='RT-rotated',
+                             access_token='AT-other-process')
+        self.server.token_responses.append({'error': 'invalid_grant'})
+        self.server.token_responses.append({'error': 'invalid_grant'})
+
+        with self.assertRaises(OAuth2Exception) as caught:
+            s.get_access_token()
+        self.assertEqual(Category.REAUTHORIZATION_REQUIRED, caught.exception.category)
+        self.assertEqual(2, len(self.server.token_calls()))
+        self.assertIsNone(self.stored_token(s),
+                          'both credentials were refused, so the grant really is gone')
 
 
 class RefreshSemanticsTest(SessionTestBase):

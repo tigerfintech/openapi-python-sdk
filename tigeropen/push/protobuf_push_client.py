@@ -30,9 +30,6 @@ if sys.platform == 'linux' or sys.platform == 'linux2':
 else:
     KEEPALIVE = False
 
-# Access-token rotation threshold, aligned with the session manager refresh window.
-TOKEN_REFRESH_AHEAD_MILLIS = 5 * 60 * 1000
-
 # Maximum wait for a REFRESH_TOKEN acknowledgement before pending state is reset.
 TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS = 30 * 1000
 
@@ -220,7 +217,15 @@ class ProtobufPushClient(ConnectionListener):
 
             sessions = getattr(self._authentication, 'session_manager', None)
             current = sessions.status() if sessions is not None else None
-            if current is None or not current.needs_refresh(TOKEN_REFRESH_AHEAD_MILLIS):
+            if current is None:
+                return
+            # The server validates the token pinned on this connection, and the session may
+            # already have moved past it. Comparing the two covers every way the session can
+            # advance, so a session shared with HTTP or another connection is handled as well.
+            pinned = self._access_token
+            diverged = pinned is not None and pinned != current.access_token
+            # The refresh window belongs to the session, so ask for it rather than keep a copy.
+            if not diverged and not sessions.should_refresh_soon():
                 return
 
             # Claimed before the exchange starts: the next heartbeat must find a rotation

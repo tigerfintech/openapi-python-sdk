@@ -53,6 +53,9 @@ class FakeAuthorizationServer(_ThreadedServer):
         self.advertise_device = True
         self.serial = 0
         self.lock = threading.Lock()
+        #: Set by :meth:`hold_token_endpoint` to stall a token request in flight.
+        self._token_gate = None
+        self.token_request_arrived = threading.Event()
         server = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -91,12 +94,37 @@ class FakeAuthorizationServer(_ThreadedServer):
                                             'scope': 'api.quote:read api.trade:read'})
                 if self.path == '/device':
                     return self._send(200, server.next_device())
+                server.await_token_gate()
                 self._send(200, server.next_token())
 
             def log_message(self, *args):
                 pass
 
         self._start(Handler)
+
+    def hold_token_endpoint(self):
+        """Make the next token request block until :meth:`release_token_endpoint` is called.
+
+        :return: an Event set once a token request has arrived and is waiting
+        """
+        self.token_request_arrived = threading.Event()
+        self._token_gate = threading.Event()
+        return self.token_request_arrived
+
+    def release_token_endpoint(self):
+        """Let a held token request complete."""
+        gate = self._token_gate
+        self._token_gate = None
+        if gate is not None:
+            gate.set()
+
+    def await_token_gate(self):
+        gate = self._token_gate
+        if gate is None:
+            return
+        self.token_request_arrived.set()
+        # Bounded so a mistake in a test fails as a test rather than hanging the run.
+        gate.wait(30)
 
     def next_token(self):
         with self.lock:
