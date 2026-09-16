@@ -171,6 +171,42 @@ class TestBuildConfigOAuth2(unittest.TestCase):
         self.assertEqual(config.tiger_id, 'test_id')
 
 
+class TestCliSurface(unittest.TestCase):
+    """The CLI must not share its client registration with the SDK.
+
+    Sharing one would mean a single clientId and a single token for both, one entry on the
+    authorization page with no way to tell which is which, and revoking either taking the
+    other down with it.
+    """
+
+    ISSUER = 'https://issuer.example.com'
+
+    def test_cli_session_manager_files_itself_as_cli(self):
+        from tigeropen.auth.oauth2.token_store import DEFAULT_SURFACE
+        from tigeropen.cli.oauth2_config import build_session_manager
+        sessions = build_session_manager(issuer=self.ISSUER)
+        self.assertEqual('cli', sessions._store.surface)
+        self.assertNotEqual(DEFAULT_SURFACE, sessions._store.surface,
+                            'the CLI must not be filed as the Python SDK')
+
+    def test_cli_and_sdk_registrations_land_in_different_files(self):
+        """What the surface is actually for. Dropping the argument would leave the assertion
+        above as the only thing standing between the two entry points."""
+        from tigeropen.auth.oauth2.session_manager import OAuth2SessionManager
+        from tigeropen.cli.oauth2_config import build_session_manager
+        home = tempfile.mkdtemp()
+        try:
+            with mock.patch.dict(os.environ, {'TIGEROPEN_HOME': home}):
+                cli = build_session_manager(issuer=self.ISSUER)
+                sdk = OAuth2SessionManager(issuer=self.ISSUER)
+            cli_file = cli._store._client_file(self.ISSUER)
+            sdk_file = sdk._store._client_file(self.ISSUER)
+            self.assertNotEqual(cli_file, sdk_file)
+            self.assertTrue(cli_file.endswith('-cli.json'), cli_file)
+        finally:
+            shutil.rmtree(home, ignore_errors=True)
+
+
 class TestGetQuoteClientGrab(unittest.TestCase):
     """QuoteClient from the CLI factory must grab permission by default."""
 

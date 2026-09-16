@@ -10,12 +10,21 @@ from tigeropen.auth.oauth2 import OAuth2Authentication, OAuth2SessionManager
 #: Environment variable for a manually registered clientId (dynamic registration otherwise)
 TIGEROPEN_CLIENT_ID = 'TIGEROPEN_CLIENT_ID'
 
+#: Entry point that owns the CLI's dynamic client registration.
+#:
+#: The CLI is a separate application from the SDK as far as the user is concerned: it gets
+#: its own entry on the authorization page and can be revoked on its own. Leaving this at the
+#: SDK default would file both under one registration, so one clientId and one token would be
+#: shared and revoking either would take down both.
+SURFACE = 'cli'
+
 
 def build_session_manager(issuer=None, client_id=None):
     """Build an OAuth2SessionManager. Sends no requests, so it works offline."""
     return OAuth2SessionManager(
         issuer=issuer,
         client_id=client_id,
+        surface=SURFACE,
     )
 
 
