@@ -1,20 +1,25 @@
 # -*- coding: utf-8 -*-
-"""
-On-disk authorization state.
+"""File-backed OAuth 2.0 authorization state.
 
-Layout::
+Storage layout::
 
     ~/.tiger/openapi/
-      tokens/{clientId}.json      authorization state, 0600, cleared on logout
-      clients/{issuerHash}.json   dynamically registered client_id, kept across logout
+      tokens/{clientId}.json                authorization state, mode 0600, removed on logout
+      clients/{issuerHash}-{surface}.json   dynamic registration, retained across logout
 
-The two directories are keyed differently because ``clients/`` is looked up before a
-clientId is known: find the clientId by issuer, then find the token by clientId.
+Registration files are keyed by issuer because the client ID is not yet available during
+lookup, and by surface so that each entry point registers its own client. Without the
+surface, whichever entry point ran first would own the registration and every other one
+would silently inherit its identity: one name on the user's authorization page, one
+revocation switch for all of them, and one shared token file whose refresh-token rotation
+they would race over.
 
-Root directory precedence: explicit argument > ``TIGEROPEN_HOME`` > ``~/.tiger/openapi``.
-Deliberately not the current working directory.
+Token files need no surface: each surface registers a distinct client ID, so their token
+files are already distinct. A manually configured client ID is shared on purpose -- one
+client ID means one application.
 
-The file format matches the Java SDK, so both can share one directory.
+Storage root precedence is: explicit argument, ``TIGEROPEN_HOME``, then
+``~/.tiger/openapi``. The format is compatible with the Java SDK.
 """
 import hashlib
 import json
@@ -32,22 +37,34 @@ logger = logging.getLogger(__name__)
 ENV_HOME = 'TIGEROPEN_HOME'
 DEFAULT_HOME = os.path.join('~', '.tiger', 'openapi')
 
+#: Entry point owning a registration. The CLI and the MCP server are built on this SDK and
+#: must pass their own value, otherwise they would be filed as the Python SDK and share its
+#: client. Keep in step with the Java SDK's ``sdk-java``.
+DEFAULT_SURFACE = 'sdk-python'
+
 _SAFE_CHARS = re.compile(r'[^a-zA-Z0-9\-_.]')
+#: Surfaces become part of a file name, so they are restricted rather than sanitised: a
+#: silently rewritten surface would file two entry points under one name.
+_SURFACE_PATTERN = re.compile(r'^[a-z0-9][a-z0-9-]*$')
 
 
 class OAuth2TokenStore:
 
-    def __init__(self, home=None):
+    def __init__(self, home=None, surface=DEFAULT_SURFACE):
+        """
+        :param home: storage root; defaults to ``TIGEROPEN_HOME`` then ``~/.tiger/openapi``
+        :param surface: entry point owning the registration, e.g. ``sdk-python``, ``cli``,
+            ``mcp``. Lowercase alphanumerics and hyphens only
+        """
         if home:
             base = home
         else:
             base = os.environ.get(ENV_HOME) or DEFAULT_HOME
         self.home = os.path.abspath(os.path.expanduser(base))
-
-    # ------------------------------------------------------------------ token
+        self.surface = _validate_surface(surface)
 
     def load_token(self, client_id, expected_issuer=None):
-        """Load a token. A missing file or an issuer mismatch is a cache miss."""
+        """Load a token, treating a missing file or issuer mismatch as a cache miss."""
         path = self._token_file(client_id)
         if not os.path.exists(path):
             return None
@@ -58,7 +75,7 @@ class OAuth2TokenStore:
             if token is None:
                 return None
             if token.schema_version != SCHEMA_VERSION:
-                # Fail loudly rather than guess at the format
+                # Unknown schema versions are not interpreted.
                 raise OAuth2Exception(Category.STORAGE_FAILED,
                                       'unsupported token schema_version: %s' % token.schema_version)
             if expected_issuer is not None and expected_issuer != token.issuer:
@@ -78,12 +95,10 @@ class OAuth2TokenStore:
         self._write_atomic(path, json.dumps(token.to_dict(), ensure_ascii=False, indent=2))
 
     def delete_token(self, client_id):
-        """For logout: clears the authorization only, keeps the client_id."""
+        """Delete authorization state while retaining client registration."""
         if not client_id:
             return
         self._delete(self._token_file(client_id))
-
-    # ----------------------------------------------------------- registration
 
     def load_client_id(self, issuer):
         registration = self.load_client_registration(issuer)
@@ -107,19 +122,17 @@ class OAuth2TokenStore:
         self._write_atomic(path, json.dumps(registration.to_dict(), ensure_ascii=False, indent=2))
 
     def delete_client_registration(self, issuer):
-        """Only when the authorization server says ``invalid_client``. Deleting it
-        otherwise means registering a new client next time and leaving garbage behind."""
+        """Delete registration state after an ``invalid_client`` response."""
         if not issuer:
             return
         self._delete(self._client_file(issuer))
-
-    # --------------------------------------------------------------- internal
 
     def _token_file(self, client_id):
         return os.path.join(self.home, 'tokens', _safe_file_name(client_id) + '.json')
 
     def _client_file(self, issuer):
-        return os.path.join(self.home, 'clients', hash_issuer(issuer) + '.json')
+        return os.path.join(self.home, 'clients',
+                            '%s-%s.json' % (hash_issuer(issuer), self.surface))
 
     @staticmethod
     def _delete(path):
@@ -131,11 +144,10 @@ class OAuth2TokenStore:
 
     @staticmethod
     def _write_atomic(path, content):
-        """Temp file in the same directory, then rename.
+        """Atomically replace a file through a same-directory temporary file.
 
-        Overwriting in place would leave a truncated JSON file if the process died
-        mid-write. The temp file must share the directory: a cross-filesystem rename is
-        not atomic.
+        Same-filesystem replacement prevents partial JSON writes. Directories and files
+        are restricted to modes 0700 and 0600 where supported.
         """
         directory = os.path.dirname(path)
         try:
@@ -159,22 +171,30 @@ class OAuth2TokenStore:
 
 
 def _safe_file_name(raw):
-    """The clientId comes from the server and may contain ``/`` or ``..``."""
+    """Sanitize an untrusted client ID for use as a file name."""
     name = _SAFE_CHARS.sub('_', raw or '')
     while '..' in name:
         name = name.replace('..', '__')
     return name or '_'
 
 
+def _validate_surface(surface):
+    """Reject a surface that cannot be used verbatim as part of a file name."""
+    if not surface or not _SURFACE_PATTERN.match(surface):
+        raise OAuth2Exception(
+            Category.STORAGE_FAILED,
+            "invalid surface %r: expected lowercase alphanumerics and hyphens, e.g. 'cli'"
+            % (surface,))
+    return surface
+
+
 def hash_issuer(issuer):
-    """The issuer is a URL containing ``://`` and ``/``, so it is hashed for use as a
-    filename. First 16 bytes of SHA-256 as hex, 32 characters -- same as the Java SDK,
-    so both can share one directory."""
+    """Return the Java-compatible 32-character SHA-256 issuer file key."""
     return hashlib.sha256((issuer or '').encode('utf-8')).hexdigest()[:32]
 
 
 def _restrict_file(path):
-    """0600. Silently skipped on non-POSIX platforms."""
+    """Restrict a credential file to mode 0600 where supported."""
     try:
         os.chmod(path, 0o600)
     except Exception:
@@ -182,7 +202,7 @@ def _restrict_file(path):
 
 
 def _restrict_directory(path):
-    """0700. Silently skipped on non-POSIX platforms."""
+    """Restrict a credential directory to mode 0700 where supported."""
     try:
         os.chmod(path, 0o700)
     except Exception:

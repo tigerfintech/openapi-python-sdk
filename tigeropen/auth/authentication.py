@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
-"""
-How a request carries its credential.
+"""Thread-safe request authentication interfaces.
 
-The only data-plane abstraction, and it does three things: attach the credential
-before sending, decide whether to swap credentials and retry after a 401, and release
-resources. Authorization flows (login, dynamic registration, opening a browser) belong
-to the control plane (``OAuth2SessionManager``), not here.
-
-Implementations must be thread-safe.
+Implementations attach credentials, handle authentication retries, and release resources.
+OAuth 2.0 authorization flows remain in ``OAuth2SessionManager``.
 """
 from abc import ABCMeta, abstractmethod
 from enum import Enum
@@ -43,14 +38,10 @@ class RequestAuthContext:
 
     @property
     def retryable(self):
-        """Whether this request may be retried with a new credential after a 401.
+        """Whether a request may be retried with a new credential after a 401.
 
-        Named after the constraint rather than the business operation on purpose: an
-        authentication implementation has no business knowing what an order is, it only
-        needs to know whether it may send the request a second time.
-
-        False for order placement, modification and cancellation -- a 401 does not prove
-        the request was not executed, so a retry risks a duplicate order.
+        Order placement, modification, and cancellation are not retryable because a 401
+        does not prove that the operation was not executed.
         """
         return self._retryable
 
@@ -65,12 +56,10 @@ class RequestAuthContext:
 
 
 class AuthenticationAttempt:
-    """Snapshot of which credential a request used.
+    """Credential snapshot used to coordinate authentication retries.
 
-    Suppresses 401 storms. With N in-flight requests sharing a token that just expired,
-    N 401s come back; without the snapshot each one triggers another refresh and the
-    sequence never converges. With it, later 401s see the credential has already been
-    rotated and retry with the new one directly.
+    Comparing the failed credential with current state detects rotation completed by
+    another thread and avoids duplicate refresh requests.
     """
 
     __slots__ = ('_auth_type', '_credential')
@@ -85,9 +74,10 @@ class AuthenticationAttempt:
 
     @property
     def credential(self):
-        """The credential this request used (the raw access token in OAuth2 mode).
+        """Credential used by the request, including a raw OAuth 2.0 access token.
 
-        For equality comparison only. Never log it, never expose it.
+        This value is restricted to equality comparisons and must not be logged or
+        exposed.
         """
         return self._credential
 
@@ -98,11 +88,10 @@ class AuthenticationAttempt:
 
 
 class RetryDecision:
-    """Whether to retry after a 401.
+    """Authentication retry decision.
 
-    There is deliberately no "retry with the same credential" option: :meth:`retry`
-    always carries a new full ``Authorization`` header value, including the ``Bearer ``
-    prefix.
+    A retry always supplies a new full ``Authorization`` header value, including the
+    ``Bearer `` prefix.
     """
 
     __slots__ = ('_should_retry', '_authorization_header')
@@ -159,15 +148,14 @@ class Authentication(metaclass=ABCMeta):
 
     @abstractmethod
     def on_unauthorized(self, attempt, status_code):
-        """Decide what to do after a 401.
+        """Return the retry decision for an unauthorized response.
 
-        Rules shared across language SDKs: refresh only for a 401 meaning "credential is
-        invalid", never for 403, 5xx or a timeout; retry at most once per request for
-        authentication reasons; retry only once a genuinely different credential is held.
+        Refresh applies only to HTTP 401 credential failures, never to HTTP 403, server
+        errors, or timeouts. Authentication retries occur at most once per request and
+        require a different credential.
 
-        :param attempt: the snapshot returned by :meth:`apply`
-        :param status_code: HTTP status received (Java passes an ``HttpResult``;
-            Python has no equivalent type, so the status code is passed directly)
+        :param attempt: credential snapshot returned by :meth:`apply`
+        :param status_code: HTTP response status
         :return: :class:`RetryDecision`
         """
 

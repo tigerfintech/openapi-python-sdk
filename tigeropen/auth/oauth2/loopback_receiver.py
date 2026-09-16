@@ -1,22 +1,10 @@
 # -*- coding: utf-8 -*-
-"""
-Local callback receiver (RFC 8252 loopback).
+"""Single-use OAuth 2.0 loopback redirect receiver (RFC 8252).
 
-Binds a port on ``127.0.0.1`` and shuts down after receiving a single callback.
-
-With dynamic registration the port is 0, so the system assigns one and it is not
-persisted: registration sends ``http://127.0.0.1/callback`` as the redirect_uri, and per
-RFC 8252 §7.3 the authorization server ignores the port when matching a loopback URI.
-With a manual clientId the port must match the redirect_uri the user registered by hand,
-which the SDK cannot know -- hence the agreed default of 18888.
-
-It binds only ``127.0.0.1``, not ``0.0.0.0``: the authorization code must not be exposed
-to the local network. It uses the IP literal rather than ``localhost`` (RFC 8252 §8.3),
-which depends on hosts resolution and can be redirected elsewhere.
-
-It must be started **before** the authorization URL is handed to the user, otherwise a
-fast user can finish approving before the listener is up and the redirect arrives at a
-port with nobody listening.
+The receiver binds only to ``127.0.0.1`` to prevent authorization code exposure on the
+local network. Dynamic registration uses a system-assigned port as permitted by RFC 8252
+§7.3; manual registration requires a port matching its redirect URI. The IP literal
+avoids the name-resolution risks described by RFC 8252 §8.3.
 """
 import logging
 import threading
@@ -29,15 +17,40 @@ logger = logging.getLogger(__name__)
 
 CALLBACK_PATH = '/callback'
 
-#: Inline SVG rather than an image, an icon font or a unicode glyph: the page must
-#: render the same everywhere with no network access, and the check glyph is missing or
-#: ugly in plenty of default fonts.
-_CHECK_MARK = (
-    "<svg width='64' height='64' viewBox='0 0 64 64' aria-hidden='true'>"
-    "<circle cx='32' cy='32' r='29' fill='none' stroke='#22c55e' stroke-width='4'/>"
-    "<path d='M19 33l9.5 9.5L45 22' fill='none' stroke='#22c55e' stroke-width='5'"
-    " stroke-linecap='round' stroke-linejoin='round'/></svg>"
-)
+#: Inline SVG avoids external resources and font-dependent glyph rendering.
+def _icon(color, path):
+    return ("<svg width='64' height='64' viewBox='0 0 64 64' aria-hidden='true'>"
+            "<circle cx='32' cy='32' r='29' fill='none' stroke='%s' stroke-width='4'/>"
+            "<path d='%s' fill='none' stroke='%s' stroke-width='5'"
+            " stroke-linecap='round' stroke-linejoin='round'/></svg>" % (color, path, color))
+
+
+#: Green tick.
+_ICON_SUCCESS = _icon('#22c55e', 'M19 33l9.5 9.5L45 22')
+#: Grey dash for the normal ``access_denied`` outcome.
+_ICON_CANCELLED = _icon('#9ca3af', 'M20 32h24')
+#: Red cross, for outcomes that really are failures.
+_ICON_FAILED = _icon('#ef4444', 'M22 22l20 20M42 22L22 42')
+
+#: English callback text, kept consistent with the Java SDK.
+_TEXT = {
+    'title': 'Tiger OpenAPI',
+    'success': ('Authorization successful',
+                'You can close this page and return to the application.'),
+    'cancelled': ('Authorization cancelled',
+                  'You declined this authorization. You can close this page.'),
+    'failed': ('Authorization failed',
+               'Please return to the application and try again.'),
+}
+
+
+def _outcome_of(params):
+    """Classify ``access_denied`` as cancellation and other errors as failures."""
+    if 'code' in params:
+        return 'success'
+    if params.get('error') == 'access_denied':
+        return 'cancelled'
+    return 'failed'
 
 
 class LoopbackReceiver:
@@ -60,21 +73,20 @@ class LoopbackReceiver:
                     self.end_headers()
                     return
                 try:
-                    success = receiver._record(parsed.query)
-                    _respond(self, success)
+                    params = receiver._record(parsed.query)
+                    _respond(self, params)
                 finally:
                     receiver._latch.set()
 
             def log_message(self, fmt, *args):
-                # The default implementation writes the request line to stderr, which
-                # would include the callback query string and therefore the auth code
+                # Suppress the default request log because its query string contains the
+                # authorization code.
                 logger.debug('loopback callback request received')
 
         try:
             self._server = HTTPServer(('127.0.0.1', port), _Handler)
         except OSError as e:
-            # Only a fixed port can be taken, and then we must say which port and what
-            # to do about it; a system-assigned port never collides
+            # A fixed port can conflict with another listener; system-assigned ports do not.
             hint = '' if port == 0 else (
                 ' (port %d is in use; free it or set another callback_port'
                 ' matching the redirect_uri registered for your client)' % port)
@@ -124,29 +136,41 @@ class LoopbackReceiver:
         return False
 
     def _record(self, raw_query):
+        """Record the callback params (first one wins) and return a snapshot of them."""
         with self._lock:
             if not self._latch.is_set():
                 for key, value in parse_qsl(raw_query, keep_blank_values=True):
                     self._params[key] = value
-            return 'code' in self._params
+            return dict(self._params)
 
 
-def _respond(handler, success):
-    """The callback page states the outcome only and displays no parameters.
+def _respond(handler, params):
+    """Render a redacted callback outcome page.
 
-    The browser address bar and history keep a trace, and the page may be screenshotted
-    or read by an extension. The authorization code is single-use, but leaking it before
-    it is redeemed lets someone else exchange it for a token first.
+    Callback parameters, including authorization codes and errors, are omitted because
+    browser history, screenshots, and extensions may expose page content. Full parameters
+    remain available to internal callback processing.
     """
-    if success:
-        message = (_CHECK_MARK + '<h2>Authentication successful</h2>'
-                   '<p>You can close this page and return to the application.</p>')
-    else:
-        message = ('<h2>Authentication failed</h2>'
-                   '<p>Please return to the application and try again.</p>')
-    html = ("<html><head><meta charset='utf-8'><title>Tiger OpenAPI</title></head>"
-            "<body style=\"font-family:-apple-system,'PingFang SC',sans-serif;"
-            "padding:64px;text-align:center\">" + message + "</body></html>")
+    outcome = _outcome_of(params)
+    icon = {'success': _ICON_SUCCESS,
+            'cancelled': _ICON_CANCELLED,
+            'failed': _ICON_FAILED}[outcome]
+    heading, detail = _TEXT[outcome]
+
+    html = (
+        "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<title>%s</title></head>"
+        "<body style=\"margin:0;min-height:100vh;display:flex;align-items:center;"
+        "justify-content:center;"
+        "font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',"
+        "sans-serif;background:#fafafa;color:#1f2328\">"
+        "<main style='text-align:center;padding:48px 24px;max-width:420px'>"
+        "%s"
+        "<h2 style='margin:24px 0 8px;font-size:20px;font-weight:600'>%s</h2>"
+        "<p style='margin:0;font-size:14px;line-height:1.6;color:#6b7280'>%s</p>"
+        "</main></body></html>" % (_TEXT['title'], icon, heading, detail))
+
     body = html.encode('utf-8')
     handler.send_response(200)
     handler.send_header('Content-Type', 'text/html; charset=utf-8')

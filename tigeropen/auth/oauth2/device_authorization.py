@@ -10,15 +10,13 @@ class OAuth2DeviceAuthorization:
 
     def __init__(self, device_code=None, user_code=None, verification_uri=None,
                  verification_uri_complete=None, expires_in=0, interval=0):
-        #: Credential used to redeem the token. Never display it, never log it --
-        #: holding it is equivalent to holding the result of this authorization.
-        #: Show the user ``user_code`` instead.
+        #: Credential used to redeem the token; it must not be displayed or logged.
         self.device_code = device_code
-        #: Short code for the user to enter
+        #: Short code presented to the resource owner.
         self.user_code = user_code
-        #: Verification page for the user to open
+        #: Verification URI presented to the resource owner.
         self.verification_uri = verification_uri
-        #: Verification page with the code pre-filled; prefer it when present
+        #: Verification URI with the user code included.
         self.verification_uri_complete = verification_uri_complete
         self.expires_in = expires_in
         #: Polling interval in seconds; 0 means the server sent none

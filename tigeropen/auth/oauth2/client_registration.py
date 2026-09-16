@@ -1,15 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
-Client obtained by dynamic registration (RFC 7591).
+"""OAuth 2.0 dynamic client registration state (RFC 7591).
 
-Stored separately from the token and **kept across logout**: the registered client_id
-is this application's identity on this machine, while logging out only clears the
-authorization. Deleting it would pile up a new client on the authorization server every
-time the user logs back in.
-
-``registered_scopes`` records the scope set granted at registration time. If the SDK
-later needs a wider set, the stored registration no longer covers it and a new
-registration is made, instead of reusing a client_id that would get ``invalid_scope``.
+Registration state is stored separately from tokens and retained across logout.
+``registered_scopes`` records the granted scope set; scope expansion requires a new
+registration to avoid ``invalid_scope``.
 """
 
 

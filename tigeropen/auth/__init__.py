@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Authentication abstractions.
-
-Port of ``com.tigerbrokers.stock.openapi.client.auth``. Purely additive: code that
-does not use this package behaves exactly as before.
-"""
+"""Authentication interfaces shared by signature and OAuth 2.0 implementations."""
 from tigeropen.auth.authentication import (
     Authentication,
     AuthenticationAttempt,

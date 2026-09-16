@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-HTTP calls used by the OAuth2 flow.
+"""HTTP helpers for OAuth 2.0 JSON and form-encoded requests.
 
-``tigeropen.common.util.web_utils`` is not reused for two reasons: the token endpoint
-needs form-encoded bodies (that one only sends JSON), and here we must be able to read
-4xx response bodies -- that is where the OAuth2 errors live, and that one raises on any
-non-200, discarding the body.
+OAuth error responses retain 4xx response bodies for protocol-level error handling.
 """
 import json
 import logging
@@ -46,14 +42,12 @@ def post_form(url, form):
 
 
 def post_form_for_status(url, form):
-    """Post a form and return only the HTTP status, tolerating an empty body.
+    """Post a form and return the HTTP status without requiring a response body.
 
-    Needed for RFC 7009 revocation: that endpoint answers 200 with **no body** on success,
-    which :func:`post_form` rejects as "empty response". The caller only needs to know
-    whether the server accepted it, so nothing is parsed.
+    RFC 7009 revocation returns an empty success body, so no parsing is performed.
 
     :return: the HTTP status code
-    :raise OAuth2Exception: only on a connection failure
+    :raise OAuth2Exception: on connection failure
     """
     fields = [(k, v) for k, v in form.items() if v is not None]
     body = urlencode(fields).encode('utf-8')

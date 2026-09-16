@@ -110,10 +110,8 @@ class TigerOpenClient:
         """
         common_params = dict()
         common_params[P_TIMESTAMP] = params[P_TIMESTAMP]
-        # OAuth2 mode puts no tiger_id / sign_type / sign in the body. The gateway takes
-        # the signature-verification branch as soon as it sees `sign`, which makes it
-        # ignore the Bearer header and then misread it as an HK license token -- sending
-        # both "just in case" does not work.
+        # OAuth 2.0 requests omit signature fields because their presence selects gateway
+        # signature verification instead of Bearer authentication.
         if not self.__oauth2_mode:
             common_params[P_TIGER_ID] = self.__config.tiger_id
         common_params[P_METHOD] = params[P_METHOD]
@@ -201,7 +199,7 @@ class TigerOpenClient:
         if service not in SKIP_RETRY_SERVICES and self.__config.retry_max_tries > 0:
             extra = {}
             if self.__oauth2_mode:
-                # OAuth2 mode only, so signature-mode retry behaviour is unchanged
+                # OAuth 2.0 retry handling applies only in OAuth 2.0 mode.
                 extra['giveup'] = _giveup_on_unauthorized
             return backoff.on_exception(backoff.fibo,
                                         (RequestException, ResponseException),
@@ -228,9 +226,8 @@ class TigerOpenClient:
 
         headers = self.__headers
         attempt = None
-        # Whether a 401 may be retried with a fresh credential. False for order placement /
-        # modification / cancellation: a 401 does not prove the request was not executed, so
-        # resending risks a duplicate order. Reuses this module's existing SKIP_RETRY_SERVICES.
+        # Authentication retry eligibility. Order mutations are excluded because a 401
+        # does not establish whether the server executed the request.
         retryable = request._method not in SKIP_RETRY_SERVICES
         if self.__oauth2_mode:
             context = RequestAuthContext(params, retryable=retryable)
