@@ -82,9 +82,11 @@ class TigerOpenClient:
         if not self.__config.inited:
             self.__logger.info(f'sdk version: {self.__config.sdk_version}')
             if self.__oauth2_mode:
-                # Skip the license query: it is itself a signed request, and here there
-                # is neither a tiger_id nor a private key. Domain resolution falls back
-                # to the default branch of refresh_server_info.
+                # The license is left unresolved on purpose. It only selects a per-licence
+                # gateway path, and the common gateway serves every licence, so the default
+                # branch of refresh_server_info is the right answer here. Querying it would
+                # work -- under OAuth2 that request carries a Bearer token like any other --
+                # but it would cost a round trip during construction for nothing.
                 self.__logger.info('init with oauth2 authentication')
             else:
                 self.__init_license()
