@@ -12,6 +12,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
 from tests.oauth2_fakes import FakeAuthorizationServer
 from tigeropen.auth.oauth2 import OAuth2Exception, OAuth2SessionManager, OAuth2Token
@@ -297,6 +298,50 @@ class RejectedRefreshTest(SessionTestBase):
         self.assertEqual(2, len(self.server.token_calls()))
         self.assertIsNone(self.stored_token(s),
                           'both credentials were refused, so the grant really is gone')
+
+
+class RejectedRefreshRaceTest(SessionTestBase):
+    """The store may move again while a rejected refresh is being recovered from."""
+
+    def test_second_rejection_keeps_a_credential_stored_meanwhile(self):
+        """A credential written by someone else during the retry was never refused, so it
+        must survive.
+
+        Refresh tokens rotate, so a rejection means "the value I presented was rotated away"
+        just as often as it means "the authorization is gone". The retry can be refused for
+        the first reason too, and deleting then takes down a working credential that every
+        other user of this store depends on.
+        """
+        s = self.session()
+        self.seed(s, remaining_seconds=60, refresh_token='RT0', access_token='AT0')
+        self.assertEqual('AT0', s.status().access_token)
+
+        # A second process rotated first, leaving RT1 behind.
+        self.seed_store_only(s, remaining_seconds=60, refresh_token='RT1', access_token='AT1')
+        self.server.token_responses.append({'error': 'invalid_grant'})   # refuses our RT0
+        self.server.token_responses.append({'error': 'invalid_grant'})   # refuses the adopted RT1
+
+        # A third rotation lands on disk while the retry is in flight.
+        original_next_token = self.server.next_token
+        exchanges = []
+
+        def next_token():
+            exchanges.append(1)
+            if len(exchanges) == 2:
+                self.seed_store_only(s, remaining_seconds=3600,
+                                     refresh_token='RT2', access_token='AT2')
+            return original_next_token()
+
+        self.server.next_token = next_token
+
+        with self.assertRaises(OAuth2Exception) as caught:
+            s.get_access_token()
+
+        self.assertEqual(Category.REAUTHORIZATION_REQUIRED, caught.exception.category)
+        self.assertEqual(2, len(exchanges))
+        survivor = self.stored_token(s)
+        self.assertIsNotNone(survivor, 'a credential stored meanwhile must not be deleted')
+        self.assertEqual('AT2', survivor.access_token)
 
 
 class RefreshSemanticsTest(SessionTestBase):
