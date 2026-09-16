@@ -133,17 +133,17 @@ class TestBuildConfigOAuth2(unittest.TestCase):
         from tigeropen.cli.client_factory import build_config
         from tigeropen.auth.oauth2.authentication import OAuth2Authentication
         from tigeropen.auth.oauth2.session_manager import BUILTIN_ISSUER
-        from tigeropen.cli.oauth2_config import _pair_test_gateway
         ctx_obj = {
             'auth': 'oauth2',
             'issuer': BUILTIN_ISSUER,
             'client_id': None,
-            'config_path': '/tmp/nonexistent-cli-oauth2-test',
+            'config_path': '/tmp/nonexistent-cli-oauth2',
         }
         config = build_config(ctx_obj)
         self.assertIsInstance(config.authentication, OAuth2Authentication)
-        # Pairing: test issuer -> test gateway
-        self.assertEqual(config.server_url, _pair_test_gateway(BUILTIN_ISSUER))
+        # The gateway is whatever the client config defaults to; OAuth2 changes how the
+        # request is authenticated, not where it is sent.
+        self.assertIsNotNone(config.server_url)
 
     def test_build_config_oauth2_clears_signature_credentials(self):
         """OAuth2 mode must not depend on (or keep) the private key / tiger_id."""
@@ -152,7 +152,7 @@ class TestBuildConfigOAuth2(unittest.TestCase):
         ctx_obj = {
             'auth': 'oauth2',
             'issuer': BUILTIN_ISSUER,
-            'config_path': '/tmp/nonexistent-cli-oauth2-test',
+            'config_path': '/tmp/nonexistent-cli-oauth2',
         }
         config = build_config(ctx_obj)
         self.assertEqual(config.private_key, '')

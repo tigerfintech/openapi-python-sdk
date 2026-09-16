@@ -79,6 +79,6 @@ OAuth2 下 `--auth` / `--issuer` / `--client-id` 显式 CLI 选项优先级最�
 
 ## 环境区分
 
-- 测试 issuer 自动配对测试网关（内置推导，无需手动配置）
-- 生产环境需 `TIGEROPEN_OAUTH2_ISSUER` 指向生产 issuer，并确保网关同环境
+- 默认 issuer 与网关都指向生产环境，无需额外配置
+- 指向其他环境时用 `TIGEROPEN_OAUTH2_ISSUER` 与 `TIGEROPEN_SERVER_URL` 一起改
 - issuer / 网关 / 公钥必须指向同一套环境，否则会得到误导性报错

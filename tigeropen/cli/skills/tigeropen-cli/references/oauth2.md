@@ -49,9 +49,8 @@ tigeropen --auth oauth2 account assets
 tigeropen --auth oauth2 push quote AAPL     # 推送（protobuf only）
 ```
 
-> 测试环境推送：socket 地址不会随 issuer 自动配对，需显式指定，如
-> `TIGEROPEN_SOCKET_HOST_PORT="ssl,<test-gateway-host>,9883"`（<test-gateway-host> 换成测试网关主机名）。
-> 且 QA 环境的行情订阅普遍 `access forbidden`（签名模式也一样），非 OAuth2 问题。
+> 推送的 socket 地址不随 issuer 变化。指向非默认网关时需显式指定，如
+> `TIGEROPEN_SOCKET_HOST_PORT="ssl,<gateway-host>,9883"`。
 
 ## 关键行为
 
@@ -76,6 +75,6 @@ tigeropen --auth oauth2 push quote AAPL     # 推送（protobuf only）
 | 症状 | 原因 | 处理 |
 |---|---|---|
 | `tigerId null is illegal` | 网关与 issuer 环境不匹配 | 确认 `TIGEROPEN_SERVER_URL` 指向同环境网关 |
-| `response sign verify failed` | 响应公钥与网关环境不匹配 | 测试环境用 sandbox 公钥（自动配对） |
+| `response sign verify failed` | 响应公钥与网关环境不匹配 | 确认公钥与网关是同一套环境 |
 | `permission denied` | 行情权限未 grab | CLI 默认 grab，检查授权账户是否有行情权限 |
 | `re-authorization required` | refresh token 失效 | 重新 `auth login` |

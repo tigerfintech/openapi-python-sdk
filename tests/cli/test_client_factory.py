@@ -61,10 +61,15 @@ class TestBuildConfig(unittest.TestCase):
     """Tests for building TigerOpenClientConfig from CLI context."""
 
     def test_build_config_from_ctx_obj(self):
-        """Should create a config with values from context dict."""
+        """Should create a config with values from context dict.
+
+        A path that does not exist rather than None: None falls back to ``~/.tigeropen``, so
+        a developer who has a real config there would see its values win over these and the
+        test would fail for reasons that have nothing to do with it.
+        """
         from tigeropen.cli.client_factory import build_config
         ctx_obj = {
-            'config_path': None,
+            'config_path': '/tmp/nonexistent-cli-ctx',
             'tiger_id': 'test_id',
             'account': 'test_account',
             'private_key': 'test_key',

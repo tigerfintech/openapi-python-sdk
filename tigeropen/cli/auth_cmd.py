@@ -15,7 +15,7 @@ import webbrowser
 import click
 
 from tigeropen.auth.oauth2 import OAuth2Exception
-from tigeropen.cli.oauth2_config import build_session_manager, looks_like_test
+from tigeropen.cli.oauth2_config import build_session_manager
 
 
 def _show_authorization_url(url):
@@ -100,8 +100,6 @@ def auth_login(ctx, no_browser):
 
     click.echo()
     click.echo('登录成功.')
-    if looks_like_test(sessions.issuer):
-        click.echo('提示: issuer 是测试地址，请用 --auth oauth2 并保持网关指向同一套环境。')
     _print_env(sessions, None, token)
 
 
