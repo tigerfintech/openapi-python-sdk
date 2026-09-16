@@ -334,6 +334,37 @@ class RotationConcurrencyTest(PushTestBase):
         self.assertTrue(wait_until(lambda: self.refresh_frames()))
         self.assertEqual('AT-2', self.refresh_frames()[0].refreshToken.accessToken)
 
+    def test_rotation_is_abandoned_when_the_connection_was_replaced(self):
+        """A rotation in flight must not be delivered to a connection that replaced the one
+        it was claimed for: the replacement has its own token, which can be the newer of
+        the two.
+        """
+        self.sessions.release = threading.Event()
+        client = self.client()
+        client._access_token = 'AT-old'
+        self.sessions.token = 'AT-old'          # what the exchange will hand back
+
+        client.on_heartbeat(Frame(0))
+        self.assertTrue(self.sessions.exchange_started.wait(5))
+
+        # Reconnect: a new connection, already holding a newer token.
+        replacement = RecordingConnection()
+        client._connection = replacement
+        client._access_token = 'AT-new'
+        client._refresh_pending = None
+        client._refresh_sent_at = 0
+
+        self.sessions.release.set()
+
+        self.assertTrue(wait_until(lambda: self.sessions.exchanges == 1))
+        # Allow time for a frame to arrive if one is going to.
+        self.assertFalse(wait_until(lambda: replacement.frames, timeout=1),
+                         'the stale rotation must not be sent to the new connection')
+        self.assertEqual('AT-new', client._access_token,
+                         'the new connection must keep its own token')
+        self.assertIsNone(client._refresh_pending,
+                          'the claim belongs to the new connection and must be left alone')
+
     def test_send_failure_clears_the_claim(self):
         client = self.client()
         client._access_token = 'AT-1'
