@@ -17,6 +17,7 @@ from tigeropen.auth.oauth2.token import current_millis
 from tigeropen.push.network.exception import ConnectFailedException
 from tigeropen.auth.oauth2.session_manager import DEFAULT_REFRESH_AHEAD_MILLIS
 from tigeropen.push.protobuf_push_client import (
+    TOKEN_EXCHANGE_TIMEOUT_MILLIS,
     TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS,
     ProtobufPushClient,
     _REFRESH_IN_PROGRESS,
@@ -328,6 +329,45 @@ class RotationConcurrencyTest(PushTestBase):
         self.sessions.token = 'AT-2'
         client._refresh_pending = 'AT-old'
         client._refresh_sent_at = current_millis() - TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS - 1
+
+        client.on_heartbeat(Frame(0))
+
+        self.assertTrue(wait_until(lambda: self.refresh_frames()))
+        self.assertEqual('AT-2', self.refresh_frames()[0].refreshToken.accessToken)
+
+    def test_a_slow_exchange_is_not_mistaken_for_a_lost_reply(self):
+        """An exchange still running must not be expired on the reply budget.
+
+        The exchange has its own HTTP timeouts and can outlast the reply budget, so treating
+        it as a lost acknowledgement would start a second exchange while the first is still
+        going. The second one presents a refresh token the first has already rotated away.
+        """
+        client = self.client()
+        client._access_token = 'AT-1'
+        self.sessions.token = 'AT-2'
+        client._refresh_pending = _REFRESH_IN_PROGRESS
+
+        # Which of the two budgets is larger depends on the HTTP timeouts, so the exchange
+        # budget is widened here: what this pins is that an in-progress claim is judged on
+        # its own budget, not on the reply budget.
+        with mock.patch('tigeropen.push.protobuf_push_client.TOKEN_EXCHANGE_TIMEOUT_MILLIS',
+                        TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS + 20_000):
+            client._refresh_sent_at = (current_millis()
+                                       - TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS - 1_000)
+            client.on_heartbeat(Frame(0))
+
+        self.assertEqual(0, self.sessions.exchanges,
+                         'a second exchange must not be started while the first is running')
+        self.assertEqual(_REFRESH_IN_PROGRESS, client._refresh_pending)
+
+    def test_an_exchange_past_its_own_budget_frees_the_next_attempt(self):
+        """The exchange budget still has to expire, or a thread that died without clearing
+        the claim would block every later rotation."""
+        client = self.client()
+        client._access_token = 'AT-1'
+        self.sessions.token = 'AT-2'
+        client._refresh_pending = _REFRESH_IN_PROGRESS
+        client._refresh_sent_at = current_millis() - TOKEN_EXCHANGE_TIMEOUT_MILLIS - 1_000
 
         client.on_heartbeat(Frame(0))
 

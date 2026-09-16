@@ -9,6 +9,7 @@ import time
 from itertools import accumulate, zip_longest
 
 from tigeropen.auth.authentication import AuthenticationType, RequestAuthContext
+from tigeropen.auth.oauth2.http_utils import CONNECT_TIMEOUT_SECONDS, READ_TIMEOUT_SECONDS
 from tigeropen.push.thread_pool import CallbackThreadPoolExecutor
 from tigeropen.common.consts.push_types import ResponseType
 from tigeropen.common.util.common_utils import get_enum_value
@@ -32,6 +33,11 @@ else:
 
 # Maximum wait for a REFRESH_TOKEN acknowledgement before pending state is reset.
 TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS = 30 * 1000
+
+# Maximum wait for the token exchange that precedes the frame. Derived from the HTTP
+# timeouts of that exchange, with headroom: a shorter limit would let a slow authorization
+# server look like a lost acknowledgement and start a second exchange.
+TOKEN_EXCHANGE_TIMEOUT_MILLIS = (CONNECT_TIMEOUT_SECONDS + READ_TIMEOUT_SECONDS + 10) * 1000
 
 # Internal single-flight marker for token exchange; never transmitted as a credential.
 _REFRESH_IN_PROGRESS = '__refresh_in_progress__'
@@ -205,13 +211,16 @@ class ProtobufPushClient(ConnectionListener):
         """
         with self._refresh_lock:
             if self._refresh_pending is not None:
-                if _now_millis() - self._refresh_sent_at < TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS:
-                    # Still waiting for a reply; do not send a second one. This also
-                    # covers an exchange still running, since the marker is claimed first.
+                # Two phases with different budgets: the marker is claimed before the token
+                # exchange starts, and the acknowledgement is only awaited once the frame has
+                # gone out. The timestamp is re-taken at that point.
+                in_progress = self._refresh_pending == _REFRESH_IN_PROGRESS
+                limit = (TOKEN_EXCHANGE_TIMEOUT_MILLIS if in_progress
+                         else TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS)
+                if _now_millis() - self._refresh_sent_at < limit:
                     return
-                # Expire pending state when an acknowledgement is not received.
-                self.logger.info('refresh token got no reply within %sms',
-                                 TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS)
+                self.logger.info('refresh token %s did not finish within %sms',
+                                 'exchange' if in_progress else 'reply', limit)
                 self._refresh_pending = None
                 self._refresh_sent_at = 0
 

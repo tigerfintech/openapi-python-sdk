@@ -13,10 +13,10 @@ from tigeropen.auth.oauth2.exceptions import Category, OAuth2Exception
 
 logger = logging.getLogger(__name__)
 
-#: Calls in the authorization flow are interactive, so the timeouts are generous.
-#: Same values as the Java SDK.
-CONNECT_TIMEOUT_SECONDS = 10
-READ_TIMEOUT_SECONDS = 30
+#: Every call here is a small JSON exchange with the authorization server, so a request that
+#: has not answered in this long is not going to. Same values as the Java SDK.
+CONNECT_TIMEOUT_SECONDS = 5
+READ_TIMEOUT_SECONDS = 10
 
 _JSON_CONTENT_TYPE = 'application/json; charset=utf-8'
 _FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded; charset=utf-8'

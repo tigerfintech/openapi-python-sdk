@@ -412,7 +412,7 @@ class OAuth2SessionManager:
         superseded = stored is not None and stored.access_token != rejected_token.access_token
         if not superseded:
             # Nothing newer exists, so the rejection is about the authorization itself.
-            self._forget_rejected_authorization(rejected, rejected_token.client_id)
+            self._forget_rejected_authorization(rejected, rejected_token)
             raise rejected
 
         logger.info('refresh was rejected but the token store holds a newer credential,'
@@ -422,13 +422,13 @@ class OAuth2SessionManager:
             # Already refreshed elsewhere, so no second request is needed.
             return stored
         if not stored.has_refresh_token():
-            self._forget_rejected_authorization(rejected, rejected_token.client_id)
+            self._forget_rejected_authorization(rejected, rejected_token)
             raise rejected
         try:
             return self._exchange_refresh_token(stored)
         except _RejectedGrant as second_rejection:
-            # The newest stored credential was refused too, so the authorization is gone.
-            self._forget_rejected_authorization(second_rejection, stored.client_id)
+            # The credential adopted above was refused too.
+            self._forget_rejected_authorization(second_rejection, stored)
             raise
 
     def _exchange_refresh_token(self, base):
@@ -461,10 +461,24 @@ class OAuth2SessionManager:
                            ' refresh: %s', e)
             return None
 
-    def _forget_rejected_authorization(self, rejected, client_id):
-        """Remove the local token, and the dynamic registration when that was refused."""
-        if client_id:
+    def _forget_rejected_authorization(self, rejected, rejected_token):
+        """Remove the local token, and the dynamic registration when that was refused.
+
+        Only the credential that was refused is removed, and only while it is still the one
+        on disk. Another process sharing the store may have replaced it in the meantime, and
+        that replacement was never refused.
+
+        :param rejected_token: the token whose refresh the server refused
+        """
+        client_id = rejected_token.client_id if rejected_token is not None else None
+        stored = self._reload_from_store(client_id) if client_id else None
+        if stored is not None and stored.access_token != rejected_token.access_token:
+            logger.info('a newer credential was stored while this one was refused,'
+                        ' keeping it. client_id:%s', client_id)
+        elif client_id:
             self._store.delete_token(client_id)
+        # The in-memory copy is the refused one either way. Dropping it makes the next call
+        # read whatever is on disk.
         self._token = None
         self._forget_rejected_registration(rejected)
 
