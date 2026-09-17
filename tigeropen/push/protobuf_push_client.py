@@ -4,8 +4,12 @@
 # @Author  : sukai
 import logging
 import sys
+import threading
+import time
 from itertools import accumulate, zip_longest
 
+from tigeropen.auth.authentication import AuthenticationType, RequestAuthContext
+from tigeropen.auth.oauth2.http_utils import CONNECT_TIMEOUT_SECONDS, READ_TIMEOUT_SECONDS
 from tigeropen.push.thread_pool import CallbackThreadPoolExecutor
 from tigeropen.common.consts.push_types import ResponseType
 from tigeropen.common.util.common_utils import get_enum_value
@@ -26,6 +30,25 @@ if sys.platform == 'linux' or sys.platform == 'linux2':
     KEEPALIVE = True
 else:
     KEEPALIVE = False
+
+# Maximum wait for a REFRESH_TOKEN acknowledgement before pending state is reset.
+TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS = 30 * 1000
+
+# Maximum wait for the token exchange that precedes the frame. Derived from the HTTP
+# timeouts of that exchange, with headroom: a shorter limit would let a slow authorization
+# server look like a lost acknowledgement and start a second exchange.
+TOKEN_EXCHANGE_TIMEOUT_MILLIS = (CONNECT_TIMEOUT_SECONDS + READ_TIMEOUT_SECONDS + 10) * 1000
+
+# Internal single-flight marker for token exchange; never transmitted as a credential.
+_REFRESH_IN_PROGRESS = '__refresh_in_progress__'
+
+_SUCCESS_CODE = 0
+
+_BEARER_PREFIX = 'Bearer '
+
+
+def _now_millis():
+    return int(time.time() * 1000)
 
 class ProtobufPushClient(ConnectionListener):
     def __init__(self, host, port, use_ssl=True, connection_timeout=30, heartbeats=(10 * 1000, 10 * 1000),
@@ -69,17 +92,46 @@ class ProtobufPushClient(ConnectionListener):
         self._heartbeats = heartbeats
         self._client_config = client_config
         self._use_full_tick = self._client_config.use_full_tick if self._client_config else False
+        self._authentication = getattr(client_config, 'authentication', None) if client_config else None
+        self._oauth2_mode = self._authentication is not None \
+            and self._authentication.auth_type == AuthenticationType.OAUTH2
+        # The connection stores the credential used for its current authentication state.
+        # Reconnection obtains and stores a fresh value.
+        self._access_token = None
+        # Token carried by an in-flight REFRESH_TOKEN; None when none is outstanding
+        self._refresh_pending = None
+        self._refresh_sent_at = 0
+        self._refresh_lock = threading.Lock()
         self.logger = logging.getLogger('tiger_openapi')
         try:
             _patch_ssl()
         except:
             pass
 
-    def connect(self, tiger_id, private_key):
-        self._tiger_id = tiger_id
-        self._private_key = private_key
-        self._sign = sign_with_rsa(self._private_key, self._tiger_id, 'utf-8')
+    def connect(self, tiger_id=None, private_key=None):
+        """
+        :param tiger_id: required in signature mode; unused in OAuth2 mode
+        :param private_key: required in signature mode; unused in OAuth2 mode
+        """
+        if self._oauth2_mode:
+            # tigerId and the private key play no part in OAuth2 mode. An empty string is
+            # the proto3 default and is not serialized.
+            self._tiger_id = ''
+            self._sign = ''
+        else:
+            self._tiger_id = tiger_id
+            self._private_key = private_key
+            self._sign = sign_with_rsa(self._private_key, self._tiger_id, 'utf-8')
         self._connect()
+
+    def _current_access_token(self):
+        """Return a currently usable access token, refreshing if close to expiry."""
+        if not self._oauth2_mode:
+            return None
+        context = RequestAuthContext({})
+        self._authentication.apply(context)
+        header = context.authorization_header or ''
+        return header[len(_BEARER_PREFIX):] if header.startswith(_BEARER_PREFIX) else header
 
     def _connect(self):
         try:
@@ -94,13 +146,25 @@ class ProtobufPushClient(ConnectionListener):
                                           heartbeats=self._heartbeats, reconnect_attempts_max=60,
                                           callback_executor=self.callback_executor)
         self._connection.set_listener('push', self)
+        # Obtain a fresh credential for every connection attempt. Signature mode uses None.
+        access_token = None
+        if self._oauth2_mode:
+            with self._refresh_lock:
+                self._refresh_pending = None
+                self._refresh_sent_at = 0
+            access_token = self._current_access_token()
+            if not access_token:
+                # Do not initiate an OAuth 2.0 connection without a credential.
+                raise ConnectFailedException('no oauth2 access token available, cannot connect')
+            self._access_token = access_token
         try:
             if self.use_ssl:
                 self._connection.set_ssl([(self.host, self.port)])
             con_req = ProtoMessageUtil.build_connect_message(self._tiger_id, self._sign,
                                                              send_interval=self._heartbeats[0],
                                                              receive_interval=self._heartbeats[1],
-                                                             use_full_tick=self._use_full_tick
+                                                             use_full_tick=self._use_full_tick,
+                                                             access_token=access_token
                                                              )
             self._connection.connect(con_req, wait=True,
                                      )
@@ -119,6 +183,13 @@ class ProtobufPushClient(ConnectionListener):
     def on_disconnected(self):
         if self.disconnect_callback:
             self.disconnect_callback()
+        elif self._oauth2_mode:
+            # Reconnect with a newly resolved token without propagating failures into the
+            # receiving thread.
+            try:
+                self._connect()
+            except Exception as e:
+                self.logger.error('reconnect with oauth2 failed: %s', e, exc_info=True)
         else:
             self._connect()
 
@@ -127,8 +198,132 @@ class ProtobufPushClient(ConnectionListener):
 
     def on_heartbeat(self, frame):
         self.logger.debug('heart-beat')
+        if self._oauth2_mode:
+            self._refresh_token_if_needed()
         if self.heartbeat_callback:
             self.heartbeat_callback(frame)
+
+    def _refresh_token_if_needed(self):
+        """Rotate a near-expiry access token from the heartbeat thread.
+
+        A single-flight marker permits only one rotation at a time. Pending state expires
+        when no acknowledgement arrives, allowing a later attempt.
+        """
+        with self._refresh_lock:
+            if self._refresh_pending is not None:
+                # Two phases with different budgets: the marker is claimed before the token
+                # exchange starts, and the acknowledgement is only awaited once the frame has
+                # gone out. The timestamp is re-taken at that point.
+                in_progress = self._refresh_pending == _REFRESH_IN_PROGRESS
+                limit = (TOKEN_EXCHANGE_TIMEOUT_MILLIS if in_progress
+                         else TOKEN_REFRESH_REPLY_TIMEOUT_MILLIS)
+                if _now_millis() - self._refresh_sent_at < limit:
+                    return
+                self.logger.info('refresh token %s did not finish within %sms',
+                                 'exchange' if in_progress else 'reply', limit)
+                self._refresh_pending = None
+                self._refresh_sent_at = 0
+
+            sessions = getattr(self._authentication, 'session_manager', None)
+            current = sessions.status() if sessions is not None else None
+            if current is None:
+                return
+            # The server validates the token pinned on this connection, and the session may
+            # already have moved past it. Comparing the two covers every way the session can
+            # advance, so a session shared with HTTP or another connection is handled as well.
+            pinned = self._access_token
+            diverged = pinned is not None and pinned != current.access_token
+            # The refresh window belongs to the session, so ask for it rather than keep a copy.
+            if not diverged and not sessions.should_refresh_soon():
+                return
+
+            # Claimed before the exchange starts: the next heartbeat must find a rotation
+            # already in progress
+            self._refresh_pending = _REFRESH_IN_PROGRESS
+            self._refresh_sent_at = _now_millis()
+            # The rotation belongs to the connection that claimed it.
+            connection = self._connection
+
+        try:
+            # The exchange is a synchronous HTTP call and must not block the callback thread
+            threading.Thread(target=self._obtain_and_send_token, args=(connection,),
+                             name='tiger-socket-token-refresh', daemon=True).start()
+        except Exception as e:
+            self._clear_refresh_claim(connection)
+            self.logger.error('refresh token not scheduled: %s', e, exc_info=True)
+
+    def _obtain_and_send_token(self, connection):
+        """Exchange the token and hand it to ``connection``, off the callback thread.
+
+        :param connection: the connection this rotation was claimed for
+        """
+        try:
+            new_token = self._current_access_token()
+        except Exception as e:
+            self._clear_refresh_claim(connection)
+            self.logger.error('refresh token fail: %s', e, exc_info=True)
+            return
+        if not new_token:
+            # A failed refresh is no reason to drop the connection: the token pinned on
+            # the server is usually still valid, and the server closes the connection
+            # itself if it is not
+            self._clear_refresh_claim(connection)
+            self.logger.warning('refresh token skipped, no usable access token')
+            return
+
+        with self._refresh_lock:
+            if connection is not self._connection:
+                # Reconnected while the exchange was running. The new connection has its own
+                # token, and the claim now belongs to it.
+                self.logger.info('refresh token abandoned, connection was replaced')
+                return
+            if new_token == self._access_token:
+                # Unchanged: the session manager's window had not opened yet, so it handed
+                # back the token the server already has
+                self._refresh_pending = None
+                self._refresh_sent_at = 0
+                return
+            self._refresh_pending = new_token
+            self._refresh_sent_at = _now_millis()
+        try:
+            connection.send_frame(ProtoMessageUtil.build_refresh_token_message(new_token))
+            self.logger.info('refresh token sent')
+        except Exception as e:
+            self._clear_refresh_claim(connection)
+            self.logger.error('send refresh token fail: %s', e, exc_info=True)
+
+    def _clear_refresh_claim(self, connection=None):
+        """Release the rotation claim.
+
+        :param connection: when given, the claim is only released if that connection is
+            still the current one
+        """
+        with self._refresh_lock:
+            if connection is not None and connection is not self._connection:
+                return
+            self._refresh_pending = None
+            self._refresh_sent_at = 0
+
+    def on_refresh_token(self, frame):
+        """Apply the server's acknowledgement of a rotation.
+
+        Only moves the pinned token forward on success. On rejection it stays as it was,
+        matching what the server still has: the server explicitly leaves its own
+        connection attributes untouched when it rejects a rotation.
+        """
+        with self._refresh_lock:
+            pending = self._refresh_pending
+            self._refresh_pending = None
+            self._refresh_sent_at = 0
+            if frame.code == _SUCCESS_CODE:
+                # Never pin the in-progress placeholder: a reply arriving while it is
+                # still held did not come from a message we sent
+                if pending is not None and pending != _REFRESH_IN_PROGRESS:
+                    self._access_token = pending
+        if frame.code == _SUCCESS_CODE:
+            self.logger.info('refresh token accepted. detail:%s', frame.msg)
+        else:
+            self.logger.warning('refresh token rejected. code:%s, msg:%s', frame.code, frame.msg)
 
     def on_error(self, frame):
         if frame.code == 4001 and self.kickout_callback:

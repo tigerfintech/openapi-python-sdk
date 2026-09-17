@@ -16,6 +16,10 @@ message SocketCommon {
     MESSAGE = 7;
     HEARTBEAT = 8;
     ERROR = 9;
+    // Rotate the OAuth2 access token in place, without reconnecting. An older server
+    // falls through to the default branch of its command switch and never replies, so
+    // the client abandons the rotation after a timeout.
+    REFRESH_TOKEN = 10;
   }
 
   // data type

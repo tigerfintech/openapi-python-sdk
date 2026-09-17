@@ -170,6 +170,10 @@ class TigerOpenClientConfig:
             self.refresh_server_info()
         self.inited = False
         self._channel = ''
+        # Authentication method. None keeps the original signature authentication
+        # (tiger_id + private key) and behaves exactly as before. Once set to an
+        # OAuth2Authentication, tiger_id and private_key play no part at all.
+        self.authentication = None
 
     @property
     def tiger_id(self):
@@ -605,7 +609,8 @@ class TigerOpenClientConfig:
 
 def get_client_config(private_key_path=None, tiger_id=None, account=None, sandbox_debug=False, sign_type=None, timeout=None,
                       language=None, charset=None, server_url=None, socket_host_port=None, secret_key=None,
-                      enable_dynamic_domain=True, timezone=None, license=None, props_path=None):
+                      enable_dynamic_domain=True, timezone=None, license=None, props_path=None,
+                      authentication=None):
     """
     生成客户端配置
     :param private_key_path: 私钥文件路径, 如 '/Users/tiger/.ssh/rsa_private_key.pem'
@@ -623,6 +628,10 @@ def get_client_config(private_key_path=None, tiger_id=None, account=None, sandbo
     :param timezone:
     :param license: account license, like TBSG/TBNZ
     :param props_path: 配置文件路径, 可以是文件夹路径或文件路径. 优先级: 参数值 > 环境变量TIGEROPEN_PROPS_PATH > 默认值'.'
+    :param authentication: authentication method; pass an OAuth2Authentication to enable
+        OAuth2. Omitted (default) keeps signature authentication, behaving exactly as
+        before. When passed, private_key_path and tiger_id play no part and are not
+        overwritten with None
     :return:
     
     注意: 配置的优先级为：参数值 > 环境变量 > 配置文件
@@ -638,8 +647,13 @@ def get_client_config(private_key_path=None, tiger_id=None, account=None, sandbo
     """
     config = TigerOpenClientConfig(sandbox_debug=sandbox_debug, enable_dynamic_domain=enable_dynamic_domain,
                                    props_path=props_path)
-    config.private_key = read_private_key(private_key_path)
-    config.tiger_id = tiger_id
+    if authentication is not None:
+        # OAuth2 mode: do not read a private key (there most likely is no such file) and
+        # do not overwrite tiger_id with None
+        config.authentication = authentication
+    else:
+        config.private_key = read_private_key(private_key_path)
+        config.tiger_id = tiger_id
     config.account = account
     if sign_type:
         config.sign_type = sign_type

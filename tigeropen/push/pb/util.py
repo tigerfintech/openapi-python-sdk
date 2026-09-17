@@ -46,7 +46,12 @@ class ProtoMessageUtil:
 
     @classmethod
     def build_connect_message(cls, tiger_id, sign, version='3', send_interval=0, receive_interval=0,
-                              use_full_tick=False):
+                              use_full_tick=False, access_token=None):
+        """
+        :param access_token: OAuth2 access token. When None (default) the field is not
+            set at all; an unset proto3 optional field is not serialized, so the connect
+            message stays byte-identical to before.
+        """
         if send_interval < 0 or receive_interval < 0:
             raise ValueError("sendInterval < 0 or receiveInterval < 0")
         request = Request_pb2.Request()
@@ -61,7 +66,28 @@ class ProtoMessageUtil:
         con.sendInterval = send_interval
         con.receiveInterval = receive_interval
         con.useFullTick = use_full_tick
+        if access_token:
+            con.accessToken = access_token
         request.connect.CopyFrom(con)
+        return request
+
+    @classmethod
+    def build_refresh_token_message(cls, access_token):
+        """Rotate the access token in place, without reconnecting.
+
+        An older server does not know this command, drops it silently and never replies,
+        so the caller must time out rather than wait forever.
+
+        :raise ValueError: when ``access_token`` is empty. A frame without a credential is
+            not something the server can act on, and sending it silently would look like a
+            rotation that the server simply ignored.
+        """
+        if not access_token:
+            raise ValueError('access_token must not be empty')
+        request = Request_pb2.Request()
+        request.command = SocketCommon_pb2.SocketCommon.REFRESH_TOKEN
+        request.id = cls.increment()
+        request.refreshToken.accessToken = access_token
         return request
 
     @classmethod

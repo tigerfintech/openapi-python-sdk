@@ -147,7 +147,17 @@ class TestIntegTradeClient(unittest.TestCase):
 
         Falls back to skipping the test when no live quote is available,
         rather than guessing a price that may or may not be accepted.
+
+        Class-level cache per symbol: each call issues two RPCs
+        (get_stock_briefs + get_trade_metas), and several tests place
+        orders on the same symbol.
         """
+        if not hasattr(self.__class__, "_safe_hk_buy_prices"):
+            self.__class__._safe_hk_buy_prices = {}
+        cached = self.__class__._safe_hk_buy_prices.get(symbol)
+        if cached is not None:
+            return cached
+
         try:
             briefs = self._quote_client().get_stock_briefs(symbols=[symbol], sec_type=SecurityType.STK)
         except (ApiException, RequestException, ResponseException) as e:
@@ -157,10 +167,17 @@ class TestIntegTradeClient(unittest.TestCase):
             self.skipTest(f"no live quote for {symbol}, cannot compute a safe buy price")
             return None
         raw = briefs.iloc[0]['latest_price']
-        if raw is None or (isinstance(raw, float) and math.isnan(raw)):
+        if raw is None:
             self.skipTest(f"no valid latest_price for {symbol}: {raw}")
             return None
-        latest_price = float(raw)
+        if isinstance(raw, float) and math.isnan(raw):
+            self.skipTest(f"no valid latest_price for {symbol}: {raw}")
+            return None
+        try:
+            latest_price = float(raw)
+        except (ValueError, TypeError):
+            self.skipTest(f"unparseable latest_price for {symbol}: {raw}")
+            return None
         if latest_price <= 0:
             self.skipTest(f"non-positive latest_price for {symbol}: {latest_price}")
             return None
@@ -173,14 +190,30 @@ class TestIntegTradeClient(unittest.TestCase):
         if metas is None or metas.empty or 'min_tick' not in metas.columns:
             self.skipTest(f"no trade metas for {symbol}, cannot align to min_tick")
             return None
-        min_tick = float(metas.iloc[0]['min_tick'])
+        raw_tick = metas.iloc[0]['min_tick']
+        if raw_tick is None:
+            self.skipTest(f"no valid min_tick for {symbol}: {raw_tick}")
+            return None
+        try:
+            min_tick = float(raw_tick)
+        except (ValueError, TypeError):
+            self.skipTest(f"unparseable min_tick for {symbol}: {raw_tick}")
+            return None
         if min_tick <= 0:
             self.skipTest(f"non-positive min_tick for {symbol}: {min_tick}")
             return None
 
         raw_price = latest_price * 0.5
         ticks = math.floor(raw_price / min_tick)
-        return round(ticks * min_tick, 4)
+        price = round(ticks * min_tick, 4)
+        if price <= 0:
+            # Half the market price is below one tick, so there is no tick-aligned price that
+            # is both positive and far from market. A zero-price order is rejected outright,
+            # which would surface as a failure rather than the skip this helper promises.
+            self.skipTest('no safe buy price for %s: latest=%s min_tick=%s'
+                          % (symbol, latest_price, min_tick))
+        self.__class__._safe_hk_buy_prices[symbol] = price
+        return price
 
     def _resolve_us_option_contract(self):
         """Return a US OPT Contract for AAPL: nearest expiry, near-ATM CALL.
