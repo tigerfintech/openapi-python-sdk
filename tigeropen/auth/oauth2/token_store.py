@@ -95,10 +95,16 @@ class OAuth2TokenStore:
         self._write_atomic(path, json.dumps(token.to_dict(), ensure_ascii=False, indent=2))
 
     def delete_token(self, client_id):
-        """Delete authorization state while retaining client registration."""
+        """Delete authorization state while retaining client registration.
+
+        :return: the path removed, or None when there was nothing to remove. A clientId is
+            not its own file name, so a caller reporting what it deleted has to be told
+            rather than build the path itself
+        """
         if not client_id:
-            return
-        self._delete(self._token_file(client_id))
+            return None
+        path = self._token_file(client_id)
+        return path if self._delete(path) else None
 
     def load_client_id(self, issuer):
         registration = self.load_client_registration(issuer)
@@ -136,11 +142,14 @@ class OAuth2TokenStore:
 
     @staticmethod
     def _delete(path):
+        """:return: True when the file was there and is now gone"""
         try:
             if os.path.exists(path):
                 os.remove(path)
+                return True
         except Exception:
             logger.error('delete file fail:%s', path, exc_info=True)
+        return False
 
     @staticmethod
     def _write_atomic(path, content):

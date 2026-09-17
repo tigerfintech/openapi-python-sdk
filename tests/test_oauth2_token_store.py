@@ -85,6 +85,31 @@ class RoundTripTest(StoreTestBase):
         self.assertEqual(Category.STORAGE_FAILED, ctx.exception.category)
 
 
+class DeleteTokenTest(StoreTestBase):
+    """delete_token reports the path it removed, because the caller cannot derive it."""
+
+    def test_returns_the_path_it_removed(self):
+        self.store.save_token(a_token())
+        self.assertEqual(self.token_path(), self.store.delete_token(CLIENT_ID))
+        self.assertFalse(os.path.exists(self.token_path()))
+
+    def test_returns_none_when_there_was_nothing_to_remove(self):
+        self.assertIsNone(self.store.delete_token('never-saved'))
+
+    def test_returns_none_for_a_missing_client_id(self):
+        for empty in (None, ''):
+            self.assertIsNone(self.store.delete_token(empty))
+
+    def test_the_reported_path_is_the_sanitised_one(self):
+        """A clientId with a separator is not its own file name, and a caller told the raw
+        value would look at a file that was never written."""
+        raw = 'a/b'
+        self.store.save_token(a_token(client_id=raw))
+        removed = self.store.delete_token(raw)
+        self.assertEqual(os.path.join(self.home, 'tokens', 'a_b.json'), removed)
+        self.assertFalse(os.path.exists(removed))
+
+
 class PermissionTest(StoreTestBase):
     """I-01: the token file is a credential at rest."""
 

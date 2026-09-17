@@ -80,9 +80,10 @@ def remove_stored_credentials(issuer=None, client_id=None):
 
     removed = []
     for cid in sorted(client_ids):
-        path = os.path.join(store.home, 'tokens', cid + '.json')
-        if os.path.exists(path):
-            store.delete_token(cid)
+        # The store owns the naming rule: a clientId is sanitised before it becomes a file
+        # name, so asking it what it deleted is the only way to report the real path.
+        path = store.delete_token(cid)
+        if path:
             removed.append(path)
     for reg in registrations:
         os.remove(reg['path'])

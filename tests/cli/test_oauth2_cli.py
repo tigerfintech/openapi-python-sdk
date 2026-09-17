@@ -324,6 +324,28 @@ class TestRemoveStoredCredentials(unittest.TestCase):
         self._remove()
         self.assertFalse(os.path.exists(path))
 
+    def test_a_client_id_that_is_not_its_own_file_name_is_still_cleaned_up(self):
+        """clientId comes from the server or from configuration, and is sanitised before it
+        becomes a file name. Rebuilding the path from the raw value looks at a file that was
+        never written, so the token survives while its registration is deleted."""
+        from tigeropen.auth.oauth2.token_store import _safe_file_name
+        for raw in ('a/b', '../../etc/passwd'):
+            with self.subTest(client_id=raw):
+                reg = self._write('clients/%s-cli.json' % _safe_file_name(raw),
+                                  {'issuer': 'https://issuer', 'client_id': raw,
+                                   'client_name': 'n', 'registered_scopes': 's'})
+                token = self._write('tokens/%s.json' % _safe_file_name(raw),
+                                    {'schema_version': 1, 'client_id': raw,
+                                     'issuer': 'https://issuer', 'access_token': 'AT',
+                                     'refresh_token': 'RT', 'expires_at': 0})
+                self.assertNotEqual(os.path.basename(token), raw + '.json')
+
+                _, removed = self._remove()
+
+                self.assertFalse(os.path.exists(token), 'orphaned token left behind')
+                self.assertFalse(os.path.exists(reg))
+                self.assertIn(token, removed, 'the reported path must be the real one')
+
     def test_nothing_stored_reports_nothing_removed(self):
         _, removed = self._remove()
         self.assertEqual([], removed)
