@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 """Where CLI settings come from. One resolver, shared by every command."""
+import logging
 import os
 from pathlib import Path
 
 from jproperties import Properties
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_DIR = str(Path.home() / '.tigeropen')
 
@@ -92,6 +95,8 @@ def _has_oauth2_authorization(issuer, client_id):
     try:
         from tigeropen.cli.oauth2_config import build_session_manager
         return build_session_manager(issuer=issuer, client_id=client_id).is_authorized()
-    except Exception:
-        # An unreadable store answers nothing; leave it to the other signals.
+    except Exception as e:
+        # Broad on purpose: an unreadable or unknown-version store answers nothing, and this
+        # runs before every command, so it must never be what stops one.
+        logger.debug('cannot tell whether an authorization is stored: %s', e)
         return False

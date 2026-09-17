@@ -3,6 +3,7 @@
 Tests for CLI OAuth2 support: config init --auth oauth2, auth commands, and the
 OAuth2 branch of build_config / push connect.
 """
+import logging
 import os
 import unittest
 import tempfile
@@ -229,6 +230,38 @@ class TestBuildConfigOAuth2(unittest.TestCase):
         config = build_config(ctx_obj)
         self.assertIsNone(config.authentication)
         self.assertEqual(config.tiger_id, 'test_id')
+
+
+class TestSdkLogging(unittest.TestCase):
+    """The SDK logs through more than one tree, and silencing one leaves the rest on stderr."""
+
+    def setUp(self):
+        self._root_level = logging.getLogger().level
+
+    def tearDown(self):
+        from tigeropen.cli.main import SDK_LOGGERS
+        for name in SDK_LOGGERS:
+            logging.getLogger(name).setLevel(logging.NOTSET)
+        logging.getLogger().setLevel(self._root_level)
+
+    def test_every_sdk_logger_tree_is_silenced(self):
+        """``tiger_openapi`` and ``tigeropen`` are siblings: neither covers the other."""
+        from tigeropen.cli.main import _configure_sdk_logging
+        _configure_sdk_logging(False)
+        for name in ('tiger_openapi',
+                     'tigeropen',
+                     'tigeropen.auth.oauth2.session_manager',
+                     'tigeropen.cli.settings'):
+            self.assertEqual(logging.CRITICAL,
+                             logging.getLogger(name).getEffectiveLevel(), name)
+
+    def test_verbose_reaches_the_root_logger_too(self):
+        """The push transport logs through the root logger, so a stream cannot be diagnosed
+        without it."""
+        from tigeropen.cli.main import _configure_sdk_logging
+        _configure_sdk_logging(True)
+        self.assertEqual(logging.DEBUG, logging.getLogger('tigeropen').getEffectiveLevel())
+        self.assertEqual(logging.DEBUG, logging.getLogger().getEffectiveLevel())
 
 
 class TestSettingsResolution(unittest.TestCase):

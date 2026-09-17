@@ -156,18 +156,34 @@ def cli(ctx, config_path, output_format, language, auth_mode, issuer, client_id,
     _configure_sdk_logging(verbose)
 
 
+#: The SDK logs through two named trees: the clients use ``tiger_openapi``, while modules
+#: calling ``getLogger(__name__)`` sit under ``tigeropen``. Both are needed; neither is a
+#: parent of the other.
+SDK_LOGGERS = ('tigeropen', 'tiger_openapi')
+
+
 def _configure_sdk_logging(verbose):
-    """Keep the SDK's own logger off the terminal unless -v is given.
+    """Keep the SDK's own logger output off the terminal unless -v is given.
 
     It logs with exc_info=True and has no handler of its own, so those tracebacks reach stderr
     through logging's last resort. This CLI reports errors itself.
+
+    -v also turns on the root logger: the push transport logs through it, and a stream cannot
+    be diagnosed without those lines.
     """
-    sdk_logger = logging.getLogger('tiger_openapi')
-    sdk_logger.setLevel(logging.DEBUG if verbose else logging.CRITICAL)
-    if verbose and not sdk_logger.handlers:
-        handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s'))
-        sdk_logger.addHandler(handler)
+    level = logging.DEBUG if verbose else logging.CRITICAL
+    for name in SDK_LOGGERS:
+        logging.getLogger(name).setLevel(level)
+    if verbose:
+        # Set explicitly rather than through basicConfig, which does nothing at all once the
+        # root logger has a handler.
+        root = logging.getLogger()
+        root.setLevel(logging.DEBUG)
+        if not root.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(
+                logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s'))
+            root.addHandler(handler)
 
 
 @cli.command('version')
