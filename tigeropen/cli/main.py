@@ -193,10 +193,17 @@ def version():
 
 
 @cli.command('uninstall')
-@click.option('--remove-config', is_flag=True, help='Also remove ~/.tigeropen/ configuration directory.')
+@click.option('--remove-config', is_flag=True,
+              help='Also remove the configuration file and this CLI\'s OAuth2 credentials.')
 @click.option('-y', '--yes', is_flag=True, help='Skip confirmation prompts.')
-def uninstall(remove_config, yes):
-    """Uninstall tigeropen and optionally remove configuration."""
+@click.pass_context
+def uninstall(ctx, remove_config, yes):
+    """Uninstall tigeropen and optionally remove configuration.
+
+    Credentials live in two places: signature ones in the configuration directory, OAuth2
+    ones in the token store. Both are cleared by --remove-config, but only the CLI's own
+    OAuth2 credentials: the token store is shared with the SDKs.
+    """
     import subprocess
     import shutil
     from pathlib import Path
@@ -204,11 +211,11 @@ def uninstall(remove_config, yes):
     if not yes:
         msg = 'Uninstall tigeropen?'
         if remove_config:
-            msg += ' (including ~/.tigeropen/ config directory)'
+            msg += ' (including the configuration file and this CLI\'s OAuth2 credentials)'
         if not click.confirm(msg):
             raise SystemExit(0)
 
-    # Remove config directory first (before pip uninstall removes the CLI itself)
+    # Remove local state first, before pip uninstall takes the CLI itself away
     if remove_config:
         config_dir = Path.home() / '.tigeropen'
         if config_dir.exists():
@@ -216,6 +223,7 @@ def uninstall(remove_config, yes):
             click.echo(f'Removed {config_dir}')
         else:
             click.echo(f'{config_dir} not found, skipping.')
+        _remove_oauth2_credentials(ctx)
 
     # Run pip uninstall with the same Python interpreter
     click.echo('Uninstalling tigeropen...')
@@ -228,6 +236,30 @@ def uninstall(remove_config, yes):
     else:
         click.echo(f'pip uninstall failed:\n{result.stderr.strip()}', err=True)
         sys.exit(1)
+
+
+def _remove_oauth2_credentials(ctx):
+    """Revoke and delete the CLI's OAuth2 credentials, reporting what was left alone.
+
+    Nothing here may abort the uninstall: the package still has to come off even if the
+    store is unreadable or the authorization server cannot be reached.
+    """
+    from tigeropen.cli.oauth2_config import remove_stored_credentials
+    from tigeropen.cli.settings import resolve_settings
+    try:
+        settings = resolve_settings(ctx.obj or {})
+        revoked, removed = remove_stored_credentials(issuer=settings['issuer'],
+                                                     client_id=settings['client_id'])
+    except Exception as e:
+        click.echo(f'Could not remove OAuth2 credentials: {e}', err=True)
+        return
+    for path in removed:
+        click.echo(f'Removed {path}')
+    if not removed:
+        click.echo('No OAuth2 credentials stored for this CLI, skipping.')
+    if removed and not revoked:
+        click.echo('Note: the server was not reached, so the authorization may still be '
+                   'listed there. Remove it on the authorization page if you want it gone.')
 
 
 cli.add_command(auth)

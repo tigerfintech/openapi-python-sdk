@@ -3,6 +3,7 @@
 Tests for CLI OAuth2 support: config init --auth oauth2, auth commands, and the
 OAuth2 branch of build_config / push connect.
 """
+import json
 import logging
 import os
 import unittest
@@ -248,6 +249,95 @@ class TestCliRegistrationIdentity(unittest.TestCase):
         from tigeropen.auth.oauth2.session_manager import CLIENT_NAME as SDK_NAME
         from tigeropen.cli.oauth2_config import CLIENT_NAME as CLI_NAME
         self.assertNotEqual(SDK_NAME, CLI_NAME)
+
+
+class TestRemoveStoredCredentials(unittest.TestCase):
+    """The store root is shared with the SDKs, so deletion must be scoped by surface."""
+
+    def setUp(self):
+        self.home = os.environ['TIGEROPEN_HOME']
+        os.makedirs(os.path.join(self.home, 'clients'), exist_ok=True)
+        os.makedirs(os.path.join(self.home, 'tokens'), exist_ok=True)
+
+    def _write(self, rel, payload):
+        path = os.path.join(self.home, rel)
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(payload, f)
+        return path
+
+    def _seed(self, surface, client_id, issuer_hash='h1'):
+        reg = self._write('clients/%s-%s.json' % (issuer_hash, surface),
+                          {'issuer': 'https://issuer', 'client_id': client_id,
+                           'client_name': 'n', 'registered_scopes': 's'})
+        tok = self._write('tokens/%s.json' % client_id,
+                          {'schema_version': 1, 'client_id': client_id,
+                           'issuer': 'https://issuer', 'access_token': 'AT',
+                           'refresh_token': 'RT', 'expires_at': 0})
+        return reg, tok
+
+    def _remove(self, **kwargs):
+        from tigeropen.cli.oauth2_config import remove_stored_credentials
+        with mock.patch('tigeropen.cli.oauth2_config._revoke_quietly', return_value=True):
+            return remove_stored_credentials(**kwargs)
+
+    def test_other_surfaces_are_left_untouched(self):
+        """A shared root means a careless delete takes the Java SDK's authorization with it."""
+        cli_reg, cli_tok = self._seed('cli', 'cid-cli')
+        java_reg, java_tok = self._seed('sdk-java', 'cid-java')
+        py_reg, py_tok = self._seed('sdk-python', 'cid-py')
+
+        self._remove()
+
+        for path in (cli_reg, cli_tok):
+            self.assertFalse(os.path.exists(path), path)
+        for path in (java_reg, java_tok, py_reg, py_tok):
+            self.assertTrue(os.path.exists(path), path)
+
+    def test_the_store_root_is_never_removed(self):
+        self._seed('cli', 'cid-cli')
+        self._remove()
+        self.assertTrue(os.path.isdir(self.home))
+        self.assertTrue(os.path.isdir(os.path.join(self.home, 'tokens')))
+
+    def test_every_issuer_registered_by_the_cli_is_cleared(self):
+        """Switching issuers leaves one registration per issuer, all of them the CLI's."""
+        first = self._seed('cli', 'cid-1', issuer_hash='h1')
+        second = self._seed('cli', 'cid-2', issuer_hash='h2')
+        _, removed = self._remove()
+        for path in first + second:
+            self.assertFalse(os.path.exists(path), path)
+        self.assertEqual(4, len(removed))
+
+    def test_a_manual_client_id_has_its_token_removed(self):
+        """With a configured clientId there is no registration file to find the token by."""
+        token = self._write('tokens/manual-cid.json',
+                            {'schema_version': 1, 'client_id': 'manual-cid',
+                             'issuer': 'https://issuer', 'access_token': 'AT',
+                             'refresh_token': 'RT', 'expires_at': 0})
+        self._remove(client_id='manual-cid')
+        self.assertFalse(os.path.exists(token))
+
+    def test_an_unreadable_registration_is_still_removed(self):
+        path = os.path.join(self.home, 'clients', 'h1-cli.json')
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write('not json')
+        self._remove()
+        self.assertFalse(os.path.exists(path))
+
+    def test_nothing_stored_reports_nothing_removed(self):
+        _, removed = self._remove()
+        self.assertEqual([], removed)
+
+    def test_a_failed_revocation_does_not_stop_local_cleanup(self):
+        """The package is coming off either way; leaving the token behind is the worse
+        outcome."""
+        from tigeropen.cli.oauth2_config import remove_stored_credentials
+        _, token = self._seed('cli', 'cid-cli')
+        with mock.patch('tigeropen.cli.oauth2_config.build_session_manager',
+                        side_effect=RuntimeError('network down')):
+            revoked, removed = remove_stored_credentials()
+        self.assertFalse(revoked)
+        self.assertFalse(os.path.exists(token))
 
 
 class TestSdkLogging(unittest.TestCase):

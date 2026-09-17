@@ -61,11 +61,22 @@ tigeropen config path                    # 配置路径
 ```bash
 tigeropen version                        # SDK 版本
 tigeropen uninstall                      # 交互确认后执行 pip uninstall
-tigeropen uninstall --remove-config      # 同时删除 ~/.tigeropen/ 配置目录
+tigeropen uninstall --remove-config      # 同时清除本机凭证
 tigeropen uninstall -y                   # 跳过确认（慎用）
 ```
 
-> ⚠️ `--remove-config` 会**不可恢复地删除** `~/.tigeropen/`（含 tiger_id、私钥、token 等凭证），且删除发生在 `pip uninstall` 之前。与 `-y` 组合会跳过全部确认——除非确定要清空凭证，不要一起用。
+> ⚠️ `--remove-config` 会**不可恢复地删除**两处内容，删除发生在 `pip uninstall` 之前：
+>
+> | 路径 | 内容 | 删除范围 |
+> |---|---|---|
+> | `~/.tigeropen/` | 配置文件（`tiger_id`、私钥等签名凭证） | 整个目录 |
+> | `~/.tiger/openapi/`（或 `$TIGEROPEN_HOME`） | OAuth2 令牌与客户端注册 | **只删 CLI 自己的** |
+>
+> 令牌库由 CLI、Python SDK、Java SDK 共用（`clients/` 按入口分文件，`tokens/` 只按 clientId 命名），所以只删除 `-cli` 那一份注册及其对应令牌，其他入口的授权不受影响，根目录本身也不会被删。
+>
+> 删除前会先尝试在服务端撤销授权。撤销需要网络，失败时仍会清除本地文件并提示你去授权页手动移除。
+>
+> 与 `-y` 组合会跳过全部确认——除非确定要清空凭证，不要一起用。只想撤销 OAuth2 授权而保留安装，用 `tigeropen auth logout`。
 
 ## OAuth2 接入（本次新增）
 
