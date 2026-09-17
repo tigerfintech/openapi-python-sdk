@@ -1,1 +1,8 @@
 include requirements.txt
+
+# 构建产物不进 sdist —— 否则上一版的 dist/*.whl / dist/*.tar.gz 会被打进新 sdist。
+prune dist
+prune build
+prune logs
+global-exclude *.pyc
+global-exclude __pycache__/*
