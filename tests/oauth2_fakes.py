@@ -46,6 +46,9 @@ class FakeAuthorizationServer(_ThreadedServer):
 
     def __init__(self):
         self.calls = []
+        #: JSON request bodies keyed by path. Registration is posted as JSON, so it lands in
+        #: :attr:`calls` with an empty form and cannot be asserted on from there.
+        self.json_bodies = {}
         self.token_responses = []
         self.device_responses = []
         self.revoke_status = 200
@@ -90,6 +93,8 @@ class FakeAuthorizationServer(_ThreadedServer):
                 if self.path == '/revoke':
                     return self._send(server.revoke_status)
                 if self.path == '/register':
+                    with server.lock:
+                        server.json_bodies[self.path] = json.loads(raw)
                     return self._send(200, {'client_id': 'dyn-client',
                                             'scope': 'api.quote:read api.trade:read'})
                 if self.path == '/device':

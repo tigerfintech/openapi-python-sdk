@@ -562,6 +562,22 @@ class RegistrationLifecycleTest(SessionTestBase):
         stored = s._store.load_client_registration(self.server.base_url)
         self.assertEqual('api.quote:read api.trade:read', stored.registered_scopes)
 
+    def test_registration_sends_the_sdk_name_by_default(self):
+        """The name reaches the authorization page, so it is asserted on the wire."""
+        s = self.session(client_id=None)
+        s._resolve_client_id()
+        self.assertEqual('Tiger Python SDK', self.server.json_bodies['/register']['client_name'])
+
+    def test_a_caller_supplied_name_is_what_gets_registered(self):
+        """An entry point with its own surface must appear under its own name, or the user is
+        asked to authorize something that names the SDK instead of the tool in front of them."""
+        s = self.session(client_id=None, surface='cli', client_name='Tiger OpenAPI CLI')
+        s._resolve_client_id()
+        self.assertEqual('Tiger OpenAPI CLI',
+                         self.server.json_bodies['/register']['client_name'])
+        stored = s._store.load_client_registration(self.server.base_url)
+        self.assertEqual('Tiger OpenAPI CLI', stored.client_name)
+
     def test_invalid_client_clears_the_registration_in_dynamic_mode(self):
         """I-13: otherwise the user can never recover."""
         s = self.session(client_id=None)

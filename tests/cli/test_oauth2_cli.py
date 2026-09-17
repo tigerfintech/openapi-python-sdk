@@ -232,6 +232,24 @@ class TestBuildConfigOAuth2(unittest.TestCase):
         self.assertEqual(config.tiger_id, 'test_id')
 
 
+class TestCliRegistrationIdentity(unittest.TestCase):
+    """What the user sees on the authorization page, and revokes by."""
+
+    def test_cli_registers_under_its_own_name_and_surface(self):
+        from tigeropen.cli.oauth2_config import CLIENT_NAME, SURFACE, build_session_manager
+        self.assertEqual('cli', SURFACE)
+        self.assertEqual('Tiger OpenAPI CLI', CLIENT_NAME)
+        sessions = build_session_manager()
+        self.assertEqual(CLIENT_NAME, sessions._client_name)
+
+    def test_cli_name_is_not_the_sdk_name(self):
+        """They are separate applications to the user; one name for both makes the entry on
+        the authorization page unrecognisable."""
+        from tigeropen.auth.oauth2.session_manager import CLIENT_NAME as SDK_NAME
+        from tigeropen.cli.oauth2_config import CLIENT_NAME as CLI_NAME
+        self.assertNotEqual(SDK_NAME, CLI_NAME)
+
+
 class TestSdkLogging(unittest.TestCase):
     """The SDK logs through more than one tree, and silencing one leaves the rest on stderr."""
 

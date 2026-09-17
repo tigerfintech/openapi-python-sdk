@@ -52,7 +52,8 @@ GRANT_TYPE_AUTHORIZATION_CODE = 'authorization_code'
 GRANT_TYPE_REFRESH_TOKEN = 'refresh_token'
 GRANT_TYPE_DEVICE_CODE = 'urn:ietf:params:oauth:grant-type:device_code'
 
-#: Stable application name used for persisted dynamic registration metadata.
+#: Application name registered by the SDK itself. Shown on the user's authorization page,
+#: so an entry point that registers its own client passes its own name.
 CLIENT_NAME = 'Tiger Python SDK'
 
 _WHITESPACE = re.compile(r'\s+')
@@ -81,7 +82,7 @@ class OAuth2SessionManager:
     """Thread-safe OAuth 2.0 authorization session manager."""
 
     def __init__(self, issuer=None, client_id=None, callback_port=0, home=None,
-                 store=None, surface=DEFAULT_SURFACE,
+                 store=None, surface=DEFAULT_SURFACE, client_name=CLIENT_NAME,
                  authorize_timeout_seconds=DEFAULT_AUTHORIZE_TIMEOUT_SECONDS):
         """Initialize a session without performing network requests.
 
@@ -98,6 +99,9 @@ class OAuth2SessionManager:
             ``cli``, ``mcp``. Each surface registers its own client, so it appears
             separately on the user's authorization page and can be revoked on its own.
             Tools built on this SDK must pass their own value
+        :param client_name: application name sent with dynamic registration and shown on the
+            user's authorization page. A tool passing its own ``surface`` passes its own name
+            too, or the user sees the SDK's name where the tool's belongs
         :param authorize_timeout_seconds: loopback callback timeout in seconds
         """
         self._issuer = _trim_trailing_slash(issuer or self.default_issuer())
@@ -105,6 +109,8 @@ class OAuth2SessionManager:
         #: Fixed for the session because it determines storage keys and registration mode.
         self._explicit_client_id = client_id or None
         self._authorize_timeout_seconds = authorize_timeout_seconds
+
+        self._client_name = client_name or CLIENT_NAME
 
         self._store = store if store is not None else OAuth2TokenStore(home, surface)
         self._registered_client_id = None   # always None in manual mode
@@ -605,7 +611,7 @@ class OAuth2SessionManager:
         redirect_uri = ('http://127.0.0.1:%d/callback' % port) if port > 0 \
             else 'http://127.0.0.1/callback'
         payload = {
-            'client_name': CLIENT_NAME,
+            'client_name': self._client_name,
             'redirect_uris': [redirect_uri],
             'grant_types': [GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_REFRESH_TOKEN,
                             GRANT_TYPE_DEVICE_CODE],
@@ -627,7 +633,7 @@ class OAuth2SessionManager:
         registration = OAuth2ClientRegistration(
             issuer=self._issuer,
             client_id=client_id,
-            client_name=CLIENT_NAME,
+            client_name=self._client_name,
             registered_scopes=_normalize_scopes(response.get('scope')) or scopes,
             client_id_issued_at=response.get('client_id_issued_at') or int(time.time()),
         )

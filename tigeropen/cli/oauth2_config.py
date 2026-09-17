@@ -15,6 +15,10 @@ from tigeropen.auth.oauth2 import OAuth2Authentication, OAuth2SessionManager
 #: shared and revoking either would take down both.
 SURFACE = 'cli'
 
+#: Application name shown on the user's authorization page. The CLI is what the user
+#: authorized, so this is the name they must see there and recognise when revoking.
+CLIENT_NAME = 'Tiger OpenAPI CLI'
+
 
 def build_session_manager(issuer=None, client_id=None):
     """Build an OAuth2SessionManager. Sends no requests, so it works offline."""
@@ -22,6 +26,7 @@ def build_session_manager(issuer=None, client_id=None):
         issuer=issuer,
         client_id=client_id,
         surface=SURFACE,
+        client_name=CLIENT_NAME,
     )
 
 
