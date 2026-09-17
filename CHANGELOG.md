@@ -1,3 +1,11 @@
+## 3.8.0 (2026-09-17)
+### New
+- 新增 OAuth2 授权方式，可替代 tigerId + 私钥签名：`OAuth2SessionManager` 完成授权并管理令牌，`config.authentication = OAuth2Authentication(sessions)` 接入客户端。令牌保存在 `~/.tiger/openapi/`，过期自动续期，代码与配置中都不再需要私钥
+- 推送支持 OAuth2，令牌临近过期时在连接上直接续期，不断开重连
+- CLI 新增 `tigeropen auth` 命令组（`login` / `logout` / `status` / `token`）；`config init` 可选择 OAuth2；新增全局选项 `--account`
+### 兼容性
+- 已有的 tigerId + 私钥签名方式不受影响；不设置 `authentication` 即沿用签名方式
+
 ## 3.7.2 (2026-08-27)
 ### New
 - `QuoteBrief` / `get_stock_briefs` 实时行情结果新增 `amount` 字段，支持股票和数字货币成交额。
