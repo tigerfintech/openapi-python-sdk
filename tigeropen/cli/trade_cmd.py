@@ -6,6 +6,7 @@ import click
 
 from tigeropen.cli.client_factory import get_trade_client
 from tigeropen.cli.formatting import render, to_records, is_empty
+from tigeropen.cli.options import asset_quote_type_option
 
 
 @click.group('trade')
@@ -174,8 +175,7 @@ def position():
 @click.option('--market', type=click.Choice(['US', 'HK', 'ALL'], case_sensitive=False),
               default='ALL', help='Market filter.')
 @click.option('--symbol', default=None, help='Filter by symbol.')
-@click.option('--asset-quote-type', type=click.Choice(['ETH', 'RTH', 'OVERNIGHT'], case_sensitive=False),
-              default=None, help='Asset quote mode.')
+@asset_quote_type_option
 @click.pass_context
 def position_list(ctx, sec_type, market, symbol, asset_quote_type):
     """List current positions."""

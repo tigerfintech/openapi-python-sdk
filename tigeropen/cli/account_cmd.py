@@ -6,6 +6,7 @@ import click
 
 from tigeropen.cli.client_factory import get_trade_client
 from tigeropen.cli.formatting import render, to_records, is_empty
+from tigeropen.cli.options import asset_quote_type_option
 
 
 @click.group('account')
@@ -51,8 +52,7 @@ def _portfolio_account_to_dict(account):
 
 @account.command('assets')
 @click.option('--currency', default=None, help='Currency filter (USD, HKD, etc.).')
-@click.option('--asset-quote-type', type=click.Choice(['ETH', 'RTH', 'OVERNIGHT'], case_sensitive=False),
-              default=None, help='Asset quote mode.')
+@asset_quote_type_option
 @click.pass_context
 def account_assets(ctx, currency, asset_quote_type):
     """Show account asset summary."""

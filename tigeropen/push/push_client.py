@@ -268,7 +268,9 @@ class PushClient:
             字符串 (ETH/RTH/OVERNIGHT). 仅 protobuf 协议支持
         :return:
         """
-        if asset_quote_type is None:
+        if not asset_quote_type:
+            # 空串同样按「不传」处理，与交易侧 get_assets/get_prime_assets 的真值判定一致；
+            # 否则 proto3 optional 会带 presence 把一个长度为 0 的 assetQuoteType 发上去
             # 不传时保持原有调用形态，STOMP 客户端也能照常工作
             return self.client.subscribe_asset(account=account)
         self._require_protobuf('asset_quote_type')
@@ -289,7 +291,9 @@ class PushClient:
             字符串 (ETH/RTH/OVERNIGHT). 仅 protobuf 协议支持
         :return:
         """
-        if asset_quote_type is None:
+        if not asset_quote_type:
+            # 空串同样按「不传」处理，与交易侧 get_assets/get_prime_assets 的真值判定一致；
+            # 否则 proto3 optional 会带 presence 把一个长度为 0 的 assetQuoteType 发上去
             # 不传时保持原有调用形态，STOMP 客户端也能照常工作
             return self.client.subscribe_position(account=account)
         self._require_protobuf('asset_quote_type')

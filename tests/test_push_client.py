@@ -188,6 +188,17 @@ class TestSubscribeAssetQuoteType(unittest.TestCase):
         mock_stomp.return_value.subscribe_asset.assert_called_once_with(account='U1')
 
     @patch('tigeropen.push.protobuf_push_client._patch_ssl')
+    def test_empty_string_is_treated_as_absent(self, mock_patch_ssl):
+        """空串按「不传」处理，与交易侧的真值判定一致，不能在报文里留一个长度 0 的脏字段。"""
+        for method in ('subscribe_asset', 'subscribe_position'):
+            with self.subTest(method=method):
+                wrapper = PushClient('host', 9883, use_protobuf=True)
+                wrapper.client._connection = MagicMock()
+                getattr(wrapper, method)(account='U1', asset_quote_type='')
+                frame = wrapper.client._connection.send_frame.call_args[0][0]
+                self.assertFalse(frame.subscribe.HasField('assetQuoteType'))
+
+    @patch('tigeropen.push.protobuf_push_client._patch_ssl')
     def test_facade_forwards_enum_name(self, mock_patch_ssl):
         wrapper = PushClient('host', 9883, use_protobuf=True)
         wrapper.client._connection = MagicMock()
