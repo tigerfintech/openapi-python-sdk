@@ -49,6 +49,7 @@ class AssetParams(BaseParams):
         self._sub_accounts = None
         self._base_currency = None
         self._consolidated = None
+        self._asset_quote_type = None
 
     @property
     def account(self):
@@ -106,6 +107,14 @@ class AssetParams(BaseParams):
     def consolidated(self, value):
         self._consolidated = value
 
+    @property
+    def asset_quote_type(self):
+        return self._asset_quote_type
+
+    @asset_quote_type.setter
+    def asset_quote_type(self, value):
+        self._asset_quote_type = value
+
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
         if self.account:
@@ -129,6 +138,9 @@ class AssetParams(BaseParams):
         if self.consolidated is not None:
             params['consolidated'] = self.consolidated
 
+        if self.asset_quote_type:
+            params['asset_quote_type'] = self.asset_quote_type
+
         return params
 
 class AggregateAssetParams(BaseParams):
@@ -138,6 +150,7 @@ class AggregateAssetParams(BaseParams):
         self._secret_key = None
         self._seg_type = False
         self._base_currency = None
+        self._asset_quote_type = None
 
     @property
     def account(self):
@@ -163,6 +176,12 @@ class AggregateAssetParams(BaseParams):
     @base_currency.setter
     def base_currency(self, value):
         self._base_currency = value
+    @property
+    def asset_quote_type(self):
+        return self._asset_quote_type
+    @asset_quote_type.setter
+    def asset_quote_type(self, value):
+        self._asset_quote_type = value
 
     def to_openapi_dict(self):
         params = super().to_openapi_dict()
@@ -174,6 +193,8 @@ class AggregateAssetParams(BaseParams):
             params['seg_type'] = self.seg_type
         if self.base_currency:
             params['base_currency'] = self.base_currency
+        if self.asset_quote_type:
+            params['asset_quote_type'] = self.asset_quote_type
         return params
 
 class PositionParams(BaseParams):

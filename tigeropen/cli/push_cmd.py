@@ -111,21 +111,32 @@ def push_order(ctx):
     _run_push(ctx, 'order_changed', subscribe, 'order')
 
 
+_ASSET_QUOTE_TYPE_OPTION = click.option(
+    '--asset-quote-type', type=click.Choice(['ETH', 'RTH', 'OVERNIGHT'], case_sensitive=False),
+    default=None, help='Asset quote mode.')
+
+
 @push.command('position')
+@_ASSET_QUOTE_TYPE_OPTION
 @click.pass_context
-def push_position(ctx):
+def push_position(ctx, asset_quote_type):
     """Stream position updates. Press Ctrl+C to stop."""
+    quote_type = asset_quote_type.upper() if asset_quote_type else None
+
     def subscribe(client, config):
-        client.subscribe_position(account=config.account)
+        client.subscribe_position(account=config.account, asset_quote_type=quote_type)
 
     _run_push(ctx, 'position_changed', subscribe, 'position')
 
 
 @push.command('asset')
+@_ASSET_QUOTE_TYPE_OPTION
 @click.pass_context
-def push_asset(ctx):
+def push_asset(ctx, asset_quote_type):
     """Stream asset updates. Press Ctrl+C to stop."""
+    quote_type = asset_quote_type.upper() if asset_quote_type else None
+
     def subscribe(client, config):
-        client.subscribe_asset(account=config.account)
+        client.subscribe_asset(account=config.account, asset_quote_type=quote_type)
 
     _run_push(ctx, 'asset_changed', subscribe, 'asset')

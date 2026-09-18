@@ -12,7 +12,7 @@ from tigeropen.trade.domain.position import Position
 from tigeropen.trade.domain.prime_account import PortfolioAccount
 
 from tigeropen.common.consts import THREAD_LOCAL, SecurityType, Market, Currency, Language, OPEN_API_SERVICE_VERSION_V3, \
-    SegmentType, OrderStatus, OrderSortBy, OptionExerciseType
+    SegmentType, OrderStatus, OrderSortBy, OptionExerciseType, AssetQuoteType
 from tigeropen.common.consts.service_types import CONTRACTS, ACCOUNTS, POSITIONS, ASSETS, ORDERS, ORDER_NO, \
     CANCEL_ORDER, MODIFY_ORDER, PLACE_ORDER, ACTIVE_ORDERS, INACTIVE_ORDERS, FILLED_ORDERS, CONTRACT, PREVIEW_ORDER, \
     PRIME_ASSETS, ORDER_TRANSACTIONS, QUOTE_CONTRACT, ANALYTICS_ASSET, SEGMENT_FUND_AVAILABLE, SEGMENT_FUND_HISTORY, \
@@ -267,7 +267,7 @@ class TradeClient(TigerOpenClient):
         expiry: Optional[str] = None,
         strike: Optional[str] = None,
         put_call: Optional[str] = None,
-        asset_quote_type: Optional[str] = None,
+        asset_quote_type: Optional[Union[AssetQuoteType, str]] = None,
         lang: Optional[Union[Language,
                              str]] = None) -> Optional[List['Position']]:
         """
@@ -282,7 +282,8 @@ class TradeClient(TigerOpenClient):
         :param expiry: Option/future expiry date (format: yyyyMMdd). 期权/期货到期日（格式：yyyyMMdd）
         :param strike: Option strike price. 期权行权价
         :param put_call: Option type (PUT/CALL). 期权类型（看跌/看涨）
-        :param asset_quote_type: Asset quote mode. 资产行情模式
+        :param asset_quote_type: Asset quote mode. 资产行情模式.
+                            From tigeropen.common.consts.AssetQuoteType (ETH/RTH/OVERNIGHT)
         :param lang: Language. 语言. Available options: zh_CN/zh_TW/en_US
         :return: List of Position objects. Each Position object has the following attributes:
                 Position对象构成的列表。每个Position对象具有以下属性：
@@ -347,13 +348,16 @@ class TradeClient(TigerOpenClient):
                    account=None,
                    sub_accounts=None,
                    segment=False,
-                   market_value=False):
+                   market_value=False,
+                   asset_quote_type=None):
         """
         获取账户资产信息
         :param account:
         :param sub_accounts: 子账户列表
         :param segment: 是否包含证券/期货分类
         :param market_value: 是否包含分市场市值
+        :param asset_quote_type: 资产行情模式. tigeropen.common.consts.AssetQuoteType 或其枚举名
+            字符串 (ETH/RTH/OVERNIGHT)
         :return: 由 PortfolioAccount 对象构成的列表. PortfolioAccount 对象下的 summary 属性包含一个 Account 对象，
          Account 对象有如下属性：
             net_liquidation: 净清算值
@@ -384,6 +388,8 @@ class TradeClient(TigerOpenClient):
         params.sub_accounts = sub_accounts
         params.segment = segment
         params.market_value = market_value
+        if asset_quote_type:
+            params.asset_quote_type = get_enum_value(asset_quote_type)
         params.lang = get_enum_value(self._lang)
         request = OpenApiRequest(ASSETS, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -402,16 +408,19 @@ class TradeClient(TigerOpenClient):
         account: Optional[str] = None,
         base_currency: Optional[Union[Currency, str]] = None,
         consolidated: bool = True,
-        lang: Optional[Union[Language, str]] = None
+        lang: Optional[Union[Language, str]] = None,
+        asset_quote_type: Optional[Union[AssetQuoteType, str]] = None
     ) -> Optional['PortfolioAccount']:
         """
         Get prime account assets. 获取 Prime 账户资产信息
-        
+
         :param account: Account ID. 账户ID
         :param base_currency: Base currency for asset calculation. 资产计算的基础货币.
                             From tigeropen.common.consts.Currency, like Currency.USD
         :param consolidated: Whether to consolidate assets. 是否合并资产
         :param lang: Language. 语言. Available options: zh_CN/zh_TW/en_US
+        :param asset_quote_type: Asset quote mode. 资产行情模式.
+                            From tigeropen.common.consts.AssetQuoteType (ETH/RTH/OVERNIGHT)
         :return: PortfolioAccount object with the following structure:
                 PortfolioAccount 对象，包含以下结构：
             account: Account ID. 账户ID
@@ -453,6 +462,8 @@ class TradeClient(TigerOpenClient):
             self._lang)
         params.base_currency = get_enum_value(base_currency)
         params.consolidated = consolidated
+        if asset_quote_type:
+            params.asset_quote_type = get_enum_value(asset_quote_type)
 
         request = OpenApiRequest(PRIME_ASSETS, biz_model=params)
         response_content = self.__fetch_data(request)
@@ -468,13 +479,24 @@ class TradeClient(TigerOpenClient):
     def get_aggregate_assets(self,
                              account=None,
                              seg_type=SegmentType.SEC,
-                             base_currency=None):
+                             base_currency=None,
+                             asset_quote_type=None):
+        """
+        获取聚合资产信息
+        :param account:
+        :param seg_type: 分部类型 tigeropen.common.consts.SegmentType
+        :param base_currency: 资产计算的基础货币 tigeropen.common.consts.Currency
+        :param asset_quote_type: 资产行情模式. tigeropen.common.consts.AssetQuoteType 或其枚举名
+            字符串 (ETH/RTH/OVERNIGHT)
+        """
         params = AggregateAssetParams()
         params.account = account if account else self._account
         params.secret_key = self._secret_key
         params.lang = get_enum_value(self._lang)
         params.base_currency = get_enum_value(base_currency)
         params.seg_type = get_enum_value(seg_type)
+        if asset_quote_type:
+            params.asset_quote_type = get_enum_value(asset_quote_type)
         request = OpenApiRequest(AGGREGATE_ASSETS, biz_model=params)
         response_content = self.__fetch_data(request)
         if response_content:

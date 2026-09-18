@@ -34,5 +34,9 @@ message Request {
     optional string symbols = 2;
     optional string account = 3;
     optional string market = 4;
+    // Asset quote mode, carries the enum name (ETH/RTH/OVERNIGHT). Only meaningful for
+    // the Asset and Position subscriptions; left unset otherwise, and an unset proto3
+    // optional field is not serialized, so existing messages stay byte-identical.
+    optional string assetQuoteType = 5;
   }
 }

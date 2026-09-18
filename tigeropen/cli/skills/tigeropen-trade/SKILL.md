@@ -76,9 +76,10 @@ tigeropen trade order cancel <ORDER_ID>
 tigeropen trade position list
 tigeropen trade position list --sec-type OPT
 tigeropen trade position list --market US --symbol AAPL
+tigeropen trade position list --asset-quote-type ETH
 ```
 
-`--sec-type STK/OPT/FUT/WAR`、`--market US/HK/ALL`
+`--sec-type STK/OPT/FUT/WAR`、`--market US/HK/ALL`、`--asset-quote-type ETH/RTH/OVERNIGHT`（资产行情模式）
 
 ### 成交（只读）
 
@@ -94,6 +95,7 @@ tigeropen trade transaction list --start-time 2026-01-01 --end-time 2026-03-31
 tigeropen account info                 # 账户信息
 tigeropen account assets               # 资产概览
 tigeropen account assets --currency USD
+tigeropen account assets --asset-quote-type OVERNIGHT   # 资产行情模式 ETH/RTH/OVERNIGHT
 tigeropen account analytics --start-date ... --end-date ...
 ```
 

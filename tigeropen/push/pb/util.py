@@ -112,8 +112,9 @@ class ProtoMessageUtil:
         return request
 
     @classmethod
-    def build_subscribe_trade_message(cls, data_type, account):
-        return cls.build_trade_message(data_type, account, SocketCommon_pb2.SocketCommon.SUBSCRIBE)
+    def build_subscribe_trade_message(cls, data_type, account, asset_quote_type=None):
+        return cls.build_trade_message(data_type, account, SocketCommon_pb2.SocketCommon.SUBSCRIBE,
+                                       asset_quote_type=asset_quote_type)
 
     @classmethod
     def build_unsubscribe_trade_message(cls, data_type, account):
@@ -194,7 +195,11 @@ class ProtoMessageUtil:
         return request
 
     @classmethod
-    def build_trade_message(cls, data_type, account, command):
+    def build_trade_message(cls, data_type, account, command, asset_quote_type=None):
+        """
+        :param asset_quote_type: 资产行情模式，传枚举名 (ETH/RTH/OVERNIGHT)。只对 Asset/Position
+            订阅有意义，不传时字段不落到报文里，消息与之前保持字节一致
+        """
         request = Request_pb2.Request()
         request.command = command
         request.id = cls.increment()
@@ -203,6 +208,8 @@ class ProtoMessageUtil:
         sub.dataType = data_type
         if account:
             sub.account = account
+        if asset_quote_type:
+            sub.assetQuoteType = asset_quote_type
         request.subscribe.CopyFrom(sub)
         return request
 

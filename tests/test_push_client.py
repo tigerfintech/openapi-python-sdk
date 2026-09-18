@@ -7,8 +7,11 @@ import unittest
 from unittest.mock import MagicMock, patch
 from concurrent.futures import ThreadPoolExecutor
 
+from tigeropen.common.consts import AssetQuoteType
 from tigeropen.push.push_client import PushClient
 from tigeropen.push.protobuf_push_client import ProtobufPushClient
+from tigeropen.push.pb import Request_pb2
+from tigeropen.push.pb.util import ProtoMessageUtil
 from tigeropen.push.pb.TradeTickData_pb2 import TradeTickData
 from tigeropen.tiger_open_config import TigerOpenClientConfig
 from tigeropen.push.network.transport import Transport
@@ -126,6 +129,71 @@ class TestPushClient(unittest.TestCase):
             # ensure sn sequence is non-decreasing
             if i > 0:
                 self.assertGreaterEqual(it['sn'], items[i-1]['sn'])
+
+
+class TestSubscribeAssetQuoteType(unittest.TestCase):
+    """订阅报文里的 assetQuoteType 字段（仅 Asset / Position 订阅使用）。"""
+
+    def test_proto_field_definition_is_pinned(self):
+        """字段号 5、小驼峰名、optional string —— 与服务端 Request.proto 一致。"""
+        field = Request_pb2.Request.Subscribe.DESCRIPTOR.fields_by_name['assetQuoteType']
+        self.assertEqual(field.number, 5)
+        self.assertEqual(field.type, field.TYPE_STRING)
+        # proto3 optional：带 presence，未赋值时不进报文
+        self.assertTrue(field.has_presence)
+
+    def test_subscribe_message_carries_enum_name_on_the_wire(self):
+        req = ProtoMessageUtil.build_subscribe_trade_message(
+            SocketCommon.DataType.Asset, 'U1', asset_quote_type='ETH')
+        self.assertEqual(req.subscribe.assetQuoteType, 'ETH')
+        # tag = (5 << 3) | 2 = 0x2a，随后是长度 3 和枚举名本身
+        self.assertIn(b'\x2a\x03ETH', req.subscribe.SerializeToString())
+
+    def test_message_is_byte_identical_when_param_absent(self):
+        """不传该参数时报文必须和改动前一致，老用户零影响。"""
+        req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.Position, 'U1')
+        self.assertFalse(req.subscribe.HasField('assetQuoteType'))
+
+        expected = Request_pb2.Request.Subscribe()
+        expected.dataType = SocketCommon.DataType.Position
+        expected.account = 'U1'
+        self.assertEqual(req.subscribe.SerializeToString(), expected.SerializeToString())
+
+    def test_unsubscribe_message_does_not_carry_the_field(self):
+        req = ProtoMessageUtil.build_unsubscribe_trade_message(SocketCommon.DataType.Asset, 'U1')
+        self.assertFalse(req.subscribe.HasField('assetQuoteType'))
+
+    @patch('tigeropen.push.protobuf_push_client._patch_ssl')
+    def test_client_converts_enum_to_name(self, mock_patch_ssl):
+        for method, data_type in (('subscribe_asset', SocketCommon.DataType.Asset),
+                                  ('subscribe_position', SocketCommon.DataType.Position)):
+            with self.subTest(method=method):
+                pb_client = ProtobufPushClient('localhost', 0)
+                pb_client._connection = MagicMock()
+                getattr(pb_client, method)(account='U1', asset_quote_type=AssetQuoteType.OVERNIGHT)
+                frame = pb_client._connection.send_frame.call_args[0][0]
+                self.assertEqual(frame.subscribe.dataType, data_type)
+                self.assertEqual(frame.subscribe.assetQuoteType, 'OVERNIGHT')
+
+    @patch('tigeropen.push.push_client.StompPushClient')
+    def test_stomp_rejects_the_param(self, mock_stomp):
+        """STOMP 已停止维护，帧里没有承载位置，直接报错而不是静默丢弃。"""
+        wrapper = PushClient('host', 9883, use_protobuf=False)
+        with self.assertRaises(ValueError):
+            wrapper.subscribe_asset(account='U1', asset_quote_type='ETH')
+        with self.assertRaises(ValueError):
+            wrapper.subscribe_position(account='U1', asset_quote_type='ETH')
+        # 不传时仍然走原有调用形态
+        wrapper.subscribe_asset(account='U1')
+        mock_stomp.return_value.subscribe_asset.assert_called_once_with(account='U1')
+
+    @patch('tigeropen.push.protobuf_push_client._patch_ssl')
+    def test_facade_forwards_enum_name(self, mock_patch_ssl):
+        wrapper = PushClient('host', 9883, use_protobuf=True)
+        wrapper.client._connection = MagicMock()
+        wrapper.subscribe_position(account='U1', asset_quote_type=AssetQuoteType.RTH)
+        frame = wrapper.client._connection.send_frame.call_args[0][0]
+        self.assertEqual(frame.subscribe.assetQuoteType, 'RTH')
 
 
 class TestPushClientThreadPool(unittest.TestCase):

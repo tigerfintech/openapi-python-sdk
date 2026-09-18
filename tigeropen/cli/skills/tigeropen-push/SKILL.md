@@ -24,6 +24,10 @@ tigeropen push quote AAPL TSLA          # 实时行情推送（Ctrl+C 停止）
 tigeropen push order                    # 订单状态推送
 tigeropen push position                 # 持仓变动推送
 tigeropen push asset                    # 资产变动推送
+
+# 持仓/资产可指定资产行情模式（ETH/RTH/OVERNIGHT）
+tigeropen push asset --asset-quote-type ETH
+tigeropen push position --asset-quote-type OVERNIGHT
 ```
 
 ## 行为特征

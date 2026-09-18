@@ -260,10 +260,12 @@ class TestTradeRequestModels(unittest.TestCase):
         asset = self.assert_model(AssetParams, {
             'account': 'A', 'secret_key': 'K', 'segment': True, 'market_value': True,
             'sub_accounts': ['S'], 'base_currency': 'USD', 'consolidated': False,
+            'asset_quote_type': 'ETH',
         })
         self.assertFalse(asset['consolidated'])
         self.assert_model(AggregateAssetParams, {
             'account': 'A', 'secret_key': 'K', 'seg_type': 'SEC', 'base_currency': 'USD',
+            'asset_quote_type': 'ETH',
         })
         self.assert_model(PositionParams, {
             'account': 'A', 'secret_key': 'K', 'symbol': 'AAPL', 'sec_type': 'OPT',

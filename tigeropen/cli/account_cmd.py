@@ -51,13 +51,17 @@ def _portfolio_account_to_dict(account):
 
 @account.command('assets')
 @click.option('--currency', default=None, help='Currency filter (USD, HKD, etc.).')
+@click.option('--asset-quote-type', type=click.Choice(['ETH', 'RTH', 'OVERNIGHT'], case_sensitive=False),
+              default=None, help='Asset quote mode.')
 @click.pass_context
-def account_assets(ctx, currency):
+def account_assets(ctx, currency, asset_quote_type):
     """Show account asset summary."""
     client = get_trade_client(ctx.obj)
     kwargs = {}
     if currency:
         kwargs['base_currency'] = currency
+    if asset_quote_type:
+        kwargs['asset_quote_type'] = asset_quote_type.upper()
     result = client.get_prime_assets(**kwargs)
     if not is_empty(result):
         render(_portfolio_account_to_dict(result), ctx.obj['format'])
