@@ -6,6 +6,7 @@ import click
 
 from tigeropen.cli.client_factory import get_trade_client
 from tigeropen.cli.formatting import render, to_records, is_empty
+from tigeropen.cli.options import asset_quote_type_option
 
 
 @click.group('trade')
@@ -174,13 +175,16 @@ def position():
 @click.option('--market', type=click.Choice(['US', 'HK', 'ALL'], case_sensitive=False),
               default='ALL', help='Market filter.')
 @click.option('--symbol', default=None, help='Filter by symbol.')
+@asset_quote_type_option
 @click.pass_context
-def position_list(ctx, sec_type, market, symbol):
+def position_list(ctx, sec_type, market, symbol, asset_quote_type):
     """List current positions."""
     client = get_trade_client(ctx.obj)
     kwargs = {'sec_type': sec_type, 'market': market}
     if symbol:
         kwargs['symbol'] = symbol
+    if asset_quote_type:
+        kwargs['asset_quote_type'] = asset_quote_type.upper()
     positions = client.get_positions(**kwargs)
     if not is_empty(positions):
         data = []

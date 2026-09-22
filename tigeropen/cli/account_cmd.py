@@ -6,6 +6,7 @@ import click
 
 from tigeropen.cli.client_factory import get_trade_client
 from tigeropen.cli.formatting import render, to_records, is_empty
+from tigeropen.cli.options import asset_quote_type_option
 
 
 @click.group('account')
@@ -51,13 +52,16 @@ def _portfolio_account_to_dict(account):
 
 @account.command('assets')
 @click.option('--currency', default=None, help='Currency filter (USD, HKD, etc.).')
+@asset_quote_type_option
 @click.pass_context
-def account_assets(ctx, currency):
+def account_assets(ctx, currency, asset_quote_type):
     """Show account asset summary."""
     client = get_trade_client(ctx.obj)
     kwargs = {}
     if currency:
         kwargs['base_currency'] = currency
+    if asset_quote_type:
+        kwargs['asset_quote_type'] = asset_quote_type.upper()
     result = client.get_prime_assets(**kwargs)
     if not is_empty(result):
         render(_portfolio_account_to_dict(result), ctx.obj['format'])

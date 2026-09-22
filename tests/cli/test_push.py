@@ -103,6 +103,26 @@ class TestPushPosition(unittest.TestCase):
         MockPushClient.assert_called_once()
         self.assertEqual(result.exit_code, 0)
 
+    @patch('tigeropen.cli.push_cmd._wait_for_interrupt')
+    @patch('tigeropen.cli.push_cmd.build_config')
+    @patch('tigeropen.cli.push_cmd.PushClient')
+    def test_push_position_with_asset_quote_type(self, MockPushClient, mock_build_config, mock_wait):
+        """--asset-quote-type should reach subscribe_position as the enum name."""
+        from tigeropen.cli.main import cli
+        mock_config = MagicMock()
+        mock_config.socket_host_port = ('ssl', 'openapi.test.com', 9883)
+        mock_config.account = 'test_account'
+        mock_build_config.return_value = mock_config
+
+        mock_client = MagicMock()
+        MockPushClient.return_value = mock_client
+        mock_wait.return_value = None
+
+        result = self.runner.invoke(cli, ['push', 'position', '--asset-quote-type', 'rth'])
+        self.assertEqual(result.exit_code, 0)
+        mock_client.subscribe_position.assert_called_once_with(
+            account='test_account', asset_quote_type='RTH')
+
 
 class TestPushAsset(unittest.TestCase):
     """Tests for 'tigeropen push asset'."""
@@ -129,6 +149,46 @@ class TestPushAsset(unittest.TestCase):
         result = self.runner.invoke(cli, ['push', 'asset'])
         MockPushClient.assert_called_once()
         self.assertEqual(result.exit_code, 0)
+
+    @patch('tigeropen.cli.push_cmd._wait_for_interrupt')
+    @patch('tigeropen.cli.push_cmd.build_config')
+    @patch('tigeropen.cli.push_cmd.PushClient')
+    def test_push_asset_with_asset_quote_type(self, MockPushClient, mock_build_config, mock_wait):
+        """--asset-quote-type should reach subscribe_asset as the enum name."""
+        from tigeropen.cli.main import cli
+        mock_config = MagicMock()
+        mock_config.socket_host_port = ('ssl', 'openapi.test.com', 9883)
+        mock_config.account = 'test_account'
+        mock_build_config.return_value = mock_config
+
+        mock_client = MagicMock()
+        MockPushClient.return_value = mock_client
+        mock_wait.return_value = None
+
+        result = self.runner.invoke(cli, ['push', 'asset', '--asset-quote-type', 'ETH'])
+        self.assertEqual(result.exit_code, 0)
+        mock_client.subscribe_asset.assert_called_once_with(
+            account='test_account', asset_quote_type='ETH')
+
+    @patch('tigeropen.cli.push_cmd._wait_for_interrupt')
+    @patch('tigeropen.cli.push_cmd.build_config')
+    @patch('tigeropen.cli.push_cmd.PushClient')
+    def test_push_asset_without_asset_quote_type(self, MockPushClient, mock_build_config, mock_wait):
+        """不传时按 None 下发，等价于改动前的调用"""
+        from tigeropen.cli.main import cli
+        mock_config = MagicMock()
+        mock_config.socket_host_port = ('ssl', 'openapi.test.com', 9883)
+        mock_config.account = 'test_account'
+        mock_build_config.return_value = mock_config
+
+        mock_client = MagicMock()
+        MockPushClient.return_value = mock_client
+        mock_wait.return_value = None
+
+        result = self.runner.invoke(cli, ['push', 'asset'])
+        self.assertEqual(result.exit_code, 0)
+        mock_client.subscribe_asset.assert_called_once_with(
+            account='test_account', asset_quote_type=None)
 
 
 class TestPushDisconnectsOnExit(unittest.TestCase):

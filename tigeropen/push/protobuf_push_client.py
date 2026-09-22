@@ -418,12 +418,16 @@ class ProtobufPushClient(ConnectionListener):
         except Exception:
             self.logger.error(f'error in on_message ', exc_info=True)
 
-    def subscribe_asset(self, account=None):
+    def subscribe_asset(self, account=None, asset_quote_type=None):
         """
         订阅账户资产更新
+        :param account: 账户
+        :param asset_quote_type: 资产行情模式. tigeropen.common.consts.AssetQuoteType 或其枚举名
+            字符串 (ETH/RTH/OVERNIGHT). 不传时服务端按默认模式处理
         :return:
         """
-        req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.Asset, account)
+        req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.Asset, account,
+                                                             asset_quote_type=get_enum_value(asset_quote_type))
         self._connection.send_frame(req)
         return req.id
 
@@ -436,12 +440,16 @@ class ProtobufPushClient(ConnectionListener):
         self._connection.send_frame(req)
         return req.id
 
-    def subscribe_position(self, account=None):
+    def subscribe_position(self, account=None, asset_quote_type=None):
         """
         订阅账户持仓更新
+        :param account: 账户
+        :param asset_quote_type: 资产行情模式. tigeropen.common.consts.AssetQuoteType 或其枚举名
+            字符串 (ETH/RTH/OVERNIGHT). 不传时服务端按默认模式处理
         :return:
         """
-        req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.Position, account)
+        req = ProtoMessageUtil.build_subscribe_trade_message(SocketCommon.DataType.Position, account,
+                                                             asset_quote_type=get_enum_value(asset_quote_type))
         self._connection.send_frame(req)
         return req.id
 

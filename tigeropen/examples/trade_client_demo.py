@@ -15,7 +15,7 @@ from tigeropen.tiger_open_client import TigerOpenClient
 from tigeropen.trade.trade_client import TradeClient
 from tigeropen.common.response import TigerResponse
 from tigeropen.common.request import OpenApiRequest
-from tigeropen.common.consts import Currency, SecurityType, OrderSortBy
+from tigeropen.common.consts import Currency, SecurityType, OrderSortBy, AssetQuoteType
 from tigeropen.common.util.contract_utils import stock_contract, option_contract_by_symbol, future_contract, \
      war_contract_by_symbol, iopt_contract_by_symbol
 from tigeropen.common.util.order_utils import limit_order, limit_order_with_legs, order_leg, algo_order_params, \
@@ -66,6 +66,12 @@ def get_account_apis():
     openapi_client.get_assets()
     # 综合/模拟账户获取资产
     openapi_client.get_prime_assets()
+
+    # 指定资产行情模式(盘前盘后/盘中/夜盘), 持仓与资产接口均可使用
+    # openapi_client.get_positions(asset_quote_type=AssetQuoteType.ETH)
+    # openapi_client.get_assets(asset_quote_type=AssetQuoteType.ETH)
+    # openapi_client.get_prime_assets(asset_quote_type=AssetQuoteType.OVERNIGHT)
+    # openapi_client.get_aggregate_assets(asset_quote_type=AssetQuoteType.RTH)
 
     # get asset history
     openapi_client.get_analytics_asset(start_date='2021-12-01', end_date='2021-12-07')

@@ -33,16 +33,18 @@ class Request(_message.Message):
         accessToken: str
         def __init__(self, tigerId: _Optional[str] = ..., sign: _Optional[str] = ..., sdkVersion: _Optional[str] = ..., acceptVersion: _Optional[str] = ..., sendInterval: _Optional[int] = ..., receiveInterval: _Optional[int] = ..., useFullTick: bool = ..., accessToken: _Optional[str] = ...) -> None: ...
     class Subscribe(_message.Message):
-        __slots__ = ("dataType", "symbols", "account", "market")
+        __slots__ = ("dataType", "symbols", "account", "market", "assetQuoteType")
         DATATYPE_FIELD_NUMBER: _ClassVar[int]
         SYMBOLS_FIELD_NUMBER: _ClassVar[int]
         ACCOUNT_FIELD_NUMBER: _ClassVar[int]
         MARKET_FIELD_NUMBER: _ClassVar[int]
+        ASSETQUOTETYPE_FIELD_NUMBER: _ClassVar[int]
         dataType: _SocketCommon_pb2.SocketCommon.DataType
         symbols: str
         account: str
         market: str
-        def __init__(self, dataType: _Optional[_Union[_SocketCommon_pb2.SocketCommon.DataType, str]] = ..., symbols: _Optional[str] = ..., account: _Optional[str] = ..., market: _Optional[str] = ...) -> None: ...
+        assetQuoteType: str
+        def __init__(self, dataType: _Optional[_Union[_SocketCommon_pb2.SocketCommon.DataType, str]] = ..., symbols: _Optional[str] = ..., account: _Optional[str] = ..., market: _Optional[str] = ..., assetQuoteType: _Optional[str] = ...) -> None: ...
     COMMAND_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     SUBSCRIBE_FIELD_NUMBER: _ClassVar[int]

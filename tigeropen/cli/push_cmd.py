@@ -8,6 +8,7 @@ import threading
 import click
 
 from tigeropen.cli.client_factory import build_config
+from tigeropen.cli.options import asset_quote_type_option
 from tigeropen.push.push_client import PushClient
 
 
@@ -112,20 +113,26 @@ def push_order(ctx):
 
 
 @push.command('position')
+@asset_quote_type_option
 @click.pass_context
-def push_position(ctx):
+def push_position(ctx, asset_quote_type):
     """Stream position updates. Press Ctrl+C to stop."""
+    quote_type = asset_quote_type.upper() if asset_quote_type else None
+
     def subscribe(client, config):
-        client.subscribe_position(account=config.account)
+        client.subscribe_position(account=config.account, asset_quote_type=quote_type)
 
     _run_push(ctx, 'position_changed', subscribe, 'position')
 
 
 @push.command('asset')
+@asset_quote_type_option
 @click.pass_context
-def push_asset(ctx):
+def push_asset(ctx, asset_quote_type):
     """Stream asset updates. Press Ctrl+C to stop."""
+    quote_type = asset_quote_type.upper() if asset_quote_type else None
+
     def subscribe(client, config):
-        client.subscribe_asset(account=config.account)
+        client.subscribe_asset(account=config.account, asset_quote_type=quote_type)
 
     _run_push(ctx, 'asset_changed', subscribe, 'asset')

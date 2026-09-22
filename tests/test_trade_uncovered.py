@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from tigeropen.common.consts import AssetQuoteType
 from tigeropen.common.util import web_utils
 from tigeropen.trade.trade_client import TradeClient
 from tests.support import client_config
@@ -205,3 +206,51 @@ class TestUncoveredTradeClient(unittest.TestCase):
         result = self.client.query_token()
         # Wire method USER_TOKEN_REFRESH exercised - request was constructed and mock was called
         web_utils.do_request.assert_called_once()
+
+
+class TestAssetQuoteTypeParam(unittest.TestCase):
+    """asset_quote_type 在资产/持仓类接口上的透传行为。
+
+    positions 早已支持该参数，assets / prime_assets / aggregate_assets 与它保持一致。
+    analytics_asset 服务端不读该参数，因此不提供，避免死参数。
+    """
+
+    _EMPTY_RESPONSE = '{"data": [], "code": 0, "message": "success", "timestamp": 1700000000}'
+    _METHODS = ('get_assets', 'get_prime_assets', 'get_aggregate_assets', 'get_positions')
+
+    def setUp(self):
+        self.client_config = client_config()
+        self.client = TradeClient(self.client_config)
+        self.origin_do_request = web_utils.do_request
+
+    def tearDown(self):
+        web_utils.do_request = self.origin_do_request
+
+    def _call(self, name, **kwargs):
+        """调用接口并返回实际发出的 biz_content"""
+        web_utils.do_request = MagicMock(
+            return_value=json.dumps(json.loads(self._EMPTY_RESPONSE)).encode())
+        getattr(self.client, name)(**kwargs)
+        params = web_utils.do_request.call_args.kwargs['params']
+        return json.loads(params['biz_content'])
+
+    def test_enum_is_sent_as_enum_name(self):
+        for name in self._METHODS:
+            with self.subTest(method=name):
+                content = self._call(name, asset_quote_type=AssetQuoteType.OVERNIGHT)
+                self.assertEqual(content['asset_quote_type'], 'OVERNIGHT')
+
+    def test_plain_string_is_accepted(self):
+        for name in self._METHODS:
+            with self.subTest(method=name):
+                content = self._call(name, asset_quote_type='RTH')
+                self.assertEqual(content['asset_quote_type'], 'RTH')
+
+    def test_omitted_param_keeps_payload_unchanged(self):
+        for name in self._METHODS:
+            with self.subTest(method=name):
+                self.assertNotIn('asset_quote_type', self._call(name))
+
+    def test_analytics_asset_does_not_accept_the_param(self):
+        with self.assertRaises(TypeError):
+            self.client.get_analytics_asset(asset_quote_type='ETH')
