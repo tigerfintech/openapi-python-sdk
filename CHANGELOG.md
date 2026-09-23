@@ -1,3 +1,12 @@
+## 3.8.1 (2026-09-23)
+### New
+- 资产与持仓查询新增 `asset_quote_type` 参数（`ETH` / `RTH` / `OVERNIGHT`），可按夜盘口径估值：`get_positions`、`get_assets`、`get_prime_assets`、`get_aggregate_assets`
+- 推送订阅新增资产行情口径：`subscribe_asset(account, asset_quote_type)` / `subscribe_position(account, asset_quote_type)`，仅对资产、持仓两类订阅生效
+- CLI 对应新增 `--asset-quote-type` 选项
+### 兼容性
+- 不传 `asset_quote_type` 时行为与此前完全一致
+- 订阅侧的口径参数只在 protobuf 协议下可用，使用 STOMP 协议时传入会报错提示
+
 ## 3.8.0 (2026-09-17)
 ### New
 - 新增 OAuth2 授权方式，可替代 tigerId + 私钥签名：`OAuth2SessionManager` 完成授权并管理令牌，`config.authentication = OAuth2Authentication(sessions)` 接入客户端。令牌保存在 `~/.tiger/openapi/`，过期自动续期，代码与配置中都不再需要私钥
