@@ -1310,11 +1310,15 @@ class TestIntegQuoteClient(unittest.TestCase):
         self.assertIsInstance(result, pd.DataFrame)
         self.assertIn('symbol', result.columns)
         self.assertIn('currency', result.columns)
-        self.assertIn('company_currency', result.columns)
         if not result.empty:
             first = result.iloc[0]
             self.assertTrue(len(str(first['symbol']).strip()) > 0)
             self.assertIsNotNone(first['currency'])
+            # company_currency is only sent where it can differ from the
+            # trading currency; for US both are USD and the server omits the
+            # key entirely, so the column is not guaranteed to exist.
+            if 'company_currency' in result.columns:
+                self.assertIsNotNone(first['company_currency'])
         logger.debug(f"Financial Currency:\n {result}")
 
     def test_get_financial_exchange_rate(self):
