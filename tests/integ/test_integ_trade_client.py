@@ -262,13 +262,16 @@ class TestIntegTradeClient(unittest.TestCase):
             return None
 
     def _resolve_us_future_contract(self):
-        """Return a US FUT Contract using a common continuous main contract.
+        """Return a US FUT Contract carrying an explicit contract month.
 
-        Uses CL (crude oil) main contract on NYMEX as a stable default.
+        Standard accounts must not send ``expiry`` for FUT orders — the gateway
+        rejects that — so the month has to come from the symbol itself. Both
+        quote-side identifiers fail here: the bare product root "CL" carries no
+        month at all (合约不正确) and the continuous "CLmain" is not an order
+        symbol (symbol error). "CL2712" is the Dec-2027 NYMEX contract.
         """
         try:
-            # 'CL' main contract is a well-known continuous future symbol.
-            return future_contract(symbol='CL', currency='USD', exchange='NYMEX')
+            return future_contract(symbol='CL2712', currency='USD', exchange='NYMEX')
         except Exception as e:
             logger.warning(f"_resolve_us_future_contract failed: {e}")
             return None
@@ -1461,7 +1464,11 @@ class TestIntegTradeClient(unittest.TestCase):
     def test_place_sg_stk_limit(self):
         """SG STK — LMT. Uses DBS Group (D05).
 
-        SG market permission likely account-tier dependent.
+        SG market permission likely account-tier dependent. The standard-account
+        order path forwards neither ``market`` nor ``currency`` (the gateway
+        builds the upstream request from symbol + sec_type alone), so an SG
+        ticker the account's contract universe does not carry comes back as
+        "合约不正确" rather than a permission message.
         """
         contract = stock_contract(symbol='D05', currency='SGD')
         order = limit_order(account=self.client_config.account,
@@ -1472,6 +1479,8 @@ class TestIntegTradeClient(unittest.TestCase):
                                                 market='SG',
                                                 trading_session='extended')
         except ApiException as e:
+            if '合约不正确' in str(e):
+                self.skipTest(f"SG STK LMT — contract not available on this account: {e}")
             self._skip_or_raise_on_permission_error(e, "SG STK LMT")
 
     # ==================================================================

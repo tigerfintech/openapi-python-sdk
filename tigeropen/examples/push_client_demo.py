@@ -8,7 +8,7 @@ import time
 # from tigeropen.common.consts import QuoteKeyType
 import pandas as pd
 
-from tigeropen.common.consts import StockRankingIndicator, OptionRankingIndicator
+from tigeropen.common.consts import StockRankingIndicator, OptionRankingIndicator, AssetQuoteType
 from tigeropen.push.pb.AssetData_pb2 import AssetData
 from tigeropen.push.pb.KlineData_pb2 import KlineData
 from tigeropen.push.pb.OptionTopData_pb2 import OptionTopData
@@ -380,6 +380,9 @@ if __name__ == '__main__':
     push_client.subscribe_transaction()
     # 订阅持仓变动
     push_client.subscribe_position()
+    # 资产/持仓订阅可以指定行情模式(盘前盘后/盘中/夜盘), 仅 protobuf 协议支持
+    # push_client.subscribe_asset(asset_quote_type=AssetQuoteType.ETH)
+    # push_client.subscribe_position(asset_quote_type=AssetQuoteType.OVERNIGHT)
     # 查询已订阅的 symbol
     push_client.query_subscribed_quote()
 

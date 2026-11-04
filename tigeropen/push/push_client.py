@@ -28,6 +28,7 @@ class PushClient:
         :param callback_executor: executor for callback
         """
         self._oauth2_mode = _is_oauth2(client_config)
+        self._use_protobuf = use_protobuf
         if self._oauth2_mode and not use_protobuf:
             # A STOMP frame has nowhere to carry a token and the protocol has no
             # REFRESH_TOKEN equivalent, so OAuth2 is protobuf-only. Rejected here rather
@@ -43,6 +44,14 @@ class PushClient:
         else:
             self.client = StompPushClient(host=host, port=port, use_ssl=use_ssl, connection_timeout=connection_timeout,
                                           heartbeats=heartbeats)
+
+    def _require_protobuf(self, param_name):
+        """STOMP 协议的订阅帧没有承载该参数的位置，且 STOMP 已停止维护，
+        这里直接报错，而不是把参数悄悄丢掉。
+        """
+        if not self._use_protobuf:
+            raise ValueError('{} requires the protobuf protocol; '
+                             'use_protobuf=False (STOMP) is not supported'.format(param_name))
 
     @property
     def subscribed_symbols(self):
@@ -251,12 +260,21 @@ class PushClient:
     def on_error(self, frame):
         self.client.on_error(frame)
 
-    def subscribe_asset(self, account=None):
+    def subscribe_asset(self, account=None, asset_quote_type=None):
         """
         订阅账户资产更新
+        :param account: 账户
+        :param asset_quote_type: 资产行情模式. tigeropen.common.consts.AssetQuoteType 或其枚举名
+            字符串 (ETH/RTH/OVERNIGHT). 仅 protobuf 协议支持
         :return:
         """
-        return self.client.subscribe_asset(account=account)
+        if not asset_quote_type:
+            # 空串同样按「不传」处理，与交易侧 get_assets/get_prime_assets 的真值判定一致；
+            # 否则 proto3 optional 会带 presence 把一个长度为 0 的 assetQuoteType 发上去
+            # 不传时保持原有调用形态，STOMP 客户端也能照常工作
+            return self.client.subscribe_asset(account=account)
+        self._require_protobuf('asset_quote_type')
+        return self.client.subscribe_asset(account=account, asset_quote_type=get_enum_value(asset_quote_type))
 
     def unsubscribe_asset(self):
         """
@@ -265,12 +283,21 @@ class PushClient:
         """
         self.client.unsubscribe_asset()
 
-    def subscribe_position(self, account=None):
+    def subscribe_position(self, account=None, asset_quote_type=None):
         """
         订阅账户持仓更新
+        :param account: 账户
+        :param asset_quote_type: 资产行情模式. tigeropen.common.consts.AssetQuoteType 或其枚举名
+            字符串 (ETH/RTH/OVERNIGHT). 仅 protobuf 协议支持
         :return:
         """
-        return self.client.subscribe_position(account=account)
+        if not asset_quote_type:
+            # 空串同样按「不传」处理，与交易侧 get_assets/get_prime_assets 的真值判定一致；
+            # 否则 proto3 optional 会带 presence 把一个长度为 0 的 assetQuoteType 发上去
+            # 不传时保持原有调用形态，STOMP 客户端也能照常工作
+            return self.client.subscribe_position(account=account)
+        self._require_protobuf('asset_quote_type')
+        return self.client.subscribe_position(account=account, asset_quote_type=get_enum_value(asset_quote_type))
 
     def unsubscribe_position(self):
         """

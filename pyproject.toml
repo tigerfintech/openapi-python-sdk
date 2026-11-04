@@ -64,10 +64,16 @@ tigeropen = "tigeropen.cli.main:main"
 version = {attr = "tigeropen.__VERSION__"}
 
 [tool.setuptools.packages.find]
-exclude = ["tests", "tests.*"]
+# pyproject 配置下 packages.find 默认 namespaces = true，任何目录都会被当成包 ——
+# 不显式 include 的话 build/、dist/、logs/ 都会被打进产物（3.8.0 首次构建就把
+# dist/*.tar.gz、build/lib/build/lib/... 递归打进了 wheel，6MB 里大半是垃圾）。
+include = ["tigeropen*", "scripts*"]
+# __pycache__ 同样会被当成命名空间包，不排掉的话源码树里残留的 .pyc 会进 wheel。
+exclude = ["tests*", "build*", "dist*", "logs*", "*__pycache__*"]
 
 [tool.setuptools.package-data]
-"*" = ["*.*", "**/*.*"]
+# 按扩展名列举，不要用 "*.*" / "**/*.*" —— 那会把 __pycache__/*.pyc 一并打进去。
+"*" = ["*.proto", "*.pyi", "*.md", "MANIFEST.in"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

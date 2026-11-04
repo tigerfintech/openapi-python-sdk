@@ -17,8 +17,10 @@ import unittest
 import pytest
 
 from tigeropen.common.util.contract_utils import stock_contract, option_contract_by_symbol
+from tigeropen.common.consts import AssetQuoteType
 from tigeropen.trade.request.model import (
     AccountsParams,
+    AggregateAssetParams,
     AssetParams,
     CancelOrderParams,
     OrderParams,
@@ -208,6 +210,32 @@ class TestAccountRequestWireKeys(unittest.TestCase):
         p.id = 987
         d = p.to_openapi_dict()
         self.assertIn('id', d)
+
+    def test_asset_quote_type_wire_key_is_snake_case(self):
+        """Python .asset_quote_type → wire 'asset_quote_type' (NOT 'assetQuoteType').
+
+        The HTTP gateway reads the snake_case key and the enum NAME, while the socket
+        protocol uses camelCase; pinning both sides keeps them from drifting together.
+        """
+        for cls in (AssetParams, AggregateAssetParams, PositionParams):
+            with self.subTest(cls=cls.__name__):
+                p = cls()
+                p.account = 'U1'
+                p.secret_key = 'sk'
+                p.asset_quote_type = AssetQuoteType.ETH.value
+                d = p.to_openapi_dict()
+                self.assertIn('asset_quote_type', d)
+                self.assertNotIn('assetQuoteType', d)
+                self.assertEqual(d['asset_quote_type'], 'ETH')
+
+    def test_asset_quote_type_absent_when_not_set(self):
+        """Not passing the parameter must leave the payload exactly as before."""
+        for cls in (AssetParams, AggregateAssetParams, PositionParams):
+            with self.subTest(cls=cls.__name__):
+                p = cls()
+                p.account = 'U1'
+                p.secret_key = 'sk'
+                self.assertNotIn('asset_quote_type', p.to_openapi_dict())
 
 
 class TestQuoteRequestWireKeys(unittest.TestCase):

@@ -152,6 +152,30 @@ class TestTradePositionList(unittest.TestCase):
         result = self.runner.invoke(cli, ['trade', 'position', 'list', '--sec-type', 'OPT'])
         self.assertEqual(result.exit_code, 0)
 
+    @patch('tigeropen.cli.trade_cmd.get_trade_client')
+    def test_position_list_with_asset_quote_type(self, mock_get_client):
+        """--asset-quote-type should reach get_positions as the enum name."""
+        from tigeropen.cli.main import cli
+        mock_client = MagicMock()
+        mock_client.get_positions.return_value = []
+        mock_get_client.return_value = mock_client
+
+        result = self.runner.invoke(cli, ['trade', 'position', 'list', '--asset-quote-type', 'eth'])
+        self.assertEqual(result.exit_code, 0)
+        self.assertEqual(mock_client.get_positions.call_args.kwargs['asset_quote_type'], 'ETH')
+
+    @patch('tigeropen.cli.trade_cmd.get_trade_client')
+    def test_position_list_without_asset_quote_type(self, mock_get_client):
+        """不传时不应该把参数塞进调用里"""
+        from tigeropen.cli.main import cli
+        mock_client = MagicMock()
+        mock_client.get_positions.return_value = []
+        mock_get_client.return_value = mock_client
+
+        result = self.runner.invoke(cli, ['trade', 'position', 'list'])
+        self.assertEqual(result.exit_code, 0)
+        self.assertNotIn('asset_quote_type', mock_client.get_positions.call_args.kwargs)
+
 
 class TestTradeOrderModify(unittest.TestCase):
     """Tests for 'tigeropen trade order modify'."""
@@ -328,6 +352,23 @@ class TestAccountAssets(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_client.get_prime_assets.assert_called_once()
         self.assertIn('DU123456', result.output)
+        self.assertNotIn('asset_quote_type', mock_client.get_prime_assets.call_args.kwargs)
+
+    @patch('tigeropen.cli.account_cmd.get_trade_client')
+    def test_account_assets_with_asset_quote_type(self, mock_get_client):
+        """--asset-quote-type should reach get_prime_assets as the enum name."""
+        from tigeropen.cli.main import cli
+        mock_client = MagicMock()
+        mock_client.get_prime_assets.return_value = make_mock_obj(
+            account='DU123456',
+            update_timestamp=1700000000000,
+            _segments={},
+        )
+        mock_get_client.return_value = mock_client
+
+        result = self.runner.invoke(cli, ['account', 'assets', '--asset-quote-type', 'overnight'])
+        self.assertEqual(result.exit_code, 0)
+        self.assertEqual(mock_client.get_prime_assets.call_args.kwargs['asset_quote_type'], 'OVERNIGHT')
 
 
 class TestAccountAnalytics(unittest.TestCase):
