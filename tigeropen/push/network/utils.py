@@ -13,6 +13,9 @@ CMD_TYPE_NAME_MAP = {
     SocketCommon.Command.ERROR: 'error',
     SocketCommon.Command.HEARTBEAT: 'heartbeat',
     SocketCommon.Command.MESSAGE: 'message',
+    # A listener without on_refresh_token is fine: the dispatcher looks the method up
+    # with getattr(..., None) and only logs a debug line when it is absent
+    SocketCommon.Command.REFRESH_TOKEN: 'refresh_token',
     SocketCommon.Command.SEND: 'send',
     SocketCommon.Command.SUBSCRIBE: 'subscribe',
     SocketCommon.Command.UNKNOWN: 'unknown',

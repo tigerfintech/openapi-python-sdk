@@ -22,8 +22,21 @@ def _create_push_client(ctx_obj):
     config = build_config(ctx_obj)
     protocol, host, port = config.socket_host_port
     use_ssl = (protocol == 'ssl')
-    client = PushClient(host, port, use_ssl=use_ssl)
+    client = PushClient(host, port, use_ssl=use_ssl, client_config=config)
     return client, config
+
+
+def _connect_push(push_client, config):
+    """Connect with the right credentials for the auth mode.
+
+    OAuth2 mode carries the access token inside the connect message; signature mode
+    needs tiger_id + private key. Passing the token-bearing config is what tells
+    ProtobufPushClient to take the OAuth2 branch (its connect() then ignores the args).
+    """
+    if getattr(config, 'authentication', None) is not None:
+        push_client.connect()
+    else:
+        push_client.connect(config.tiger_id, config.private_key)
 
 
 def _stream_output(data, fmt='table'):
@@ -61,7 +74,7 @@ def _run_push(ctx, callback_attr, subscribe_fn, label):
     setattr(push_client, callback_attr, on_changed)
 
     try:
-        push_client.connect(config.tiger_id, config.private_key)
+        _connect_push(push_client, config)
         subscribe_fn(push_client, config)
         click.echo(f'Subscribed to {label} updates.')
         click.echo('Press Ctrl+C to stop.')

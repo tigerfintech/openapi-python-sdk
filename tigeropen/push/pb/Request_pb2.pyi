@@ -7,9 +7,14 @@ from tigeropen.push.pb.SocketCommon_pb2 import SocketCommon as SocketCommon
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class Request(_message.Message):
-    __slots__ = ("command", "id", "subscribe", "connect")
+    __slots__ = ("command", "id", "subscribe", "connect", "refreshToken")
+    class RefreshToken(_message.Message):
+        __slots__ = ("accessToken",)
+        ACCESSTOKEN_FIELD_NUMBER: _ClassVar[int]
+        accessToken: str
+        def __init__(self, accessToken: _Optional[str] = ...) -> None: ...
     class Connect(_message.Message):
-        __slots__ = ("tigerId", "sign", "sdkVersion", "acceptVersion", "sendInterval", "receiveInterval", "useFullTick")
+        __slots__ = ("tigerId", "sign", "sdkVersion", "acceptVersion", "sendInterval", "receiveInterval", "useFullTick", "accessToken")
         TIGERID_FIELD_NUMBER: _ClassVar[int]
         SIGN_FIELD_NUMBER: _ClassVar[int]
         SDKVERSION_FIELD_NUMBER: _ClassVar[int]
@@ -17,6 +22,7 @@ class Request(_message.Message):
         SENDINTERVAL_FIELD_NUMBER: _ClassVar[int]
         RECEIVEINTERVAL_FIELD_NUMBER: _ClassVar[int]
         USEFULLTICK_FIELD_NUMBER: _ClassVar[int]
+        ACCESSTOKEN_FIELD_NUMBER: _ClassVar[int]
         tigerId: str
         sign: str
         sdkVersion: str
@@ -24,7 +30,8 @@ class Request(_message.Message):
         sendInterval: int
         receiveInterval: int
         useFullTick: bool
-        def __init__(self, tigerId: _Optional[str] = ..., sign: _Optional[str] = ..., sdkVersion: _Optional[str] = ..., acceptVersion: _Optional[str] = ..., sendInterval: _Optional[int] = ..., receiveInterval: _Optional[int] = ..., useFullTick: bool = ...) -> None: ...
+        accessToken: str
+        def __init__(self, tigerId: _Optional[str] = ..., sign: _Optional[str] = ..., sdkVersion: _Optional[str] = ..., acceptVersion: _Optional[str] = ..., sendInterval: _Optional[int] = ..., receiveInterval: _Optional[int] = ..., useFullTick: bool = ..., accessToken: _Optional[str] = ...) -> None: ...
     class Subscribe(_message.Message):
         __slots__ = ("dataType", "symbols", "account", "market")
         DATATYPE_FIELD_NUMBER: _ClassVar[int]
@@ -40,8 +47,10 @@ class Request(_message.Message):
     ID_FIELD_NUMBER: _ClassVar[int]
     SUBSCRIBE_FIELD_NUMBER: _ClassVar[int]
     CONNECT_FIELD_NUMBER: _ClassVar[int]
+    REFRESHTOKEN_FIELD_NUMBER: _ClassVar[int]
     command: _SocketCommon_pb2.SocketCommon.Command
     id: int
     subscribe: Request.Subscribe
     connect: Request.Connect
-    def __init__(self, command: _Optional[_Union[_SocketCommon_pb2.SocketCommon.Command, str]] = ..., id: _Optional[int] = ..., subscribe: _Optional[_Union[Request.Subscribe, _Mapping]] = ..., connect: _Optional[_Union[Request.Connect, _Mapping]] = ...) -> None: ...
+    refreshToken: Request.RefreshToken
+    def __init__(self, command: _Optional[_Union[_SocketCommon_pb2.SocketCommon.Command, str]] = ..., id: _Optional[int] = ..., subscribe: _Optional[_Union[Request.Subscribe, _Mapping]] = ..., connect: _Optional[_Union[Request.Connect, _Mapping]] = ..., refreshToken: _Optional[_Union[Request.RefreshToken, _Mapping]] = ...) -> None: ...

@@ -67,7 +67,7 @@ version = {attr = "tigeropen.__VERSION__"}
 exclude = ["tests", "tests.*"]
 
 [tool.setuptools.package-data]
-"*" = ["*.*"]
+"*" = ["*.*", "**/*.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
