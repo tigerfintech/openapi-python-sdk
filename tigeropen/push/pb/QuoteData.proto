@@ -45,6 +45,25 @@ message QuoteData {
 
   optional double volumeDecimal = 29;
 
+  // cumulative volume of CURB + RTH + GTH, only Options support
+  optional sint64 cumVolume = 30;
+  // cumulative amount of CURB + RTH + GTH, only Options support
+  optional double cumAmount = 31;
+  // current trading session: GTH / RTH / CURB / CLOSE, only Options support
+  optional string session = 32;
+  // extended-session quote, present during GTH / CURB / CLOSE, only Options support
+  optional HourTrading hourTrading = 33;
+
+  message HourTrading {
+    optional string tag = 1; // 盘前 / 盘后
+    optional string session = 2; // GTH / CURB
+    optional double latestPrice = 3;
+    optional uint64 latestTimestamp = 4;
+    optional sint64 volume = 5;
+    optional double amount = 6;
+    optional double preClose = 7;
+  }
+
   message Minute {
     double p = 1; // last price of the minute bar
     double a = 2; // average price of the minute bar

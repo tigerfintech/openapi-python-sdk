@@ -267,6 +267,11 @@ def convert_to_basic_data(quote_data):
         builder.hourTradingTag = quote_data.hourTradingTag
     if quote_data.HasField('marketStatus'):
         builder.marketStatus = quote_data.marketStatus
+    for field in ('cumVolume', 'cumAmount', 'session'):
+        if quote_data.HasField(field):
+            setattr(builder, field, getattr(quote_data, field))
+    if quote_data.HasField('hourTrading'):
+        builder.hourTrading.CopyFrom(quote_data.hourTrading)
     if quote_data.HasField('identifier'):
         builder.identifier = quote_data.identifier
     if quote_data.HasField('openInt'):

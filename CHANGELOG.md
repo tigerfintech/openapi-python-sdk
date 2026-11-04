@@ -1,3 +1,9 @@
+## 3.8.2 (2026-11-02)
+### Added
+- US option quotes and option-chain legs expose cumulative volume/amount and extended-session quotes for GTH/CURB.
+- Protobuf option callbacks expose the current session and extended-session price, timestamp, volume, amount and previous close.
+- Option minute-bar requests can include GTH/CURB through the optional with_hour_trading parameter; existing calls retain the server default.
+
 ## 3.8.1 (2026-09-23)
 ### New
 - 资产与持仓查询新增 `asset_quote_type` 参数（`ETH` / `RTH` / `OVERNIGHT`），可按夜盘口径估值：`get_positions`、`get_assets`、`get_prime_assets`、`get_aggregate_assets`

@@ -35,4 +35,12 @@ message QuoteBasicData {
   // minute data: price, average price, time, volume
   optional QuoteData.Minute mi = 28;
 
+  // cumulative volume of CURB + RTH + GTH, only Options support
+  optional sint64 cumVolume = 30;
+  // cumulative amount of CURB + RTH + GTH, only Options support
+  optional double cumAmount = 31;
+  // current trading session: GTH / RTH / CURB / CLOSE, only Options support
+  optional string session = 32;
+  // extended-session quote, present during GTH / CURB / CLOSE, only Options support
+  optional QuoteData.HourTrading hourTrading = 33;
 }
