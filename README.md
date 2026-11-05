@@ -7,9 +7,9 @@
 </p>
 
 <p align="center">
-  老虎证券 OpenAPI Python SDK — 行情、交易、账户、推送一站式接入
+  老虎证券 OpenAPI Python SDK — 行情、资讯、交易、账户、推送一站式接入
   <br>
-  Tiger Brokers OpenAPI Python SDK — Market data, trading, account & push in one package
+  Tiger Brokers OpenAPI Python SDK — Market data, news, trading, account & push in one package
 </p>
 
 <p align="center">
@@ -37,6 +37,7 @@
 TigerOpen 是老虎证券开放平台的官方 Python SDK，为个人开发者和机构客户提供完整的证券交易接口服务：
 
 - **行情数据** — 股票/期权/期货实时行情、K 线、逐笔成交、盘口深度
+- **资讯数据** — 个股新闻、市场要闻
 - **交易服务** — 下单、改单、撤单，支持市价/限价/止损/跟踪止损/算法订单 (TWAP/VWAP)
 - **账户管理** — 资产查询、持仓管理、成交记录
 - **实时推送** — WebSocket 行情推送、订单状态、持仓与资产变动
@@ -224,6 +225,25 @@ push_client = PushClient(host, port, use_ssl=(protocol == 'ssl'))
 push_client.quote_changed = on_quote_changed
 push_client.connect(config.tiger_id, config.private_key)
 push_client.subscribe_quote(['AAPL', 'TSLA'])
+```
+
+### 6. 资讯查询
+
+```python
+from tigeropen.news.news_client import NewsClient
+
+config = TigerOpenClientConfig(props_path='~/.tigeropen/')
+client = NewsClient(config)
+
+# 个股新闻（page_count / page_size 可选，缺省 1 / 20）
+page = client.get_stock_news('AAPL', lang='zh_CN')
+for item in page.items:
+    print(item.pub_timestamp, item.title, item.url)
+
+# 市场要闻（翻页走 last_id 游标：取上一页最后一条的 id）
+page = client.get_market_news(lang='zh_CN')
+for item in page.items:
+    print(item.id, item.title)
 ```
 
 ## CLI 命令行工具
@@ -460,6 +480,7 @@ cp -r tigeropen/examples/ai/skills/ .claude/skills/tigeropen/
 TigerOpen is the official Python SDK for Tiger Brokers' Open Platform, providing developers and institutional clients with comprehensive securities trading interfaces:
 
 - **Market Data** — Real-time quotes, candlesticks, tick data, order book depth for stocks, options & futures
+- **News** — Per-symbol news feeds and market highlights
 - **Trading** — Place, modify, cancel orders; supports market/limit/stop/trailing-stop/algo orders (TWAP/VWAP)
 - **Account Management** — Asset queries, position tracking, transaction history
 - **Real-time Push** — WebSocket streaming for quotes, order status, position & asset changes
@@ -602,6 +623,25 @@ push_client = PushClient(host, port, use_ssl=(protocol == 'ssl'))
 push_client.quote_changed = on_quote_changed
 push_client.connect(config.tiger_id, config.private_key)
 push_client.subscribe_quote(['AAPL', 'TSLA'])
+```
+
+### 6. Query News
+
+```python
+from tigeropen.news.news_client import NewsClient
+
+config = TigerOpenClientConfig(props_path='~/.tigeropen/')
+client = NewsClient(config)
+
+# Stock news (optional page_count / page_size, default 1 / 20)
+page = client.get_stock_news('AAPL', lang='zh_CN')
+for item in page.items:
+    print(item.pub_timestamp, item.title, item.url)
+
+# Market highlights (cursor pagination: last_id = id of the last item on the previous page)
+page = client.get_market_news(lang='zh_CN')
+for item in page.items:
+    print(item.id, item.title)
 ```
 
 ## CLI Tool
