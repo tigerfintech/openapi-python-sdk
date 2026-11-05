@@ -36,6 +36,10 @@ from tigeropen.quote.request.model import (
     SingleQuoteParams,
     TradingCalendarParams,
 )
+from tigeropen.news.request.model import (
+    NewsHighlightListParams,
+    NewsStockListParams,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -300,6 +304,49 @@ class TestQuoteRequestWireKeys(unittest.TestCase):
         d = p.to_openapi_dict()
         self.assertIn('base_filter_list', d)
         self.assertNotIn('baseFilterList', d)
+
+
+class TestNewsParamsWireKeys(unittest.TestCase):
+    """Pin wire keys for news request models (news_stock_list / news_highlight_list).
+
+    服务端入参约定为 snake_case（决策 #13），出参才是 camelCase。
+    """
+
+    def test_news_stock_list_wire_keys(self):
+        p = NewsStockListParams()
+        p.symbol = 'AAPL'
+        p.page_count = 2
+        p.page_size = 50
+        p.lang = 'zh_CN'
+        d = p.to_openapi_dict()
+        self.assertEqual(d.get('symbol'), 'AAPL')
+        self.assertEqual(d.get('page_count'), 2)
+        self.assertEqual(d.get('page_size'), 50)
+        self.assertEqual(d.get('lang'), 'zh_CN')
+
+    def test_news_stock_list_paging_optional(self):
+        """page_count / page_size 不传不进 wire（服务端归一化为默认 1 / 20）。"""
+        p = NewsStockListParams()
+        p.symbol = 'AAPL'
+        d = p.to_openapi_dict()
+        self.assertNotIn('page_count', d)
+        self.assertNotIn('page_size', d)
+
+    def test_news_highlight_list_wire_keys(self):
+        p = NewsHighlightListParams()
+        p.last_id = '789'
+        p.lang = 'en_US'
+        d = p.to_openapi_dict()
+        self.assertEqual(d.get('last_id'), '789')
+        self.assertEqual(d.get('lang'), 'en_US')
+        self.assertNotIn('page_count', d)
+        self.assertNotIn('page_size', d)
+
+    def test_news_highlight_list_last_id_optional(self):
+        """last_id 不传不进 wire（从最新开始）。"""
+        p = NewsHighlightListParams()
+        d = p.to_openapi_dict()
+        self.assertNotIn('last_id', d)
 
 
 if __name__ == '__main__':

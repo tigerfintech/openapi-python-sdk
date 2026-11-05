@@ -16,6 +16,7 @@ _TESTS_DIR = Path(__file__).resolve().parent
 _CLIENT_SOURCES = (
     'tigeropen/quote/quote_client.py',
     'tigeropen/trade/trade_client.py',
+    'tigeropen/news/news_client.py',
     'tigeropen/tiger_open_client.py',
 )
 _SERVICE_TYPES = 'tigeropen/common/consts/service_types.py'
