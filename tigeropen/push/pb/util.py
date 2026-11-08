@@ -249,12 +249,18 @@ def convert_to_basic_data(quote_data):
         builder.serverTimestamp = quote_data.serverTimestamp
     if quote_data.HasField('avgPrice'):
         builder.avgPrice = quote_data.avgPrice
-    builder.latestPrice = quote_data.latestPrice
+    if quote_data.HasField('latestPrice'):
+        builder.latestPrice = quote_data.latestPrice
     if quote_data.HasField('latestPriceTimestamp'):
         builder.latestPriceTimestamp = quote_data.latestPriceTimestamp
-    builder.latestTime = quote_data.latestTime
-    builder.preClose = quote_data.preClose
-    builder.volume = quote_data.volume
+    if quote_data.HasField('latestTime'):
+        builder.latestTime = quote_data.latestTime
+    if quote_data.HasField('preClose'):
+        builder.preClose = quote_data.preClose
+    if quote_data.HasField('volume'):
+        builder.volume = quote_data.volume
+    if quote_data.HasField('volumeDecimal'):
+        builder.volumeDecimal = quote_data.volumeDecimal
     if quote_data.HasField('amount'):
         builder.amount = quote_data.amount
     if quote_data.HasField('open'):
@@ -270,8 +276,6 @@ def convert_to_basic_data(quote_data):
     for field in ('cumVolume', 'cumAmount', 'session'):
         if quote_data.HasField(field):
             setattr(builder, field, getattr(quote_data, field))
-    if quote_data.HasField('hourTrading'):
-        builder.hourTrading.CopyFrom(quote_data.hourTrading)
     if quote_data.HasField('identifier'):
         builder.identifier = quote_data.identifier
     if quote_data.HasField('openInt'):

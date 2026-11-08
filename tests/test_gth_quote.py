@@ -10,25 +10,36 @@ from tigeropen.push.pb.QuoteData_pb2 import QuoteData
 from tigeropen.push.pb.SocketCommon_pb2 import SocketCommon
 from tigeropen.push.pb.util import convert_to_basic_data
 
-# Produced from stock-openapi commit 26fe03848, not the SDK's own schema.
-GTH_WIRE = bytes.fromhex("0a185350585720323032363037323320373338302e30205055541001f00100f90100000000000000008202034754488a02310a06e79b98e5898d120347544819000000000000f83f2089fa9df1f8332800310000000000000000399a9999999999f13f")
+# Produced from stock-openapi feat_gth commit 33df7142f.
+GTH_WIRE = bytes.fromhex("0a185350585720323032363037323320373338302e3020505554100118a4fb9df1f83331000000000000f83f3889fa9df1f833499a9999999999f13f500e5900000000000029407a095072654d61726b6574e9010000000000001c40f001d00ff901000000008087c340820203475448")
+GTH_0a185350585720323032363037323320373338302e3020505554100118a4fb9df1f8333100000000000000003800499a9999999999f13f50005900000000000000007a095072654d61726b6574e9010000000000000000f001d00ff901000000008087c340820203475448_WIRE = bytes.fromhex("0a185350585720323032363037323320373338302e3020505554100118a4fb9df1f8333100000000000000003800499a9999999999f13f50005900000000000000007a095072654d61726b6574e9010000000000000000f001d00ff901000000008087c340820203475448")
 
 
-def test_server_gth_wire_survives_basic_callback_conversion():
-    quote = QuoteData.FromString(GTH_WIRE)
+@pytest.mark.parametrize("wire,price,trade_time,volume,amount", [
+    (GTH_WIRE, 1.5, 1784796380425, 7, 12.5),
+    (GTH_0a185350585720323032363037323320373338302e3020505554100118a4fb9df1f8333100000000000000003800499a9999999999f13f50005900000000000000007a095072654d61726b6574e9010000000000000000f001d00ff901000000008087c340820203475448_WIRE, 0, 0, 0, 0),
+])
+def test_server_gth_wire_survives_basic_callback_conversion(wire, price, trade_time, volume, amount):
+    quote = QuoteData.FromString(wire)
     basic = convert_to_basic_data(quote)
-    assert basic.symbol == "SPXW 20260723 7380.0 PUT"
-    assert basic.HasField("cumVolume") and basic.cumVolume == 0
-    assert basic.HasField("cumAmount") and basic.cumAmount == 0
-    assert basic.session == "GTH"
-    assert basic.hourTrading.tag == "盘前"
-    assert basic.hourTrading.latestTimestamp == 1784796380425
-    assert basic.hourTrading.latestPrice == 1.5
-    assert basic.hourTrading.HasField("volume") and basic.hourTrading.volume == 0
-    assert basic.hourTrading.preClose == 1.1
-    regular = convert_to_basic_data(QuoteData(symbol="AAPL", type=SocketCommon.BASIC))
-    assert not regular.HasField("hourTrading")
-    assert not regular.HasField("cumVolume")
+    for data in (quote, basic):
+        assert data.symbol == "SPXW 20260723 7380.0 PUT"
+        for field, value in {"latestPrice": price, "latestPriceTimestamp": trade_time,
+                             "preClose": 1.1, "volume": volume, "volumeDecimal": volume,
+                             "amount": amount, "cumVolume": 1000, "cumAmount": 9999,
+                             "session": "GTH", "hourTradingTag": "PreMarket"}.items():
+            assert data.HasField(field) and getattr(data, field) == value
+        assert "hourTrading" not in data.DESCRIPTOR.fields_by_name
+        assert "HourTrading" not in data.DESCRIPTOR.nested_types_by_name
+
+
+def test_basic_conversion_keeps_missing_trade_fields_and_session_absent():
+    quote = QuoteData(symbol="AAPL", type=SocketCommon.BASIC)
+    basic = convert_to_basic_data(quote)
+    for field in ("latestPrice", "latestPriceTimestamp", "latestTime", "preClose",
+                  "volume", "volumeDecimal", "amount", "cumVolume", "cumAmount",
+                  "session", "hourTradingTag"):
+        assert not basic.HasField(field)
 
 
 @pytest.mark.parametrize("flag", [None, True, False])

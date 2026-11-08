@@ -1,7 +1,7 @@
 ## 3.8.2 (2026-11-02)
 ### Added
 - US option quotes and option-chain legs expose cumulative volume/amount and extended-session quotes for GTH/CURB.
-- Protobuf option callbacks expose the current session and extended-session price, timestamp, volume, amount and previous close.
+- Protobuf option callbacks read GTH/CURB prices and session volume/amount from existing fields with PreMarket/AfterHours tags; cumulative totals remain independent. The unpublished nested push object is removed. HTTP snapshots and option-chain objects remain available.
 - Option minute-bar requests can include GTH/CURB through the optional with_hour_trading parameter; existing calls retain the server default.
 
 ## 3.8.1 (2026-09-23)
