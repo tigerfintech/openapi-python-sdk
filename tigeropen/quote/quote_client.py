@@ -1140,9 +1140,12 @@ class QuoteClient(TigerOpenClient):
                         limit: Optional[int] = None,
                         sort_dir: Optional[Union[SortDirection, str]] = None,
                         market: Optional[Union[Market, str]] = None,
-                        timezone: Optional[str] = None) -> pd.DataFrame:
+                        timezone: Optional[str] = None,
+                        with_hour_trading: Optional[bool] = None) -> pd.DataFrame:
         """
         Get option K-line (OHLC) data. 获取期权K线数据
+
+        :param with_hour_trading: Include GTH/CURB data in minute bars. None keeps the server default.
 
         :param identifiers: Option identifiers list. 期权代码列表
         :param begin_time: Start time. Can be 13-digit timestamp (milliseconds) or datetime string like "2019-01-01" or "2019-01-01 12:00:00".
@@ -1203,6 +1206,7 @@ class QuoteClient(TigerOpenClient):
                 end_time, self._parse_timezone(timezone, market))
             param.limit = limit
             param.sort_dir = get_enum_value(sort_dir)
+            param.with_hour_trading = with_hour_trading
             contracts.append(param)
         params.option_query = contracts
         if market:

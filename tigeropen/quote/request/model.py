@@ -484,6 +484,7 @@ class SingleOptionQuoteParams(SingleContractParams):
         self._end_time = None
         self._limit = None
         self._sort_dir = None
+        self._with_hour_trading = None
 
     @property
     def period(self):
@@ -525,6 +526,14 @@ class SingleOptionQuoteParams(SingleContractParams):
     def sort_dir(self, value):
         self._sort_dir = value
 
+    @property
+    def with_hour_trading(self):
+        return self._with_hour_trading
+
+    @with_hour_trading.setter
+    def with_hour_trading(self, value):
+        self._with_hour_trading = value
+
     def to_openapi_dict(self):
         params = super(SingleOptionQuoteParams, self).to_openapi_dict()
         if self.period:
@@ -537,6 +546,8 @@ class SingleOptionQuoteParams(SingleContractParams):
             params['limit'] = self.limit
         if self.sort_dir:
             params['sort_dir'] = self.sort_dir
+        if self.with_hour_trading is not None:
+            params['with_hour_trading'] = self.with_hour_trading
         return params
 
 

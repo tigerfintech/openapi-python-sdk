@@ -9,7 +9,7 @@ from tigeropen.push.pb.QuoteData_pb2 import QuoteData as QuoteData
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class QuoteBasicData(_message.Message):
-    __slots__ = ("symbol", "type", "timestamp", "serverTimestamp", "avgPrice", "latestPrice", "latestPriceTimestamp", "latestTime", "preClose", "volume", "amount", "open", "high", "low", "hourTradingTag", "marketStatus", "identifier", "openInt", "tradeTime", "preSettlement", "minTick", "mi")
+    __slots__ = ("symbol", "type", "timestamp", "serverTimestamp", "avgPrice", "latestPrice", "latestPriceTimestamp", "latestTime", "preClose", "volume", "amount", "open", "high", "low", "hourTradingTag", "marketStatus", "identifier", "openInt", "tradeTime", "preSettlement", "minTick", "mi", "volumeDecimal", "cumVolume", "cumAmount", "session")
     SYMBOL_FIELD_NUMBER: _ClassVar[int]
     TYPE_FIELD_NUMBER: _ClassVar[int]
     TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
@@ -32,6 +32,10 @@ class QuoteBasicData(_message.Message):
     PRESETTLEMENT_FIELD_NUMBER: _ClassVar[int]
     MINTICK_FIELD_NUMBER: _ClassVar[int]
     MI_FIELD_NUMBER: _ClassVar[int]
+    VOLUMEDECIMAL_FIELD_NUMBER: _ClassVar[int]
+    CUMVOLUME_FIELD_NUMBER: _ClassVar[int]
+    CUMAMOUNT_FIELD_NUMBER: _ClassVar[int]
+    SESSION_FIELD_NUMBER: _ClassVar[int]
     symbol: str
     type: _SocketCommon_pb2.SocketCommon.QuoteType
     timestamp: int
@@ -54,4 +58,8 @@ class QuoteBasicData(_message.Message):
     preSettlement: float
     minTick: float
     mi: _QuoteData_pb2.QuoteData.Minute
-    def __init__(self, symbol: _Optional[str] = ..., type: _Optional[_Union[_SocketCommon_pb2.SocketCommon.QuoteType, str]] = ..., timestamp: _Optional[int] = ..., serverTimestamp: _Optional[int] = ..., avgPrice: _Optional[float] = ..., latestPrice: _Optional[float] = ..., latestPriceTimestamp: _Optional[int] = ..., latestTime: _Optional[str] = ..., preClose: _Optional[float] = ..., volume: _Optional[int] = ..., amount: _Optional[float] = ..., open: _Optional[float] = ..., high: _Optional[float] = ..., low: _Optional[float] = ..., hourTradingTag: _Optional[str] = ..., marketStatus: _Optional[str] = ..., identifier: _Optional[str] = ..., openInt: _Optional[int] = ..., tradeTime: _Optional[int] = ..., preSettlement: _Optional[float] = ..., minTick: _Optional[float] = ..., mi: _Optional[_Union[_QuoteData_pb2.QuoteData.Minute, _Mapping]] = ...) -> None: ...
+    volumeDecimal: float
+    cumVolume: int
+    cumAmount: float
+    session: str
+    def __init__(self, symbol: _Optional[str] = ..., type: _Optional[_Union[_SocketCommon_pb2.SocketCommon.QuoteType, str]] = ..., timestamp: _Optional[int] = ..., serverTimestamp: _Optional[int] = ..., avgPrice: _Optional[float] = ..., latestPrice: _Optional[float] = ..., latestPriceTimestamp: _Optional[int] = ..., latestTime: _Optional[str] = ..., preClose: _Optional[float] = ..., volume: _Optional[int] = ..., amount: _Optional[float] = ..., open: _Optional[float] = ..., high: _Optional[float] = ..., low: _Optional[float] = ..., hourTradingTag: _Optional[str] = ..., marketStatus: _Optional[str] = ..., identifier: _Optional[str] = ..., openInt: _Optional[int] = ..., tradeTime: _Optional[int] = ..., preSettlement: _Optional[float] = ..., minTick: _Optional[float] = ..., mi: _Optional[_Union[_QuoteData_pb2.QuoteData.Minute, _Mapping]] = ..., volumeDecimal: _Optional[float] = ..., cumVolume: _Optional[int] = ..., cumAmount: _Optional[float] = ..., session: _Optional[str] = ...) -> None: ...

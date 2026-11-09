@@ -38,6 +38,8 @@ class OptionBriefsResponse(TigerResponse):
                         continue
                     if key == 'right' and value:
                         value = value.upper()
+                    if key == 'hourTrading' and isinstance(value, dict):
+                        value = string_utils.camel_to_underline_obj(value)
                     item_values[key] = value
                 if 'identifier' not in item_values:
                     underlying_symbol = item_values.get('symbol')
