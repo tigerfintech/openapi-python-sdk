@@ -1,8 +1,19 @@
-## 3.8.2 (2026-11-02)
+## 3.9.1 (2026-11-09)
 ### Added
 - US option quotes and option-chain legs expose cumulative volume/amount and extended-session quotes for GTH/CURB.
 - Protobuf option callbacks read GTH/CURB prices and session volume/amount from existing fields with PreMarket/AfterHours tags; cumulative totals remain independent. The unpublished nested push object is removed. HTTP snapshots and option-chain objects remain available.
 - Option minute-bar requests can include GTH/CURB through the optional with_hour_trading parameter; existing calls retain the server default.
+
+## 3.9.0 (2026-11-04)
+### New
+- 新增资讯模块 `tigeropen.news` 与 `NewsClient`
+- `NewsClient.get_stock_news(symbol, lang=None, page_count=None, page_size=None)` — 个股新闻列表（method=news_stock_list）：`symbol` 单标的必填（下游资讯服务实际不支持批量查询，传多个仅单个标的生效）；`page_count` / `page_size` 可选（缺省服务端默认 1 / 20，显式传值须 `page_count >= 1`、`1 <= page_size <= 50`）
+- `NewsClient.get_market_news(lang=None, last_id=None)` — 市场要闻列表（method=news_highlight_list）：无必填参数；翻页只走 `last_id` 游标（取上一页 `items` 最后一条的 `id`，不传从最新开始）
+- `lang` 为两接口共用可选参数（`zh_CN` / `zh_TW` / `en_US`）：不传继承客户端语言配置，显式传空串 = 中英混合内容（服务端将空 `lang` 视为混合），非法非空值服务端回退 `en_US` 不报错
+- 两接口返回 `NewsPage`（`items` + `page_count` / `page_size` / `total_page` / `total_size`），条目 `NewsItem` 含 `id` / `title` / `summary` / `pub_timestamp`（秒级时间戳）/ `url`
+### 兼容性
+- 纯新增模块，不影响既有方法
+- 出入参与平台惯例对齐：请求 snake_case、响应 camelCase；契约与 Java SDK 2.8.0 / 服务端设计（stock-openapi docs/news_api_design.md）一致
 
 ## 3.8.1 (2026-09-23)
 ### New

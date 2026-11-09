@@ -135,3 +135,7 @@ INDUSTRY_LIST = 'industry_list'
 INDUSTRY_STOCKS = 'industry_stocks'
 STOCK_INDUSTRY = 'stock_industry'
 
+# 资讯
+NEWS_STOCK_LIST = "news_stock_list"  # 个股新闻列表
+NEWS_HIGHLIGHT_LIST = "news_highlight_list"  # 市场要闻列表
+
