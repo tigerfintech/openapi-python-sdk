@@ -37,6 +37,8 @@ class OptionChainsResponse(TigerResponse):
                                     continue
                                 if key == 'right':
                                     value = value.upper()
+                                if key == 'hourTrading' and isinstance(value, dict):
+                                    value = string_utils.camel_to_underline_obj(value)
                                 item_values[CHAIN_FIELD_MAPPINGS.get(key, string_utils.camel_to_underline(key))] = value
                             chain_data.append(item_values)
             self.chain = pd.DataFrame(chain_data)

@@ -1,3 +1,9 @@
+## 3.9.1 (2026-11-09)
+### Added
+- US option quotes and option-chain legs expose cumulative volume/amount and extended-session quotes for GTH/CURB.
+- Protobuf option callbacks read GTH/CURB prices and session volume/amount from existing fields with PreMarket/AfterHours tags; cumulative totals remain independent. The unpublished nested push object is removed. HTTP snapshots and option-chain objects remain available.
+- Option minute-bar requests can include GTH/CURB through the optional with_hour_trading parameter; existing calls retain the server default.
+
 ## 3.9.0 (2026-11-04)
 ### New
 - 新增资讯模块 `tigeropen.news` 与 `NewsClient`

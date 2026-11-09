@@ -12,17 +12,21 @@ message QuoteBasicData {
   optional uint64 serverTimestamp = 4;
   optional double avgPrice = 5; // Options data not support
   optional double latestPrice = 6; //
-  optional uint64 latestPriceTimestamp = 7; // Pre/Post-Mkt data not support
+  // Actual last-trade time (epoch ms) for the quoted session; 0 means no trade.
+  optional uint64 latestPriceTimestamp = 7;
   optional string latestTime = 8; //
   optional double preClose = 9; //
-  optional sint64 volume = 10; //
-  optional double amount = 11; // Futures and Options data not support
+  // Volume of the quoted session; cumulative option volume is cumVolume.
+  optional sint64 volume = 10;
+  // Amount of the quoted session; cumulative option amount is cumAmount.
+  optional double amount = 11;
 
   optional double open = 12; // Pre/Post-Mkt data not support
   optional double high = 13; // Pre/Post-Mkt data not support
   optional double low = 14; // Pre/Post-Mkt data not support
 
-  optional string hourTradingTag = 15; // Pre/Post-Mkt
+  // Extended-session marker: PreMarket / AfterHours; absent for RTH.
+  optional string hourTradingTag = 15;
   optional string marketStatus = 16;
 
   optional string identifier = 23; // only Options support
@@ -35,4 +39,13 @@ message QuoteBasicData {
   // minute data: price, average price, time, volume
   optional QuoteData.Minute mi = 28;
 
+  // Trading volume encoded as a double; precision may be lost for large or fractional values.
+  optional double volumeDecimal = 29;
+
+  // cumulative volume of CURB + RTH + GTH, only Options support
+  optional sint64 cumVolume = 30;
+  // cumulative amount of CURB + RTH + GTH, only Options support
+  optional double cumAmount = 31;
+  // Quoted option session (GTH / CURB); absent when not provided.
+  optional string session = 32;
 }
