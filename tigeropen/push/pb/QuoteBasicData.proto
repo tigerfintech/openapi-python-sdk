@@ -39,7 +39,7 @@ message QuoteBasicData {
   // minute data: price, average price, time, volume
   optional QuoteData.Minute mi = 28;
 
-  // Decimal value encoded as a string to avoid precision loss
+  // Trading volume encoded as a double; precision may be lost for large or fractional values.
   optional double volumeDecimal = 29;
 
   // cumulative volume of CURB + RTH + GTH, only Options support
