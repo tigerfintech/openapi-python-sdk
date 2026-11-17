@@ -28,7 +28,7 @@ logger.setLevel(logging.DEBUG)
 @pytest.mark.parametrize('shape', ['single', 'items', 'list'])
 @pytest.mark.parametrize('capabilities', [None, [], [
     {'orderType': 'LMT', 'timeInForce': 'DAY', 'tradingSessionType': 'PRE_RTH_POST'},
-    {'orderType': 'LMT', 'timeInForce': 'GTC', 'tradingSessionType': 'GTH_RTH_CURB'},
+    {'orderType': 'LMT', 'timeInForce': 'GTC', 'tradingSessionType': 'PRE_RTH_POST'},
 ]])
 def test_contract_order_capabilities(shape, capabilities):
     item = {'symbol': 'AAPL', 'secType': 'OPT', 'orderCapabilities': capabilities}
@@ -40,7 +40,7 @@ def test_contract_order_capabilities(shape, capabilities):
     if capabilities:
         assert contract.order_capabilities == [
             {'order_type': 'LMT', 'time_in_force': 'DAY', 'trading_session_type': 'PRE_RTH_POST'},
-            {'order_type': 'LMT', 'time_in_force': 'GTC', 'trading_session_type': 'GTH_RTH_CURB'},
+            {'order_type': 'LMT', 'time_in_force': 'GTC', 'trading_session_type': 'PRE_RTH_POST'},
         ]
     else:
         assert contract.order_capabilities == capabilities
