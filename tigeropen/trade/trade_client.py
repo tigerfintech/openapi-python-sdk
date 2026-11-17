@@ -121,7 +121,7 @@ class TradeClient(TigerOpenClient):
         :param sec_type: 合约类型 tigeropen.common.consts.SecurityType
         :param currency: 币种 tigeropen.common.consts.Currency
         :param exchange: 交易所
-        :return: Contract objects, including optional order_capabilities as in get_contract.
+        :return: 合约对象列表, 每个列表项的对象信息同 get_contract 返回
         """
         params = ContractParams()
         params.account = self._account
