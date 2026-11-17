@@ -13,6 +13,7 @@ from tigeropen.trade.domain.contract import Contract
 from tigeropen.trade.domain.order import Order
 from tigeropen.trade.domain.transfer import TransferItem
 from tigeropen.trade.trade_client import TradeClient
+from tigeropen.trade.response.contracts_response import ContractsResponse
 
 from tests.support import client_config, is_integ_run
 
@@ -22,6 +23,35 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
+
+
+@pytest.mark.parametrize('shape', ['single', 'items', 'list'])
+@pytest.mark.parametrize('capabilities', [None, [], [
+    {'orderType': 'LMT', 'timeInForce': 'DAY', 'tradingSessionType': 'PRE_RTH_POST'},
+    {'orderType': 'LMT', 'timeInForce': 'GTC', 'tradingSessionType': 'PRE_RTH_POST'},
+]])
+def test_contract_order_capabilities(shape, capabilities):
+    item = {'symbol': 'AAPL', 'secType': 'OPT', 'orderCapabilities': capabilities}
+    data = item if shape == 'single' else {'items': [item]} if shape == 'items' else [item]
+    response = ContractsResponse()
+    response.parse_response_content({'code': 0, 'data': data})
+    contract = response.contracts[0]
+    assert contract.symbol == 'AAPL'
+    if capabilities:
+        assert contract.order_capabilities == [
+            {'order_type': 'LMT', 'time_in_force': 'DAY', 'trading_session_type': 'PRE_RTH_POST'},
+            {'order_type': 'LMT', 'time_in_force': 'GTC', 'trading_session_type': 'PRE_RTH_POST'},
+        ]
+    else:
+        assert contract.order_capabilities == capabilities
+    assert contract.to_dict()['order_capabilities'] == contract.order_capabilities
+
+
+def test_contract_without_order_capabilities():
+    assert Contract().order_capabilities is None
+    response = ContractsResponse()
+    response.parse_response_content({'code': 0, 'data': {'symbol': 'AAPL'}})
+    assert response.contracts[0].order_capabilities is None
 
 
 class TestTradeClient(unittest.TestCase):
