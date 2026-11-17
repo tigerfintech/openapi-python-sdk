@@ -1,975 +1,731 @@
-# Changelog
-
 ## 3.9.2 (2026-11-18)
 
-### New
+### Added
 
-- Contract responses expose supported combinations of order types, time in force, and trading sessions through order capabilities.
+- 合约查询新增订单能力信息，可查看支持的订单类型、订单有效期和交易时段组合。
 
 ## 3.9.1 (2026-11-09)
-
-### New
-
-- US option snapshots and option chains provide GTH/CURB extended-session quotes and independent cumulative volume and turnover.
-- Protobuf option callbacks provide current-session prices, volume, and turnover with `PreMarket` / `AfterHours` tags and independent cumulative totals.
-- Option minute-bar requests support `with_hour_trading` to include or exclude extended-session data while preserving the server default when omitted.
-
-### Changed
-
-- Protobuf option callbacks use flat quote fields; HTTP snapshots and option chains retain their extended-session objects.
+### Added
+- US option quotes and option-chain legs expose cumulative volume/amount and extended-session quotes for GTH/CURB.
+- Protobuf option callbacks read GTH/CURB prices and session volume/amount from existing fields with PreMarket/AfterHours tags; cumulative totals remain independent. The unpublished nested push object is removed. HTTP snapshots and option-chain objects remain available.
+- Option minute-bar requests can include GTH/CURB through the optional with_hour_trading parameter; existing calls retain the server default.
 
 ## 3.9.0 (2026-11-04)
-
 ### New
-
-- The `tigeropen.news` module provides `NewsClient`.
-- `get_stock_news` queries one stock's news with page-number pagination.
-- `get_market_news` queries market highlights with cursor pagination.
-- News queries support simplified Chinese, traditional Chinese, and English. Omitting the language inherits the client setting; an empty string requests mixed-language content, and unsupported values fall back to English.
-- News responses include pagination, titles, summaries, publication timestamps, and article URLs.
+- 新增资讯模块 `tigeropen.news` 与 `NewsClient`
+- `NewsClient.get_stock_news(symbol, lang=None, page_count=None, page_size=None)` — 个股新闻列表（method=news_stock_list）：`symbol` 单标的必填（下游资讯服务实际不支持批量查询，传多个仅单个标的生效）；`page_count` / `page_size` 可选（缺省服务端默认 1 / 20，显式传值须 `page_count >= 1`、`1 <= page_size <= 50`）
+- `NewsClient.get_market_news(lang=None, last_id=None)` — 市场要闻列表（method=news_highlight_list）：无必填参数；翻页只走 `last_id` 游标（取上一页 `items` 最后一条的 `id`，不传从最新开始）
+- `lang` 为两接口共用可选参数（`zh_CN` / `zh_TW` / `en_US`）：不传继承客户端语言配置，显式传空串 = 中英混合内容（服务端将空 `lang` 视为混合），非法非空值服务端回退 `en_US` 不报错
+- 两接口返回 `NewsPage`（`items` + `page_count` / `page_size` / `total_page` / `total_size`），条目 `NewsItem` 含 `id` / `title` / `summary` / `pub_timestamp`（秒级时间戳）/ `url`
+### 兼容性
+- 纯新增模块，不影响既有方法
+- 出入参与平台惯例对齐：请求 snake_case、响应 camelCase；契约与 Java SDK 2.8.0 / 服务端设计（stock-openapi docs/news_api_design.md）一致
 
 ## 3.8.1 (2026-09-23)
-
 ### New
-
-- Asset and position queries support `asset_quote_type` values `ETH`, `RTH`, and `OVERNIGHT`.
-- Asset and position subscriptions accept a quote basis.
-- The CLI supports `--asset-quote-type`.
-
-### Changed
-
-- Existing behavior is preserved when no quote basis is specified.
-- Subscription quote-basis selection requires Protobuf; STOMP reports an error if the parameter is supplied.
+- 资产与持仓查询新增 `asset_quote_type` 参数（`ETH` / `RTH` / `OVERNIGHT`），可按夜盘口径估值：`get_positions`、`get_assets`、`get_prime_assets`、`get_aggregate_assets`
+- 推送订阅新增资产行情口径：`subscribe_asset(account, asset_quote_type)` / `subscribe_position(account, asset_quote_type)`，仅对资产、持仓两类订阅生效
+- CLI 对应新增 `--asset-quote-type` 选项
+### 兼容性
+- 不传 `asset_quote_type` 时行为与此前完全一致
+- 订阅侧的口径参数只在 protobuf 协议下可用，使用 STOMP 协议时传入会报错提示
 
 ## 3.8.0 (2026-09-17)
-
 ### New
-
-- OAuth2 authentication supports automatic token storage and renewal through `OAuth2SessionManager` and `OAuth2Authentication`.
-- Push connections renew OAuth2 tokens without reconnecting.
-- The CLI provides authentication commands, OAuth2 configuration, and a global account option.
-
-### Changed
-
-- Existing tigerId and private-key authentication remains available when no alternative authentication is configured.
+- 新增 OAuth2 授权方式，可替代 tigerId + 私钥签名：`OAuth2SessionManager` 完成授权并管理令牌，`config.authentication = OAuth2Authentication(sessions)` 接入客户端。令牌保存在 `~/.tiger/openapi/`，过期自动续期，代码与配置中都不再需要私钥
+- 推送支持 OAuth2，令牌临近过期时在连接上直接续期，不断开重连
+- CLI 新增 `tigeropen auth` 命令组（`login` / `logout` / `status` / `token`）；`config init` 可选择 OAuth2；新增全局选项 `--account`
+### 兼容性
+- 已有的 tigerId + 私钥签名方式不受影响；不设置 `authentication` 即沿用签名方式
 
 ## 3.7.2 (2026-08-27)
-
 ### New
-
-- Real-time stock and cryptocurrency quotes provide turnover through `QuoteBrief.amount`.
+- `QuoteBrief` / `get_stock_briefs` 实时行情结果新增 `amount` 字段，支持股票和数字货币成交额。
 
 ## 3.7.1 (2026-08-19)
-
 ### New
-
-- Option chains provide current and previous mark prices, midpoint prices, and their timestamps.
+- `get_option_chain` 返回数据新增 `mark_price`、`pre_mark_price`、`mark_timestamp`、`mid_price`、`pre_mid_price`、`mid_timestamp` 字段
 
 ## 3.7.0 (2026-07-23)
-
 ### New
-
-- `get_corporate_symbol_change` queries stock symbol changes.
-- `get_corporate_delisting` queries delisting events.
-- `get_corporate_ipo` queries IPO events.
-- `CorporateActionType` includes `SYMBOL_CHANGE`, `DELISTING`, and `IPO`.
+- `get_corporate_symbol_change` — 股票代码变更查询
+- `get_corporate_delisting` — 退市事件查询
+- `get_corporate_ipo` — 新股上市查询
+- `CorporateActionType` 新增：`SYMBOL_CHANGE`、`DELISTING`、`IPO`
 
 ## 3.6.0 (2026-06-24)
-
 ### New
-
-- `iceberg_order` creates iceberg orders.
-- `PriceType` supports limit, ask, bid, and latest prices.
+- 新增冰山单辅助函数 `iceberg_order`，用于构造冰山单
+- 新增 `PriceType` 枚举常量（`LIMIT_PRICE`、`ASK_PRICE`、`BID_PRICE`、`LATEST_PRICE`）
 
 ## 3.5.9 (2026-06-08)
-
 ### New
-
-- Option-exercise APIs support early exercise and lapse requests, cancellation, position-change checks, filtered records, and eligible-position queries.
-- Order push messages provide order-information and order-status update timestamps.
+- `TradeClient.submit_option_exercise` 提交期权提前行权或放弃行权申请
+- `TradeClient.cancel_option_exercise` 撤销期权行权申请
+- `TradeClient.check_option_exercise` 行权检验，预估行权后持仓变化
+- `TradeClient.get_option_exercise_records` 分页查询行权申请记录，支持按状态、行权类型、标的代码过滤
+- `TradeClient.get_option_exercise_positions` 查询可行权持仓
+- 订单推送消息补充订单信息更新时间和状态更新时间
 
 ## 3.5.8 (2026-04-24)
-
 ### New
-
-- The CLI stock scanner supports numeric, accumulated, financial, and tag filters, preset gainers/losers filters, sorting, and result limits.
-- A PowerShell installer supports Windows; shell installations on Windows provide PowerShell guidance.
-
-### Fixed
-
-- Configuration file paths retain custom filenames.
-- The account-assets command renders portfolio accounts correctly.
+- CLI 新增 `tigeropen quote scanner` 选股命令，支持 `--filter`（数值/累计/财务/标签筛选，预设 `gainers`/`losers`）、`--sort`、`--sort-dir`、`--limit` 参数
+- 新增 Windows PowerShell 一键安装脚本 `install.ps1`（`irm .../install.ps1 | iex`）；`install.sh` 在 MINGW/MSYS/Cygwin 环境下增加 PowerShell 安装提示
+### Fix
+- 修复 `_get_props_path()` 传入完整文件路径时文件名被替换为 `tiger_openapi_config.properties` 的问题，现在支持任意文件名
+- 修复 `account assets` 命令渲染 `PortfolioAccount` 对象时报错的问题
 
 ## 3.5.7 (2026-03-25)
-
-### Fixed
-
-- Installation works with older pip and setuptools versions.
-- Incompatible Protobuf versions no longer prevent all CLI commands from starting; push commands report an upgrade requirement.
+### Fix
+- 修复 pyproject.toml 中 build-backend 使用 `setuptools.backends._legacy:_Backend` 导致旧版 pip/setuptools 安装失败的问题，改为标准的 `setuptools.build_meta`
+- 修复 CLI 启动时无条件导入 push 模块导致 protobuf 版本不兼容时所有命令都无法使用的问题，改为延迟加载 push 命令，protobuf 版本过低时给出升级提示
 
 ## 3.5.6 (2026-03-24)
-
 ### New
-
-- The `tigeropen` CLI supports configuration, quotes, trading, accounts, and push subscriptions, with table, JSON, and CSV output.
-- One-step installation and automatic uninstallation are available.
-- AI coding tools can use the supplied SDK skills.
-- The package supports modern Python build tools.
-
-### Changed
-
-- Documentation is available at docs.itigerup.com with bilingual CLI, MCP, and skills guidance.
+- 新增 CLI 命令行工具 `tigeropen`，支持行情查询、交易管理、账户查看、实时推送等功能，输出格式支持 table/json/csv. 支持一键安装
+- CLI 子命令: config (init/show/set/path), quote (briefs/bars/timeline/ticks/depth/market-status/symbols + option/future/capital/fundamental 子组), trade (order list/get/place/preview/modify/cancel + position/transaction), account (info/assets/analytics), push (quote/order/position/asset)
+- CLI 支持 `tigeropen uninstall` 自动执行卸载
+- 新增 AI Skills 技能集，支持 Claude Code、Cursor 等 AI 编码工具
+- 新增 pyproject.toml，采用现代 Python 打包标准
+### Modify
+- 迁移文档链接至新域名 docs.itigerup.com
+- README 重构为中英双语，新增 CLI / MCP / Skills 使用说明
 
 ## 3.5.5 (2026-03-12)
-
 ### New
-
-- Option analysis supports historical volatility lists through `require_volatility_list`.
+- `QuoteClient.get_option_analysis` 新增 `require_volatility_list` 参数，支持返回历史波动率列表（`volatility_list`）
 
 ## 3.5.4 (2026-03-02)
-
 ### New
-
-- Quote, trading, and push APIs support cryptocurrency.
-- Monetary orders are supported.
+- 行情/交易/长链接适配数字货币
+- 支持金额单
 
 ## 3.5.3 (2026-01-29)
-
 ### New
-
-- `get_option_analysis` provides implied and historical volatility, IV/HV ratios, call/put ratios, IV percentiles, and IV ranks.
+- `QuoteClient.get_option_analysis` 获取期权分析指标（隐含波动率、历史波动率、IV/HV比率、看涨看跌比率、IV百分位、IV排名）
 
 ## 3.5.2 (2026-01-21)
-
 ### New
-
-- Option quotes provide mark prices, selling returns, and related fields.
-- Additional option-calculation helpers are available.
-
-### Changed
-
-- cryptography 41.0.7 or later is required.
+- `QuoteClient.get_option_briefs` 增加 `mark_price`, `selling_return` 等字段
+- 期权计算工具增加若干方法
+- cryptography 最低版本调整为 41.0.7
 
 ## 3.5.1 (2025-12-26)
-
 ### New
-
-- Trading clients support position-transfer APIs.
+- TradeClient 增加转股相关接口
 
 ## 3.5.0 (2025-12-22)
-
 ### New
-
-- Transaction queries accept date ranges and provide quantity scales.
-- Prime-account assets provide foreign-exchange rates.
-- Push callbacks support thread pools.
+- `TradeClient.get_transactions` 获取成交记录，支持 since_date/to_date, 返回增加 filled_quantity_scale
+- `TradeClient.get_prime_assets` 综合账户资产增加字段 forex_rate
+- 长链接回调支持线程池
 
 ## 3.4.9 (2025-10-28)
-
 ### New
-
-- `get_bars` supports `with_fundamental` to include valuation and turnover data.
+- `QuoteClient.get_bars` 增加 `with_fundamental` 参数，支持获取附加数据(ttm_pe/lyr_pe/turnover_rate)的K线
 
 ## 3.4.8 (2025-09-24)
-
 ### New
-
-- `get_future_history_main_contract` queries historical main futures contracts.
+- `QuoteClient.get_future_history_main_contract` 获取期货历史主力合约
 
 ## 3.4.7 (2025-09-23)
-
-### Fixed
-
-- Historical timelines parse pre-market and post-market data correctly.
-
+### Fix
+- `QuoteClient.get_timeline_history` 解析盘前盘后分时数据问题
 ### Breaking
-
-- The `get_timeline` DataFrame column `tradingSession` is renamed to `trade_session`, with string values from the `TradingSession` enum.
+`QuoteClient.get_timeline` 返回的 DataFrame 中原来的 `tradingSession` 列改为 `trade_session`, 值改为 `TradingSession` 枚举值字符串
 
 ## 3.4.6 (2025-08-28)
-
 ### New
-
-- Position contracts provide instrument and underlying-contract names.
-
-### Changed
-
-- Improved MCP server behavior.
+- `TradeClient.get_positions` 持仓合约增加字段 `name`, `underlying_contract_name`
+### Modify
+- MCP Server optimization
 
 ## 3.4.5 (2025-08-22)
-
 ### New
-
-- `get_future_depth` queries futures depth.
-- Stock depth, ticks, timelines, historical timelines, and bars support overnight queries through `trade_session`.
-- An MCP server beta is available.
+- `QuoteClient.get_future_depth` 获取期货深度行情
+- QuoteClient 的 `get_depth_quote`, `get_trade_ticks`, `get_timeline`, `get_timeline_history`, `get_bars` 支持 `trade_session` 指定查询夜盘数据
+- MCP Server beta version pre-release
 
 ## 3.4.4 (2025-07-31)
-
 ### New
-
-- Stock scanning supports cursor pagination.
+选股器支持分页 cursor_id 参数
 
 ## 3.4.3 (2025-07-22)
-
-### Fixed
-
-- Order placement handles the response's orders attribute correctly.
+### Fix
+下单返回 orders 属性处理
 
 ## 3.4.2 (2025-07-18)
-
 ### New
-
-- Order helpers accept time in force.
-- Futures contracts provide contract value, delivery mode, and product type.
-- Futures quotes provide changes in open interest.
+订单工具函数支持 time_in_force 参数
+QuoteClient 期货合约接口增加字段 合约规模 product_worth，交割方式 delivery_mode，合约类型 product_type
+QuoteClient 期货实时行情接口增加字段 `open_interest_change`
 
 ### Breaking
-
-- Order and transaction queries support `page_token`. When supplied, the return value is a response object instead of a list; use `.result` for items and `.next_page_token` for the next cursor.
+- `get_orders`/`get_transactions` 支持分页 `page_token` 参数；传入 `page_token` 时返回值由列表改为响应对象（通过 `.result` 取列表，`.next_page_token` 取下一页游标）
 
 ## 3.4.1 (2025-06-26)
-
 ### New
-
-- `get_option_timeline` queries option timelines.
-- Contracts indicate fractional-share support.
+- `QuoteClient.get_option_timeline` 期权分时接口
+- Contract 添加属性 `support_fractional_share`
 
 ## 3.4.0 (2025-06-17)
-
 ### New
-
-- `get_bars` accepts a date for historical minute bars.
-- Additional APIs accept a language option.
-
-### Changed
-
-- The default client language is English.
+- `QuoteClient.get_bars` 增加 `date` 参数，用于查询历史分钟K线
+- 一部分接口增加 `lang` 参数，支持指定语言
+### Mod
+- `TigerOpenClientConfig` 配置里默认语言改为英文
 
 ## 3.3.9 (2025-06-12)
-
 ### New
-
-- Order callbacks provide time in force.
+- 订单回调增加属性 `timeInForce`
 
 ## 3.3.8 (2025-05-29)
-
 ### New
-
-- Configuration supports the TBUS license.
-- Order preview is supported.
+- 支持 TBUS 牌照配置
+- 支持订单预览
 
 ## 3.3.7 (2025-05-12)
-
 ### New
-
-- Order callbacks provide order attributes.
-- Subscription methods return subscription IDs.
+- 订单回调添加属性 `attrList`
+- `QuoteClient` 各订阅方法返回订阅id
 
 ## 3.3.6 (2025-04-28)
-
 ### New
-
-- `get_fund_details` queries funding details.
-- Option APIs accept timezone options.
-
-### Changed
-
-- Legacy `sandbox_config` configuration is deprecated.
+- `TradeClient.get_fund_details` 资金明细
+- `QuoteClient` 期权相关接口支持时区参数
+### Mod
+- 废弃 sandbox_config 配置
 
 ## 3.3.5 (2025-04-11)
-
 ### New
-
-- `get_broker_hold` queries broker holdings by market value.
+- `QuoteClient.get_broker_hold` 经纪商市值
 
 ## 3.3.4 (2025-04-09)
-
 ### New
-
-- `get_aggregate_assets` queries aggregate assets.
-
-### Changed
-
-- Stock-scanner fields are updated.
+- `TradeClient.get_aggregate_assets`
+### Mod
+- 选股器字段更新
 
 ## 3.3.3 (2025-03-05)
-
 ### New
+- `QuoteClient.get_quote_overnight` 获取夜盘行情
+### Mod
+- Contract 添加属性 `support_overnight_trading`
 
-- `get_quote_overnight` queries overnight quotes.
-- Contracts indicate overnight-trading support.
 
 ## 3.3.2 (2025-02-25)
-
 ### New
-
-- `get_trade_rank` queries popular trading rankings.
-- Contracts provide lot sizes.
+- `QuoteClient.get_trade_rank` 热门交易榜
+### Mod
+- Contract 添加属性 lot_size
 
 ## 3.3.1 (2024-12-31)
-
 ### New
-
-- `get_funding_history` queries deposit and withdrawal history.
-- Bar queries accept `trade_session`.
+- `TradeClient.get_funding_history` 出入金历史查询
+### Mod
+- `QuoteClient.get_bars` 增加 `trade_session` 参数
 
 ## 3.3.0 (2024-12-17)
-
 ### New
-
-- `get_stock_fundamental` queries stock fundamentals such as ROE and price-to-book ratios.
-
-### Fixed
-
-- Push errors invoke the error callback correctly.
+- `QuoteClient.get_stock_fundamental` 获取股票基础数据, 如 ROE, PB
+### Fix
+- 长连接 `error_callback` 未调用的问题
 
 ## 3.2.9 (2024-11-25)
-
-### Fixed
-
-- Batch contract queries send the correct parameters.
+### Fix
+- 修复批量获取合约 `TradeClient.get_contracts` 传参错误
 
 ## 3.2.8 (2024-11-11)
-
-### New
-
-- Order queries optionally include commission details through `show_charges`.
-- Prime-account assets provide uncollected amounts and locked funds.
-- Position push messages provide position and saleable quantities.
+### Modify
+- `TradeClient.get_order` 新增参数 `show_charges`, 订单对象 Order 新增 `charges` 返回佣金明细
+- 综合账户资产增加字段 `uncollected`, `locked_funds`
+- 推送持仓对象 `PositionData` 新增字段 `positionQty`, `salableQty`
 
 ## 3.2.7 (2024-07-12)
+### Modify
+- `TradeClient.get_positions` 新增字段 `position_qty`, `salable_qty`, `today_pnl`, `last_close_price` 等
 
-### New
-
-- Positions provide quantity, saleable quantity, daily profit/loss, previous close, and related fields.
 
 ## 3.2.6 (2024-07-03)
+### Fix
+- `QuoteClient.get_option_depth` 修复返回数据处理
 
-### Fixed
-
-- Option-depth responses decode correctly.
-
-## 3.2.5 (2024-06-19)
-
+# 3.2.5 (2024-06-19)
 ### New
+- 新增 `QuoteClient.get_option_depth`, `QuoteClient.get_option_symbols`
+### Modify
+- `QuoteClient.get_option_chain` 增加参数 `market`
+- `QuoteClient.get_option_briefs` 增加参数 `market`
+- `QuoteClient.get_option_expirations` 增加参数 `market`
 
-- `get_option_depth` queries option depth.
-- `get_option_symbols` queries option symbols.
-- Option chains, quotes, and expiration queries accept a market.
+# 3.2.4 (2024-06-05)
+### Modify
+- 下单支持夜盘参数, 可通过修改订单对象的 `order.trading_session_type` 来设置
+- Position 增加字段 `mm_value`, `mm_percent`
 
-## 3.2.4 (2024-06-05)
+# 3.2.3 (2024-04-11)
+### Fix
+- `QuoteClient.get_option_expirations` 修复多标的时 pandas 处理列名的问题
 
+# 3.2.2 (2024-04-09)
 ### New
+- 长链接全量 tick 推送
+- `TradeClient.get_open_orders` `get_filled_orders` 增加 `limit` 参数
 
-- Orders support overnight trading through `trading_session_type`.
-- Positions provide maintenance-margin value and percentage.
+# 3.2.1 (2024-04-09)
+### Fix
+- `QuoteClient.get_option_briefs` 返回补充字段 `change`
 
-## 3.2.3 (2024-04-11)
-
-### Fixed
-
-- Option-expiration DataFrame columns are handled correctly for multiple symbols.
-
-## 3.2.2 (2024-04-09)
-
-### New
-
-- Push connections support complete tick data.
-- Open-order and filled-order queries accept result limits.
-
-## 3.2.1 (2024-04-09)
-
-### Fixed
-
-- Option quotes include the change value.
-
-## 3.2.0 (2024-04-02)
-
-### New
-
-- Option-chain queries accept `return_greek_value`.
-
+# 3.2.0 (2024-04-02)
+### Modify
+- `QuoteClient.get_option_chain` 增加参数 `return_greek_value`
 ### Breaking
+- `TradeClieng.get_managed_accounts` 此前不传 `account` 参数时，会设置默认账户，现改为不设置默认账户
 
-- Managed-account queries no longer insert a default account when the account parameter is omitted.
-
-## 3.1.9 (2024-03-18)
-
+# 3.1.9 (2024-03-18)
 ### New
+- 长链接分钟k线推送
+### Modify
+- `QuoteClient.get_option_chain` 参数 `option_filter` 默认值优化
+- `QuoteClient.get_option_expirations` 返回增加周期字段
 
-- Push connections support minute bars.
-- Option expirations include cycle information.
+# 3.1.8 (2024-03-12)
+### Modify
+- `Order` 增加字段 `quantity_scale` 用于碎股下单指定小数数量
+### Fix
+- 处理合约 tick 的 PriceUtil 补充一种枚举类型 CLOSED_OPEN
 
-### Changed
+# 3.1.7 (2024-02-28)
+### Fix
+- 订单推送 commissionAndFee 类型由 double 回滚为 float
 
-- Option-chain filters use improved defaults.
+# 3.1.6 (2024-02-26)
+### Modify
+- `Order` 及订单推送数据增加字段 `gst`; 订单推送 commissionAndFee 类型由 float 改为 double
 
-## 3.1.8 (2024-03-12)
+# 3.1.5 (2024-01-19)
+### Fix
+- 修复长链接 protobuf 消息帧生成问题导致的无法连接问题
 
+# 3.1.4 (2024-01-19)
+### Modify
+- 优化http请求，复用连接
+- 优化rsa签名
+
+# 3.1.3 (2024-01-04)
+### Modify
+- `QuoteClient.get_symbol_names` 支持 OTC
+- `TradeClient.get_prime_assets` 支持 consolidated 参数
+### Fix
+- `QuoteClient.get_market_scanner_tags` multi_tags_fields 不生效的bug
+
+# 3.1.2 (2023-11-17)
 ### New
+- 支持美股期权深度行情订阅
 
-- Orders support fractional quantities through `quantity_scale`.
-
-### Fixed
-
-- Tick-size price adjustment supports `CLOSED_OPEN` intervals.
-
-## 3.1.7 (2024-02-28)
-
-### Fixed
-
-- Order-push commission and fee values revert from double to float.
-
-## 3.1.6 (2024-02-26)
-
+# 3.1.1 (2023-10-18)
 ### New
+- 支持 OCA 订单，通过 `tigeropen.common.util.order_utils.oca_order` 构造
 
-- Orders and order push messages provide GST.
+### Modify
+- `QuoteClient.get_timeline` 默认调用 3.0 版本api
 
-### Changed
+# 3.1.0 (2023-10-11)
+### Fix
+- 修复长连接 `subscribe_option_top` 的枚举参数
 
-- Order-push commission and fee values use double precision instead of float.
-
-## 3.1.5 (2024-01-19)
-
-### Fixed
-
-- Protobuf message framing no longer prevents push connections from being established.
-
-## 3.1.4 (2024-01-19)
-
-### Changed
-
-- HTTP requests reuse connections, and RSA signing is more efficient.
-
-## 3.1.3 (2024-01-04)
-
-### New
-
-- Symbol-name queries support OTC instruments.
-- Prime-account assets accept the `consolidated` option.
-
-### Fixed
-
-- Market-scanner queries honor multi-tag field filters.
-
-## 3.1.2 (2023-11-17)
-
-### New
-
-- Push subscriptions support US option depth.
-
-## 3.1.1 (2023-10-18)
-
-### New
-
-- `oca_order` creates OCA orders.
-
-### Changed
-
-- Timeline queries use API version 3.0 by default.
-
-## 3.1.0 (2023-10-11)
-
-### Fixed
-
-- Option-ranking subscriptions handle enum parameters correctly.
-
-## 3.0.9 (2023-08-29)
-
-### New
-
-- Order responses provide the latest price.
+# 3.0.9 (2023-08-29)
+### Modify
+- Order 对象补充字段 `latest_price`
 
 ## 3.0.8 (2023-08-16)
-
 ### New
+- 添加示例代码
 
-- Additional usage examples are available.
 
 ## 3.0.7 (2023-08-11)
-
 ### New
-
-- Fund APIs support symbol lists, current quotes, history, and contracts.
-- Order push messages provide total and filled cash amounts.
-- Push clients support custom heartbeat callbacks.
+- 新增基金相关接口
+  `QuoteClient.get_fund_symbols` 基金代码列表  
+  `QuoteClient.get_fund_quote` 基金行情
+  `QuoteClient.get_fund_history_quote` 基金历史行情
+  `QuoteClient.get_fund_contracts` 基金合约
+- 订单数据推送中新增字段 `totalCashAmount`, `filledCashAmount`
+- PushClient 可自定义心跳回调方法
 
 ## 3.0.6 (2023-07-31)
-
-### Changed
-
-- Push failures use consistent exception handling.
+### Modify
+- 长链接添加统一异常处理
 
 ## 3.0.5 (2023-07-24)
-
-### Fixed
-
-- Partial-fill order push messages convert to the correct status enum.
+### Fix
+- 修复长链接订单状态推送时，部分成交状态未转换为对应枚举值的问题
 
 ## 3.0.4 (2023-07-19)
-
 ### New
-
-- Symbol queries support OTC instruments through `include_otc`.
+- 获取市场股票代码接口 `QuoteClient.get_symbols` 增加参数 `include_otc` 参数，支持返回OTC市场symbol
 
 ### Breaking
-
-- Protobuf order-status callbacks expose `status` as an `OrderStatus` enum-name string. Convert it with `OrderStatus[frame.status]` or `get_order_status(frame.status)`.
+- 长链接订单状态回调中，回调数据对象 `tigeropen.push.pb.OrderStatusData_pb2.OrderStatusData` 的 `status` 
+  字段改为 `tigeropen.common.consts.OrderStatus` 枚举名称的字符串，可通过 `OrderStatus[frame.status]` 或
+  `get_order_status(frame.status)` 转换为 `OrderStatus` 枚举
 
 ## 3.0.3 (2023-07-10)
-
 ### New
-
-- Stock quotes can include pre-market and post-market data through `include_hour_trading`.
+- 股票实时行情接口 `QuoteClient.get_stock_briefs` 增加 `include_hour_trading` 参数, 支持返回盘前盘后数据
 
 ## 3.0.2 (2023-07-07)
-
 ### New
-
-- Option K-line queries accept sort direction.
-
-### Fixed
-
-- Push reconnection works correctly.
+- 期权k线接口支持排序方向参数 `sort_dir`
+### Fix
+- 修复长链接重连问题
 
 ## 3.0.1 (2023-06-21)
-
 ### New
-
-- Historical K-line quota queries are available.
-- Positions provide profit/loss calculated from average prices.
-- Push connections support ranking data.
+- 历史K线额度接口
+- 持仓对象新增按均价计算的盈亏字段
+- 长链接新增榜单数据推送
 
 ## 3.0.0 (2023-06-08)
-
 ### Breaking
-
-- Push connections use Protobuf by default instead of STOMP.
+- 长链接由默认stomp改为默认使用protobuf
 
 ## 2.4.0 (2023-06-07)
-
 ### New
-
-- Combination option orders are supported.
-
-### Fixed
-
-- Paginated K-line queries handle empty DataFrames correctly.
+- 支持期权组合订单
+### Fix
+- 修复分页获取k线数据为空时pandas字段索引错误
 
 ## 2.3.9 (2023-06-01)
-
-### New
-
-- Order-status push messages provide user remarks.
-
-### Fixed
-
-- Protobuf tick messages are decompressed correctly.
+### Fix
+- 修复protobuf推送tick数据未解压的问题
+### Modify
+- 修改订单状态推送proto定义，增加 userMark
 
 ## 2.3.8 (2023-05-09)
-
 ### New
-
-- Contract responses provide discounted-margin information.
-- Quote clients query stock-scanner tags.
-
-### Changed
-
-- Stock-scanner fields are updated.
+- 合约接口新增字段保证金优惠信息
+- QuoteClient 新增获取选股器tag查询接口
+### Modify
+- 修改选股器部分字段
 
 ## 2.3.7 (2023-04-18)
-
 ### New
+- TradeClient 新增预估可卖数量接口 `TradeClient.get_estimate_tradable_quantity`
+- `Order` 订单对象新增字段 `external_id`
+- `Position` 持仓对象新增字段 `saleable`，仅A股有值; 持仓推送对象增加 `saleable` 字段
 
-- `get_estimate_tradable_quantity` estimates tradable quantities.
-- Orders provide external IDs.
-- Positions and position push messages provide saleable status; queried saleable status is available for A-shares.
 
 ## 2.3.6 (2023-04-11)
-
 ### New
+- QuoteClient 新增窝轮牛熊证筛选接口 `QuoteClient.get_warrant_filter`, 窝轮牛熊证实时行情接口 `QuoteClient.get_warrant_briefs`
+- `QuoteClient.get_option_bars` 期权k线接口新增参数 `limit`
 
-- Warrant and CBBC queries support filtering and real-time quotes.
-- Option bars accept result limits.
 
 ## 2.3.5 (2023-03-28)
-
 ### New
+- TradeClient 新增不同品种(股票SEC/期货FUT/基金FUND)账户间资金划转接口
+  `TradeClient.get_segment_fund_available`  获取可划转资金  
+  `TradeClient.transfer_segment_fund`  划转资金  
+  `TradeClient.cancel_segment_fund`  取消划转  
+  `TradeClient.get_segment_fund_history`  获取划转历史  
+  
+- TradeClient 新增换汇下单接口
+  `TradeClient.place_forex_order`
+  
+- `QuoteClient.get_option_bars` 期权k线接口新增参数 `period`, 支持获取分钟k线
 
-- Segment-fund APIs support available-fund queries, transfers, cancellation, and history across securities, futures, and funds.
-- `place_forex_order` places foreign-exchange orders.
-- Option bars accept a period and support minute intervals.
 
 ## 2.3.4 (2023-03-20)
-
 ### New
-
-- Auction market and auction limit orders are supported.
-
-### Fixed
-
-- Push clients no longer fail with missing-module errors.
+- 支持AM/AL(盘前竞价单)
+### Fix
+- 修复PushClient报错模块找不到的问题
 
 ## 2.3.3 (2023-03-10)
+### Modify
+- 支持多进程运行场景下的 token 刷新，需安装 pip install watchdog 已开启 token 文件监听
+### Fix
+- 修复日历接口
 
-### New
-
-- Token refresh supports multiple processes through token-file monitoring; install `watchdog` to enable it.
-
-### Fixed
-
-- Calendar queries work correctly.
 
 ## 2.3.2 (2023-03-03)
-
 ### New
-
-- Push clients optionally support Protobuf through `user_protobuf=True`. Subscription calls remain mostly compatible, but Protobuf callback arguments differ from STOMP callback arguments.
+- PushClient长链接支持Protobuf，当前版本默认不开启，可通过在 PushClient 初始化时传人 `user_protobuf=True ` 开启，
+未来版本将默认使用Protobuf。
+  Protobuf方式的订阅方式与之前版本基本兼容一致；回调方法的参数改用Protobuf对象，与之前不兼容，
 
 ## 2.3.1 (2023-02-23)
-
 ### New
+- 支持2FA token自定义刷新间隔，可通过 client_config.token_refresh_duration = 0 关闭自动刷新
+### Fix
+- tick数据推送字段异常问题
+- 若开启token，刷新线程不随主线程退出的问题
 
-- Two-factor-authentication tokens support configurable refresh intervals; set `token_refresh_duration = 0` to disable automatic refresh.
-
-### Fixed
-
-- Tick push fields decode correctly.
-- Token-refresh threads stop when the main process exits.
 
 ## 2.3.0 (2023-02-16)
-
 ### New
+- 支持配置文件
+- 支持2FA token
 
-- Properties-file configuration and two-factor-authentication tokens are supported.
 
 ## 2.2.9 (2023-02-09)
+### Fix
+- 修复tick数据推送报错的问题
+### Modify
+- 除下单/改单/撤单外的接口，增加重试机制。默认重试5次，可通过 client_config.retry_max_tries 参数修改，设置为0则不进行重试
 
-### Changed
-
-- Requests other than order placement, modification, and cancellation retry up to five times by default. Configure `retry_max_tries`, or set it to zero to disable retries.
-
-### Fixed
-
-- Tick push messages no longer fail during decoding.
 
 ## 2.2.8 (2023-02-03)
+### Fix
+- 修复期权合约四要素解析工具无法处理部分港股期权的问题
 
-### Fixed
-
-- Option-identifier helpers handle additional Hong Kong option formats.
 
 ## 2.2.7 (2023-01-11)
-
 ### New
+- 支持配置日志路径
 
-- Log paths are configurable.
 
 ## 2.2.6 (2022-12-14)
-
-### Fixed
-
-- Installation supports Windows systems using GBK encoding.
+### Fix
+- 修复 Windows 系统编码为gbk时安装报编码错误的问题
 
 ## 2.2.5 (2022-12-12)
-
 ### New
+- `TradeClient.get_contract` 返回的合约对象 `tigeropen.trade.domain.contract.Contract` 新增属性: `is_etf`, `etf_leverage`
 
-- Contract responses indicate ETF status and leverage.
 
 ## 2.2.4 (2022-12-09)
-
 ### New
+- 资金流接口 `QuoteClient.get_capital_flow`
+- 资金分布接口 `QuoteClient.get_capital_distribution`
+- 港股经纪商接口 `QuoteClient.get_stock_broker`
 
-- `get_capital_flow` queries capital flows.
-- `get_capital_distribution` queries capital distribution.
-- `get_stock_broker` queries Hong Kong broker information.
 
 ## 2.2.3 (2022-12-07)
+### new
+- 选股器 `QuoteClient.market_scanner`
 
-### New
-
-- `market_scanner` provides stock screening.
 
 ## 2.2.2 (2022-11-22)
-
 ### New
-
-- Orders support GTD time in force.
-- Push subscriptions support execution details.
+- 订单支持GTD类型, 下单时可通过指定 Order 属性 time_in_force = "GTD" 设置
+- 订单成交明细支持长链接订阅推送
 
 ## 2.2.1 (2022-11-07)
-
 ### Fixed
+- 修复 `TradeClient.get_trade_ticks` begin_index 参数传 0 不生效的问题
 
-- Trade-tick queries honor an explicit zero begin index.
 
 ## 2.2.0 (2022-11-01)
-
 ### New
+- 长链接支持期货逐笔推送. 可通过 `PushClient.subscribe_tick` 订阅，使用 `PushClient.tick_changed` 接收回调
 
-- Futures tick subscriptions are available through `subscribe_tick` and `tick_changed`.
 
 ## 2.1.9 (2022-10-12)
-
 ### New
+- 支持多牌照配置, 分牌照请求不同域名. 可通过 client_config.license 指定牌照
+### Modify
+- `Contract` 新增属性 `short_initial_margin`, `short_maintenance_margin`, 新增方法 `to_str()` 可打印全部属性
+- `QuoteClient.get_financial_report` 增加参数 `begin_date`, `end_date`
+- `QuoteClient.get_trade_ticks` 兼容 1.0 版本接口
 
-- License configuration selects the appropriate service addresses.
-- Contracts provide short initial and maintenance margins, with `to_str` for displaying all attributes.
-- Financial-report queries accept begin and end dates.
-
-### Changed
-
-- Trade-tick queries remain compatible with API version 1.0.
 
 ## 2.1.8 (2022-08-26)
-
-### New
-
-- Order queries accept a segment type for securities, futures, or all instruments.
-
-### Changed
-
-- Push clients use updated reconnection retry limits.
-- Contract queries use API version 3.0.
-
+### Modify
+- `TradeClient.get_orders` 新增参数 `seg_type`， 可指定交易品种(证券SEC/期货FUT/全部ALL)  
+- `PushClient` 修改自动重连重试次数
+- `TradeClient.get_contract` 接口版本升级到V3
 ### Fixed
+- 修复 `TradeClient.get_contract` 获取港股期权合约时返回空的问题
 
-- Hong Kong option contract queries return data correctly.
 
 ## 2.1.7 (2022-08-19)
-
 ### New
-
-- `get_all_future_contracts` queries all contracts for a futures product.
-- Attached orders support trailing stops.
+- 新增获取期货某类型所有合约接口 `QuoteClient.get_all_future_contracts`
+- 附加订单支持追踪止损单
 
 ### Breaking
-
-- `get_future_trade_ticks` accepts one contract instead of a list.
+- 期货tick接口 `QuoteClient.get_future_trade_ticks`, 合约参数由接受列表改为只接受单个合约
 
 ## 2.1.6 (2022-08-11)
+### Modify
+- 支持全局时区配置， 可通过 ClientConfig.timezone 设置时区
 
-### New
 
-- Client configuration supports a global timezone.
+## 2.1.5 (2022-08-01) 
+### Modify
+- 交易相关接口支持全局语言配置, 可通过 ClientConfig.language 改变默认语言
 
-## 2.1.5 (2022-08-01)
-
-### New
-
-- Trading APIs support a configurable global language.
 
 ## 2.1.4 (2022-07-18)
-
 ### New
+- 新增历史资产分析接口 `TradeClient.get_analytics_asset`
+- 新增合约价格校正工具函数 `tigeropen.common.util.price_util.PriceUtil`, 可根据请求到的合约tick size, 校正输入的下单价格
+- 订单对象新增属性: 更新时间: `update_time`
+- 查询订单列表接口 `TradeClieng.get_orders (get_open_orders/get_filled_orders)` 支持指定排序规则, 按照订单创建时间或订单状态更新时间排序
+- 查询持仓接口 `TradeClient.get_positions` 支持期权要素(expiry, strike, put_call)参数过滤
 
-- `get_analytics_asset` queries historical asset performance.
-- `PriceUtil` adjusts order prices to contract tick sizes.
-- Orders provide update times, and order lists can sort by creation or status-update time.
-- Position queries accept option expiry, strike, and put/call filters.
 
 ## 2.1.3 (2022-07-01)
-
 ### New
+- 长连接新增逐笔订阅: `PushClient.subscribe_tick`, 退订 `PushClient.unsubscribe_tick`
+- 新增已订阅查询回调方法 `PushClient.query_subscribed_callback` 取代旧有的 `Pushclient.subscribed_symbols`
+- `QuoteClient.get_trade_ticks` 新增 `trade_session` 参数，可指定该参数查询盘前盘后数据
 
-- Push clients support tick subscriptions and unsubscriptions.
-- `query_subscribed_callback` queries current subscriptions.
-- Trade-tick queries support pre-market and post-market sessions.
+### Modify
+- `Pushclient.subscribed_symbols` 标记为废弃
 
-### Changed
-
-- `subscribed_symbols` is deprecated in favor of `query_subscribed_callback`.
 
 ## 2.1.2 (2022-06-14)
-
-### Changed
-
-- The STOMP dependency is upgraded from 4.1.24 to 8.0.1.
-
+### Modify
+- 升级 stomp.py 版本, 将之前的 4.1.24 升级到 8.0.1
 ### Breaking
-
-- `PushClient.auto_reconnect` is removed. Bind a custom `disconnect_callback` to implement custom reconnection.
-- A newer connection using the same tigerId can disconnect an earlier connection; the earlier client reports an exception and stops receiving data.
+- PushClient 去除 `auto_reconnect` 参数，如需自定义重连方式，可自定义方法并绑定 `disconnect_callback` 进行重连
+- 处理连接被踢的情况，如果有多台设备使用相同 tiger_id 连接, 新连接会将较早的连接踢掉，较早连接会抛出异常，停止接收消息
 
 ## 2.1.1 (2022-05-25)
-
 ### New
-
-- Stock and futures bars support batch pagination through `get_bars_by_page` and `get_future_bars_by_page`.
-- Bar queries accept page tokens.
-- Orders support user remarks when enabled for the account.
+- 新增批量分页获取k线接口
+  股票：`QuoteClient.get_bars_by_page`
+  期货：`QuoteClient.get_future_bars_by_page`
+- `QuoteClient.get_future_bars`, `QuoteClient.get_bars` 增加 `page_token` 参数，可用于分页请求定位下一页位置
+- `tigeropen.trade.domain.order.Order` 新增 `user_mark` 属性，用户下单时可传入一定长度的备注信息，该属性值在查询订单时会返回。(需用户提前向平台申请配置)
 
 ## 2.1.0 (2022-05-07)
-
 ### New
+- 动态获取服务域名；更改默认域名
+- 新增期权计算工具(examples.option_helpers.helpers)
+- 新增根据期货代码获取期货合约接口 `QuoteClient.get_future_contract`
+- 新增根据正股查衍生合约接口 `TradeClient.get_derivative_contracts`
 
-- Service addresses are discovered dynamically.
-- Option-calculation helpers are available.
-- `get_future_contract` queries a futures contract by code.
-- `get_derivative_contracts` queries derivatives for an underlying instrument.
 
 ## 2.0.9 (2022-04-18)
-
 ### New
-
-- `get_timeline_history` queries historical timelines.
-- Orders provide attached-order IDs and accept limit-price adjustment bounds.
-
+- 新增历史分时接口 `QuoteClient.get_timeline_history`
+- Order 对象新增字段
+  sub_ids: 附加订单子订单id列表(仅在下附加订单时此字段会有值)
+  adjust_limit: 限价单价格调整限制比例(作为下单参数使用, 查询时不返回)
+  
 ### Breaking
+- 下单 `TradeClient.place_order`, 改单 `TradeClient.modify_order`, 撤单 `TradeClient.cancel_order` 三个接口返回值，由之前的
+  `True` 或 `False` 改为订单 id
+- 抢占行情设备访问权，改为在 `QuoteClient` 初始化时默认自动执行，提供参数 `is_grab_permission` 可配置为不自动抢占。若该参数设置为 `False`,
+  则需用户自行调用 `QuoteClient.grab_quote_permission()` 抢占行情设备访问权
 
-- Placement, modification, and cancellation return order IDs instead of booleans.
-- Quote clients acquire market-data device access automatically. Set `is_grab_permission=False` to disable this and call `grab_quote_permission` explicitly.
 
 ## 2.0.7 (2022-01-31)
-
-### Changed
-
-- Default service addresses are updated.
+### Modify
+- 修改服务域名
 
 ## 2.0.6 (2022-01-24)
-
-### New
-
-- Contracts provide margin eligibility, close-only status, and shortable quantities.
-- Orders provide attribute descriptions and order sources.
+### New 
+- Contract 合约对象新增字段。  
+  marginable：是否可融资  
+  close_only：是否只允许平仓   
+  shortable_count：做空池剩余  
+- Order 订单对象新增字段。
+  attr_desc：属性描述（如期权是否为被动行权）  
+  source：订单来源  
 
 ### Breaking
+- 将 `tigeropen.quote.request.OpenApiRequest` 移动到 `tigeropen.common.request.OpenApiRequest`
 
-- `OpenApiRequest` moves from `tigeropen.quote.request` to `tigeropen.common.request`. Update imports accordingly.
 
 ## 2.0.5 (2022-01-10)
-
 ### New
-
-- `get_quote_permission` queries quote permissions.
-- `get_transactions` queries prime-account executions.
-- A complete strategy example is available.
+- 查询行情权限接口 QuoteClient.get_quote_permission
+- 订单综合账户成交记录接口 TradeClient.get_transactions
+- 增加一个完整的策略示例
 
 ### Changed
-
-- Enum parameters also accept their underlying values.
-- Order placement no longer validates the returned `Order.order_id` attribute.
-- SDK logging defaults to DEBUG instead of INFO.
-- Installation no longer pins pandas to one version.
+- 方法枚举参数优化，使用枚举参数的方法也可以直接使用该枚举对应值
+- TradeClient.place_order 去除返回数据中 Order.order_id 属性的校验
+- 将 SDK 内部的日志级别由 INFO 调整为 DEBUG, 防止默认情况下输出 SDK 的日志
+- 去除 pandas 固定版本号, 方便安装时灵活指定版本
 
 ### Breaking
-
-- `grab_quote_permission` responses rename `expireAt` to `expire_at`.
+- 抢占行情设备访问权接口 `QuoteClient.grab_quote_permission` 返回的数据项中，`expireAt` 字段格式转换为 `expire_at`
 
 ## 2.0.4 (2021-12-08)
-
 ### New
-
-- `get_prime_assets` queries prime and paper-account assets.
+- 综合/模拟账户查询资产接口 TradeClient.get_prime_assets
 
 ## 2.0.3 (2021-12-01)
-
 ### New
-
-- Option-chain queries support filtering.
-- `get_stock_delay_briefs` queries delayed quotes.
+- 期权链查询接口支持过滤 QuoteClient.get_option_chain 
+- 新增延迟行情接口 QuoteClient.get_stock_delay_briefs
 
 ## 2.0.2 (2021-11-01)
-
 ### Changed
-
-- Removed rarely used client-configuration properties.
-- Improved push subscriptions.
+-  移除 client_config 中不常用的属性
+-  长链接订阅优化
 
 ## 2.0.1 (2021-09-18)
-
 ### Breaking
-
-- Python 2 is no longer supported.
+-  移除 python2 的兼容
 
 ## 1.4.0 (2021-06-28)
-
 ### New
-
-- Depth queries and subscriptions are supported.
-- Clients can acquire market-data device access.
+-  新增深度行情查询及订阅
+-  新增抢占行情设备访问权接口
 
 ## 1.2.0 (2020-04-02)
-
 ### New
-
-- Industry APIs are available.
+-  新增行业接口
 
 ## 1.1.10 (2020-01-19)
-
 ### New
-
-- Corporate-action calendar data is available.
-- Global accounts support attached orders.
+-  新增公司行动日历数据
+-  新增附加订单（仅环球账户）
 
 ## 1.1.9 (2019-10-28)
-
 ### Fixed
-
-- Installation issues from version 1.1.8 are resolved.
+-  修复 1.1.8 的安装问题
 
 ## 1.1.8 (2019-10-27)
-
 ### New
-
-- Position and order APIs provide unique instrument identifiers.
-- Option data includes historical volatility for the underlying asset.
+-  持仓、订单相关接口中增加identifier，做为相关标的的唯一识别符。
+-  期权增增加 underlying asset 的历史波动率
 
 ## 1.1.7 (2019-08-02)
-
 ### New
+-  期货行情的推送价格默认处理为小数
+-  订单与持仓推送中增加 symbol 字段（请注意标准账户与环球账户的差异）
+-  账户资产（asset）推送中新增 segment ，表示推送的账户类型。
+-  股票合约中增加保证金交易相关数据
+-  example 中增加了一个示例策略
+-  新增一个生成 client_config 的方法
 
-- Futures quote push messages provide decimal prices.
-- Order and position push messages include symbols; account types retain their respective symbol conventions.
-- Asset push messages identify the account segment.
-- Stock contracts provide margin-trading information.
-- Added a strategy example and a configuration-construction helper.
 
 ## 1.1.6 (2019-07-12)
-
 ### New
-
-- Position, order, and asset subscriptions can target a specific account.
+-  支持按照 account 订阅持仓、订单、资产信息
 
 ## 1.1.5 (2019-06-27)
-
 ### New
+-  get_contracts 支持批量获取合约
+-  PushClient 中的行情支持按照成交与报价分类订阅
+-  PushClient 修复盘前成交推送的bug
+-  PushClient 中的时间戳改为按需推送，不再需要单独订阅
+-  重新梳理了get_assets接口，股票与期货交易使用更加清晰
+### Documentation
+-  SDK 中补全了文档，方便在IDE中快速查看
 
-- `get_contracts` queries contracts in batches.
-- Quote subscriptions can select trades or quotes.
-- Push timestamps are delivered as needed without a separate subscription.
-
-### Changed
-
-- Asset queries distinguish securities and futures accounts more clearly.
-
-### Fixed
-
-- Pre-market trade push messages are delivered correctly.
 
 ## 1.1.4 (2019-06-06)
-
 ### New
-
-- Order lists can include both securities and futures orders.
-- `get_order` queries an order by ID.
-- Tick queries support multiple stocks.
-- Corporate-action APIs provide dividends and splits.
-- Fundamental APIs provide daily valuations, financial statements, and derived factors.
-- Filled, pending-cancellation, and cancelled-order lists are available.
-- Push connections support minute timelines and heartbeats.
-- Futures queries support additional bar periods.
-
-### Changed
-
-- Order creation no longer requires separate contract or order-ID requests.
-- Push order statuses use `OrderStatus` objects.
-
+-  创建订单不再需要联网请求合约数据和申请订单号， 减少为 place_order 一个请求
+-  获取订单列表，订单列表支持一次查询股票和期货订单
+-  行情订阅的 focus_key 订阅逻辑修复， 支持订阅指定字段的推送
+-  get_order 支持按照 id 查询订单
+-  get_trade_ticks 返回多只股票
+-  新增公司行动数据 API， 含分红以及拆合股数据
+-  添加基本面 API，含日级别的估值数据以及财报级别的三大报表及衍生因子
+-  增加已成交、待撤销和已撤销的订单列表
+-  push_client 中新增加分钟分时的推送
+-  push_client 中的订单状态改为 OrderStatus 对象
+-  push_client 中增加心跳，减少链接断开的可能
+-  期货增加 3min、45min 等周期行情的查询， 修复期货 1min 周期的查询
 ### Fixed
-
-- Quote subscriptions honor selected fields.
-- Futures one-minute bars are queried correctly.
-- Order queries honor the security type.
+-  修复 get_orders 的 sec_type 无效的问题
