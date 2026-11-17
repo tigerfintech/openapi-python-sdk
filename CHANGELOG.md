@@ -1,17 +1,17 @@
 ## 3.9.2 (2026-11-18)
 
-### 新增
+### New
 
 - 合约查询新增订单能力信息，可查看支持的订单类型、订单有效期和交易时段组合。
 
 ## 3.9.1 (2026-11-09)
-### 新增
+### New
 - 美股期权快照和期权链子项新增累计成交量、累计成交额及 GTH/CURB 延长时段行情。
 - Protobuf 期权回调通过既有字段提供 GTH/CURB 价格和当前时段成交量、成交额，以 PreMarket/AfterHours 标识时段，累计量额独立返回。移除未发布的嵌套推送对象，HTTP 快照及期权链中的对应对象保留。
 - 期权分钟 K 线查询支持通过可选参数 with_hour_trading 包含 GTH/CURB 数据；原有调用继续使用服务端默认行为。
 
 ## 3.9.0 (2026-11-04)
-### 新增
+### New
 - 新增资讯模块 `tigeropen.news` 与 `NewsClient`
 - `NewsClient.get_stock_news(symbol, lang=None, page_count=None, page_size=None)` — 个股新闻列表（method=news_stock_list）：`symbol` 单标的必填（下游资讯服务实际不支持批量查询，传多个仅单个标的生效）；`page_count` / `page_size` 可选（缺省服务端默认 1 / 20，显式传值须 `page_count >= 1`、`1 <= page_size <= 50`）
 - `NewsClient.get_market_news(lang=None, last_id=None)` — 市场要闻列表（method=news_highlight_list）：无必填参数；翻页只走 `last_id` 游标（取上一页 `items` 最后一条的 `id`，不传从最新开始）
