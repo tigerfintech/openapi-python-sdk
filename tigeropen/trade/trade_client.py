@@ -194,6 +194,8 @@ class TradeClient(TigerOpenClient):
             lot_size: Lot size. 最小交易单位
             support_overnight_trading: Whether overnight trading is supported. 是否支持隔夜交易
             support_fractional_share: Whether fractional shares are supported. 是否支持零股交易
+            order_capabilities: Optional list of dictionaries with order_type, time_in_force,
+                and trading_session_type. Missing or null capabilities remain None.
 
         :return example:
         {'contract_id': 113, 'symbol': 'NVDA', 'currency': 'USD', 'sec_type': 'STK', 'exchange': None, 'origin_symbol': None, 'local_symbol': 'NVDA', 'expiry': None, 'strike': None, 'put_call': None, 'multiplier': 1.0, 'name': 'NVIDIA', 'short_margin': 0.35, 'short_initial_margin': 0.35, 'short_maintenance_margin': 0.3, 'short_fee_rate': 3.75, 'shortable': True, 'shortable_count': 38061067, 'long_initial_margin': 0.3, 'long_maintenance_margin': 0.25, 'contract_month': None, 'identifier': 'NVDA', 'primary_exchange': 'NASDAQ', 'market': 'US', 'min_tick': None, 'tick_sizes': [{'begin': '0', 'end': '1', 'type': 'CLOSED', 'tick_size': 0.0001}, {'begin': '1', 'end': 'Infinity', 'type': 'OPEN', 'tick_size': 0.01}], 'trading_class': 'NVDA', 'status': 1, 'marginable': True, 'trade': True, 'close_only': False, 'continuous': None, 'last_trading_date': None, 'first_notice_date': None, 'last_bidding_close_time': None, 'is_etf': False, 'etf_leverage': None, 'discounted_day_initial_margin': None, 'discounted_day_maintenance_margin': None, 'discounted_time_zone_code': None, 'discounted_start_at': None, 'discounted_end_at': None, 'categories': None, 'lot_size': 1.0, 'support_overnight_trading': True, 'support_fractional_share': True}

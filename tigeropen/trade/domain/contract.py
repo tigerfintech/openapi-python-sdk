@@ -93,6 +93,8 @@ class Contract:
         self.support_overnight_trading = kwargs.get('support_overnight_trading')
         self.support_fractional_share =kwargs.get('support_fractional_share')
         self.underlying_contract_name = kwargs.get('underlying_contract_name')
+        # Optional order type, time-in-force, and trading-session combinations.
+        self.order_capabilities = kwargs.get('order_capabilities')
 
     @property
     def right(self):
