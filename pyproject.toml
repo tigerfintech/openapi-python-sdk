@@ -39,7 +39,7 @@ dependencies = [
     "pandas",
     "python-dateutil",
     "pytz",
-    "pyasn1",
+    "pyasn1>=0.6.5",
     "rsa",
     "stomp.py",
     "getmac",
