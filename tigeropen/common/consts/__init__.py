@@ -41,6 +41,8 @@ class TradingSession(Enum):
 @unique
 class TradingSessionType(Enum):
     PRE_RTH_POST = 'PRE_RTH_POST'
+    PRE_RTH = 'PRE_RTH'  # 盘前/盘中
+    RTH_POST = 'RTH_POST'  # 盘中/盘后
     OVERNIGHT ='OVERNIGHT' # 夜盘
     RTH = 'RTH' # 盘中
     FULL ='FULL' # 全时段
