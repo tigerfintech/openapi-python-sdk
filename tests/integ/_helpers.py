@@ -74,6 +74,11 @@ _TRADING_HOURS_ERROR_KEYWORDS = (
 # - "only limit orders are supported ... outside of regular trading hours" 是
 #   订单自身带了盘前盘后标记时触发的，服务端会按盘外规则处理，与常规时段是否
 #   开市无关。
+# - 碎股单的时段规则在每个非常规时段各有一套措辞：盘前/盘后是 "Only regular
+#   trading hours supported when trading fractional shares"，夜盘（20:00–04:00
+#   ET，即北京时间 09:00–17:00）是 "fraction of a share cannot be traded during
+#   the overnight session"。cash-amount 订单的数量由服务端按当前行情计算，测试
+#   侧无法控制是否为碎股，所以两条都必须无条件 skip，否则 CI 在对应时段必红。
 # - TWAP/VWAP 的结束时间窗口是订单参数约束，与当前市场状态无关。
 #
 # SDK 无法再细分：没有任何行情接口暴露竞价窗口或盘前盘后资格，因此无条件 skip
@@ -84,6 +89,7 @@ _ORDER_TYPE_RESTRICTION_KEYWORDS = (
     "only limit, stop or stop-limit orders are allowed at non-trading hour",
     "you can only trade during regular trading hours",
     "only regular trading hours supported when trading fractional shares",
+    "fraction of a share cannot be traded during the overnight session",
     "the time range for the order",
     "outside of regular trading hours",
     "please wait for the next trading day to retry",
