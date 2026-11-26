@@ -1,3 +1,9 @@
+## 3.9.3 (Unreleased)
+
+### New
+
+- `TradingSessionType` 新增 `PRE_RTH`（盘前/盘中）和 `RTH_POST`（盘中/盘后）；综合/模拟账号下单和 preview 同时支持枚举及字符串传参。
+
 ## 3.9.2 (2026-11-18)
 
 ### New
